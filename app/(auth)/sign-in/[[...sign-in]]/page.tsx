@@ -4,8 +4,19 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/services/authService';
+import { useUser } from '@/hooks/useUser';
 import '../../../styles/auth.scss';
+
+// Mock user data for testing
+const MOCK_USER = {
+  email: 'pm@gmail.com',
+  password: 'pm123',
+  userData: {
+    userId: '1',
+    email: 'pm@gmail.com',
+    role: 'pm'
+  }
+};
 
 export default function SignInPage() {
   const router = useRouter();
@@ -25,30 +36,32 @@ export default function SignInPage() {
     }));
   };
 
+  const { setUserData } = useUser();
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log("Form submitted");
     setIsLoading(true);
 
     try {
-      const response = await authService.login({
-        email: formData.email,
-        password: formData.password
-      });
-
-      if (response?.accessToken) {
-        const { accessToken } = response;
-        localStorage.setItem('accessToken', accessToken);
+      // Mock authentication check
+      if (formData.email === MOCK_USER.email && formData.password === MOCK_USER.password) {
+        // Store mock token
+        localStorage.setItem('accessToken', 'mock-token-123');
+        
+        // Set user data
+        setUserData(MOCK_USER.userData);
         
         if (formData.rememberMe) {
           localStorage.setItem('rememberedEmail', formData.email);
         }
 
-        // Redirect directly to projects page
+        // Redirect to dashboard
         router.push('/dashboard');
+      } else {
+        alert('Invalid email or password. Try admin@gmail.com / admin123');
       }
     } catch (error) {
       console.error('Login error:', error);
-      // Here you can add toast notifications or error messages
     } finally {
       setIsLoading(false);
     }

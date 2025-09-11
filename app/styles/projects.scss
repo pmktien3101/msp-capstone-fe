@@ -1,0 +1,190 @@
+.pm-projects {
+  @apply p-6 bg-[#F9F4EE] min-h-screen;
+
+  .page-header {
+    @apply mb-8 p-6;
+
+    .header-actions {
+      @apply flex gap-3 justify-end items-end;
+    }
+  }
+
+  .projects-filters {
+    @apply flex gap-5 mb-6 bg-white p-5 rounded-xl border border-[#e2e8f0] shadow-sm;
+
+    .filter-group {
+      @apply flex flex-col gap-2;
+
+      label {
+        @apply text-sm font-medium text-gray-700;
+      }
+
+      .filter-select,
+      .filter-input {
+        @apply px-3 py-2 border border-[#d1d5db] rounded-lg text-sm min-w-[150px] transition-all duration-200 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100;
+      }
+
+      .filter-input {
+        @apply min-w-[200px];
+      }
+    }
+  }
+
+  .projects-grid {
+    @apply grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8;
+
+    .project-card {
+      @apply bg-white border border-[#e2e8f0] rounded-2xl p-6 shadow-sm transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+
+      .project-header {
+        @apply flex justify-between items-center mb-5;
+
+        .project-icon {
+          @apply text-3xl bg-gradient-to-r from-orange-500 to-orange-400 bg-clip-text text-transparent;
+        }
+
+        .project-status {
+          .status-badge {
+            @apply px-3 py-1.5 rounded-full text-xs font-semibold uppercase;
+
+            &.planning {
+              @apply bg-amber-100 text-amber-800;
+            }
+
+            &.active {
+              @apply bg-orange-100 text-orange-500;
+            }
+
+            &.on-hold {
+              @apply bg-red-100 text-red-800;
+            }
+
+            &.completed {
+              @apply bg-emerald-100 text-emerald-800;
+            }
+          }
+        }
+      }
+
+      .project-content {
+        .project-title {
+          @apply m-0 mb-3 text-xl font-semibold text-gray-800;
+        }
+
+        .project-description {
+          @apply text-gray-500 mb-5 leading-relaxed;
+        }
+
+        .project-meta {
+          @apply flex flex-col gap-3 mb-5;
+
+          .meta-item {
+            @apply flex items-center gap-2 text-sm text-gray-600;
+
+            .meta-icon {
+              @apply text-base min-w-[20px];
+            }
+          }
+        }
+
+        .project-progress {
+          .progress-header {
+            @apply flex justify-between items-center mb-2;
+
+            .progress-label {
+              @apply text-sm font-medium text-gray-700;
+            }
+
+            .progress-percentage {
+              @apply text-sm font-semibold text-orange-500;
+            }
+          }
+
+          .progress-bar {
+            @apply w-full h-2 bg-gray-200 rounded-full overflow-hidden;
+
+            .progress-fill {
+              @apply h-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-300;
+            }
+          }
+        }
+      }
+
+      .project-actions {
+        @apply flex gap-2 mt-5;
+      }
+    }
+  }
+
+  .projects-summary {
+    @apply grid grid-cols-2 lg:grid-cols-4 gap-5;
+
+    .summary-card {
+      @apply bg-white border border-[#e2e8f0] rounded-xl p-5 text-center shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg;
+
+      .summary-icon {
+        @apply text-3xl mb-3;
+      }
+
+      .summary-content {
+        h4 {
+          @apply m-0 mb-2 text-sm font-medium text-gray-500;
+        }
+
+        .summary-number {
+          @apply m-0 text-2xl font-bold text-gray-800;
+        }
+      }
+    }
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .pm-projects {
+    @apply p-4;
+
+    .page-header {
+      @apply flex-col gap-4 p-5;
+
+      .header-actions {
+        @apply w-full justify-stretch;
+
+        .btn {
+          @apply flex-1;
+        }
+      }
+    }
+
+    .projects-filters {
+      @apply flex-col gap-4 p-4;
+
+      .filter-group {
+        .filter-select,
+        .filter-input {
+          @apply min-w-full;
+        }
+      }
+    }
+
+    .projects-grid {
+      @apply gap-4;
+
+      .project-card {
+        @apply p-5;
+
+        .project-actions {
+          @apply flex-col;
+
+          .btn {
+            @apply w-full;
+          }
+        }
+      }
+    }
+
+    .projects-summary {
+      @apply grid-cols-2 gap-4;
+    }
+  }
+}
