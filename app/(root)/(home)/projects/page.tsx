@@ -8,7 +8,7 @@ import { CreateProjectModal } from '@/components/projects/modals/CreateProjectMo
 import { EditProjectModal } from '@/components/projects/modals/EditProjectModal';
 import { AddMeetingModal } from '@/components/projects/modals/AddMeetingModal';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
-import '@/app/styles/projects.css';
+import '@/app/styles/projects.scss';
 import { Project } from '@/types/project';
 
 const ProjectsPage = () => {

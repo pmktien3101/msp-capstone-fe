@@ -1,12 +1,13 @@
 import React, { ReactNode } from 'react'
+import MainLayout from '@/components/layout/MainLayout'
 
 const RootLayout = ({children}: {children:ReactNode}) => {
   return (
-    <main>
+    <MainLayout>
       {/* <StreamVideoProvider> */}
         {children}
       {/* </StreamVideoProvider> */}
-    </main>
+    </MainLayout>
   )
 }
 
