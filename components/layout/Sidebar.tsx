@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { ProjectSection } from './ProjectSection';
 
 interface SidebarItem {
   id: string;
@@ -14,6 +15,8 @@ interface SidebarItem {
 const Sidebar = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const [isProjectSectionExpanded, setIsProjectSectionExpanded] = useState(false);
+  
   const sidebarItems: SidebarItem[] = [
     {
       id: 'dashboard',
@@ -22,19 +25,6 @@ const Sidebar = () => {
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      )
-    },
-    {
-      id: 'projects',
-      label: 'Dự Án',
-      route: '/projects',
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M3 7V5C3 3.89543 3.89543 3 5 3H19C20.1046 3 21 3.89543 21 5V7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M3 7V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M8 11H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M8 15H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       )
     },
@@ -94,6 +84,14 @@ const Sidebar = () => {
   // Auto-detect active item based on current pathname
   useEffect(() => {
     const currentPath = pathname;
+    
+    // Check if we're on a project page
+    if (currentPath.includes('/projects/') && !currentPath.endsWith('/projects')) {
+      setActiveItem('projects');
+      setIsProjectSectionExpanded(true);
+      return;
+    }
+    
     const currentItem = sidebarItems.find(item => item.route === currentPath);
     if (currentItem) {
       setActiveItem(currentItem.id);
@@ -103,6 +101,10 @@ const Sidebar = () => {
   const handleItemClick = (item: SidebarItem) => {
     setActiveItem(item.id);
     router.push(item.route);
+  };
+
+  const handleProjectSectionToggle = () => {
+    setIsProjectSectionExpanded(!isProjectSectionExpanded);
   };
 
   return (
@@ -130,6 +132,12 @@ const Sidebar = () => {
               )}
             </div>
           ))}
+          
+          {/* Project Section */}
+          <ProjectSection
+            isExpanded={isProjectSectionExpanded}
+            onToggle={handleProjectSectionToggle}
+          />
         </div>
       </div>
 
@@ -137,14 +145,13 @@ const Sidebar = () => {
         .sidebar-container {
           width: 100%;
           height: 100%;
-          padding: 16px;
-          background: white;
-          box-shadow: 0px 3px 35.16px rgba(0, 0, 0, 0.08);
+          padding: 12px;
+          background: #f8f9fa;
+          border-right: 1px solid #e1e5e9;
           display: flex;
           flex-direction: column;
           justify-content: flex-start;
           align-items: flex-start;
-          gap: 32px;
         }
 
         .sidebar-content {
@@ -154,78 +161,74 @@ const Sidebar = () => {
         .sidebar-items {
           display: flex;
           flex-direction: column;
-          gap: 14.64px;
+          gap: 4px;
         }
 
         .sidebar-item {
           width: 100%;
-          padding: 7.32px;
-          background: white;
-          border-radius: 3.66px;
+          padding: 8px 12px;
+          background: transparent;
+          border-radius: 6px;
           display: flex;
           justify-content: space-between;
           align-items: center;
           cursor: pointer;
           transition: all 0.2s ease;
-          border: 2px solid transparent;
+          border: none;
+          position: relative;
         }
 
         .sidebar-item:hover {
-          background: #FDF0D2;
-          border-color: #FFA463;
+          background: #e9ecef;
         }
 
         .sidebar-item.active {
-          background: #FDF0D2;
-          border-color: #FF5E13;
+          background: #fff3cd;
+          color: #856404;
         }
 
         .sidebar-item.has-badge {
-          background: #FDF0D2;
+          background: #fff3cd;
         }
 
         .item-content {
           display: flex;
-          justify-content: center;
           align-items: center;
-          gap: 7.32px;
+          gap: 8px;
         }
 
         .item-icon {
-          width: 29.27px;
-          height: 29.27px;
+          width: 20px;
+          height: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #5D7285;
+          color: #6c757d;
           transition: color 0.2s ease;
         }
 
         .sidebar-item.active .item-icon {
-          color: #FF5E13;
+          color: #856404;
         }
 
         .sidebar-item:hover .item-icon {
-          color: #FFA463;
+          color: #495057;
         }
 
         .item-label {
-          color: #5D7285;
-          font-size: 14.64px;
-          font-family: 'Poppins', sans-serif;
-          font-weight: 400;
-          line-height: 21.95px;
-          letter-spacing: 0.15px;
+          color: #495057;
+          font-size: 14px;
+          font-weight: 500;
           transition: color 0.2s ease;
         }
 
         .sidebar-item.active .item-label {
-          color: #FF5E13;
+          color: #856404;
           font-weight: 600;
         }
 
         .sidebar-item:hover .item-label {
-          color: #FFA463;
+          color: #212529;
         }
 
         .item-badge {
@@ -235,9 +238,9 @@ const Sidebar = () => {
         }
 
         .badge-dot {
-          width: 8px;
-          height: 8px;
-          background: #FF5E13;
+          width: 6px;
+          height: 6px;
+          background: #ffc107;
           border-radius: 50%;
         }
       `}</style>
