@@ -56,7 +56,7 @@ export default function CustomBarChart({
 
       <div className="chart-content">
         <div className="chart-y-axis">
-          {scaleValues.map((value, index) => (
+          {scaleValues.slice().reverse().map((value, index) => (
             <div key={index} className="y-axis-label">
               {value > 0 ? `${value}` : '0'}
             </div>
