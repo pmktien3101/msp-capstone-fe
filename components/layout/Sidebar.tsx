@@ -15,8 +15,62 @@ interface SidebarItem {
 const Sidebar = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const { logout } = useUser();
-  const sidebarItems: SidebarItem[] = [
+  const { logout, role } = useUser();
+
+  // Admin menu items
+  const adminSidebarItems: SidebarItem[] = [
+    {
+      id: 'admin-dashboard',
+      label: 'Dashboard',
+      route: '/dashboard/admin/dashboard',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    {
+      id: 'companies',
+      label: 'Companies',
+      route: '/dashboard/admin/companies',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M3 21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M5 21V7L13 2L21 7V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M19 21V12H13V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M9 9H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M9 13H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M9 17H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    {
+      id: 'plans',
+      label: 'Plans & Subscription',
+      route: '/dashboard/admin/plans',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M20 7L9 12L20 17V7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M4 5H16V19H4V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    {
+      id: 'reports',
+      label: 'Reports & Analytics',
+      route: '/dashboard/admin/reports',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M18 20V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M12 20V4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M6 20V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    }
+  ];
+
+  // Regular user menu items
+  const userSidebarItems: SidebarItem[] = [
     {
       id: 'dashboard',
       label: 'Bảng Điều Khiển',
@@ -90,6 +144,9 @@ const Sidebar = () => {
       )
     }
   ];
+
+  // Get sidebar items based on role
+  const sidebarItems = role === 'AdminSystem' ? adminSidebarItems : userSidebarItems;
 
   const [activeItem, setActiveItem] = useState('dashboard');
 
