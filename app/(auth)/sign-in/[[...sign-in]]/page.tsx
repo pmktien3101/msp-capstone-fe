@@ -1,32 +1,72 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/useUser';
+import { setAccessToken, isAuthenticated } from '@/lib/auth';
 import '../../../styles/auth.scss';
 
 // Mock user data for testing
-const MOCK_USER = {
-  email: 'pm@gmail.com',
-  password: 'pm123',
-  userData: {
-    userId: '1',
+const MOCK_USERS = [
+  {
     email: 'pm@gmail.com',
-    role: 'pm'
+    password: 'pm123',
+    userData: {
+      userId: '1',
+      email: 'pm@gmail.com',
+      role: 'pm'
+    }
+  },
+  {
+    email: 'admin@gmail.com',
+    password: 'admin123',
+    userData: {
+      userId: '2',
+      email: 'admin@gmail.com',
+      role: 'AdminSystem'
+    }
+  },
+  {
+    email: 'business@gmail.com',
+    password: 'business123',
+    userData: {
+      userId: '3',
+      email: 'business@gmail.com',
+      role: 'BusinessOwner'
+    }
   }
-};
+];
 
 export default function SignInPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false
   });
+
+  // Always call hooks at the top level
+  const { setUserData } = useUser();
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkAuth = () => {
+      if (isAuthenticated()) {
+        console.log('User already authenticated, redirecting to dashboard');
+        router.push('/dashboard');
+        return;
+      }
+      setIsCheckingAuth(false);
+    };
+
+    const timer = setTimeout(checkAuth, 100);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -35,8 +75,6 @@ export default function SignInPage() {
       [name]: type === 'checkbox' ? checked : value
     }));
   };
-
-  const { setUserData } = useUser();
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Form submitted");
@@ -44,12 +82,16 @@ export default function SignInPage() {
 
     try {
       // Mock authentication check
-      if (formData.email === MOCK_USER.email && formData.password === MOCK_USER.password) {
-        // Store mock token
-        localStorage.setItem('accessToken', 'mock-token-123');
+      const foundUser = MOCK_USERS.find(
+        user => user.email === formData.email && user.password === formData.password
+      );
+      
+      if (foundUser) {
+        // Store token using utility function
+        setAccessToken('mock-token-123', formData.rememberMe);
         
         // Set user data
-        setUserData(MOCK_USER.userData);
+        setUserData(foundUser.userData);
         
         if (formData.rememberMe) {
           localStorage.setItem('rememberedEmail', formData.email);
@@ -58,7 +100,7 @@ export default function SignInPage() {
         // Redirect to dashboard
         router.push('/dashboard');
       } else {
-        alert('Invalid email or password. Try admin@gmail.com / admin123');
+        alert('Invalid email or password. Try:\n- pm@gmail.com / pm123\n- admin@gmail.com / admin123\n- business@gmail.com / business123');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -66,6 +108,47 @@ export default function SignInPage() {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="auth-checking">
+        <div className="loading-spinner"></div>
+        <p>Đang kiểm tra trạng thái đăng nhập...</p>
+        <style jsx>{`
+          .auth-checking {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #F9F4EE 0%, #FDF0D2 50%, #FFDBBD 100%);
+          }
+          
+          .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #FF5E13;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+          }
+          
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          p {
+            color: #6b7280;
+            font-size: 14px;
+            margin: 0;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="login-container">

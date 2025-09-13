@@ -1,5 +1,6 @@
 import { api } from './api';
 import type { LoginCredentials, RegisterData } from '@/types';
+import { clearAllAuthData } from '@/lib/auth';
 
 export const authService = {
     async login(credentials: LoginCredentials) {
@@ -14,7 +15,16 @@ export const authService = {
     },
 
     async logout() {
-        localStorage.removeItem('accessToken');
+        try {
+            // Use utility function to clear all auth data
+            clearAllAuthData();
+            
+            console.log('All user data cleared from storage');
+            return { success: true, message: 'Logged out successfully' };
+        } catch (error) {
+            console.error('Error during logout:', error);
+            return { success: false, message: 'Logout failed' };
+        }
     },
 
     async getCurrentUser() {
