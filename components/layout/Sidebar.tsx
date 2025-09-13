@@ -201,11 +201,13 @@ const Sidebar = () => {
             </div>
           ))}
           
-          {/* Project Section */}
-          <ProjectSection
-            isExpanded={isProjectSectionExpanded}
-            onToggle={handleProjectSectionToggle}
-          />
+          {/* Project Section - Only show for non-admin users */}
+          {role !== 'AdminSystem' && (
+            <ProjectSection
+              isExpanded={isProjectSectionExpanded}
+              onToggle={handleProjectSectionToggle}
+            />
+          )}
         </div>
         
         {/* Logout Button */}
