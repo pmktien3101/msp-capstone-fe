@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ProjectSection } from './ProjectSection';
+import { useUser } from '@/hooks/useUser';
 
 interface SidebarItem {
   id: string;
@@ -16,8 +17,64 @@ const Sidebar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const [isProjectSectionExpanded, setIsProjectSectionExpanded] = useState(false);
-  
-  const sidebarItems: SidebarItem[] = [
+
+  const { logout, role } = useUser();
+
+  // Admin menu items
+  const adminSidebarItems: SidebarItem[] = [
+    {
+      id: 'admin-dashboard',
+      label: 'Dashboard',
+      route: '/dashboard/admin/dashboard',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    {
+      id: 'companies',
+      label: 'Companies',
+      route: '/dashboard/admin/companies',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M3 21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M5 21V7L13 2L21 7V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M19 21V12H13V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M9 9H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M9 13H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M9 17H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    {
+      id: 'plans',
+      label: 'Plans & Subscription',
+      route: '/dashboard/admin/plans',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M20 7L9 12L20 17V7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M4 5H16V19H4V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    {
+      id: 'reports',
+      label: 'Reports & Analytics',
+      route: '/dashboard/admin/reports',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M18 20V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M12 20V4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M6 20V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    }
+  ];
+
+  // Regular user menu items
+    // const sidebarItems: SidebarItem[] = [
+  const userSidebarItems: SidebarItem[] = [
     {
       id: 'dashboard',
       label: 'Bảng Điều Khiển',
@@ -79,6 +136,9 @@ const Sidebar = () => {
     }
   ];
 
+  // Get sidebar items based on role
+  const sidebarItems = role === 'AdminSystem' ? adminSidebarItems : userSidebarItems;
+
   const [activeItem, setActiveItem] = useState('dashboard');
 
   // Auto-detect active item based on current pathname
@@ -105,6 +165,14 @@ const Sidebar = () => {
 
   const handleProjectSectionToggle = () => {
     setIsProjectSectionExpanded(!isProjectSectionExpanded);
+  };
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/sign-in');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   return (
@@ -139,6 +207,25 @@ const Sidebar = () => {
             onToggle={handleProjectSectionToggle}
           />
         </div>
+        
+        {/* Logout Button */}
+        <div className="logout-section">
+          <div className="logout-divider"></div>
+          <div className="logout-item" onClick={handleLogout}>
+            <div className="item-content">
+              <div className="item-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M16 17L21 12L16 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 12H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div className="item-label">
+                Đăng Xuất
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <style jsx>{`
@@ -150,7 +237,7 @@ const Sidebar = () => {
           border-right: 1px solid #e1e5e9;
           display: flex;
           flex-direction: column;
-          justify-content: flex-start;
+          justify-content: space-between;
           align-items: flex-start;
         }
 
@@ -242,6 +329,53 @@ const Sidebar = () => {
           height: 6px;
           background: #ffc107;
           border-radius: 50%;
+        }
+
+        .logout-section {
+          margin-top: auto;
+          padding-top: 20px;
+        }
+
+        .logout-divider {
+          width: 100%;
+          height: 1px;
+          background: #E5E7EB;
+          margin-bottom: 16px;
+        }
+
+        .logout-item {
+          width: 100%;
+          padding: 7.32px;
+          background: white;
+          border-radius: 3.66px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border: 2px solid transparent;
+        }
+
+        .logout-item:hover {
+          background: #FEF2F2;
+          border-color: #EF4444;
+        }
+
+        .logout-item .item-icon {
+          color: #EF4444;
+        }
+
+        .logout-item .item-label {
+          color: #EF4444;
+          font-weight: 500;
+        }
+
+        .logout-item:hover .item-icon {
+          color: #DC2626;
+        }
+
+        .logout-item:hover .item-label {
+          color: #DC2626;
         }
       `}</style>
     </div>

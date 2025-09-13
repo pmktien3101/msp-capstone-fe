@@ -3,19 +3,26 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { isAuthenticated } from '@/lib/auth';
 import '../styles/landing-page.scss';
 
 export default function LandingPage() {
   const [isYearlyBilling, setIsYearlyBilling] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user is already authenticated
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      // If user is authenticated, redirect to dashboard
-      router.push('/dashboard');
-    }
+    const checkAuth = () => {
+      if (isAuthenticated()) {
+        console.log('User already authenticated, redirecting to dashboard');
+        router.push('/dashboard');
+        return;
+      }
+      setIsCheckingAuth(false);
+    };
+
+    const timer = setTimeout(checkAuth, 100);
+    return () => clearTimeout(timer);
   }, [router]);
 
   const stats = [
@@ -96,6 +103,47 @@ export default function LandingPage() {
       avatar: '👩‍💼'
     }
   ];
+
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="auth-checking">
+        <div className="loading-spinner"></div>
+        <p>Đang kiểm tra trạng thái đăng nhập...</p>
+        <style jsx>{`
+          .auth-checking {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          }
+          
+          .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #FF5E13;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+          }
+          
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          p {
+            color: white;
+            font-size: 14px;
+            margin: 0;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="landing-page">

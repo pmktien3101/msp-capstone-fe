@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { isAuthenticated } from '@/lib/auth';
 import '@/app/styles/sign-up.scss';
 
 interface RegisterFormData {
@@ -21,6 +23,8 @@ interface RegisterFormData {
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const router = useRouter();
   const [registerForm, setRegisterForm] = useState<RegisterFormData>({
     businessName: '',
     businessType: '',
@@ -36,6 +40,62 @@ export default function SignUpPage() {
     selectedPlan: '',
     yearlyBilling: false,
   });
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkAuth = () => {
+      if (isAuthenticated()) {
+        console.log('User already authenticated, redirecting to dashboard');
+        router.push('/dashboard');
+        return;
+      }
+      setIsCheckingAuth(false);
+    };
+
+    const timer = setTimeout(checkAuth, 100);
+    return () => clearTimeout(timer);
+  }, [router]);
+
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="auth-checking">
+        <div className="loading-spinner"></div>
+        <p>Đang kiểm tra trạng thái đăng nhập...</p>
+        <style jsx>{`
+          .auth-checking {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #F9F4EE 0%, #FDF0D2 50%, #FFDBBD 100%);
+          }
+          
+          .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #FF5E13;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+          }
+          
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          p {
+            color: #6b7280;
+            font-size: 14px;
+            margin: 0;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   const availablePlans = [
     {
@@ -135,6 +195,52 @@ export default function SignUpPage() {
       registerForm.selectedPlan
     );
   };
+
+  // Show redirect message if already authenticated
+  if (isCheckingAuth) {
+    return (
+      <div className="auth-checking">
+        <div className="loading-spinner"></div>
+        <p>Đang kiểm tra trạng thái đăng nhập...</p>
+        <style jsx>{`
+          .auth-checking {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #F9F4EE 0%, #FDF0D2 50%, #FFDBBD 100%);
+          }
+          
+          .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #FF5E13;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+          }
+          
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          p {
+            color: #6b7280;
+            font-size: 14px;
+            margin: 0;
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // If already authenticated, show redirect message
+  if (isAuthenticated()) {
+    return <RedirectMessage message="Bạn đã đăng nhập rồi, đang chuyển hướng đến dashboard..." />;
+  }
 
   return (
     <div className="register-container">
