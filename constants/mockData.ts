@@ -188,6 +188,58 @@ export const mockMilestones = [
   }
 ];
 
+export const mockMeetings = [
+  {
+    id: 'meeting-1',
+    projectId: 'proj-1',
+    title: 'Họp kick-off dự án',
+    description: 'Cuộc họp khởi động dự án MSP với toàn bộ team',
+    startTime: '2025-09-15T09:00:00Z',
+    endTime: '2025-09-15T10:30:00Z',
+    location: 'Phòng họp A - Tầng 3',
+    attendees: [
+      { id: 'user-1', name: 'Quang Long', email: 'ql@msp.com', role: 'Project Manager' },
+      { id: 'user-2', name: 'Nguyễn Văn A', email: 'a@msp.com', role: 'Developer' },
+      { id: 'user-3', name: 'Trần Thị B', email: 'b@msp.com', role: 'Designer' }
+    ],
+    status: 'completed',
+    createdAt: '2025-09-01T08:00:00Z',
+    updatedAt: '2025-09-15T10:30:00Z'
+  },
+  {
+    id: 'meeting-2',
+    projectId: 'proj-1',
+    title: 'Review thiết kế UI/UX',
+    description: 'Review và feedback về thiết kế giao diện đăng nhập',
+    startTime: '2025-09-20T14:00:00Z',
+    endTime: '2025-09-20T15:30:00Z',
+    location: 'Phòng họp B - Tầng 2',
+    attendees: [
+      { id: 'user-1', name: 'Quang Long', email: 'ql@msp.com', role: 'Project Manager' },
+      { id: 'user-3', name: 'Trần Thị B', email: 'b@msp.com', role: 'Designer' }
+    ],
+    status: 'scheduled',
+    createdAt: '2025-09-10T10:00:00Z',
+    updatedAt: '2025-09-10T10:00:00Z'
+  },
+  {
+    id: 'meeting-3',
+    projectId: 'proj-1',
+    title: 'Demo tích hợp Payment',
+    description: 'Demo tính năng tích hợp thanh toán VNPay',
+    startTime: '2025-09-25T10:00:00Z',
+    endTime: '2025-09-25T11:00:00Z',
+    location: 'Phòng họp A - Tầng 3',
+    attendees: [
+      { id: 'user-1', name: 'Quang Long', email: 'ql@msp.com', role: 'Project Manager' },
+      { id: 'user-2', name: 'Nguyễn Văn A', email: 'a@msp.com', role: 'Developer' }
+    ],
+    status: 'scheduled',
+    createdAt: '2025-09-15T14:00:00Z',
+    updatedAt: '2025-09-15T14:00:00Z'
+  }
+];
+
 // Helper functions
 export const getTasksByStatus = (status: string) => {
   return mockTasks.filter(task => task.status === status);
