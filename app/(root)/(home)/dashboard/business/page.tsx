@@ -1,67 +1,284 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Chart, registerables } from 'chart.js';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const BusinessDashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [hoveredStat, setHoveredStat] = useState<string | null>(null);
+  const [showAllMeetings, setShowAllMeetings] = useState(false);
+  const chartRef = useRef<HTMLCanvasElement>(null);
+  const chartInstance = useRef<Chart | null>(null);
+  const meetingChartRef = useRef<HTMLCanvasElement>(null);
+  const meetingChartInstance = useRef<Chart | null>(null);
+
+  // Revenue data for Recharts
+  const revenueData = [
+    { month: 'T1', revenue: 45 },
+    { month: 'T2', revenue: 52 },
+    { month: 'T3', revenue: 48 },
+    { month: 'T4', revenue: 61 },
+    { month: 'T5', revenue: 55 },
+    { month: 'T6', revenue: 67 },
+    { month: 'T7', revenue: 72 },
+    { month: 'T8', revenue: 68 },
+    { month: 'T9', revenue: 75 },
+    { month: 'T10', revenue: 82 },
+    { month: 'T11', revenue: 78 },
+    { month: 'T12', revenue: 85 }
+  ];
+
+  useEffect(() => {
+    if (chartRef.current) {
+      // Register Chart.js components
+      Chart.register(...registerables);
+
+      // Destroy existing chart if it exists
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+
+      const ctx = chartRef.current.getContext('2d');
+      if (ctx) {
+        chartInstance.current = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Hoàn thành', 'Đang thực hiện', 'Chờ xử lý'],
+            datasets: [{
+              data: [18, 6, 3],
+              backgroundColor: [
+                '#10b981', // Green for completed
+                '#f59e0b', // Orange for in-progress
+                '#6b7280'  // Gray for pending
+              ],
+              borderColor: [
+                '#059669',
+                '#d97706',
+                '#4b5563'
+              ],
+              borderWidth: 2,
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+              padding: {
+                top: 10,
+                bottom: 10,
+                left: 10,
+                right: 10
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 15,
+                  usePointStyle: true,
+                  font: {
+                    size: 11,
+                    family: 'Inter, sans-serif'
+                  }
+                }
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: 'white',
+                bodyColor: 'white',
+                borderColor: '#FF5E13',
+                borderWidth: 1,
+                cornerRadius: 8,
+                displayColors: true,
+                callbacks: {
+                  label: function (context) {
+                    const label = context.label || '';
+                    const value = context.parsed;
+                    const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+                    const percentage = ((value / total) * 100).toFixed(1);
+                    return `${label}: ${value} dự án (${percentage}%)`;
+                  }
+                }
+              }
+            },
+            cutout: '60%'
+          }
+        });
+      }
+    }
+
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (meetingChartRef.current) {
+      // Register Chart.js components
+      Chart.register(...registerables);
+
+      // Destroy existing chart if it exists
+      if (meetingChartInstance.current) {
+        meetingChartInstance.current.destroy();
+      }
+
+      const ctx = meetingChartRef.current.getContext('2d');
+      if (ctx) {
+        meetingChartInstance.current = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['9:00-12:00', '13:00-17:00', '18:00-20:00', 'Khác'],
+            datasets: [{
+              label: 'Số cuộc họp',
+              data: [55, 44, 34, 23],
+              backgroundColor: [
+                '#FF6B6B',
+                '#4ECDC4',
+                '#45B7D1',
+                '#96CEB4'
+              ],
+              borderColor: [
+                '#FF5252',
+                '#26A69A',
+                '#2196F3',
+                '#66BB6A'
+              ],
+              borderWidth: 2,
+              borderRadius: 4,
+              borderSkipped: false,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+              padding: {
+                top: 10,
+                bottom: 10,
+                left: 10,
+                right: 10
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                titleColor: 'white',
+                bodyColor: 'white',
+                borderColor: '#FF5E13',
+                borderWidth: 1,
+                cornerRadius: 8,
+                displayColors: true,
+                callbacks: {
+                  label: function (context) {
+                    return `${context.label}: ${context.parsed.y} cuộc họp`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: '#F3F4F6'
+                },
+                ticks: {
+                  color: '#6b7280',
+                  font: {
+                    size: 10
+                  }
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  color: '#6b7280',
+                  font: {
+                    size: 10
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    return () => {
+      if (meetingChartInstance.current) {
+        meetingChartInstance.current.destroy();
+      }
+    };
+  }, []);
+
 
   const stats = [
     {
+      id: 'revenue',
       title: 'Tổng Doanh Thu',
       value: '$125,430',
       change: '+12.5%',
       changeType: 'positive',
-      icon: '💰'
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2V22M17 5H9.5C8.57174 5 7.6815 5.36875 7.02513 6.02513C6.36875 6.6815 6 7.57174 6 8.5C6 9.42826 6.36875 10.3185 7.02513 10.9749C7.6815 11.6312 8.57174 12 9.5 12H14.5C15.4283 12 16.3185 12.3687 16.9749 13.0251C17.6312 13.6815 18 14.5717 18 15.5C18 16.4283 17.6312 17.3185 16.9749 17.9749C16.3185 18.6312 15.4283 19 14.5 19H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+      color: 'blue'
     },
     {
+      id: 'projects',
       title: 'Dự Án Hoạt Động',
       value: '8',
       change: '+2',
       changeType: 'positive',
-      icon: '📊'
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+      color: 'purple'
     },
     {
+      id: 'members',
       title: 'Nhân Viên',
       value: '45',
       change: '+5',
       changeType: 'positive',
-      icon: '👥'
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+      color: 'blue'
     },
     {
-      title: 'Khách Hàng',
+      id: 'meetings',
+      title: 'Cuộc Họp Tháng',
       value: '156',
       change: '+23',
       changeType: 'positive',
-      icon: '🏢'
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M8 7V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M16 7V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M3 9H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V7C3 6.46957 3.21071 5.96086 3.58579 5.58579C3.96086 5.21071 4.46957 5 5 5H19C19.5304 5 20.0391 5.21071 20.4142 5.58579C20.7893 5.96086 21 6.46957 21 7V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+      color: 'purple'
     }
   ];
 
-  const recentProjects = [
-    {
-      id: 1,
-      name: 'Website Thương Mại Điện Tử',
-      status: 'active',
-      progress: 75,
-      budget: '$50,000',
-      deadline: '2024-06-30'
-    },
-    {
-      id: 2,
-      name: 'Ứng Dụng Mobile',
-      status: 'active',
-      progress: 45,
-      budget: '$30,000',
-      deadline: '2024-08-15'
-    },
-    {
-      id: 3,
-      name: 'Hệ Thống CRM',
-      status: 'completed',
-      progress: 100,
-      budget: '$25,000',
-      deadline: '2024-04-20'
-    }
-  ];
 
   const upcomingMeetings = [
     {
@@ -84,6 +301,34 @@ const BusinessDashboard = () => {
       time: '09:00 - 10:30',
       date: 'Thứ 6',
       participants: 12
+    },
+    {
+      id: 4,
+      title: 'Họp Báo Cáo Tài Chính',
+      time: '15:00 - 16:00',
+      date: 'Thứ 2',
+      participants: 6
+    },
+    {
+      id: 5,
+      title: 'Họp Đánh Giá Nhân Viên',
+      time: '11:00 - 12:00',
+      date: 'Thứ 3',
+      participants: 4
+    },
+    {
+      id: 6,
+      title: 'Họp Chiến Lược Marketing',
+      time: '13:30 - 14:30',
+      date: 'Thứ 4',
+      participants: 7
+    },
+    {
+      id: 7,
+      title: 'Họp Đánh Giá Dự Án',
+      time: '16:00 - 17:00',
+      date: 'Thứ 5',
+      participants: 9
     }
   ];
 
@@ -110,25 +355,26 @@ const BusinessDashboard = () => {
 
   return (
     <div className="business-dashboard">
-      <div className="dashboard-header">
-        <h1>Business Dashboard</h1>
-        <p>Quản lý và theo dõi hoạt động kinh doanh</p>
-        
-        <div className="period-selector">
+      {/* Time Filter */}
+      <div className="time-filter-container">
+        <div className="time-filter-header">
+          <h3>Bộ lọc thời gian</h3>
+        </div>
+        <div className="time-filter-buttons">
           <button 
-            className={`period-btn ${selectedPeriod === 'week' ? 'active' : ''}`}
+            className={`time-filter-btn ${selectedPeriod === 'week' ? 'active' : ''}`}
             onClick={() => setSelectedPeriod('week')}
           >
             Tuần
           </button>
           <button 
-            className={`period-btn ${selectedPeriod === 'month' ? 'active' : ''}`}
+            className={`time-filter-btn ${selectedPeriod === 'month' ? 'active' : ''}`}
             onClick={() => setSelectedPeriod('month')}
           >
             Tháng
           </button>
           <button 
-            className={`period-btn ${selectedPeriod === 'quarter' ? 'active' : ''}`}
+            className={`time-filter-btn ${selectedPeriod === 'quarter' ? 'active' : ''}`}
             onClick={() => setSelectedPeriod('quarter')}
           >
             Quý
@@ -136,69 +382,170 @@ const BusinessDashboard = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="stats-grid">
-        {stats.map((stat, index) => (
-          <div key={index} className="stat-card">
-            <div className="stat-icon">{stat.icon}</div>
-            <div className="stat-content">
-              <h3>{stat.title}</h3>
-              <p className="stat-value">{stat.value}</p>
-              <span className={`stat-change ${stat.changeType}`}>
-                {stat.change}
-              </span>
+      {/* Stats Cards */}
+      <div className="stats-container">
+        {stats.map((stat) => (
+          <div
+            key={stat.id}
+            className={`stat-card ${stat.color} interactive`}
+            onMouseEnter={() => setHoveredStat(stat.id)}
+            onMouseLeave={() => setHoveredStat(null)}
+          >
+            <div className="stat-header">
+              <div className="stat-label">{stat.title}</div>
             </div>
+            <div className="stat-content">
+              <div className="stat-value">{stat.value}</div>
+              <div className="stat-change">
+                <span className="change-text positive">{stat.change}</span>
+                <div className="change-icon up">↗</div>
+            </div>
+            </div>
+            {hoveredStat === stat.id && (
+              <div className="tooltip">
+                <div className="tooltip-content">
+                  <strong>{stat.title}</strong><br />
+                  Tăng {stat.change} so với {selectedPeriod === 'week' ? 'tuần trước' : selectedPeriod === 'month' ? 'tháng trước' : 'quý trước'}
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Main Content */}
-      <div className="main-content">
-        <div className="content-left">
-          {/* Recent Projects */}
-          <div className="section-card">
-            <div className="section-header">
-              <h3>Dự Án Gần Đây</h3>
-              <button className="view-all-btn">Xem tất cả</button>
+      {/* Charts Row 1 */}
+      <div className="charts-row">
+        {/* Project Overview Chart */}
+        <div className="main-chart-container">
+          <div className="chart-header">
+            <h3>Thống Kê Dự Án</h3>
             </div>
-            
-            <div className="projects-list">
-              {recentProjects.map((project) => (
-                <div key={project.id} className="project-item">
-                  <div className="project-info">
-                    <h4>{project.name}</h4>
-                    <div className="project-meta">
-                      <span>Ngân sách: {project.budget}</span>
-                      <span>Hạn: {project.deadline}</span>
+          <div className="chart-content">
+            <div className="project-stats">
+              <div className="status-item completed">
+                <div className="status-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="status-info">
+                  <span className="status-count">18</span>
+                  <span className="status-label">Hoàn thành</span>
+                </div>
+              </div>
+              <div className="status-item in-progress">
+                <div className="status-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 8V12L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="status-info">
+                  <span className="status-count">6</span>
+                  <span className="status-label">Đang thực hiện</span>
+                </div>
+              </div>
+              <div className="status-item pending">
+                <div className="status-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M12 18V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M4.93 4.93L7.76 7.76" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M16.24 16.24L19.07 19.07" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M2 12H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M18 12H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M4.93 19.07L7.76 16.24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M16.24 7.76L19.07 4.93" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="status-info">
+                  <span className="status-count">3</span>
+                  <span className="status-label">Chờ xử lý</span>
+                </div>
+              </div>
+            </div>
+            <div className="chart-wrapper">
+              <canvas ref={chartRef} width="400" height="200"></canvas>
+            </div>
                     </div>
                   </div>
                   
-                  <div className="project-status">
-                    {getStatusBadge(project.status)}
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill" 
-                        style={{ width: `${project.progress}%` }}
-                      ></div>
+        {/* Revenue Trend Chart */}
+        <div className="revenue-trend-section">
+          <div className="section-header">
+            <h3>Xu Hướng Doanh Thu</h3>
+            <div className="revenue-stats">
+              <div className="revenue-stat">
+                <span className="stat-label">Tháng này</span>
+                <span className="stat-value">85M</span>
                     </div>
-                    <span className="progress-text">{project.progress}%</span>
+              <div className="revenue-stat">
+                <span className="stat-label">Tăng trưởng</span>
+                <span className="stat-value positive">+12.5%</span>
                   </div>
                 </div>
-              ))}
+          </div>
+
+          <div className="revenue-chart-wrapper">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                <XAxis
+                  dataKey="month"
+                  stroke="#6b7280"
+                  fontSize={10}
+                />
+                <YAxis
+                  stroke="#6b7280"
+                  fontSize={10}
+                  domain={[0, 100]}
+                  tickCount={6}
+                  tickFormatter={(value) => `${value}M`}
+                  interval={0}
+                  allowDecimals={false}
+                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    color: 'white',
+                    border: '1px solid #FF5E13',
+                    borderRadius: '8px'
+                  }}
+                  formatter={(value: any) => [`${value} triệu VNĐ`, 'Doanh thu']}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#FF5E13"
+                  strokeWidth={3}
+                  dot={{ fill: '#FF5E13', stroke: '#FFFFFF', strokeWidth: 2, r: 6 }}
+                  activeDot={{ r: 8 }}
+                  fill="rgba(255, 94, 19, 0.1)"
+                />
+              </LineChart>
+            </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        <div className="content-right">
+      {/* Charts Row 2 */}
+      <div className="charts-row">
           {/* Upcoming Meetings */}
-          <div className="section-card">
+        <div className="upcoming-meetings">
             <div className="section-header">
               <h3>Cuộc Họp Sắp Tới</h3>
-              <button className="create-btn">+ Tạo mới</button>
+            <button
+              className="create-btn"
+              onClick={() => setShowAllMeetings(!showAllMeetings)}
+            >
+              {showAllMeetings ? 'Thu gọn' : 'Xem tất cả'}
+            </button>
             </div>
             
             <div className="meetings-list">
-              {upcomingMeetings.map((meeting) => (
+            {(showAllMeetings ? upcomingMeetings : upcomingMeetings.slice(0, 4)).map((meeting) => (
                 <div key={meeting.id} className="meeting-item">
                   <div className="meeting-time">
                     <span className="time">{meeting.time}</span>
@@ -218,271 +565,431 @@ const BusinessDashboard = () => {
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="section-card">
+        {/* Meeting Statistics Chart */}
+        <div className="meeting-stats-section">
             <div className="section-header">
-              <h3>Thao Tác Nhanh</h3>
+            <h3>Thống Kê Cuộc Họp</h3>
             </div>
             
-            <div className="quick-actions">
-              <button className="action-btn">
-                <span className="action-icon">📊</span>
-                <span>Tạo Báo Cáo</span>
-              </button>
-              <button className="action-btn">
-                <span className="action-icon">👥</span>
-                <span>Quản Lý Nhân Viên</span>
-              </button>
-              <button className="action-btn">
-                <span className="action-icon">💼</span>
-                <span>Dự Án Mới</span>
-              </button>
-              <button className="action-btn">
-                <span className="action-icon">📅</span>
-                <span>Lịch Họp</span>
-              </button>
+          <div className="meeting-stats-content">
+            <div className="meeting-stats-overview">
+              <div className="meeting-stat-item">
+                <div className="stat-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 7V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M16 7V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M3 9H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V7C3 6.46957 3.21071 5.96086 3.58579 5.58579C3.96086 5.21071 4.46957 5 5 5H19C19.5304 5 20.0391 5.21071 20.4142 5.58579C20.7893 5.96086 21 6.46957 21 7V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+            </div>
+                <div className="stat-info">
+                  <span className="stat-label">Tổng cuộc họp</span>
+                  <span className="stat-value">156</span>
+                </div>
+              </div>
+              <div className="meeting-stat-item">
+                <div className="stat-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Đã hoàn thành</span>
+                  <span className="stat-value">142</span>
+                </div>
+              </div>
+              <div className="meeting-stat-item">
+                <div className="stat-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 8V12L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="stat-info">
+                  <span className="stat-label">Sắp diễn ra</span>
+                  <span className="stat-value">14</span>
+          </div>
+        </div>
+      </div>
+
+            <div className="meeting-chart-wrapper">
+              <canvas ref={meetingChartRef} width="400" height="200"></canvas>
             </div>
           </div>
         </div>
       </div>
 
+
       <style jsx>{`
         .business-dashboard {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 24px;
-        }
-
-        .dashboard-header {
-          margin-bottom: 32px;
-        }
-
-        .dashboard-header h1 {
-          font-size: 32px;
-          font-weight: 700;
-          color: #0D062D;
-          margin: 0 0 8px 0;
-        }
-
-        .dashboard-header p {
-          font-size: 16px;
-          color: #787486;
-          margin: 0 0 20px 0;
-        }
-
-        .period-selector {
+          width: 100%;
+          min-height: calc(100vh - 90px - 48px);
           display: flex;
-          gap: 8px;
+          flex-direction: column;
+          gap: 28px;
+          padding: 24px;
+          background: #F7F9FB;
+          box-sizing: border-box;
+          margin-y: -24px;
         }
 
-        .period-btn {
-          padding: 8px 16px;
-          border: 2px solid #E5E7EB;
+        /* Time Filter */
+        .time-filter-container {
           background: white;
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .time-filter-header {
+          margin-bottom: 16px;
+        }
+
+        .time-filter-header h3 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: #1C1C1C;
+        }
+
+        .time-filter-buttons {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .time-filter-btn {
+          padding: 10px 20px;
+          border: 2px solid #E5E7EB;
           border-radius: 8px;
+          background: white;
+          color: #6B7280;
           font-size: 14px;
           font-weight: 500;
-          color: #787486;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
         }
 
-        .period-btn:hover {
-          border-color: #FFA463;
-          color: #FF5E13;
+        .time-filter-btn:hover {
+          border-color: #FF8C42;
+          color: #FF8C42;
         }
 
-        .period-btn.active {
-          background: #FF5E13;
-          border-color: #FF5E13;
+        .time-filter-btn.active {
+          background: #FF8C42;
+          border-color: #FF8C42;
           color: white;
         }
 
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 24px;
-          margin-bottom: 32px;
+        /* Stats Container */
+        .stats-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 28px;
+          align-content: flex-start;
         }
 
         .stat-card {
-          background: white;
-          border-radius: 16px;
+          flex: 1 1 0;
+          min-width: 200px;
           padding: 24px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          border-radius: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .stat-card.blue {
+          background: #E3F5FF;
+        }
+
+        .stat-card.purple {
+          background: #E5ECF6;
+        }
+
+        .stat-card.interactive {
+          cursor: pointer;
+          transition: all 0.3s ease;
+          position: relative;
+        }
+
+        .stat-card.interactive:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-header {
+          align-self: stretch;
+          border-radius: 8px;
           display: flex;
           align-items: center;
+          gap: 8px;
+        }
+
+        .stat-label {
+          color: #1C1C1C;
+          font-size: 14px;
+          font-family: 'Inter', sans-serif;
+          font-weight: 600;
+          line-height: 20px;
+        }
+
+        .stat-content {
+          align-self: stretch;
+          border-radius: 8px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .stat-value {
+          color: #1C1C1C;
+          font-size: 24px;
+          font-family: 'Inter', sans-serif;
+          font-weight: 600;
+          line-height: 36px;
+        }
+
+        .stat-change {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .change-text {
+          font-size: 12px;
+          font-family: 'Inter', sans-serif;
+          font-weight: 400;
+          line-height: 18px;
+        }
+
+        .change-text.positive {
+          color: #1C1C1C;
+        }
+
+        .change-icon {
+          width: 16px;
+          height: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+        }
+
+        /* Charts Rows */
+        .charts-row {
+          display: flex;
+          gap: 28px;
+          align-items: flex-start;
+        }
+
+        /* Main Chart */
+        .main-chart-container {
+          flex: 1 1 0;
+          height: 450px;
+          min-width: 500px;
+          padding: 24px;
+          background: linear-gradient(135deg, #F7F9FB 0%, #E8F2FF 100%);
+          border-radius: 16px;
+          display: flex;
+          flex-direction: column;
           gap: 16px;
-          transition: transform 0.3s ease;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.8);
         }
 
-        .stat-card:hover {
-          transform: translateY(-4px);
+        .chart-header h3 {
+          color: #1C1C1C;
+          font-size: 14px;
+          font-family: 'Inter', sans-serif;
+          font-weight: 600;
+          line-height: 20px;
+          margin: 0;
         }
 
-        .stat-icon {
-          font-size: 32px;
-          width: 60px;
-          height: 60px;
-          background: linear-gradient(135deg, #FFA463 0%, #FF5E13 100%);
-          border-radius: 12px;
+        .chart-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .project-stats {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .project-stats .status-item {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px;
+          background: white;
+          border-radius: 8px;
+          border: 1px solid #F3F4F6;
+        }
+
+        .status-item.completed .status-icon {
+          background: #DCFCE7;
+          color: #16a34a;
+        }
+
+        .status-item.in-progress .status-icon {
+          background: #FEF3C7;
+          color: #d97706;
+        }
+
+        .status-item.pending .status-icon {
+          background: #FEE2E2;
+          color: #dc2626;
+        }
+
+        .status-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
-        .stat-content h3 {
-          font-size: 14px;
+        .status-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .status-count {
+          font-size: 18px;
+          font-weight: 700;
+          color: #1C1C1C;
+        }
+
+        .status-label {
+          font-size: 10px;
           color: #787486;
-          margin: 0 0 8px 0;
           font-weight: 500;
         }
 
-        .stat-value {
-          font-size: 24px;
-          font-weight: 700;
-          color: #0D062D;
-          margin: 0 0 4px 0;
+        .project-stat-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex: 1;
         }
 
-        .stat-change {
+        .project-stat-item .stat-icon {
+          width: 40px;
+          height: 40px;
+          background: #F9F4EE;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #FF5E13;
+        }
+
+        .stat-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .stat-info .stat-label {
           font-size: 12px;
-          font-weight: 600;
-          padding: 4px 8px;
-          border-radius: 6px;
+          color: #787486;
+          font-weight: 500;
         }
 
-        .stat-change.positive {
-          background: #D1FAE5;
-          color: #065F46;
+        .stat-info .stat-value {
+          font-size: 20px;
+          font-weight: 700;
+          color: #1C1C1C;
         }
 
-        .main-content {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 24px;
-        }
-
-        .section-card {
+        .chart-wrapper {
+          flex: 1;
           background: white;
-          border-radius: 16px;
-          padding: 24px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          margin-bottom: 24px;
+          border-radius: 8px;
+          padding: 20px;
+          border: 1px solid #F3F4F6;
+          position: relative;
+          height: 280px;
+          overflow: hidden;
+        }
+
+        .chart-wrapper canvas {
+          max-width: 100% !important;
+          max-height: 100% !important;
+          width: auto !important;
+          height: auto !important;
         }
 
         .section-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 20px;
         }
 
         .section-header h3 {
-          font-size: 18px;
+          color: #1C1C1C;
+          font-size: 14px;
+          font-family: 'Inter', sans-serif;
           font-weight: 600;
-          color: #0D062D;
+          line-height: 20px;
           margin: 0;
         }
 
-        .view-all-btn, .create-btn {
+        .create-btn {
           background: none;
           border: none;
           color: #FF5E13;
-          font-size: 14px;
+          font-size: 12px;
           font-weight: 500;
           cursor: pointer;
           transition: color 0.3s ease;
         }
 
-        .view-all-btn:hover, .create-btn:hover {
+        .create-btn:hover {
           color: #FFA463;
         }
 
-        .projects-list {
+        /* Upcoming Meetings */
+        .upcoming-meetings {
+          flex: 1 1 0;
+          height: 450px;
+          min-width: 500px;
+          padding: 24px;
+          background: linear-gradient(135deg, #F7F9FB 0%, #F0F8FF 100%);
+          border-radius: 16px;
           display: flex;
           flex-direction: column;
           gap: 16px;
-        }
-
-        .project-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px;
-          border: 1px solid #F3F4F6;
-          border-radius: 12px;
-          transition: all 0.3s ease;
-        }
-
-        .project-item:hover {
-          border-color: #FFDBBD;
-          background: #F9F4EE;
-        }
-
-        .project-info h4 {
-          font-size: 16px;
-          font-weight: 600;
-          color: #0D062D;
-          margin: 0 0 8px 0;
-        }
-
-        .project-meta {
-          display: flex;
-          gap: 16px;
-          font-size: 12px;
-          color: #787486;
-        }
-
-        .project-status {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          gap: 8px;
-        }
-
-        .status-badge {
-          padding: 4px 8px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-        }
-
-        .progress-bar {
-          width: 100px;
-          height: 6px;
-          background: #F3F4F6;
-          border-radius: 3px;
-          overflow: hidden;
-        }
-
-        .progress-fill {
-          height: 100%;
-          background: linear-gradient(135deg, #FFA463 0%, #FF5E13 100%);
-          border-radius: 3px;
-          transition: width 0.3s ease;
-        }
-
-        .progress-text {
-          font-size: 12px;
-          color: #787486;
-          font-weight: 500;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.8);
         }
 
         .meetings-list {
+          flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 8px;
+          overflow-y: auto;
         }
 
         .meeting-item {
           display: flex;
           align-items: center;
-          gap: 16px;
-          padding: 16px;
+          gap: 12px;
+          padding: 12px;
           border: 1px solid #F3F4F6;
-          border-radius: 12px;
+          border-radius: 8px;
           transition: all 0.3s ease;
+          background: white;
         }
 
         .meeting-item:hover {
@@ -494,17 +1001,17 @@ const BusinessDashboard = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          min-width: 80px;
+          min-width: 60px;
         }
 
         .meeting-time .time {
-          font-size: 14px;
+          font-size: 12px;
           font-weight: 600;
-          color: #0D062D;
+          color: #1C1C1C;
         }
 
         .meeting-time .date {
-          font-size: 12px;
+          font-size: 10px;
           color: #787486;
         }
 
@@ -513,14 +1020,14 @@ const BusinessDashboard = () => {
         }
 
         .meeting-info h4 {
-          font-size: 14px;
+          font-size: 12px;
           font-weight: 600;
-          color: #0D062D;
-          margin: 0 0 4px 0;
+          color: #1C1C1C;
+          margin: 0 0 2px 0;
         }
 
         .participants {
-          font-size: 12px;
+          font-size: 10px;
           color: #787486;
         }
 
@@ -528,9 +1035,9 @@ const BusinessDashboard = () => {
           background: #FF5E13;
           color: white;
           border: none;
-          padding: 8px 16px;
-          border-radius: 8px;
-          font-size: 12px;
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 10px;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.3s ease;
@@ -538,78 +1045,358 @@ const BusinessDashboard = () => {
 
         .join-btn:hover {
           background: #FFA463;
-          transform: translateY(-2px);
+          transform: translateY(-1px);
         }
 
-        .quick-actions {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-
-        .action-btn {
+        /* Meeting Statistics */
+        .meeting-stats-section {
+          flex: 1 1 0;
+          height: 450px;
+          min-width: 400px;
+          padding: 24px;
+          background: linear-gradient(135deg, #F7F9FB 0%, #F5F0FF 100%);
+          border-radius: 16px;
           display: flex;
           flex-direction: column;
-          align-items: center;
+          gap: 16px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .meeting-stats-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          overflow: hidden;
+        }
+
+        .meeting-stats-overview {
+          display: flex;
+          justify-content: space-between;
           gap: 8px;
-          padding: 20px 16px;
+        }
+
+        .meeting-stat-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex: 1;
+          padding: 6px;
+          background: white;
+          border-radius: 6px;
+          border: 1px solid #F3F4F6;
+          min-width: 0;
+        }
+
+        .meeting-stat-item .stat-icon {
+          width: 24px;
+          height: 24px;
           background: #F9F4EE;
-          border: 2px solid transparent;
-          border-radius: 12px;
-          cursor: pointer;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #FF5E13;
+          flex-shrink: 0;
+        }
+
+        .meeting-stat-item .stat-info {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+          min-width: 0;
+          flex: 1;
+        }
+
+        .meeting-stat-item .stat-label {
+          font-size: 9px;
+          color: #787486;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .meeting-stat-item .stat-value {
+          font-size: 14px;
+          font-weight: 700;
+          color: #1C1C1C;
+        }
+
+        .meeting-chart {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          flex: 1;
+        }
+
+        .meeting-chart .chart-bars {
+          display: flex;
+          align-items: end;
+          justify-content: center;
+          gap: 16px;
+          height: 40px;
+        }
+
+        .meeting-chart .bar {
+          width: 24px;
+          border-radius: 3px 3px 0 0;
           transition: all 0.3s ease;
         }
 
-        .action-btn:hover {
-          border-color: #FFDBBD;
-          background: #FDF0D2;
-          transform: translateY(-2px);
+        .meeting-chart .bar.completed {
+          background: #10b981;
         }
 
-        .action-icon {
-          font-size: 24px;
+        .meeting-chart .bar.upcoming {
+          background: #f59e0b;
         }
 
-        .action-btn span:last-child {
-          font-size: 12px;
+        .meeting-chart .chart-labels {
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          font-size: 9px;
+          color: #6b7280;
+        }
+
+        .meeting-chart-wrapper {
+          flex: 1;
+          background: white;
+          border-radius: 8px;
+          padding: 20px;
+          border: 1px solid #F3F4F6;
+          position: relative;
+          height: 250px;
+          overflow: hidden;
+        }
+
+        .meeting-chart-wrapper canvas {
+          max-width: 100% !important;
+          max-height: 100% !important;
+          width: auto !important;
+          height: auto !important;
+        }
+
+        .revenue-stats {
+          display: flex;
+          gap: 20px;
+        }
+
+        .revenue-stat {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .revenue-stat .stat-label {
+          font-size: 11px;
+          color: #6b7280;
           font-weight: 500;
-          color: #0D062D;
-          text-align: center;
+        }
+
+        .revenue-stat .stat-value {
+          font-size: 16px;
+          font-weight: 700;
+          color: #1C1C1C;
+        }
+
+        .revenue-stat .stat-value.positive {
+          color: #10B981;
+        }
+
+        .revenue-chart-wrapper {
+          flex: 1;
+          background: white;
+          border-radius: 8px;
+          padding: 20px;
+          border: 1px solid #F3F4F6;
+          position: relative;
+          height: 450px;
+          overflow: hidden;
+        }
+
+        /* Revenue Trend Chart */
+        .revenue-trend-section {
+          flex: 1 1 0;
+          height: 450px;
+          min-width: 500px;
+          padding: 24px;
+          background: linear-gradient(135deg, #F7F9FB 0%, #E8F2FF 100%);
+          border-radius: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+
+
+        /* Tooltips */
+        .tooltip {
+          position: absolute;
+          top: -60px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 1000;
+        }
+
+        .tooltip-content {
+          background: rgba(28, 28, 28, 0.9);
+          color: white;
+          padding: 8px 12px;
+          border-radius: 6px;
+          font-size: 12px;
+          line-height: 1.4;
+          white-space: nowrap;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+          .stats-container {
+            flex-direction: column;
+          }
+          
+          .charts-row {
+            flex-direction: column;
+          }
+          
+          .main-chart-container,
+          .upcoming-meetings,
+          .meeting-stats-section,
+          .revenue-trend-section {
+            min-width: auto;
+            width: 100%;
+            height: auto;
+          }
         }
 
         @media (max-width: 768px) {
           .business-dashboard {
             padding: 16px;
+            gap: 16px;
+            margin: -16px;
           }
 
-          .main-content {
-            grid-template-columns: 1fr;
+          .time-filter-container {
+            padding: 16px;
           }
 
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .project-item {
+          .time-filter-buttons {
             flex-direction: column;
-            align-items: flex-start;
-            gap: 12px;
+            gap: 8px;
           }
 
-          .project-status {
-            align-items: flex-start;
+          .time-filter-btn {
             width: 100%;
+            text-align: center;
           }
 
-          .meeting-item {
+          .project-stats {
             flex-direction: column;
-            align-items: flex-start;
             gap: 12px;
           }
 
-          .quick-actions {
-            grid-template-columns: 1fr;
+          .chart-bars {
+            gap: 8px;
           }
+
+          .bar {
+            width: 30px;
+          }
+
+          .chart-labels {
+            gap: 8px;
+          }
+
+          .chart-wrapper {
+            height: 220px;
+            padding: 16px;
+            overflow: hidden;
+          }
+
+          .chart-wrapper canvas {
+            max-width: 100% !important;
+            max-height: 100% !important;
+          }
+
+          .meeting-chart-wrapper {
+            height: 220px;
+            padding: 16px;
+            overflow: hidden;
+          }
+
+          .meeting-chart-wrapper canvas {
+            max-width: 100% !important;
+            max-height: 100% !important;
+          }
+
+          .revenue-chart-wrapper {
+            height: 500px;
+            padding: 16px;
+            overflow: hidden;
+          }
+
+          .meeting-stats-overview {
+            flex-direction: column;
+            gap: 6px;
+          }
+
+          .meeting-stat-item {
+            padding: 4px;
+            gap: 4px;
+          }
+
+          .meeting-stat-item .stat-icon {
+            width: 20px;
+            height: 20px;
+          }
+
+          .meeting-stat-item .stat-label {
+            font-size: 8px;
+          }
+
+          .meeting-stat-item .stat-value {
+            font-size: 12px;
+          }
+
+          .meeting-chart .chart-bars {
+            gap: 10px;
+            height: 30px;
+          }
+
+          .meeting-chart .bar {
+            width: 20px;
+          }
+
+          .meeting-chart .chart-labels {
+            gap: 10px;
+            font-size: 8px;
+          }
+
+          .meeting-time-distribution h4 {
+            font-size: 10px;
+            margin-bottom: 4px;
+          }
+
+          .time-slots {
+            gap: 3px;
+          }
+
+          .slot-label {
+            font-size: 8px;
+            min-width: 40px;
+          }
+
+          .slot-count {
+            font-size: 8px;
+            min-width: 15px;
+          }
+
         }
       `}</style>
     </div>
@@ -617,3 +1404,4 @@ const BusinessDashboard = () => {
 };
 
 export default BusinessDashboard;
+

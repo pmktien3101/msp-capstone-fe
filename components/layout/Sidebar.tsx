@@ -72,8 +72,45 @@ const Sidebar = () => {
     }
   ];
 
+  // Business Owner menu items
+  const businessOwnerSidebarItems: SidebarItem[] = [
+    {
+      id: 'business-dashboard',
+      label: 'Dashboard',
+      route: '/dashboard/business',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    {
+      id: 'members-roles',
+      label: 'Members / Roles',
+      route: '/dashboard/business/members',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M8 3.13C7.13959 3.35031 6.37698 3.85071 5.83236 4.55232C5.28774 5.25392 4.99219 6.11683 4.99219 7.005C4.99219 7.89318 5.28774 8.75608 5.83236 9.45769C6.37698 10.1593 7.13959 10.6597 8 10.88" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    {
+      id: 'subscription-billing',
+      label: 'Subscription / Billing',
+      route: '/dashboard/business/subscription',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M20 7L9 12L20 17V7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M4 5H16V19H4V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    }
+  ];
+
   // Regular user menu items
-    // const sidebarItems: SidebarItem[] = [
   const userSidebarItems: SidebarItem[] = [
     {
       id: 'dashboard',
@@ -137,7 +174,18 @@ const Sidebar = () => {
   ];
 
   // Get sidebar items based on role
-  const sidebarItems = role === 'AdminSystem' ? adminSidebarItems : userSidebarItems;
+  const getSidebarItems = () => {
+    switch (role) {
+      case 'AdminSystem':
+        return adminSidebarItems;
+      case 'BusinessOwner':
+        return businessOwnerSidebarItems;
+      default:
+        return userSidebarItems;
+    }
+  };
+  
+  const sidebarItems = getSidebarItems();
 
   const [activeItem, setActiveItem] = useState('dashboard');
 
@@ -201,8 +249,8 @@ const Sidebar = () => {
             </div>
           ))}
           
-          {/* Project Section - Only show for non-admin users */}
-          {role !== 'AdminSystem' && (
+          {/* Project Section - Only show for regular users (not admin or business owner) */}
+          {role !== 'AdminSystem' && role !== 'BusinessOwner' && (
             <ProjectSection
               isExpanded={isProjectSectionExpanded}
               onToggle={handleProjectSectionToggle}
