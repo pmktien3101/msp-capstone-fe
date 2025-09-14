@@ -31,6 +31,162 @@ const AdminDashboard = () => {
   const [hoveredDevice, setHoveredDevice] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [selectedYears, setSelectedYears] = useState<string[]>(['2024', '2023']); // Mặc định chọn 2024 và 2023
+  const [selectedTimeFilter, setSelectedTimeFilter] = useState<string>('30'); // Mặc định 30 ngày
+  // Get first day of current month and today
+  const getDefaultDateRange = () => {
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    return {
+      startDate: firstDayOfMonth.toISOString().split('T')[0],
+      endDate: today.toISOString().split('T')[0]
+    };
+  };
+
+  const [customDateRange, setCustomDateRange] = useState<{
+    startDate: string;
+    endDate: string;
+  }>(getDefaultDateRange());
+  const [isCustomRange, setIsCustomRange] = useState<boolean>(false);
+
+  // Time filter options
+  const timeFilterOptions = [
+    { value: '7', label: '7 ngày qua' },
+    { value: '30', label: '30 ngày qua' },
+    { value: '90', label: '90 ngày qua' },
+    { value: '365', label: '1 năm qua' },
+    { value: 'custom', label: 'Tùy chỉnh' }
+  ];
+
+  // Mock data for different time periods
+  const statsData = {
+    '7': {
+      revenue: { current: 125430, previous: 118200, change: 6.1 },
+      subscriptions: { current: 3456, previous: 3200, change: 8.0 },
+      companies: { current: 1247, previous: 1150, change: 8.4 },
+      meetings: { current: 8932, previous: 8200, change: 8.9 }
+    },
+    '30': {
+      revenue: { current: 125430, previous: 112500, change: 11.5 },
+      subscriptions: { current: 3456, previous: 3100, change: 11.5 },
+      companies: { current: 1247, previous: 1080, change: 15.5 },
+      meetings: { current: 8932, previous: 7800, change: 14.5 }
+    },
+    '90': {
+      revenue: { current: 125430, previous: 98000, change: 28.0 },
+      subscriptions: { current: 3456, previous: 2800, change: 23.4 },
+      companies: { current: 1247, previous: 950, change: 31.3 },
+      meetings: { current: 8932, previous: 6500, change: 37.4 }
+    },
+    '365': {
+      revenue: { current: 125430, previous: 85000, change: 47.6 },
+      subscriptions: { current: 3456, previous: 2400, change: 44.0 },
+      companies: { current: 1247, previous: 800, change: 55.9 },
+      meetings: { current: 8932, previous: 5200, change: 71.8 }
+    }
+  };
+
+  // Helper function to format numbers
+  const formatNumber = (num: number, isCurrency: boolean = false) => {
+    if (isCurrency) {
+      return `$${num.toLocaleString()}`;
+    }
+    return num.toLocaleString();
+  };
+
+  // Function to calculate days between dates
+  const calculateDaysBetween = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Function to generate custom stats data based on date range
+  const generateCustomStatsData = (startDate: string, endDate: string) => {
+    const days = calculateDaysBetween(startDate, endDate);
+    
+    // Base values (simulate data based on number of days)
+    const baseRevenue = 125430;
+    const baseSubscriptions = 3456;
+    const baseCompanies = 1247;
+    const baseMeetings = 8932;
+    
+    // Calculate previous period data (same duration before start date)
+    const start = new Date(startDate);
+    const previousStart = new Date(start);
+    previousStart.setDate(start.getDate() - days);
+    const previousEnd = new Date(start);
+    previousEnd.setDate(start.getDate() - 1);
+    
+    // Simulate growth based on duration
+    const growthFactor = Math.min(days / 30, 2); // Cap at 2x for very long periods
+    
+    return {
+      revenue: {
+        current: Math.round(baseRevenue * growthFactor),
+        previous: Math.round(baseRevenue * growthFactor * 0.8), // 20% lower in previous period
+        change: Math.round(((baseRevenue * growthFactor - baseRevenue * growthFactor * 0.8) / (baseRevenue * growthFactor * 0.8)) * 100 * 10) / 10
+      },
+      subscriptions: {
+        current: Math.round(baseSubscriptions * growthFactor),
+        previous: Math.round(baseSubscriptions * growthFactor * 0.85),
+        change: Math.round(((baseSubscriptions * growthFactor - baseSubscriptions * growthFactor * 0.85) / (baseSubscriptions * growthFactor * 0.85)) * 100 * 10) / 10
+      },
+      companies: {
+        current: Math.round(baseCompanies * growthFactor),
+        previous: Math.round(baseCompanies * growthFactor * 0.75),
+        change: Math.round(((baseCompanies * growthFactor - baseCompanies * growthFactor * 0.75) / (baseCompanies * growthFactor * 0.75)) * 100 * 10) / 10
+      },
+      meetings: {
+        current: Math.round(baseMeetings * growthFactor),
+        previous: Math.round(baseMeetings * growthFactor * 0.7),
+        change: Math.round(((baseMeetings * growthFactor - baseMeetings * growthFactor * 0.7) / (baseMeetings * growthFactor * 0.7)) * 100 * 10) / 10
+      }
+    };
+  };
+
+  // Get current stats data based on selected filter
+  const currentStats = isCustomRange
+    ? generateCustomStatsData(customDateRange.startDate, customDateRange.endDate)
+    : statsData[selectedTimeFilter as keyof typeof statsData] || statsData['30']; // Fallback to 30 days
+
+  // Handle time filter change
+  const handleTimeFilterChange = (value: string) => {
+    setSelectedTimeFilter(value);
+    setIsCustomRange(value === 'custom');
+    
+    // If switching to custom, ensure we have default date range
+    if (value === 'custom' && (!customDateRange.startDate || !customDateRange.endDate)) {
+      setCustomDateRange(getDefaultDateRange());
+    }
+  };
+
+  // Handle custom date range change
+  const handleCustomDateChange = (field: 'startDate' | 'endDate', value: string) => {
+    setCustomDateRange(prev => {
+      const newRange = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Validate date range
+      if (newRange.startDate && newRange.endDate) {
+        const startDate = new Date(newRange.startDate);
+        const endDate = new Date(newRange.endDate);
+        
+        // If start date is after end date, swap them
+        if (startDate > endDate) {
+          return {
+            startDate: newRange.endDate,
+            endDate: newRange.startDate
+          };
+        }
+      }
+      
+      return newRange;
+    });
+  };
 
   // Data for industry bar chart
   const industryData = {
@@ -247,27 +403,76 @@ const AdminDashboard = () => {
   );
   return (
     <div className="admin-dashboard">
+      {/* Time Filter */}
+      <div className="time-filter-container">
+        <div className="time-filter-header">
+          <h3>Bộ lọc thời gian</h3>
+        </div>
+        <div className="time-filter-buttons">
+          {timeFilterOptions.map((option) => (
+            <button
+              key={option.value}
+              className={`time-filter-btn ${selectedTimeFilter === option.value ? 'active' : ''}`}
+              onClick={() => handleTimeFilterChange(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        
+        {/* Custom Date Range Picker */}
+        {isCustomRange && (
+          <div className="custom-date-range">
+            <div className="date-inputs">
+              <div className="date-input-group">
+                <label>Từ ngày:</label>
+                <input
+                  type="date"
+                  value={customDateRange.startDate}
+                  onChange={(e) => handleCustomDateChange('startDate', e.target.value)}
+                  className="date-input"
+                />
+              </div>
+              <div className="date-input-group">
+                <label>Đến ngày:</label>
+                <input
+                  type="date"
+                  value={customDateRange.endDate}
+                  onChange={(e) => handleCustomDateChange('endDate', e.target.value)}
+                  className="date-input"
+                />
+              </div>
+            </div>
+            <div className="date-range-info">
+              <span>
+                Khoảng thời gian: {calculateDaysBetween(customDateRange.startDate, customDateRange.endDate)} ngày
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Stats Cards */}
       <div className="stats-container">
         <div className="stat-card blue interactive" 
              onMouseEnter={() => setHoveredBar('revenue')}
              onMouseLeave={() => setHoveredBar(null)}>
           <div className="stat-header">
-            <div className="stat-label">Doanh Thu Tháng</div>
+            <div className="stat-label">Tổng doanh thu</div>
           </div>
           <div className="stat-content">
-            <div className="stat-value">$125,430</div>
+            <div className="stat-value">{formatNumber(currentStats.revenue.current, true)}</div>
             <div className="stat-change">
-              <span className="change-text positive">+12.5%</span>
+              <span className="change-text positive">+{currentStats.revenue.change}%</span>
               <div className="change-icon up">↗</div>
             </div>
           </div>
           {hoveredBar === 'revenue' && (
             <div className="tooltip">
               <div className="tooltip-content">
-                <strong>Doanh thu tháng này</strong><br/>
-                Tăng 12.5% so với tháng trước<br/>
-                <small>Chi tiết: $125,430</small>
+                <strong>Doanh thu {isCustomRange ? 'khoảng thời gian tùy chỉnh' : timeFilterOptions.find(opt => opt.value === selectedTimeFilter)?.label}</strong><br/>
+                Tăng {currentStats.revenue.change}% so với {isCustomRange ? 'khoảng thời gian trước đó' : timeFilterOptions.find(opt => opt.value === selectedTimeFilter)?.label.replace('qua', 'trước đó')}<br/>
+                Từ {formatNumber(currentStats.revenue.previous, true)} lên {formatNumber(currentStats.revenue.current, true)}
               </div>
             </div>
           )}
@@ -277,21 +482,21 @@ const AdminDashboard = () => {
              onMouseEnter={() => setHoveredBar('subscriptions')}
              onMouseLeave={() => setHoveredBar(null)}>
           <div className="stat-header">
-            <div className="stat-label">Gói Đăng Ký</div>
+            <div className="stat-label">Gói đăng ký</div>
           </div>
           <div className="stat-content">
-            <div className="stat-value">3,456</div>
+            <div className="stat-value">{formatNumber(currentStats.subscriptions.current)}</div>
             <div className="stat-change">
-              <span className="change-text positive">+8.2%</span>
+              <span className="change-text positive">+{currentStats.subscriptions.change}%</span>
               <div className="change-icon up">↗</div>
             </div>
           </div>
           {hoveredBar === 'subscriptions' && (
             <div className="tooltip">
               <div className="tooltip-content">
-                <strong>Tổng gói đăng ký</strong><br/>
-                Tăng 8.2% so với tháng trước<br/>
-                <small>Chi tiết: 3,456 gói</small>
+                <strong>Gói đăng ký {isCustomRange ? 'khoảng thời gian tùy chỉnh' : timeFilterOptions.find(opt => opt.value === selectedTimeFilter)?.label}</strong><br/>
+                Tăng {currentStats.subscriptions.change}% so với {isCustomRange ? 'khoảng thời gian trước đó' : timeFilterOptions.find(opt => opt.value === selectedTimeFilter)?.label.replace('qua', 'trước đó')}<br/>
+                Từ {formatNumber(currentStats.subscriptions.previous)} lên {formatNumber(currentStats.subscriptions.current)}
               </div>
             </div>
           )}
@@ -301,21 +506,21 @@ const AdminDashboard = () => {
              onMouseEnter={() => setHoveredBar('companies')}
              onMouseLeave={() => setHoveredBar(null)}>
           <div className="stat-header">
-            <div className="stat-label">Tổng Công Ty</div>
+            <div className="stat-label">Tổng công ty</div>
           </div>
           <div className="stat-content">
-            <div className="stat-value">1,247</div>
+            <div className="stat-value">{formatNumber(currentStats.companies.current)}</div>
             <div className="stat-change">
-              <span className="change-text positive">+15.3%</span>
+              <span className="change-text positive">+{currentStats.companies.change}%</span>
               <div className="change-icon up">↗</div>
             </div>
           </div>
           {hoveredBar === 'companies' && (
             <div className="tooltip">
               <div className="tooltip-content">
-                <strong>Tổng số công ty</strong><br/>
-                Tăng 15.3% so với tháng trước<br/>
-                <small>Chi tiết: 1,247 công ty</small>
+                <strong>Công ty {isCustomRange ? 'khoảng thời gian tùy chỉnh' : timeFilterOptions.find(opt => opt.value === selectedTimeFilter)?.label}</strong><br/>
+                Tăng {currentStats.companies.change}% so với {isCustomRange ? 'khoảng thời gian trước đó' : timeFilterOptions.find(opt => opt.value === selectedTimeFilter)?.label.replace('qua', 'trước đó')}<br/>
+                Từ {formatNumber(currentStats.companies.previous)} lên {formatNumber(currentStats.companies.current)}
               </div>
             </div>
           )}
@@ -325,21 +530,21 @@ const AdminDashboard = () => {
              onMouseEnter={() => setHoveredBar('meetings')}
              onMouseLeave={() => setHoveredBar(null)}>
           <div className="stat-header">
-            <div className="stat-label">Cuộc Họp Tháng</div>
+            <div className="stat-label">Tổng số cuộc họp</div>
           </div>
           <div className="stat-content">
-            <div className="stat-value">8,932</div>
+            <div className="stat-value">{formatNumber(currentStats.meetings.current)}</div>
             <div className="stat-change">
-              <span className="change-text positive">+6.8%</span>
+              <span className="change-text positive">+{currentStats.meetings.change}%</span>
               <div className="change-icon up">↗</div>
             </div>
           </div>
           {hoveredBar === 'meetings' && (
             <div className="tooltip">
               <div className="tooltip-content">
-                <strong>Cuộc họp tháng này</strong><br/>
-                Tăng 6.8% so với tháng trước<br/>
-                <small>Chi tiết: 8,932 cuộc họp</small>
+                <strong>Cuộc họp {isCustomRange ? 'khoảng thời gian tùy chỉnh' : timeFilterOptions.find(opt => opt.value === selectedTimeFilter)?.label}</strong><br/>
+                Tăng {currentStats.meetings.change}% so với {isCustomRange ? 'khoảng thời gian trước đó' : timeFilterOptions.find(opt => opt.value === selectedTimeFilter)?.label.replace('qua', 'trước đó')}<br/>
+                Từ {formatNumber(currentStats.meetings.previous)} lên {formatNumber(currentStats.meetings.current)}
               </div>
             </div>
           )}
@@ -1137,6 +1342,110 @@ const AdminDashboard = () => {
           z-index: 1000;
         }
 
+        /* Time Filter Styles */
+        .time-filter-container {
+          background: white;
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          margin-bottom: 20px;
+        }
+
+        .time-filter-header {
+          margin-bottom: 16px;
+        }
+
+        .time-filter-header h3 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: #1C1C1C;
+        }
+
+        .time-filter-buttons {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .time-filter-btn {
+          padding: 10px 20px;
+          border: 2px solid #E5E7EB;
+          border-radius: 8px;
+          background: white;
+          color: #6B7280;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .time-filter-btn:hover {
+          border-color: #FF8C42;
+          color: #FF8C42;
+        }
+
+        .time-filter-btn.active {
+          background: #FF8C42;
+          border-color: #FF8C42;
+          color: white;
+        }
+
+        /* Custom Date Range Styles */
+        .custom-date-range {
+          margin-top: 16px;
+          padding: 16px;
+          background: #F8F9FA;
+          border-radius: 8px;
+          border: 1px solid #E5E7EB;
+        }
+
+        .date-inputs {
+          display: flex;
+          gap: 16px;
+          align-items: end;
+        }
+
+        .date-input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .date-input-group label {
+          font-size: 14px;
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .date-input {
+          padding: 8px 12px;
+          border: 1px solid #D1D5DB;
+          border-radius: 6px;
+          font-size: 14px;
+          color: #374151;
+          background: white;
+          transition: border-color 0.2s ease;
+        }
+
+        .date-input:focus {
+          outline: none;
+          border-color: #FF8C42;
+          box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+        }
+
+        .date-range-info {
+          margin-top: 12px;
+          padding: 8px 12px;
+          background: #FF8C42;
+          color: white;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          text-align: center;
+        }
+
+
         /* Responsive */
         @media (max-width: 1200px) {
           .stats-container {
@@ -1160,6 +1469,29 @@ const AdminDashboard = () => {
           .admin-dashboard {
             padding: 16px;
             gap: 16px;
+          }
+
+          .time-filter-container {
+            padding: 16px;
+          }
+
+          .time-filter-buttons {
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .time-filter-btn {
+            width: 100%;
+            text-align: center;
+          }
+
+          .date-inputs {
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .date-input-group {
+            width: 100%;
           }
 
           .chart-header {
