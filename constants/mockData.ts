@@ -1,7 +1,7 @@
 // Mock data tập trung cho tất cả tabs trong dự án
 
 export const mockProject = {
-  id: 'proj-1',
+  id: '1',
   name: 'Hệ thống quản lý dự án MSP',
   description: 'Xây dựng hệ thống quản lý dự án cho công ty MSP',
   status: 'active',
@@ -30,7 +30,8 @@ export const mockTasks = [
     updatedDate: '2025-09-01',
     estimatedHours: 16,
     actualHours: 0,
-    tags: ['backend', 'api', 'auth']
+    tags: ['backend', 'api', 'auth'],
+    milestoneId: 'milestone-1'
   },
   {
     id: 'MWA-2',
@@ -45,7 +46,8 @@ export const mockTasks = [
     updatedDate: '2025-09-10',
     estimatedHours: 12,
     actualHours: 8,
-    tags: ['frontend', 'ui', 'responsive']
+    tags: ['frontend', 'ui', 'responsive'],
+    milestoneId: 'milestone-1'
   },
   {
     id: 'MWA-3',
@@ -60,7 +62,8 @@ export const mockTasks = [
     updatedDate: '2025-09-08',
     estimatedHours: 8,
     actualHours: 8,
-    tags: ['database', 'design', 'schema']
+    tags: ['database', 'design', 'schema'],
+    milestoneId: 'milestone-1'
   },
   {
     id: 'MWA-4',
@@ -75,7 +78,8 @@ export const mockTasks = [
     updatedDate: '2025-09-15',
     estimatedHours: 20,
     actualHours: 18,
-    tags: ['payment', 'integration', 'vnpay']
+    tags: ['payment', 'integration', 'vnpay'],
+    milestoneId: 'milestone-2'
   },
   {
     id: 'MWA-5',
@@ -90,7 +94,8 @@ export const mockTasks = [
     updatedDate: '2025-09-08',
     estimatedHours: 24,
     actualHours: 0,
-    tags: ['user-management', 'permissions', 'backend']
+    tags: ['user-management', 'permissions', 'backend'],
+    milestoneId: 'milestone-1'
   },
   {
     id: 'MWA-6',
@@ -105,7 +110,8 @@ export const mockTasks = [
     updatedDate: '2025-09-12',
     estimatedHours: 16,
     actualHours: 4,
-    tags: ['email', 'notification', 'service']
+    tags: ['email', 'notification', 'service'],
+    milestoneId: 'milestone-2'
   }
 ];
 
@@ -167,6 +173,7 @@ export const mockActivities = [
   }
 ];
 
+// Shared milestone data - single source of truth
 export const mockMilestones = [
   {
     id: 'milestone-1',
@@ -188,55 +195,173 @@ export const mockMilestones = [
   }
 ];
 
+// Helper function to calculate milestone progress based on tasks
+export const calculateMilestoneProgress = (milestoneId: string) => {
+  const milestone = mockMilestones.find(m => m.id === milestoneId);
+  if (!milestone || !milestone.tasks.length) return 0;
+  
+  const completedTasks = milestone.tasks.filter(task => task.status === 'done').length;
+  return Math.round((completedTasks / milestone.tasks.length) * 100);
+};
+
+// Helper function to get milestone status based on progress and due date
+export const getMilestoneStatus = (milestoneId: string) => {
+  const milestone = mockMilestones.find(m => m.id === milestoneId);
+  if (!milestone) return 'pending';
+  
+  const progress = calculateMilestoneProgress(milestoneId);
+  const dueDate = new Date(milestone.dueDate);
+  const today = new Date();
+  
+  if (progress === 100) return 'completed';
+  if (progress > 0) return 'in-progress';
+  if (today > dueDate) return 'overdue';
+  return 'pending';
+};
+
+// Generate hierarchical work items from shared milestone data
+export const mockHierarchicalWorkItems = mockMilestones.map(milestone => {
+  const progress = calculateMilestoneProgress(milestone.id);
+  const status = getMilestoneStatus(milestone.id);
+  
+  return {
+    id: milestone.id,
+    title: milestone.title,
+    type: 'milestone' as const,
+    status: status,
+    dueDate: milestone.dueDate,
+    progress: progress,
+    isExpanded: milestone.id === 'milestone-1', // First milestone expanded by default
+    children: milestone.tasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      type: 'task' as const,
+      status: task.status,
+      assignee: task.assignee,
+      dueDate: task.dueDate,
+      milestoneId: milestone.id
+    }))
+  };
+});
+
+// Generate flattened work items from shared data for Gantt chart synchronization
+export const mockFlattenedWorkItems = (() => {
+  const items: any[] = [];
+  let rowIndex = 0;
+  
+  mockMilestones.forEach(milestone => {
+    const progress = calculateMilestoneProgress(milestone.id);
+    const status = getMilestoneStatus(milestone.id);
+    
+    // Add milestone
+    items.push({
+      id: milestone.id,
+      title: milestone.title,
+      type: 'milestone',
+      status: status,
+      assignee: '',
+      dueDate: milestone.dueDate,
+      progress: progress,
+      rowIndex: rowIndex++
+    });
+    
+    // Add tasks for this milestone
+    milestone.tasks.forEach(task => {
+      items.push({
+        id: task.id,
+        title: task.title,
+        type: 'task',
+        status: task.status,
+        assignee: task.assignee || '',
+        dueDate: task.dueDate,
+        milestoneId: milestone.id,
+        progress: task.status === 'done' ? 100 : task.status === 'in-progress' ? 50 : 0,
+        rowIndex: rowIndex++
+      });
+    });
+  });
+  
+  return items;
+})();
+
 export const mockMeetings = [
   {
     id: 'meeting-1',
-    projectId: 'proj-1',
+    projectId: '1',
+    milestoneId: 'milestone-1',
     title: 'Họp kick-off dự án',
     description: 'Cuộc họp khởi động dự án MSP với toàn bộ team',
     startTime: '2025-09-15T09:00:00Z',
     endTime: '2025-09-15T10:30:00Z',
-    location: 'Phòng họp A - Tầng 3',
-    attendees: [
-      { id: 'user-1', name: 'Quang Long', email: 'ql@msp.com', role: 'Project Manager' },
-      { id: 'user-2', name: 'Nguyễn Văn A', email: 'a@msp.com', role: 'Developer' },
-      { id: 'user-3', name: 'Trần Thị B', email: 'b@msp.com', role: 'Designer' }
-    ],
-    status: 'completed',
+    status: 'Finished',
+    roomUrl: 'https://meet.google.com/abc-defg-hij',
     createdAt: '2025-09-01T08:00:00Z',
     updatedAt: '2025-09-15T10:30:00Z'
   },
   {
     id: 'meeting-2',
-    projectId: 'proj-1',
+    projectId: '1',
+    milestoneId: 'milestone-1',
     title: 'Review thiết kế UI/UX',
     description: 'Review và feedback về thiết kế giao diện đăng nhập',
     startTime: '2025-09-20T14:00:00Z',
     endTime: '2025-09-20T15:30:00Z',
-    location: 'Phòng họp B - Tầng 2',
-    attendees: [
-      { id: 'user-1', name: 'Quang Long', email: 'ql@msp.com', role: 'Project Manager' },
-      { id: 'user-3', name: 'Trần Thị B', email: 'b@msp.com', role: 'Designer' }
-    ],
-    status: 'scheduled',
+    status: 'Scheduled',
+    roomUrl: 'https://meet.google.com/xyz-uvw-rst',
     createdAt: '2025-09-10T10:00:00Z',
     updatedAt: '2025-09-10T10:00:00Z'
   },
   {
     id: 'meeting-3',
-    projectId: 'proj-1',
+    projectId: '1',
+    milestoneId: 'milestone-2',
     title: 'Demo tích hợp Payment',
     description: 'Demo tính năng tích hợp thanh toán VNPay',
     startTime: '2025-09-25T10:00:00Z',
     endTime: '2025-09-25T11:00:00Z',
-    location: 'Phòng họp A - Tầng 3',
-    attendees: [
-      { id: 'user-1', name: 'Quang Long', email: 'ql@msp.com', role: 'Project Manager' },
-      { id: 'user-2', name: 'Nguyễn Văn A', email: 'a@msp.com', role: 'Developer' }
-    ],
-    status: 'scheduled',
+    status: 'Scheduled',
+    roomUrl: 'https://meet.google.com/mno-pqr-stu',
     createdAt: '2025-09-15T14:00:00Z',
     updatedAt: '2025-09-15T14:00:00Z'
+  },
+  {
+    id: 'meeting-4',
+    projectId: '1',
+    milestoneId: null,
+    title: 'Họp hàng tuần',
+    description: 'Họp cập nhật tiến độ dự án hàng tuần',
+    startTime: '2025-09-22T09:00:00Z',
+    endTime: '2025-09-22T10:00:00Z',
+    status: 'Ongoing',
+    roomUrl: 'https://meet.google.com/weekly-standup',
+    createdAt: '2025-09-18T15:00:00Z',
+    updatedAt: '2025-09-22T09:00:00Z'
+  },
+  {
+    id: 'meeting-5',
+    projectId: '1',
+    milestoneId: 'milestone-1',
+    title: 'Code review session',
+    description: 'Review code cho module authentication',
+    startTime: '2025-09-18T15:00:00Z',
+    endTime: '2025-09-18T16:30:00Z',
+    status: 'Finished',
+    roomUrl: 'https://meet.google.com/code-review-123',
+    createdAt: '2025-09-16T10:00:00Z',
+    updatedAt: '2025-09-18T16:30:00Z'
+  },
+  {
+    id: 'meeting-6',
+    projectId: '1',
+    milestoneId: 'milestone-2',
+    title: 'Testing session',
+    description: 'Test tích hợp payment gateway',
+    startTime: '2025-09-28T14:00:00Z',
+    endTime: null,
+    status: 'Scheduled',
+    roomUrl: 'https://meet.google.com/testing-session',
+    createdAt: '2025-09-20T11:00:00Z',
+    updatedAt: '2025-09-20T11:00:00Z'
   }
 ];
 

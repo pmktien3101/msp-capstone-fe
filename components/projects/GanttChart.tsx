@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { mockTasks } from '@/constants/mockData';
+import { mockTasks, mockMilestones, mockFlattenedWorkItems, calculateMilestoneProgress, getMilestoneStatus } from '@/constants/mockData';
+import { MilestoneMarker } from './MilestoneMarker';
+import { CreateMilestoneModal } from './modals/CreateMilestoneModal';
 
 interface GanttChartProps {
   timeScale: string;
@@ -21,22 +23,29 @@ interface WorkItem {
 }
 
 export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selectedItems }, ref) => {
-  const [workItems, setWorkItems] = useState<WorkItem[]>(mockTasks.map((task, index) => {
-    // Use actual due date as end date, or calculate from created date + estimated hours
-    const startDate = new Date(task.createdDate);
-    const dueDate = new Date(task.dueDate);
-    const endDate = dueDate > startDate ? dueDate : new Date(startDate.getTime() + (task.estimatedHours * 24 * 60 * 60 * 1000));
+  const [workItems, setWorkItems] = useState<WorkItem[]>(mockFlattenedWorkItems.map((item) => {
+    // Use different date ranges for milestones vs tasks
+    const startDate = item.type === 'milestone' ? '2025-09-12' : '2025-09-08';
+    const endDate = item.type === 'milestone' ? '2025-09-15' : '2025-09-14';
+    
+    // Use shared data for progress and status
+    const progress = item.type === 'milestone' ? calculateMilestoneProgress(item.id) : (item.progress || 0);
+    const status = item.type === 'milestone' ? getMilestoneStatus(item.id) : item.status;
     
     return {
-      id: task.id,
-      title: task.title,
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-      color: getStatusColor(task.status),
-      rowIndex: index,
-      progress: task.actualHours > 0 ? Math.round((task.actualHours / task.estimatedHours) * 100) : 0,
-      assignee: task.assignee || 'Unassigned',
-      status: task.status
+      id: item.id,
+      title: item.title,
+      startDate: startDate,
+      endDate: endDate,
+      color: status === 'done' ? '#10b981' : 
+             status === 'in-progress' ? '#f59e0b' : 
+             status === 'review' ? '#3b82f6' : 
+             item.type === 'milestone' ? '#f59e0b' : '#6b7280',
+      rowIndex: item.rowIndex,
+      progress: progress,
+      assignee: item.assignee || 'Unassigned',
+      status: status,
+      type: item.type
     };
   }));
 
@@ -44,6 +53,8 @@ export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selecte
   const [dragStart, setDragStart] = useState<{ x: number; startDate: string } | null>(null);
   const [resizeType, setResizeType] = useState<'left' | 'right' | null>(null);
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [milestones, setMilestones] = useState<any[]>(mockMilestones);
+  const [showCreateMilestoneModal, setShowCreateMilestoneModal] = useState(false);
   const chartRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -187,6 +198,20 @@ export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selecte
     }
   };
 
+  const getMilestoneForTask = (task: any) => {
+    return milestones.find(m => m.id === task.milestoneId);
+  };
+
+  const validateTaskEndDate = (task: any, newEndDate: string) => {
+    const milestone = getMilestoneForTask(task);
+    if (!milestone) return true;
+    
+    const taskEndDate = new Date(newEndDate);
+    const milestoneEndDate = new Date(milestone.dueDate || milestone.endDate);
+    
+    return taskEndDate <= milestoneEndDate;
+  };
+
   const handleMouseDown = (e: React.MouseEvent, itemId: string) => {
     e.preventDefault();
     setDraggedItem(itemId);
@@ -211,6 +236,34 @@ export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selecte
         startDate: workItems.find(item => item.id === itemId)?.startDate || ''
       });
     }
+  };
+
+  const handleCreateMilestone = (milestoneData: any) => {
+    const newMilestone = {
+      id: Date.now().toString(),
+      name: milestoneData.title,
+      description: milestoneData.description,
+      startDate: milestoneData.dueDate,
+      endDate: milestoneData.dueDate,
+      status: milestoneData.status,
+      priority: 'medium' as const,
+      progress: 0,
+      projectId: 'proj-1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      members: []
+    };
+    setMilestones(prev => [...prev, newMilestone]);
+    setShowCreateMilestoneModal(false);
+  };
+
+  const handleEditMilestone = (milestone: any) => {
+    // TODO: Implement edit milestone
+    console.log('Edit milestone:', milestone);
+  };
+
+  const handleDeleteMilestone = (milestoneId: string) => {
+    setMilestones(prev => prev.filter(m => m.id !== milestoneId));
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -247,6 +300,11 @@ export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selecte
       const startDate = new Date(currentItem.startDate);
       if (newEndDate <= startDate) return;
 
+      // Validate milestone constraint
+      if (!validateTaskEndDate(currentItem, newEndDate.toISOString().split('T')[0])) {
+        return; // Don't allow resizing beyond milestone end date
+      }
+
       setWorkItems(prev => prev.map(item => 
         item.id === draggedItem 
           ? { ...item, endDate: newEndDate.toISOString().split('T')[0] }
@@ -261,6 +319,11 @@ export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selecte
       const originalDuration = new Date(currentItem.endDate).getTime() - 
                              new Date(currentItem.startDate).getTime();
       newEndDate.setTime(newEndDate.getTime() + originalDuration);
+
+      // Validate milestone constraint for moved task
+      if (!validateTaskEndDate(currentItem, newEndDate.toISOString().split('T')[0])) {
+        return; // Don't allow moving task beyond milestone end date
+      }
 
       setWorkItems(prev => prev.map(item => 
         item.id === draggedItem 
@@ -432,16 +495,17 @@ export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selecte
               <div 
                 key={item.id}
                 className={`work-item-row ${selectedItems.includes(item.id) ? 'selected-row' : ''}`}
-                style={{ top: item.rowIndex * 60 + 20 }}
+                style={{ top: item.rowIndex * 40 + 20 }}
               >
                 <div 
-                  className={`work-item-bar ${selectedItems.includes(item.id) ? 'selected' : ''}`}
+                  className={`work-item-bar ${selectedItems.includes(item.id) ? 'selected' : ''} ${!validateTaskEndDate(item, item.endDate) ? 'constrained' : ''}`}
                   style={{
                     left: getDatePosition(item.startDate),
                     width: getItemWidth(item.startDate, item.endDate),
                     backgroundColor: item.color
                   }}
                   onMouseDown={(e) => handleMouseDown(e, item.id)}
+                  title={`${item.title} (${item.assignee}) - Milestone: ${getMilestoneForTask(item)?.name || 'N/A'}`}
                 >
                   {/* Resize Handles */}
                   <div 
@@ -455,16 +519,48 @@ export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selecte
                 </div>
               </div>
             ))}
+
+            {/* Milestone Markers */}
+            {milestones.map((milestone) => (
+              <MilestoneMarker
+                key={milestone.id}
+                milestone={milestone}
+                position={getDatePosition(milestone.dueDate || milestone.endDate)}
+                onEdit={handleEditMilestone}
+                onDelete={handleDeleteMilestone}
+              />
+            ))}
           </div>
         </div>
       </div>
+
+      {/* Create Milestone Button */}
+      <div className="milestone-actions">
+        <button 
+          className="create-milestone-btn"
+          onClick={() => setShowCreateMilestoneModal(true)}
+          title="Tạo milestone mới"
+        >
+          🏁 Tạo Milestone
+        </button>
+      </div>
+
+      {/* Create Milestone Modal */}
+      {showCreateMilestoneModal && (
+        <CreateMilestoneModal
+          projectId="proj-1"
+          onClose={() => setShowCreateMilestoneModal(false)}
+          onSave={handleCreateMilestone}
+        />
+      )}
     </div>
 
       <style jsx>{`
         .gantt-chart {
           position: relative;
           height: 100%;
-          overflow: hidden;
+          overflow-x: auto;
+          overflow-y: hidden;
           background: white;
           display: flex;
           flex-direction: column;
@@ -478,7 +574,8 @@ export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selecte
 
         .chart-scrollable {
           flex: 1;
-          overflow: auto;
+          overflow-x: auto;
+          overflow-y: hidden;
           position: relative;
           height: 100%;
         }
@@ -618,6 +715,45 @@ export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selecte
           transform: translateX(-1px); /* Center the 2px line */
         }
 
+        .milestone-actions {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          z-index: 10;
+        }
+
+        .create-milestone-btn {
+          background: #ff5e13;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          transition: all 0.2s ease;
+        }
+
+        .create-milestone-btn:hover {
+          background: #e54e0a;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .work-item-bar.constrained {
+          border: 2px dashed #ff6b6b;
+          opacity: 0.8;
+        }
+
+        .work-item-bar.constrained::after {
+          content: '⚠️';
+          position: absolute;
+          right: 4px;
+          top: 2px;
+          font-size: 12px;
+        }
+
         .timeline-grid {
           position: absolute;
           top: 0;
@@ -654,7 +790,7 @@ export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selecte
         .work-items {
           position: relative;
           padding: 20px 0;
-          min-height: ${workItems.length * 60 + 40}px;
+          min-height: ${workItems.length * 40 + 40}px;
           height: 100%;
           width: ${timeScale === 'months' ? '100%' : `${timelineDates.length * 40}px`};
           min-width: 100%;
@@ -665,7 +801,6 @@ export const GanttChart = forwardRef<any, GanttChartProps>(({ timeScale, selecte
           position: absolute;
           height: 40px;
           width: 100%;
-          margin-bottom: 10px;
         }
 
         .work-item-row.selected-row {

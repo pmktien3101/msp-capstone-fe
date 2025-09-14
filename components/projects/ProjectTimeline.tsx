@@ -6,7 +6,9 @@ import { TimelineHeader } from './TimelineHeader';
 import { WorkItemsList } from './WorkItemsList';
 import { GanttChart } from './GanttChart';
 import { TimelineControls } from './TimelineControls';
-import { mockProject, mockTasks } from '@/constants/mockData';
+import { MilestoneGroup } from './MilestoneGroup';
+import { HierarchicalWorkItems } from './HierarchicalWorkItems';
+import { mockProject, mockTasks, mockMilestones, mockHierarchicalWorkItems, mockFlattenedWorkItems, calculateMilestoneProgress, getMilestoneStatus } from '@/constants/mockData';
 
 
 interface ProjectTimelineProps {
@@ -100,22 +102,25 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
             <h3>Công việc</h3>
           </div>
           <div className="work-items">
-            {mockTasks.map((task, index) => (
-              <div 
-                key={task.id} 
-                className="work-item"
-                style={{ top: index * 60 + 20 }}
-              >
-                <input type="checkbox" />
-                <div className="work-item-content">
-                  <div className="work-item-text">
-                    <div className="work-item-title">{task.title}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
+            <HierarchicalWorkItems
+              items={mockHierarchicalWorkItems}
+              onItemClick={(item) => {
+                if (item.type === 'task') {
+                  setSelectedItems(prev => 
+                    prev.includes(item.id) 
+                      ? prev.filter(id => id !== item.id)
+                      : [...prev, item.id]
+                  );
+                }
+              }}
+              onItemToggle={(itemId) => {
+                // Handle task status toggle
+                console.log('Toggle item:', itemId);
+              }}
+            />
+            
           </div>
-          <button className="create-epic-btn">+ Tạo công việc</button>
+                      <button className="create-epic-btn">+ Create Epic</button>
         </div>
         
         <div className="timeline-main">
@@ -273,10 +278,15 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
 
         .work-items {
           flex: 1;
-          padding: 8px 0;
+          padding: 0;
           position: relative;
           height: 100%;
+          background: white;
+          border-radius: 8px;
+          overflow: hidden;
         }
+
+
 
         .work-item {
           position: absolute;
@@ -325,7 +335,8 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
 
         .timeline-main {
           flex: 1;
-          overflow: auto;
+          overflow-x: auto;
+          overflow-y: hidden;
           background: white;
         }
       `}</style>

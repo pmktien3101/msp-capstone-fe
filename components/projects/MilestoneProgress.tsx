@@ -1,16 +1,23 @@
 'use client';
 
-import { mockMilestones } from '@/constants/mockData';
+import { mockMilestones, calculateMilestoneProgress, getMilestoneStatus } from '@/constants/mockData';
 
 export const MilestoneProgress = () => {
-  const milestones = mockMilestones.map(milestone => ({
-    ...milestone,
-    tasks: milestone.tasks.map(task => ({
-      id: task.id,
-      title: task.title,
-      completed: task.status === 'done'
-    }))
-  }));
+  const milestones = mockMilestones.map(milestone => {
+    const progress = calculateMilestoneProgress(milestone.id);
+    const status = getMilestoneStatus(milestone.id);
+    
+    return {
+      ...milestone,
+      progress: progress,
+      status: status,
+      tasks: milestone.tasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        completed: task.status === 'done'
+      }))
+    };
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
