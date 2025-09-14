@@ -63,10 +63,34 @@
           }
         }
 
+        .progress-section {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-top: 8px;
+        }
+
         .progress-text {
-          color: #6b7280;
+          color: #ff5e13;
           font-size: 14px;
-          font-weight: 500;
+          font-weight: 600;
+          min-width: 80px;
+        }
+
+        .progress-bar {
+          flex: 1;
+          height: 8px;
+          background: #e2e8f0;
+          border-radius: 4px;
+          overflow: hidden;
+          max-width: 200px;
+        }
+
+        .progress-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #ff5e13, #ff7c3e);
+          border-radius: 4px;
+          transition: width 0.3s ease;
         }
       }
     }

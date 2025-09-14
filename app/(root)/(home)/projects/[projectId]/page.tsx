@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { ProjectTabs } from '@/components/projects/ProjectTabs';
 import { Project } from '@/types/project';
+import { mockTasks } from '@/constants/mockData';
 import '@/app/styles/project-detail.scss';
 
 const ProjectDetailPage = () => {
@@ -11,6 +12,7 @@ const ProjectDetailPage = () => {
   const projectId = params.projectId as string;
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [taskProgress, setTaskProgress] = useState(0);
 
   // Mock data - replace with actual API call
   useEffect(() => {
@@ -61,6 +63,13 @@ const ProjectDetailPage = () => {
 
     const foundProject = mockProjects.find(p => p.id === projectId);
     setProject(foundProject || null);
+    
+    // Calculate progress based on task completion
+    const completedTasks = mockTasks.filter(task => task.status === 'done').length;
+    const totalTasks = mockTasks.length;
+    const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    setTaskProgress(progressPercentage);
+    
     setLoading(false);
   }, [projectId]);
 
@@ -95,7 +104,15 @@ const ProjectDetailPage = () => {
               {project.status === 'on-hold' && 'Tạm dừng'}
               {project.status === 'completed' && 'Hoàn thành'}
             </span>
-            <span className="progress-text">Tiến độ: {project.progress}%</span>
+            <div className="progress-section">
+              <span className="progress-text">Tiến độ: {taskProgress}%</span>
+              <div className="progress-bar">
+                <div 
+                  className="progress-fill" 
+                  style={{ width: `${taskProgress}%` }}
+                ></div>
+              </div>
+            </div>
           </div>
         </div>
         <div className="project-actions">

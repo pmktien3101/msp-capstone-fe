@@ -3,15 +3,25 @@
 interface TimelineControlsProps {
   timeScale: string;
   onTimeScaleChange: (scale: string) => void;
+  onScrollToToday?: () => void;
 }
 
-export const TimelineControls = ({ timeScale, onTimeScaleChange }: TimelineControlsProps) => {
+export const TimelineControls = ({ timeScale, onTimeScaleChange, onScrollToToday }: TimelineControlsProps) => {
   const timeScales = [
     { id: 'today', label: 'Hôm nay' },
     { id: 'weeks', label: 'Tuần' },
-    { id: 'months', label: 'Tháng' },
-    { id: 'quarters', label: 'Quý' }
+    { id: 'months', label: 'Tháng' }
   ];
+
+  const handleTodayClick = () => {
+    if (onScrollToToday) {
+      onScrollToToday();
+    }
+  };
+
+  const handleMonthsClick = () => {
+    alert('Chức năng đang được cập nhật');
+  };
 
   return (
     <div className="timeline-controls">
@@ -21,7 +31,13 @@ export const TimelineControls = ({ timeScale, onTimeScaleChange }: TimelineContr
             <button
               key={scale.id}
               className={`scale-btn ${timeScale === scale.id ? 'active' : ''}`}
-              onClick={() => onTimeScaleChange(scale.id)}
+              onClick={
+                scale.id === 'today' 
+                  ? handleTodayClick 
+                  : scale.id === 'months' 
+                    ? handleMonthsClick 
+                    : () => onTimeScaleChange(scale.id)
+              }
             >
               {scale.label}
             </button>
@@ -37,7 +53,7 @@ export const TimelineControls = ({ timeScale, onTimeScaleChange }: TimelineContr
             </svg>
           </button>
           
-          <button className="action-btn" title="Tùy chọn">
+          <button className="action-btn" title="Tiếp theo">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -56,8 +72,8 @@ export const TimelineControls = ({ timeScale, onTimeScaleChange }: TimelineContr
         .controls-content {
           background: white;
           border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+          border-radius: 6px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
           padding: 8px;
           display: flex;
           align-items: center;
@@ -67,7 +83,7 @@ export const TimelineControls = ({ timeScale, onTimeScaleChange }: TimelineContr
         .time-scale-buttons {
           display: flex;
           background: #f3f4f6;
-          border-radius: 6px;
+          border-radius: 4px;
           padding: 2px;
         }
 
@@ -79,7 +95,7 @@ export const TimelineControls = ({ timeScale, onTimeScaleChange }: TimelineContr
           font-size: 12px;
           font-weight: 500;
           cursor: pointer;
-          border-radius: 4px;
+          border-radius: 3px;
           transition: all 0.2s ease;
         }
 
@@ -126,6 +142,8 @@ export const TimelineControls = ({ timeScale, onTimeScaleChange }: TimelineContr
 
           .controls-content {
             justify-content: space-between;
+            padding: 6px;
+            gap: 12px;
           }
 
           .time-scale-buttons {

@@ -8,6 +8,7 @@ import { ProjectBoard } from './ProjectBoard';
 import { ProjectList } from './ProjectList';
 import { ProjectReports } from './ProjectReports';
 import { ProjectSettings } from './ProjectSettings';
+import { MeetingTab } from './MeetingTab';
 
 interface ProjectTabsProps {
   project: Project;
@@ -64,6 +65,20 @@ export const ProjectTabs = ({ project }: ProjectTabsProps) => {
       )
     },
     {
+      id: 'meetings',
+      label: 'Cuộc họp',
+      icon: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M8 2V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M16 2V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M19 10V19C19 20.1046 18.1046 21 17 21H7C5.89543 21 5 20.1046 5 19V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M9 15H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M9 18H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    {
       id: 'reports',
       label: 'Báo cáo',
       icon: (
@@ -96,6 +111,8 @@ export const ProjectTabs = ({ project }: ProjectTabsProps) => {
         return <ProjectBoard project={project} />;
       case 'list':
         return <ProjectList project={project} />;
+      case 'meetings':
+        return <MeetingTab project={project} />;
       case 'reports':
         return <ProjectReports project={project} />;
       case 'settings':
