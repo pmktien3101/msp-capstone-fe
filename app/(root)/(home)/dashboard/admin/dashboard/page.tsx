@@ -1,6 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('Doanh Thu');
@@ -9,6 +31,121 @@ const AdminDashboard = () => {
   const [hoveredDevice, setHoveredDevice] = useState<string | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [selectedYears, setSelectedYears] = useState<string[]>(['2024', '2023']); // Mặc định chọn 2024 và 2023
+
+  // Data for industry bar chart
+  const industryData = {
+    labels: ['IT', 'Finance', 'Healthcare', 'Education', 'Retail', 'Other'],
+    datasets: [
+      {
+        label: 'Số công ty',
+        data: [400, 300, 350, 200, 450, 250],
+        backgroundColor: [
+          '#95A4FC', // indigo
+          '#BAEDBD', // mint
+          '#1C1C1C', // black
+          '#B1E3FF', // blue
+          '#A8C5DA', // cyan
+          '#A1E3CB'  // green
+        ],
+        borderColor: [
+          '#95A4FC',
+          '#BAEDBD',
+          '#1C1C1C',
+          '#B1E3FF',
+          '#A8C5DA',
+          '#A1E3CB'
+        ],
+        borderWidth: 1
+      }
+    ]
+  };
+
+  const industryOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            return `${context.label}: ${context.parsed.y} công ty`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false
+        }
+      },
+      y: {
+        beginAtZero: true,
+        max: 500,
+        ticks: {
+          stepSize: 100
+        },
+        grid: {
+          display: false
+        }
+      }
+    },
+    elements: {
+      bar: {
+        borderRadius: {
+          topLeft: 8,
+          topRight: 8,
+          bottomLeft: 0,
+          bottomRight: 0
+        },
+        borderSkipped: false
+      }
+    }
+  };
+
+  // Data for meeting time doughnut chart
+  const meetingTimeData = {
+    labels: ['9:00-12:00', '13:00-17:00', '18:00-20:00', 'Khác'],
+    datasets: [
+      {
+        data: [35.2, 28.8, 22.4, 13.6],
+        backgroundColor: [
+          '#FF6B6B', // red (thay thế màu đen)
+          '#BAEDBD', // mint
+          '#95A4FC', // indigo
+          '#B1E3FF'  // blue
+        ],
+        borderColor: [
+          '#FF6B6B',
+          '#BAEDBD',
+          '#95A4FC',
+          '#B1E3FF'
+        ],
+        borderWidth: 2,
+        hoverOffset: 4
+      }
+    ]
+  };
+
+  const meetingTimeOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: {
+        display: false // Sử dụng custom legend
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            return `${context.label}: ${context.parsed}%`;
+          }
+        }
+      }
+    }
+  };
 
   // Data for different tabs - Flexible years structure
   const chartData = {
@@ -377,47 +514,7 @@ const AdminDashboard = () => {
             <h3>Thống Kê Công Ty Theo Ngành</h3>
           </div>
           <div className="device-chart">
-            <div className="device-y-axis">
-              <div className="y-label">500</div>
-              <div className="y-label">400</div>
-              <div className="y-label">300</div>
-              <div className="y-label">200</div>
-              <div className="y-label">100</div>
-              <div className="y-label">0</div>
-            </div>
-            <div className="device-bars">
-              {[
-                {name: 'IT', height: '80%', color: 'indigo', count: '400'},
-                {name: 'Finance', height: '60%', color: 'mint', count: '300'},
-                {name: 'Healthcare', height: '70%', color: 'black', count: '350'},
-                {name: 'Education', height: '40%', color: 'blue', count: '200'},
-                {name: 'Retail', height: '90%', color: 'cyan', count: '450'},
-                {name: 'Other', height: '50%', color: 'green', count: '250'}
-              ].map((industry) => (
-                <div key={industry.name}
-                     className={`device-bar ${industry.color} ${hoveredDevice === industry.name ? 'hovered' : ''}`}
-                     style={{height: industry.height}}
-                     onMouseEnter={() => setHoveredDevice(industry.name)}
-                     onMouseLeave={() => setHoveredDevice(null)}>
-                  {hoveredDevice === industry.name && (
-                    <div className="device-tooltip">
-                      <div className="tooltip-content">
-                        <strong>{industry.name}</strong><br/>
-                        Số công ty: {industry.count}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="device-x-axis">
-              <div className="x-label">IT</div>
-              <div className="x-label">Finance</div>
-              <div className="x-label">Healthcare</div>
-              <div className="x-label">Education</div>
-              <div className="x-label">Retail</div>
-              <div className="x-label">Other</div>
-            </div>
+            <Bar data={industryData} options={industryOptions} />
           </div>
         </div>
 
@@ -427,82 +524,35 @@ const AdminDashboard = () => {
             <h3>Cuộc Họp Theo Thời Gian</h3>
           </div>
           <div className="location-content">
-            <div className="pie-chart">
-              <div className="pie-slice black" style={{transform: 'rotate(0deg)', clipPath: 'polygon(50% 50%, 50% 0%, 78% 16%, 50% 50%)'}}></div>
-              <div className="pie-slice indigo" style={{transform: 'rotate(90deg)', clipPath: 'polygon(50% 50%, 78% 16%, 100% 30%, 50% 50%)'}}></div>
-              <div className="pie-slice blue" style={{transform: 'rotate(180deg)', clipPath: 'polygon(50% 50%, 100% 30%, 100% 100%, 50% 50%)'}}></div>
-              <div className="pie-slice mint" style={{transform: 'rotate(270deg)', clipPath: 'polygon(50% 50%, 100% 100%, 0% 100%, 50% 50%)'}}></div>
+            <div className="pie-chart-container">
+              <Doughnut data={meetingTimeData} options={meetingTimeOptions} />
             </div>
             <div className="location-legend">
               <div className="legend-item">
-                <div className="legend-dot black"></div>
+                <div className="legend-dot red"></div>
                 <span>9:00-12:00</span>
-                <span className="percentage">35.2%</span>
+                <span className="percentage">3,152</span>
               </div>
               <div className="legend-item">
                 <div className="legend-dot mint"></div>
                 <span>13:00-17:00</span>
-                <span className="percentage">28.8%</span>
+                <span className="percentage">2,584</span>
               </div>
               <div className="legend-item">
                 <div className="legend-dot indigo"></div>
                 <span>18:00-20:00</span>
-                <span className="percentage">22.4%</span>
+                <span className="percentage">2,011</span>
               </div>
               <div className="legend-item">
                 <div className="legend-dot blue"></div>
                 <span>Khác</span>
-                <span className="percentage">13.6%</span>
-          </div>
+                <span className="percentage">1,220</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Thống Kê Dự Án Theo Tháng */}
-      <div className="marketing-seo">
-        <div className="section-header">
-          <h3>Thống Kê Dự Án Theo Tháng</h3>
-        </div>
-        <div className="marketing-chart">
-          <div className="marketing-y-axis">
-            <div className="y-label">500</div>
-            <div className="y-label">400</div>
-            <div className="y-label">300</div>
-            <div className="y-label">200</div>
-            <div className="y-label">100</div>
-            <div className="y-label">0</div>
-          </div>
-          <div className="marketing-bars">
-            <div className="marketing-bar indigo" style={{height: '65%'}}></div>
-            <div className="marketing-bar mint" style={{height: '45%'}}></div>
-            <div className="marketing-bar black" style={{height: '70%'}}></div>
-            <div className="marketing-bar blue" style={{height: '35%'}}></div>
-            <div className="marketing-bar cyan" style={{height: '80%'}}></div>
-            <div className="marketing-bar green" style={{height: '55%'}}></div>
-            <div className="marketing-bar indigo" style={{height: '60%'}}></div>
-            <div className="marketing-bar mint" style={{height: '40%'}}></div>
-            <div className="marketing-bar black" style={{height: '75%'}}></div>
-            <div className="marketing-bar blue" style={{height: '50%'}}></div>
-            <div className="marketing-bar cyan" style={{height: '85%'}}></div>
-            <div className="marketing-bar green" style={{height: '65%'}}></div>
-          </div>
-          <div className="marketing-x-axis">
-            <div className="x-label">Jan</div>
-            <div className="x-label">Feb</div>
-            <div className="x-label">Mar</div>
-            <div className="x-label">Apr</div>
-            <div className="x-label">May</div>
-            <div className="x-label">Jun</div>
-            <div className="x-label">Jul</div>
-            <div className="x-label">Aug</div>
-            <div className="x-label">Sep</div>
-            <div className="x-label">Oct</div>
-            <div className="x-label">Nov</div>
-            <div className="x-label">Dec</div>
-          </div>
-        </div>
-      </div>
 
       <style jsx>{`
         .admin-dashboard {
@@ -970,56 +1020,10 @@ const AdminDashboard = () => {
 
         .device-chart {
           flex: 1;
-          display: flex;
-          gap: 16px;
+          height: 200px;
           position: relative;
         }
 
-        .device-y-axis {
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          align-items: flex-end;
-        }
-
-        .device-bars {
-          flex: 1;
-          display: flex;
-          align-items: flex-end;
-          gap: 8px;
-          padding: 16px 0 28px 0;
-        }
-
-        .device-bar {
-          flex: 1;
-          border-radius: 4px 4px 0 0;
-          min-height: 4px;
-          transition: all 0.3s ease;
-          cursor: pointer;
-          position: relative;
-        }
-
-        .device-bar.hovered {
-          transform: scaleY(1.05);
-          opacity: 0.8;
-        }
-
-        .device-bar.indigo { background: #95A4FC; }
-        .device-bar.mint { background: #BAEDBD; }
-        .device-bar.black { background: #1C1C1C; }
-        .device-bar.blue { background: #B1E3FF; }
-        .device-bar.cyan { background: #A8C5DA; }
-        .device-bar.green { background: #A1E3CB; }
-
-        .device-x-axis {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          display: flex;
-          justify-content: space-between;
-          padding: 0 16px;
-        }
 
         /* Traffic by Location */
         .traffic-location {
@@ -1044,27 +1048,11 @@ const AdminDashboard = () => {
           padding: 0 20px;
         }
 
-        .pie-chart {
+        .pie-chart-container {
           width: 120px;
           height: 120px;
           position: relative;
-          border-radius: 50%;
-          overflow: hidden;
         }
-
-        .pie-slice {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-        }
-
-        .pie-slice.black { background: #1C1C1C; }
-        .pie-slice.indigo { background: #95A4FC; }
-        .pie-slice.blue { background: #B1E3FF; }
-        .pie-slice.mint { background: #BAEDBD; }
 
         .location-legend {
           flex: 1;
@@ -1086,7 +1074,7 @@ const AdminDashboard = () => {
           border-radius: 50%;
         }
 
-        .location-legend .legend-dot.black { background: #1C1C1C; }
+        .location-legend .legend-dot.red { background: #FF6B6B; }
         .location-legend .legend-dot.mint { background: #BAEDBD; }
         .location-legend .legend-dot.indigo { background: #95A4FC; }
         .location-legend .legend-dot.blue { background: #B1E3FF; }
@@ -1103,64 +1091,6 @@ const AdminDashboard = () => {
           margin-left: auto;
         }
 
-        /* Marketing & SEO */
-        .marketing-seo {
-          flex: 1 1 0;
-          min-width: 800px;
-          padding: 24px;
-          background: linear-gradient(135deg, #F7F9FB 0%, #FFF0F5 100%);
-          border-radius: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.8);
-        }
-
-        .marketing-chart {
-          flex: 1;
-          display: flex;
-          gap: 16px;
-          position: relative;
-        }
-
-        .marketing-y-axis {
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          align-items: flex-end;
-        }
-
-        .marketing-bars {
-          flex: 1;
-          display: flex;
-          align-items: flex-end;
-          gap: 8px;
-          padding: 16px 0 28px 0;
-        }
-
-        .marketing-bar {
-          flex: 1;
-          border-radius: 4px 4px 0 0;
-          min-height: 4px;
-        }
-
-        .marketing-bar.indigo { background: #95A4FC; }
-        .marketing-bar.mint { background: #BAEDBD; }
-        .marketing-bar.black { background: #1C1C1C; }
-        .marketing-bar.blue { background: #B1E3FF; }
-        .marketing-bar.cyan { background: #A8C5DA; }
-        .marketing-bar.green { background: #A1E3CB; }
-
-        .marketing-x-axis {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          display: flex;
-          justify-content: space-between;
-          padding: 0 16px;
-        }
 
         /* Tooltips */
         .tooltip {
@@ -1220,8 +1150,7 @@ const AdminDashboard = () => {
           .main-chart-container,
           .traffic-website,
           .traffic-device,
-          .traffic-location,
-          .marketing-seo {
+          .traffic-location {
             min-width: auto;
             width: 100%;
           }
