@@ -20,9 +20,9 @@ export const MeetingDetailModal = ({ meeting, onClose, onSave, onDelete }: Meeti
   const [formData, setFormData] = useState({
     title: meeting.title,
     description: meeting.description,
-    startTime: meeting.startTime,
-    endTime: meeting.endTime,
-    location: meeting.location,
+    startTime: meeting.startTime ? new Date(meeting.startTime).toISOString().slice(0, 16) : '',
+    endTime: meeting.endTime ? new Date(meeting.endTime).toISOString().slice(0, 16) : '',
+    roomUrl: meeting.roomUrl,
     status: meeting.status
   });
 
@@ -54,10 +54,6 @@ export const MeetingDetailModal = ({ meeting, onClose, onSave, onDelete }: Meeti
       newErrors.startTime = 'Thời gian bắt đầu là bắt buộc';
     }
 
-    if (!formData.endTime) {
-      newErrors.endTime = 'Thời gian kết thúc là bắt buộc';
-    }
-
     if (formData.startTime && formData.endTime) {
       const start = new Date(formData.startTime);
       const end = new Date(formData.endTime);
@@ -67,8 +63,8 @@ export const MeetingDetailModal = ({ meeting, onClose, onSave, onDelete }: Meeti
       }
     }
 
-    if (!formData.location.trim()) {
-      newErrors.location = 'Địa điểm là bắt buộc';
+    if (!formData.roomUrl.trim()) {
+      newErrors.roomUrl = 'URL phòng họp là bắt buộc';
     }
 
     setErrors(newErrors);
@@ -80,7 +76,16 @@ export const MeetingDetailModal = ({ meeting, onClose, onSave, onDelete }: Meeti
       return;
     }
 
-    onSave(formData);
+    const meetingData = {
+      title: formData.title,
+      description: formData.description,
+      startTime: new Date(formData.startTime).toISOString(),
+      endTime: formData.endTime ? new Date(formData.endTime).toISOString() : null,
+      roomUrl: formData.roomUrl,
+      status: formData.status
+    };
+
+    onSave(meetingData);
     setIsEditing(false);
   };
 
@@ -88,9 +93,9 @@ export const MeetingDetailModal = ({ meeting, onClose, onSave, onDelete }: Meeti
     setFormData({
       title: meeting.title,
       description: meeting.description,
-      startTime: meeting.startTime,
-      endTime: meeting.endTime,
-      location: meeting.location,
+      startTime: meeting.startTime ? new Date(meeting.startTime).toISOString().slice(0, 16) : '',
+      endTime: meeting.endTime ? new Date(meeting.endTime).toISOString().slice(0, 16) : '',
+      roomUrl: meeting.roomUrl,
       status: meeting.status
     });
     setErrors({});
@@ -106,20 +111,20 @@ export const MeetingDetailModal = ({ meeting, onClose, onSave, onDelete }: Meeti
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return '#3b82f6';
-      case 'in-progress': return '#f59e0b';
-      case 'completed': return '#10b981';
-      case 'cancelled': return '#ef4444';
+      case 'Scheduled': return '#3b82f6';
+      case 'Ongoing': return '#f59e0b';
+      case 'Finished': return '#10b981';
+      case 'Cancelled': return '#ef4444';
       default: return '#6b7280';
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'Đã lên lịch';
-      case 'in-progress': return 'Đang diễn ra';
-      case 'completed': return 'Hoàn thành';
-      case 'cancelled': return 'Đã hủy';
+      case 'Scheduled': return 'Đã lên lịch';
+      case 'Ongoing': return 'Đang diễn ra';
+      case 'Finished': return 'Hoàn thành';
+      case 'Cancelled': return 'Đã hủy';
       default: return status;
     }
   };
@@ -188,27 +193,28 @@ export const MeetingDetailModal = ({ meeting, onClose, onSave, onDelete }: Meeti
               </div>
 
               <div className="form-group">
-                <label htmlFor="location">Địa điểm *</label>
+                <label htmlFor="roomUrl">URL phòng họp *</label>
                 <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
-                  className={errors.location ? 'error' : ''}
+                  id="roomUrl"
+                  value={formData.roomUrl}
+                  onChange={(e) => handleInputChange('roomUrl', e.target.value)}
+                  className={errors.roomUrl ? 'error' : ''}
                 />
-                {errors.location && <span className="error-text">{errors.location}</span>}
+                {errors.roomUrl && <span className="error-text">{errors.roomUrl}</span>}
               </div>
 
               <div className="form-group">
                 <label htmlFor="status">Trạng thái</label>
-                <Select
+                <select
                   value={formData.status}
-                  onValueChange={(value) => handleInputChange('status', value)}
+                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  className="status-select"
                 >
-                  <option value="scheduled">Đã lên lịch</option>
-                  <option value="in-progress">Đang diễn ra</option>
-                  <option value="completed">Hoàn thành</option>
-                  <option value="cancelled">Đã hủy</option>
-                </Select>
+                  <option value="Scheduled">Đã lên lịch</option>
+                  <option value="Ongoing">Đang diễn ra</option>
+                  <option value="Finished">Hoàn thành</option>
+                  <option value="Cancelled">Đã hủy</option>
+                </select>
               </div>
             </form>
           ) : (
@@ -231,14 +237,23 @@ export const MeetingDetailModal = ({ meeting, onClose, onSave, onDelete }: Meeti
                   <span>{new Date(meeting.startTime).toLocaleString('vi-VN')}</span>
                 </div>
 
-                <div className="info-item">
-                  <label>Thời gian kết thúc:</label>
-                  <span>{new Date(meeting.endTime).toLocaleString('vi-VN')}</span>
-                </div>
+                {meeting.endTime && (
+                  <div className="info-item">
+                    <label>Thời gian kết thúc:</label>
+                    <span>{new Date(meeting.endTime).toLocaleString('vi-VN')}</span>
+                  </div>
+                )}
 
                 <div className="info-item">
-                  <label>Địa điểm:</label>
-                  <span>{meeting.location}</span>
+                  <label>URL phòng họp:</label>
+                  <a 
+                    href={meeting.roomUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="room-link"
+                  >
+                    {meeting.roomUrl}
+                  </a>
                 </div>
 
                 <div className="info-item">
@@ -251,22 +266,12 @@ export const MeetingDetailModal = ({ meeting, onClose, onSave, onDelete }: Meeti
                   </span>
                 </div>
 
-                <div className="info-item">
-                  <label>Thành viên tham gia:</label>
-                  <div className="attendees-list">
-                    {meeting.attendees.map((attendee, index) => (
-                      <div key={index} className="attendee-item">
-                        <div className="attendee-avatar">
-                          {attendee.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="attendee-info">
-                          <div className="attendee-name">{attendee.name}</div>
-                          <div className="attendee-role">{attendee.role}</div>
-                        </div>
-                      </div>
-                    ))}
+                {meeting.milestoneId && (
+                  <div className="info-item">
+                    <label>Milestone:</label>
+                    <span>Milestone {meeting.milestoneId}</span>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}

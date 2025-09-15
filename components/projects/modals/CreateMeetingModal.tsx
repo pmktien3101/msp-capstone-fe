@@ -159,8 +159,6 @@ export const CreateMeetingModal = ({ project, meeting, onClose, onSave }: Create
 
         <form onSubmit={handleSubmit} className="modal-body">
           <div className="form-section">
-            <h3>Thông tin cơ bản</h3>
-            
             <div className="form-group">
               <label htmlFor="title">Tiêu đề cuộc họp *</label>
               <Input
