@@ -6,7 +6,6 @@ import { Meeting, MeetingStatus } from '@/types/meeting';
 import { useMeetings } from '@/hooks/useMeetings';
 import { Button } from '@/components/ui/button';
 import { CreateMeetingModal } from './modals/CreateMeetingModal';
-import { MeetingDetailModal } from './modals/MeetingDetailModal';
 import '@/app/styles/meeting-tab.scss';
 
 interface MeetingTabProps {
@@ -17,7 +16,6 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
 
   const {
     meetings,
@@ -61,7 +59,6 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
 
     if (updatedMeeting) {
       setShowEditModal(false);
-      setShowDetailModal(false);
       setSelectedMeeting(null);
     }
   };
@@ -78,8 +75,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   };
 
   const handleViewMeeting = (meeting: Meeting) => {
-    setSelectedMeeting(meeting);
-    setShowDetailModal(true);
+    // Navigate to meeting detail page
+    window.location.href = `/meeting-detail/${meeting.id}`;
   };
 
   const handleStatusChange = async (meetingId: string, status: MeetingStatus) => {
@@ -295,17 +292,6 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
         />
       )}
 
-      {showDetailModal && selectedMeeting && (
-        <MeetingDetailModal
-          meeting={selectedMeeting}
-          onClose={() => {
-            setShowDetailModal(false);
-            setSelectedMeeting(null);
-          }}
-          onSave={handleUpdateMeeting}
-          onDelete={handleDeleteMeeting}
-        />
-      )}
 
     </div>
   );
