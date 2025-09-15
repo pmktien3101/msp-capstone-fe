@@ -1,306 +1,209 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { Project } from '@/types/project';
-import { Meeting, CreateMeetingDto, UpdateMeetingDto, MeetingStatus } from '@/types/meeting';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
-import { mockMilestones } from '@/constants/mockData';
-import '@/app/styles/meeting-modals.scss';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Call, useStreamVideoClient } from "@stream-io/video-react-sdk";
+import { Textarea } from "@/components/ui/textarea";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { useUser } from "@/hooks/useUser";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
-interface CreateMeetingModalProps {
-  project: Project;
-  meeting?: Meeting | null; // For edit mode
-  onClose: () => void;
-  onSave: (meetingData: CreateMeetingDto | UpdateMeetingDto) => void;
+const formSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  date: z.string().min(1, "Date is required"),
+  time: z.string().min(1, "Time is required"),
+});
+
+interface MeetingFormProps {
+  onClose?: () => void;
 }
 
-export const CreateMeetingModal = ({ project, meeting, onClose, onSave }: CreateMeetingModalProps) => {
-  const isEditMode = !!meeting;
-  const modalRef = useRef<HTMLDivElement>(null);
-  
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    startTime: '',
-    endTime: '',
-    roomUrl: '',
-    milestoneId: ''
+export default function MeetingForm({ onClose }: MeetingFormProps) {
+  const router = useRouter();
+  const { userId } = useUser();
+  const client = useStreamVideoClient();
+  const [callDetails, setCallDetails] = useState<Call>();
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      date: "",
+      time: "",
+    },
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  // Initialize form data for edit mode
-  useEffect(() => {
-    if (isEditMode && meeting) {
-      setFormData({
-        title: meeting.title,
-        description: meeting.description,
-        startTime: meeting.startTime ? new Date(meeting.startTime).toISOString().slice(0, 16) : '',
-        endTime: meeting.endTime ? new Date(meeting.endTime).toISOString().slice(0, 16) : '',
-        roomUrl: meeting.roomUrl,
-        milestoneId: meeting.milestoneId || ''
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!client || !userId) {
+      throw new Error("Stream client not initialized");
+    }
+    try {
+      const meetingId = crypto.randomUUID();
+      const call = client.call("default", meetingId);
+      if (!call) {
+        throw new Error("Failed to create call");
+      }
+      await call.getOrCreate({
+        data: {
+          custom: {
+            title: values.title,
+            description: values.description,
+            scheduledDate: values.date,
+            scheduledTime: values.time,
+          },
+          starts_at: new Date(`${values.date}T${values.time}`).toISOString(),
+          members: [{ user_id: userId }],
+        },
       });
+      setCallDetails(call);
+    } catch (error) {
+      console.error("Error creating meeting:", error);
     }
-  }, [isEditMode, meeting]);
+  }
 
-  // Handle click outside to close modal
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [onClose]);
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ''
-      }));
-    }
-  };
-
-  const generateRoomUrl = () => {
-    const randomId = Math.random().toString(36).substring(2, 15);
-    setFormData(prev => ({
-      ...prev,
-      roomUrl: `https://meet.google.com/${randomId}`
-    }));
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Tiêu đề là bắt buộc';
-    }
-
-    if (!formData.startTime) {
-      newErrors.startTime = 'Thời gian bắt đầu là bắt buộc';
-    }
-
-    if (formData.startTime && formData.endTime) {
-      const start = new Date(formData.startTime);
-      const end = new Date(formData.endTime);
-      
-      if (start >= end) {
-        newErrors.endTime = 'Thời gian kết thúc phải sau thời gian bắt đầu';
-      }
-    }
-
-    if (!formData.roomUrl.trim()) {
-      newErrors.roomUrl = 'URL phòng họp là bắt buộc';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
-    const meetingData = {
-      projectId: project.id,
-      title: formData.title,
-      description: formData.description,
-      startTime: new Date(formData.startTime).toISOString(),
-      endTime: formData.endTime ? new Date(formData.endTime).toISOString() : null,
-      roomUrl: formData.roomUrl,
-      milestoneId: formData.milestoneId || null
-    };
-
-    onSave(meetingData);
-  };
+  // Build meeting link using env base URL or window origin as fallback
+  const baseUrl =
+    (typeof window !== "undefined" && window.location.origin) ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    "";
+  const meetingLink = callDetails ? `${baseUrl}/meeting/${callDetails.id}` : "";
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content" ref={modalRef}>
-        <div className="modal-header">
-          <div className="header-content">
-            <div className="header-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div>
-              <h2>{isEditMode ? 'Chỉnh sửa cuộc họp' : 'Tạo cuộc họp mới'}</h2>
-              <p>{isEditMode ? 'Cập nhật thông tin cuộc họp' : 'Thêm cuộc họp mới cho dự án'}</p>
-            </div>
-          </div>
-          <button className="close-btn" onClick={onClose}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"
+        onClick={onClose}
+      />
+      {/* Modal panel */}
+      <div className="relative w-full max-w-xl rounded-lg border bg-white shadow-xl p-6 animate-in fade-in zoom-in">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-sm"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">Schedule a Meeting</h3>
+          <p className="text-xs text-muted-foreground">
+            Fill details below to create a meeting
+          </p>
         </div>
-
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="form-section">
-            <div className="form-group">
-              <label htmlFor="title">Tiêu đề cuộc họp *</label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                placeholder="Nhập tiêu đề cuộc họp"
-                className={errors.title ? 'error' : ''}
-              />
-              {errors.title && <span className="error-text">{errors.title}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="description">Mô tả</label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Nhập mô tả cuộc họp"
-                rows={3}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="milestoneId">Milestone (tùy chọn)</label>
-              <div className="milestone-selector">
-                <select
-                  id="milestoneId"
-                  value={formData.milestoneId}
-                  onChange={(e) => handleInputChange('milestoneId', e.target.value)}
-                  className="milestone-dropdown"
+        <div className="max-w-2xl mx-auto w-full">
+          {callDetails ? (
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold mb-4 text-orange-800">
+                Meeting Created!
+              </h2>
+              <p className="mb-4">
+                Your meeting has been scheduled successfully.
+              </p>
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  onClick={() => {
+                    if (meetingLink) {
+                      navigator.clipboard.writeText(meetingLink);
+                      toast.success("Link copied!");
+                    }
+                  }}
+                  className="flex items-center gap-2 text-orange-600 cursor-pointer"
                 >
-                  <option value="">Không có milestone</option>
-                  {mockMilestones.map((milestone) => (
-                    <option key={milestone.id} value={milestone.id}>
-                      {milestone.title}
-                    </option>
-                  ))}
-                </select>
-                <div className="milestone-preview">
-                  {formData.milestoneId ? (
-                    <div className="selected-milestone">
-                      <div className="milestone-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2"/>
-                        </svg>
-                      </div>
-                      <span className="milestone-text">
-                        {mockMilestones.find(m => m.id === formData.milestoneId)?.title}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleInputChange('milestoneId', '')}
-                        className="remove-milestone"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                          <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="no-milestone">
-                      <div className="milestone-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                      <span className="milestone-text">Chọn milestone</span>
-                    </div>
+                  Copy Meeting Link
+                </Button>
+                <Button
+                  onClick={() => router.push(`/meeting/${callDetails?.id}`)}
+                  className="text-orange-600 cursor-pointer"
+                >
+                  Start Meeting
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-6 max-h-[60vh] overflow-y-auto pr-6 pl-6"
+            >
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">
+                  Meeting Title
+                </label>
+                <Input
+                  placeholder="Enter meeting title"
+                  {...form.register("title")}
+                />
+                {form.formState.errors.title && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.title.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">Description</label>
+                <Textarea
+                  placeholder="Enter meeting description"
+                  className="resize-none"
+                  {...form.register("description")}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Brief description about the meeting agenda
+                </p>
+                {form.formState.errors.description && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.description.message}
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Date</label>
+                  <Input type="date" {...form.register("date")} />
+                  {form.formState.errors.date && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.date.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Time</label>
+                  <Input type="time" {...form.register("time")} />
+                  {form.formState.errors.time && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.time.message}
+                    </p>
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h3>Thời gian và địa điểm</h3>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="startTime">Thời gian bắt đầu *</label>
-                <Input
-                  id="startTime"
-                  type="datetime-local"
-                  value={formData.startTime}
-                  onChange={(e) => handleInputChange('startTime', e.target.value)}
-                  className={errors.startTime ? 'error' : ''}
-                />
-                {errors.startTime && <span className="error-text">{errors.startTime}</span>}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="endTime">Thời gian kết thúc</label>
-                <Input
-                  id="endTime"
-                  type="datetime-local"
-                  value={formData.endTime}
-                  onChange={(e) => handleInputChange('endTime', e.target.value)}
-                  className={errors.endTime ? 'error' : ''}
-                />
-                {errors.endTime && <span className="error-text">{errors.endTime}</span>}
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="roomUrl">URL phòng họp *</label>
-              <div className="input-with-button">
-                <Input
-                  id="roomUrl"
-                  value={formData.roomUrl}
-                  onChange={(e) => handleInputChange('roomUrl', e.target.value)}
-                  placeholder="https://meet.google.com/..."
-                  className={errors.roomUrl ? 'error' : ''}
-                />
+              <div className="flex justify-end space-x-4">
+                {onClose && (
+                  <Button variant="outline" type="button" onClick={onClose}>
+                    Cancel
+                  </Button>
+                )}
                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={generateRoomUrl}
-                  className="generate-btn"
+                  type="submit"
+                  className="text-orange-600 cursor-pointer"
                 >
-                  Tạo tự động
+                  Schedule Meeting
                 </Button>
               </div>
-              {errors.roomUrl && <span className="error-text">{errors.roomUrl}</span>}
-            </div>
-          </div>
-        </form>
-
-        <div className="modal-footer">
-          <Button variant="outline" onClick={onClose}>
-            Hủy
-          </Button>
-          <Button onClick={handleSubmit} className="submit-btn">
-            {isEditMode ? 'Cập nhật cuộc họp' : 'Tạo cuộc họp'}
-          </Button>
+            </form>
+          )}
         </div>
-
+        {/* end inner content wrapper */}
       </div>
-    </div>
+      {/* end modal panel */}
+    </div> /* end overlay */
   );
-};
+}
+
+export const CreateMeetingModal = MeetingForm;

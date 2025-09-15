@@ -1,31 +1,44 @@
-'use client';
-import React from 'react'
-import { StreamCall, StreamTheme } from '@stream-io/video-react-sdk';
-import { useState } from 'react';
-import { useGetCallById } from '@/hooks/useGetCallById';
-import { LoaderCircle } from 'lucide-react';
-import MeetingRoom from '@/components/meeting/MeetingRoom';
-import { MeetingSetup } from '@/components/meeting/MeetingSetup';
-
-const Meeting = ({ params }: { params: { id: string } }) => {
+"use client";
+import React, { use, useState } from "react";
+import {
+  StreamCall,
+  StreamTheme,
+  BackgroundFiltersProvider,
+} from "@stream-io/video-react-sdk";
+import { useGetCallById } from "@/hooks/useGetCallById";
+import { Loader } from "lucide-react";
+import MeetingRoom from "@/components/meeting/MeetingRoom";
+import MeetingSetup from "@/components/meeting/MeetingSetup";
+const MeetingPage = ({ params }: { params: Promise<{ id: string }> }) => {
+  const { id } = use(params);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
-  const { call, isCallLoading } = useGetCallById(params.id);
-  if (isCallLoading) return <LoaderCircle />;
-  if (!call) return <LoaderCircle />;
+  const { call, isLoadingCall } = useGetCallById(id);
+
+  if (isLoadingCall) return <Loader />;
 
   return (
     <main className="h-screen w-full">
       <StreamCall call={call}>
-        <StreamTheme>
-          {!isSetupComplete ? (
-            <MeetingSetup/>
-          ) : (
-            <MeetingRoom/>
-          )}
-        </StreamTheme>
+        <BackgroundFiltersProvider
+          backgroundFilter="blur"
+          backgroundImages={[
+            "/avatar-1.png",
+            "/avatar-2.png",
+            "/avatar-3.png",
+            "/avatar-4.png",
+          ]}
+        >
+          <StreamTheme>
+            {!isSetupComplete ? (
+              <MeetingSetup setIsSetupComplete={setIsSetupComplete} />
+            ) : (
+              <MeetingRoom />
+            )}
+          </StreamTheme>
+        </BackgroundFiltersProvider>
       </StreamCall>
     </main>
-  )
-}
+  );
+};
 
-export default Meeting
+export default MeetingPage;

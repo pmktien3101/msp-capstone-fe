@@ -1,12 +1,18 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { authService } from '@/services/authService';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { authService } from "@/services/authService";
 
 interface UserState {
   userId: string;
   email: string;
   role: string;
-  setUserData: (data: { userId: string; email: string; role: string }) => void;
+  image: string;
+  setUserData: (data: {
+    userId: string;
+    email: string;
+    role: string;
+    image: string;
+  }) => void;
   clearUser: () => void;
   logout: () => Promise<void>;
   isAuthenticated: () => boolean;
@@ -15,25 +21,27 @@ interface UserState {
 export const useUser = create<UserState>()(
   persist(
     (set) => ({
-      userId: '',
-      email: '',
-      role: '',
+      userId: "",
+      email: "",
+      role: "",
+      image: "",
       setUserData: (data) => {
         console.log("Setting user data:", data);
         set((state) => ({
           ...state,
-          userId: data.userId, 
+          userId: data.userId,
           email: data.email,
           role: data.role,
+          image: data.image,
         }));
       },
       clearUser: () => {
         console.log("Clearing user data");
         set((state) => ({
           ...state,
-          userId: '',
-          email: '',
-          role: '',
+          userId: "",
+          email: "",
+          role: "",
         }));
       },
       logout: async () => {
@@ -42,18 +50,18 @@ export const useUser = create<UserState>()(
           await authService.logout();
           set((state) => ({
             ...state,
-            userId: '',
-            email: '',
-            role: '',
+            userId: "",
+            email: "",
+            role: "",
           }));
         } catch (error) {
-          console.error('Logout error:', error);
+          console.error("Logout error:", error);
           // Still clear user data even if logout service fails
           set((state) => ({
             ...state,
-            userId: '',
-            email: '',
-            role: '',
+            userId: "",
+            email: "",
+            role: "",
           }));
         }
       },
@@ -61,19 +69,23 @@ export const useUser = create<UserState>()(
         // Check if user data exists in store
         const state = useUser.getState();
         const hasUserData = state.userId && state.email && state.role;
-        
+
         // Check if access token exists in localStorage
-        const hasToken = typeof window !== 'undefined' && localStorage.getItem('accessToken');
-        
+        const hasToken =
+          typeof window !== "undefined" && localStorage.getItem("accessToken");
+
         // Check if access token exists in cookies
-        const hasCookieToken = typeof document !== 'undefined' && 
-          document.cookie.split(';').some(cookie => cookie.trim().startsWith('accessToken='));
+        const hasCookieToken =
+          typeof document !== "undefined" &&
+          document.cookie
+            .split(";")
+            .some((cookie) => cookie.trim().startsWith("accessToken="));
 
         return hasUserData && (hasToken || hasCookieToken);
       },
     }),
     {
-      name: 'user-storage', // name of the item in localStorage
+      name: "user-storage", // name of the item in localStorage
     }
   )
 );
