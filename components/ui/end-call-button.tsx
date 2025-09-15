@@ -28,7 +28,7 @@ const EndCallButton = () => {
     } catch (err) {
       console.warn("Error ending call", err);
     } finally {
-      router.push("/home");
+      router.push("/projects");
     }
   };
 

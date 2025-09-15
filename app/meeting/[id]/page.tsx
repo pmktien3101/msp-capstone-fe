@@ -9,6 +9,9 @@ import { useGetCallById } from "@/hooks/useGetCallById";
 import { Loader } from "lucide-react";
 import MeetingRoom from "@/components/meeting/MeetingRoom";
 import MeetingSetup from "@/components/meeting/MeetingSetup";
+
+// Standalone meeting page outside of (root) layout grouping
+// Uses only global app layout providers.
 const MeetingPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const { id } = use(params);
   const [isSetupComplete, setIsSetupComplete] = useState(false);

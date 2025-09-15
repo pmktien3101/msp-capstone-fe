@@ -1,23 +1,25 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import "./critical.css"; // moved former inline critical CSS here to avoid hydration mismatch
 import "./globals.css";
-// Preload critical styles
-import './styles/dashboard.scss';
-import './styles/projects.scss';
+// Preload critical styles (consider removing if large and not needed immediately)
+import "./styles/dashboard.scss";
+import "./styles/projects.scss";
+import "@stream-io/video-react-sdk/dist/css/styles.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  display: 'swap',
+  display: "swap",
   preload: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-  display: 'swap',
+  display: "swap",
   preload: true,
 });
 
@@ -33,71 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            /* Critical CSS to prevent FOUC */
-            body {
-              margin: 0;
-              padding: 0;
-              font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
-              background-color: #F9F4EE;
-              color: #0D062D;
-              overflow-x: hidden;
-            }
-            
-            /* Prevent layout shift */
-            .main-layout {
-              width: 100vw;
-              height: 100vh;
-              display: flex;
-              flex-direction: column;
-            }
-            
-            .layout-header {
-              width: 100%;
-              height: 90px;
-              background: white;
-              box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.16);
-              position: relative;
-              z-index: 1000;
-            }
-            
-            .layout-body {
-              flex: 1;
-              display: flex;
-              overflow: hidden;
-            }
-            
-            .layout-sidebar {
-              width: 300px;
-              height: 100%;
-              background: white;
-              border-right: 1px solid #FFDBBD;
-            }
-            
-            .layout-content {
-              flex: 1;
-              height: 100%;
-              overflow-y: auto;
-              background: #F9F4EE;
-              padding: 24px;
-            }
-            
-            /* Loading state */
-            .loading-skeleton {
-              background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-              background-size: 200% 100%;
-              animation: loading 1.5s infinite;
-            }
-            
-            @keyframes loading {
-              0% { background-position: 200% 0; }
-              100% { background-position: -200% 0; }
-            }
-          `
-        }} />
-      </head>
+      <head></head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

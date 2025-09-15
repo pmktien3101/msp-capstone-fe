@@ -21,9 +21,10 @@ const formSchema = z.object({
 
 interface MeetingFormProps {
   onClose?: () => void;
+  onCreated?: (call: Call) => void;
 }
 
-export default function MeetingForm({ onClose }: MeetingFormProps) {
+export default function MeetingForm({ onClose, onCreated }: MeetingFormProps) {
   const router = useRouter();
   const { userId } = useUser();
   const client = useStreamVideoClient();
@@ -61,6 +62,7 @@ export default function MeetingForm({ onClose }: MeetingFormProps) {
         },
       });
       setCallDetails(call);
+      onCreated?.(call);
     } catch (error) {
       console.error("Error creating meeting:", error);
     }
@@ -121,7 +123,9 @@ export default function MeetingForm({ onClose }: MeetingFormProps) {
                   Copy Meeting Link
                 </Button>
                 <Button
-                  onClick={() => router.push(`/meeting/${callDetails?.id}`)}
+                  onClick={() =>
+                    window.open(`/meeting/${callDetails?.id}`, "_blank")
+                  }
                   className="text-orange-600 cursor-pointer"
                 >
                   Start Meeting

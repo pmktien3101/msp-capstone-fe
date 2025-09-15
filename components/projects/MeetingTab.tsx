@@ -7,7 +7,14 @@ import { CreateMeetingModal } from "./modals/CreateMeetingModal";
 import "@/app/styles/meeting-tab.scss";
 import { useGetCall } from "@/hooks/useGetCallList";
 import { Call } from "@stream-io/video-react-sdk";
-import { Loader } from "lucide-react";
+import { Loader, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 
 interface MeetingTabProps {
@@ -18,8 +25,13 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
-  const { upcomingCalls, endedCalls, isLoadingCall, callRecordings } =
-    useGetCall();
+  const {
+    upcomingCalls,
+    endedCalls,
+    isLoadingCall,
+    callRecordings,
+    refetchCalls,
+  } = useGetCall();
   const [viewType, setViewType] = useState<"upcoming" | "ended" | "recordings">(
     "upcoming"
   );
@@ -61,14 +73,14 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
       ? new Date(call.state.startsAt)
       : null;
     const endedAt = call.state?.endedAt ? new Date(call.state.endedAt) : null;
-    if (endedAt || (startsAt && startsAt < now && call.state?.endedAt)) {
-      return { label: "Hoàn thành", color: "#10b981" };
+
+    // Hoàn thành: có endedAt hợp lệ (>= startsAt hoặc không có startsAt nhưng end đã xảy ra)
+    if (startsAt && startsAt > now) {
+      return { label: "Lên lịch", color: "#3b82f6" };
     }
-    if (startsAt && startsAt > now)
-      return { label: "Đã lên lịch", color: "#3b82f6" };
-    if (startsAt && startsAt <= now && !endedAt)
-      return { label: "Đang diễn ra", color: "#f59e0b" };
-    return { label: "Không xác định", color: "#6b7280" };
+
+    // ✅ Tất cả trường hợp còn lại -> Hoàn thành
+    return { label: "Hoàn thành", color: "#10b981" };
   };
 
   const handleJoin = (call: Call) => {
@@ -167,10 +179,6 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           <div className="empty-state">
             <div className="empty-icon">📅</div>
             <h4>Chưa có cuộc họp nào</h4>
-            <p>Tạo cuộc họp đầu tiên cho dự án này</p>
-            <Button onClick={() => setShowCreateModal(true)}>
-              Tạo cuộc họp
-            </Button>
           </div>
         ) : (
           <div className="meeting-table">
@@ -220,10 +228,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       </a>
                     </div>
                     <div className="col-status">
-                      <span
-                        className="status-badge"
-                        style={{ backgroundColor: "#10b981" }}
-                      >
+                      <span className="status-badge bg-orange-400">
                         Ghi hình
                       </span>
                     </div>
@@ -231,6 +236,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="border-orange-600 text-orange-600 hover:bg-orange-50"
                         onClick={() => window.open(meeting.url, "_blank")}
                       >
                         Play
@@ -279,12 +285,18 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     </div>
                   </div>
                   <div className="col-room">
-                    <button
-                      className="room-link"
-                      onClick={() => handleJoin(call)}
-                    >
-                      Tham gia
-                    </button>
+                    {viewType === "ended" ? (
+                      <span className="text-xs text-gray-400 italic">
+                        (Đã kết thúc)
+                      </span>
+                    ) : (
+                      <button
+                        className="room-link"
+                        onClick={() => handleJoin(call)}
+                      >
+                        Tham gia
+                      </button>
+                    )}
                   </div>
                   <div className="col-status">
                     <span
@@ -294,32 +306,38 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       {statusInfo.label}
                     </span>
                   </div>
-                  <div
-                    className="col-actions"
-                    style={{ display: "flex", gap: 8 }}
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleView(call)}
-                    >
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(call)}
-                    >
-                      Update
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="delete-btn"
-                      onClick={() => handleDelete(call)}
-                    >
-                      Delete
-                    </Button>
+                  <div className="col-actions flex items-center">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                          aria-label="Actions"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={() => handleView(call)}>
+                          Xem chi tiết
+                        </DropdownMenuItem>
+                        {!(viewType === "ended") && (
+                          <DropdownMenuItem onClick={() => handleJoin(call)}>
+                            Tham gia
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => handleEdit(call)}>
+                          Cập nhật
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(call)}
+                          className="text-red-600 focus:text-red-700"
+                          data-variant="destructive"
+                        >
+                          Xóa
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               );
@@ -330,7 +348,13 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
 
       {/* Modals */}
       {showCreateModal && (
-        <CreateMeetingModal onClose={() => setShowCreateModal(false)} />
+        <CreateMeetingModal
+          onClose={() => setShowCreateModal(false)}
+          onCreated={() => {
+            // Refetch list so the new meeting appears immediately
+            refetchCalls();
+          }}
+        />
       )}
       {showUpdateModal && selectedCall && (
         <UpdateMeetingModal

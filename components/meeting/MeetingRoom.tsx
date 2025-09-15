@@ -57,7 +57,7 @@ const MeetingRoom = () => {
         } catch (err) {
           console.warn("Disable devices error", err);
         } finally {
-          router.push("/home");
+          router.push("/projects");
         }
       })();
     }
