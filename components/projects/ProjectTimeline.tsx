@@ -2,10 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { mockEpics, mockTasks, mockProject } from '@/constants/mockData';
-import { CreateEpicModal } from './modals/CreateEpicModal';
-import { CreateTaskModal } from './modals/CreateTaskModal';
-import { EditEpicModal } from './modals/EditEpicModal';
-import { EditTaskModal } from './modals/EditTaskModal';
+import { ItemModal } from './modals/ItemModal';
 
 interface Task {
   id: string;
@@ -64,15 +61,11 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   const [timelineDragStart, setTimelineDragStart] = useState<{ x: number; scroll: number } | null>(null);
   
   // Modal states
-  const [isCreateEpicModalOpen, setIsCreateEpicModalOpen] = useState(false);
-  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [modalItemType, setModalItemType] = useState<'epic' | 'task'>('epic');
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [selectedEpicForTask, setSelectedEpicForTask] = useState<{ id: string; title: string } | null>(null);
-  
-  // Edit modal states
-  const [isEditEpicModalOpen, setIsEditEpicModalOpen] = useState(false);
-  const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
-  const [selectedEpicForEdit, setSelectedEpicForEdit] = useState<any>(null);
-  const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<any>(null);
   
   // Click vs Drag detection
   const [dragThreshold] = useState(5); // Minimum pixels to consider it a drag
@@ -414,40 +407,12 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     setTimelineDragStart(null);
   };
 
-  // Handle create epic
-  const handleCreateEpic = (epicData: {
-    title: string;
-    description: string;
-    priority: string;
-    assignee: string;
-    startDate: string;
-    endDate: string;
-  }) => {
-    const newEpic: TimelineItem = {
-      id: `epic-${Date.now()}`,
-      title: epicData.title,
-      type: 'epic',
-      status: 'todo',
-      priority: epicData.priority as 'low' | 'medium' | 'high' | 'urgent',
-      assignee: epicData.assignee,
-      startDate: epicData.startDate,
-      endDate: epicData.endDate,
-      epicId: undefined,
-      rowIndex: timelineItems.length,
-      progress: 0
-    };
-    
-    console.log('🚀 Creating new epic:', newEpic);
-    setTimelineItems(prev => {
-      const updated = [...prev, newEpic];
-      console.log('📝 Updated timelineItems:', updated);
-      return updated;
-    });
-    setExpandedEpics(prev => {
-      const updated = new Set([...prev, newEpic.id]);
-      console.log('📂 Updated expandedEpics:', updated);
-      return updated;
-    });
+  // Handle open create epic modal
+  const handleOpenCreateEpicModal = () => {
+    setModalMode('create');
+    setModalItemType('epic');
+    setSelectedItem(null);
+    setIsModalOpen(true);
   };
 
   // Handle create task
@@ -484,13 +449,16 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
 
   // Handle open create task modal
   const handleOpenCreateTaskModal = (epicId: string, epicTitle: string) => {
+    setModalMode('create');
+    setModalItemType('task');
     setSelectedEpicForTask({ id: epicId, title: epicTitle });
-    setIsCreateTaskModalOpen(true);
+    setSelectedItem({ epicId });
+    setIsModalOpen(true);
   };
 
-  // Handle edit epic
-  const handleUpdateEpic = (epicData: {
-    id: string;
+  // Handle modal submit (create or edit)
+  const handleModalSubmit = (itemData: {
+    id?: string;
     title: string;
     description: string;
     priority: string;
@@ -499,68 +467,69 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     endDate: string;
     status: string;
     progress: number;
+    epicId?: string;
   }) => {
-    setTimelineItems(prev => 
-      prev.map(item => 
-        item.id === epicData.id && item.type === 'epic'
-          ? {
-              ...item,
-              title: epicData.title,
-              priority: epicData.priority as 'low' | 'medium' | 'high' | 'urgent',
-              assignee: epicData.assignee,
-              startDate: epicData.startDate,
-              endDate: epicData.endDate,
-              status: epicData.status,
-              progress: epicData.progress
-            }
-          : item
-      )
-    );
-    console.log('🔄 Updated epic:', epicData);
+    if (modalMode === 'create') {
+      if (modalItemType === 'epic') {
+        const newEpic: TimelineItem = {
+          id: `epic-${Date.now()}`,
+          title: itemData.title,
+          type: 'epic',
+          status: itemData.status,
+          priority: itemData.priority as 'low' | 'medium' | 'high' | 'urgent',
+          assignee: itemData.assignee,
+          startDate: itemData.startDate,
+          endDate: itemData.endDate,
+          rowIndex: timelineItems.length,
+          progress: itemData.progress
+        };
+        setTimelineItems(prev => [...prev, newEpic]);
+        console.log('✅ Created epic:', newEpic);
+      } else {
+        const newTask: TimelineItem = {
+          id: `task-${Date.now()}`,
+          title: itemData.title,
+          type: 'task',
+          status: itemData.status,
+          priority: itemData.priority as 'low' | 'medium' | 'high' | 'urgent',
+          assignee: itemData.assignee,
+          startDate: itemData.startDate,
+          endDate: itemData.endDate,
+          epicId: itemData.epicId || '',
+          rowIndex: timelineItems.length,
+          progress: itemData.progress
+        };
+        setTimelineItems(prev => [...prev, newTask]);
+        console.log('✅ Created task:', newTask);
+      }
+    } else {
+      // Edit mode
+      setTimelineItems(prev => 
+        prev.map(item => 
+          item.id === itemData.id && item.type === modalItemType
+            ? {
+                ...item,
+                title: itemData.title,
+                priority: itemData.priority as 'low' | 'medium' | 'high' | 'urgent',
+                assignee: itemData.assignee,
+                startDate: itemData.startDate,
+                endDate: itemData.endDate,
+                status: itemData.status,
+                progress: itemData.progress
+              }
+            : item
+        )
+      );
+      console.log(`🔄 Updated ${modalItemType}:`, itemData);
+    }
   };
 
-  // Handle edit task
-  const handleUpdateTask = (taskData: {
-    id: string;
-    title: string;
-    description: string;
-    priority: string;
-    assignee: string;
-    startDate: string;
-    endDate: string;
-    status: string;
-    progress: number;
-    epicId: string;
-  }) => {
-    setTimelineItems(prev => 
-      prev.map(item => 
-        item.id === taskData.id && item.type === 'task'
-          ? {
-              ...item,
-              title: taskData.title,
-              priority: taskData.priority as 'low' | 'medium' | 'high' | 'urgent',
-              assignee: taskData.assignee,
-              startDate: taskData.startDate,
-              endDate: taskData.endDate,
-              status: taskData.status,
-              progress: taskData.progress
-            }
-          : item
-      )
-    );
-    console.log('🔄 Updated task:', taskData);
-  };
-
-  // Handle open edit epic modal
-  const handleOpenEditEpicModal = (epic: any) => {
-    setSelectedEpicForEdit(epic);
-    setIsEditEpicModalOpen(true);
-  };
-
-  // Handle open edit task modal
-  const handleOpenEditTaskModal = (task: any, epicTitle?: string) => {
-    setSelectedTaskForEdit({ ...task, epicTitle });
-    setIsEditTaskModalOpen(true);
+  // Handle open edit modal
+  const handleOpenEditModal = (item: any, type: 'epic' | 'task', epicTitle?: string) => {
+    setModalMode('edit');
+    setModalItemType(type);
+    setSelectedItem({ ...item, epicTitle });
+    setIsModalOpen(true);
   };
 
   // Handle click with drag detection
@@ -572,11 +541,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
       // Use timeout to ensure drag detection is complete
       setTimeout(() => {
         if (!isDraggingBar && !draggedItem) {
-          if (itemType === 'epic') {
-            handleOpenEditEpicModal(item);
-          } else {
-            handleOpenEditTaskModal(item);
-          }
+          handleOpenEditModal(item, itemType);
         }
       }, 100);
     }
@@ -646,13 +611,10 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                  Week View
           </div>
         </div>
-            <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium">
-              Add Task
-          </button>
         </div>
-      </div>
           </div>
-        
+        </div>
+
       {/* Main Content - Table Layout */}
       <div className="h-[calc(100%-80px)] overflow-hidden">
         {/* Table Header */}
@@ -663,7 +625,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
               <h3 className="text-lg font-medium text-gray-900">Công việc</h3>
           </div>
         </div>
-        
+
           {/* Timeline Column Header - Scrollable */}
           <div className="w-[60%] overflow-hidden">
             <div 
@@ -679,8 +641,8 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
               {/* Drag Area Background Pattern */}
               <div className="absolute inset-0 opacity-5">
                 <div className="w-full h-full bg-gradient-to-r from-blue-200 via-transparent to-blue-200"></div>
-              </div>
-        
+        </div>
+
               
               {/* Month Headers Row */}
               {timeScale === 'day' && (
@@ -761,8 +723,8 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                 })}
               </div>
             </div>
-          </div>
         </div>
+      </div>
 
         {/* Table Content */}
         <div className="flex">
@@ -812,7 +774,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                         </div>
                         <span 
                           className="text-sm font-semibold text-gray-900 truncate cursor-pointer hover:text-orange-600 transition-colors"
-                          onClick={() => handleOpenEditEpicModal(epic)}
+                          onClick={() => handleOpenEditModal(epic, 'epic')}
                           title="Click để chỉnh sửa Epic"
                         >
                           {epic.name || (epic as any).title}
@@ -835,7 +797,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                         {(epic as any).assignee && (
                           <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm">
                             {getAssigneeInitials((epic as any).assignee)}
-                          </div>
+          </div>
                         )}
                         <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(epic.status)} text-white`}>
                           {epic.status.toUpperCase()}
@@ -846,16 +808,30 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                         >
                           + Task
                         </button>
-                      </div>
-                    </div>
-                  </div>
+        </div>
+        </div>
+      </div>
 
                   {/* Show child tasks if epic is expanded */}
                   {expandedEpics.has(epic.id) && (() => {
                     // Get tasks from both mockData and newly created tasks
                     const mockTasks = epic.tasks || [];
                     const createdTasks = timelineItems.filter(task => task.type === 'task' && task.epicId === epic.id);
-                    const allTasks = [...mockTasks, ...createdTasks];
+                    
+                    // Remove duplicates by using a Map with task.id as key
+                    const taskMap = new Map();
+                    
+                    // Add mock tasks first
+                    mockTasks.forEach(task => {
+                      taskMap.set(task.id, task);
+                    });
+                    
+                    // Add created tasks (they will override mock tasks with same ID)
+                    createdTasks.forEach(task => {
+                      taskMap.set(task.id, task);
+                    });
+                    
+                    const allTasks = Array.from(taskMap.values());
                     
                     console.log(`🎯 Epic ${epic.id} tasks:`, { mockTasks, createdTasks, allTasks });
                     return allTasks.map((task, taskIndex) => (
@@ -865,7 +841,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                             <div className="w-2 h-2 bg-purple-400 rounded-full" />
                             <span 
                               className="text-sm font-medium text-gray-700 truncate cursor-pointer hover:text-purple-600 transition-colors"
-                              onClick={() => handleOpenEditTaskModal(task, epic.name || (epic as any).title)}
+                              onClick={() => handleOpenEditModal(task, 'task', epic.name || (epic as any).title)}
                               title="Click để chỉnh sửa Task"
                             >
                               {task.title}
@@ -895,7 +871,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
               <div className="h-full flex items-center px-3">
                 <button 
                   className="flex items-center space-x-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
-                  onClick={() => setIsCreateEpicModalOpen(true)}
+                  onClick={handleOpenCreateEpicModal}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -1011,36 +987,28 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                             >
                               {/* Resize handles */}
                               <div 
-                                className="absolute left-0 top-0 w-8 h-full bg-blue-500 bg-opacity-30 cursor-ew-resize opacity-100 hover:bg-opacity-60 transition-all duration-200 rounded-l-md flex items-center justify-center border-r-2 border-blue-400 z-20"
+                                className="absolute left-0 top-0 w-8 h-full cursor-ew-resize z-20"
                                 onMouseDown={(e) => {
                                   e.stopPropagation();
                                   handleDragStart(e, epic.id, startDate, endDate, 'resize-start');
                                 }}
                                 title="Drag to resize start date"
-                              >
-                                <div className="w-3 h-8 bg-blue-700 rounded-sm shadow-lg flex items-center justify-center">
-                                  <div className="w-1 h-6 bg-white rounded"></div>
-                                </div>
-                              </div>
+                              />
                               <div 
-                                className="absolute right-0 top-0 w-8 h-full bg-blue-500 bg-opacity-30 cursor-ew-resize opacity-100 hover:bg-opacity-60 transition-all duration-200 rounded-r-md flex items-center justify-center border-l-2 border-blue-400 z-20"
+                                className="absolute right-0 top-0 w-8 h-full cursor-ew-resize z-20"
                                 onMouseDown={(e) => {
                                   e.stopPropagation();
                                   handleDragStart(e, epic.id, startDate, endDate, 'resize-end');
                                 }}
                                 title="Drag to resize end date"
-                              >
-                                <div className="w-3 h-8 bg-blue-700 rounded-sm shadow-lg flex items-center justify-center">
-                                  <div className="w-1 h-6 bg-white rounded"></div>
-                                </div>
-                              </div>
+                              />
                               
                               {/* Epic content */}
                               <div 
                                 className="h-full bg-orange-300 bg-opacity-40 rounded-md flex items-center px-12 z-10 cursor-move hover:bg-opacity-60 transition-all"
                                 onDoubleClick={(e) => {
                                   e.stopPropagation();
-                                  handleOpenEditEpicModal(epic);
+                                  handleOpenEditModal(epic, 'epic');
                                 }}
                                 title="Kéo để di chuyển Epic, kéo handles để điều chỉnh thời gian, double-click để chỉnh sửa"
                               >
@@ -1062,7 +1030,21 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                           // Get tasks from both mockData and newly created tasks
                           const mockTasks = epic.tasks || [];
                           const createdTasks = timelineItems.filter(task => task.type === 'task' && task.epicId === epic.id);
-                          const allTasks = [...mockTasks, ...createdTasks];
+                          
+                          // Remove duplicates by using a Map with task.id as key
+                          const taskMap = new Map();
+                          
+                          // Add mock tasks first
+                          mockTasks.forEach(task => {
+                            taskMap.set(task.id, task);
+                          });
+                          
+                          // Add created tasks (they will override mock tasks with same ID)
+                          createdTasks.forEach(task => {
+                            taskMap.set(task.id, task);
+                          });
+                          
+                          const allTasks = Array.from(taskMap.values());
                           
                           console.log(`🎯 Timeline Epic ${epic.id} tasks:`, { mockTasks, createdTasks, allTasks });
                           return allTasks.map((task, taskIndex) => {
@@ -1092,36 +1074,28 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                                   >
                                     {/* Resize handles */}
                                     <div 
-                                      className="absolute left-0 top-0 w-8 h-full bg-blue-500 bg-opacity-30 cursor-ew-resize opacity-100 hover:bg-opacity-60 transition-all duration-200 rounded-l-md flex items-center justify-center border-r-2 border-blue-400 z-20"
+                                      className="absolute left-0 top-0 w-8 h-full cursor-ew-resize z-20"
                                       onMouseDown={(e) => {
                                         e.stopPropagation();
                                         handleDragStart(e, task.id, startDate, endDate, 'resize-start');
                                       }}
                                       title="Drag to resize start date"
-                                    >
-                                      <div className="w-3 h-8 bg-blue-700 rounded-sm shadow-lg flex items-center justify-center">
-                                        <div className="w-1 h-6 bg-white rounded"></div>
-                                      </div>
-                                    </div>
+                                    />
                                     <div 
-                                      className="absolute right-0 top-0 w-8 h-full bg-blue-500 bg-opacity-30 cursor-ew-resize opacity-100 hover:bg-opacity-60 transition-all duration-200 rounded-r-md flex items-center justify-center border-l-2 border-blue-400 z-20"
+                                      className="absolute right-0 top-0 w-8 h-full cursor-ew-resize z-20"
                                       onMouseDown={(e) => {
                                         e.stopPropagation();
                                         handleDragStart(e, task.id, startDate, endDate, 'resize-end');
                                       }}
                                       title="Drag to resize end date"
-                                    >
-                                      <div className="w-3 h-8 bg-blue-700 rounded-sm shadow-lg flex items-center justify-center">
-                                        <div className="w-1 h-6 bg-white rounded"></div>
-                                      </div>
-                                    </div>
+                                    />
                                     
                                     {/* Task content */}
                                     <div 
                                       className="h-full bg-purple-300 bg-opacity-40 rounded-md flex items-center px-12 z-10 cursor-move hover:bg-opacity-60 transition-all"
                                       onDoubleClick={(e) => {
                                         e.stopPropagation();
-                                        handleOpenEditTaskModal(task, epic.name || (epic as any).title);
+                                        handleOpenEditModal(task, 'task', epic.name || (epic as any).title);
                                       }}
                                       title="Kéo để di chuyển Task, kéo handles để điều chỉnh thời gian, double-click để chỉnh sửa"
                                     >
@@ -1157,34 +1131,15 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         </div>
       </div>
 
-      {/* Modals */}
-      <CreateEpicModal
-        isOpen={isCreateEpicModalOpen}
-        onClose={() => setIsCreateEpicModalOpen(false)}
-        onCreateEpic={handleCreateEpic}
-      />
-
-      <CreateTaskModal
-        isOpen={isCreateTaskModalOpen}
-        onClose={() => setIsCreateTaskModalOpen(false)}
-        onCreateTask={handleCreateTask}
-        epicId={selectedEpicForTask?.id || ''}
-        epicTitle={selectedEpicForTask?.title || ''}
-      />
-
-      <EditEpicModal
-        isOpen={isEditEpicModalOpen}
-        onClose={() => setIsEditEpicModalOpen(false)}
-        onUpdateEpic={handleUpdateEpic}
-        epic={selectedEpicForEdit}
-      />
-
-      <EditTaskModal
-        isOpen={isEditTaskModalOpen}
-        onClose={() => setIsEditTaskModalOpen(false)}
-        onUpdateTask={handleUpdateTask}
-        task={selectedTaskForEdit}
-        epicTitle={selectedTaskForEdit?.epicTitle}
+      {/* Modal */}
+      <ItemModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleModalSubmit}
+        item={selectedItem}
+        itemType={modalItemType}
+        epicTitle={selectedEpicForTask?.title || selectedItem?.epicTitle}
+        mode={modalMode}
       />
     </div>
   );
