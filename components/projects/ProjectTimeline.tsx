@@ -1,5 +1,6 @@
 'use client';
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { mockEpics, mockTasks, mockProject } from '@/constants/mockData';
 import { ItemModal } from './modals/ItemModal';
@@ -47,10 +48,12 @@ interface TimelineItem {
 }
 
 interface ProjectTimelineProps {
+
   project: any;
 }
 
 export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
+
   const [timeScale, setTimeScale] = useState<'day'>('day');
   const [expandedEpics, setExpandedEpics] = useState<Set<string>>(new Set(['epic-1']));
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
@@ -82,8 +85,10 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
 
   // Reset timeline scroll when timeScale changes
   useEffect(() => {
+
     setTimelineScroll(0);
   }, [timeScale]);
+
 
   // Generate timeline items from epics and tasks (only once on mount)
   useEffect(() => {
@@ -655,9 +660,9 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         </div>
 
               
-              {/* Month Headers Row */}
+              {/* Month Headers Row - Part 1 (1/3 height) */}
               {timeScale === 'day' && (
-                <div className="flex h-8 min-w-max transition-transform duration-100" style={{ transform: `translateX(-${timelineScroll}px)` }}>
+                <div className="flex h-6 min-w-max transition-transform duration-100 border-b border-gray-200" style={{ transform: `translateX(-${timelineScroll}px)` }}>
                   {(() => {
                     const monthGroups: { [key: string]: { start: number; end: number; month: string } } = {};
                     
@@ -690,9 +695,9 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                 </div>
               )}
               
-              {/* Days Row */}
+              {/* Days Row - Part 2 (2/3 height) */}
               <div 
-                className="flex h-8 min-w-max transition-transform duration-100" 
+                className="flex h-10 min-w-max transition-transform duration-100" 
                 ref={null}
                 style={{ transform: `translateX(-${timelineScroll}px)` }}
               >
@@ -719,7 +724,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                   }
                   
                   return (
-                    <div key={index} className={`${showDayDetails ? 'w-16' : 'w-24'} ${isWeekStart ? 'border-l-2 border-blue-400' : 'border-r border-gray-200'} p-1 text-center transition-colors flex-shrink-0 ${isToday ? 'bg-blue-100 border-blue-300' : 'bg-white hover:bg-gray-50'}`}>
+                    <div key={index} className={`${showDayDetails ? 'w-16' : 'w-24'} ${isWeekStart ? 'border-l-2 border-blue-400' : 'border-r border-gray-200'} px-2 py-1 text-center transition-colors flex-shrink-0 ${isToday ? 'bg-blue-100 border-blue-300' : 'bg-white hover:bg-gray-50'}`}>
                       <>
                         {/* Day Info */}
                         <div className={`text-xs font-bold ${isToday ? 'text-blue-800' : 'text-gray-800'}`}>
@@ -895,7 +900,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
           </div>
 
           {/* Timeline Column - Scrollable */}
-          <div className="w-[60%] overflow-hidden">
+          <div className="w-[60%] overflow-hidden pb-4">
             <div 
               className={`overflow-hidden transition-all duration-200 ${isDraggingTimeline ? 'cursor-grabbing bg-blue-100' : 'cursor-grab hover:bg-blue-50 hover:shadow-md'} relative`}
               onMouseDown={handleTimelineDragStart}
@@ -1148,3 +1153,4 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     </div>
   );
 };
+
