@@ -100,25 +100,25 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   };
 
   const isEpic = itemType === 'epic';
-  const primaryColor = isEpic ? 'orange' : 'purple';
-  const iconColor = isEpic ? 'from-orange-500 to-red-500' : 'from-purple-500 to-indigo-500';
-  const inputColor = isEpic ? 'border-orange-200 focus:border-orange-400 focus:ring-orange-400' : 'border-purple-200 focus:border-purple-400 focus:ring-purple-400';
-  const buttonColor = isEpic ? 'from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600' : 'from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600';
-  const cancelColor = isEpic ? 'border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300' : 'border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-300';
+  const primaryColor = 'orange';
+  const iconColor = 'from-orange-500 to-red-500';
+  const inputColor = 'border-orange-200 focus:border-orange-400 focus:ring-orange-400';
+  const buttonColor = 'from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600';
+  const cancelColor = 'border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`sm:max-w-[600px] bg-white shadow-2xl rounded-xl border-0 overflow-hidden`}>
+      <DialogContent className={`sm:max-w-[600px] bg-white shadow-2xl rounded-xl border-0 overflow-hidden pt-4 mt-8`}>
         {/* Header with gradient background */}
-        <div className={`bg-gradient-to-r ${primaryColor} p-6 -m-6 mb-6 relative overflow-hidden`}>
+        <div className={`bg-gradient-to-r ${iconColor} p-6 -m-6 mb-6 relative overflow-hidden`}>
           {/* Background pattern */}
-          <div className="absolute inset-0 bg-white bg-opacity-5"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white bg-opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white bg-opacity-10 rounded-full translate-y-12 -translate-x-12"></div>
+          <div className="absolute inset-0 bg-orange-300 bg-opacity-10"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500 bg-opacity-5 rounded-full -translate-y-16 translate-x-16"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-orange-500 bg-opacity-5 rounded-full translate-y-12 -translate-x-12"></div>
           
           <DialogHeader className="pb-0 relative z-10">
             <DialogTitle className="text-white flex items-center gap-4">
-              <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg border border-white border-opacity-30">
+              <div className="w-12 h-12 flex items-center justify-center">
                 {isEpic ? (
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -130,18 +130,18 @@ export const ItemModal: React.FC<ItemModalProps> = ({
                 )}
               </div>
               <div>
-                <div className="text-xl font-bold text-white">
+                <div className="text-xl font-bold text-white drop-shadow-lg">
                   {mode === 'create' ? `Tạo ${isEpic ? 'Epic' : 'Task'} Mới` : `Chỉnh sửa ${isEpic ? 'Epic' : 'Task'}`}
                 </div>
-                <div className="text-white text-opacity-90 text-sm font-normal mt-1">
+                <div className="text-white text-opacity-95 text-sm font-normal mt-1 drop-shadow-md">
                   {mode === 'create' 
                     ? `${isEpic ? 'Tạo một Epic lớn để quản lý nhiều Task con' : 'Tạo một Task mới trong Epic'}`
                     : `${isEpic ? 'Cập nhật thông tin Epic hiện tại' : 'Cập nhật thông tin Task hiện tại'}`
                   }
                 </div>
                 {epicTitle && !isEpic && (
-                  <div className="text-sm text-white text-opacity-80 mt-2">
-                    Trong Epic: <span className="font-semibold bg-white bg-opacity-20 px-2 py-1 rounded-md text-xs">{epicTitle}</span>
+                  <div className="text-sm text-white text-opacity-90 mt-2 drop-shadow-md">
+                    Trong Epic: <span className="bg-orange-500 px-2 py-1 rounded-md text-xs">{epicTitle}</span>
                   </div>
                 )}
               </div>

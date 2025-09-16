@@ -221,10 +221,19 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     startOffset = Math.floor((startUTC.getTime() - timelineStartUTC.getTime()) / (1000 * 60 * 60 * 24));
     duration = Math.max(1, Math.floor((endUTC.getTime() - startUTC.getTime()) / (1000 * 60 * 60 * 24)) + 1);
     
-    console.log(`📊 Date Calculation: start=${start.toISOString().split('T')[0]}, end=${end.toISOString().split('T')[0]}, startOffset=${startOffset}, duration=${duration}`);
+    // For single day tasks, ensure duration is exactly 1
+    if (startUTC.getTime() === endUTC.getTime()) {
+      duration = 1;
+    }
     
     const leftPercent = Math.max(0, (startOffset / totalUnits) * 100);
-    const widthPercent = Math.max(1, (duration / totalUnits) * 100);
+    // Calculate width based on actual duration
+    const calculatedWidth = (duration / totalUnits) * 100;
+    
+    // Use exact calculated width for all durations, don't force minimum
+    const widthPercent = calculatedWidth;
+    
+    console.log(`📊 Date Calculation: start=${start.toISOString().split('T')[0]}, end=${end.toISOString().split('T')[0]}, startOffset=${startOffset}, duration=${duration}, totalUnits=${totalUnits}, calculatedWidth=${calculatedWidth}%, widthPercent=${widthPercent}%`);
     
     return { left: leftPercent, width: widthPercent };
   };
@@ -233,7 +242,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   const handleDragStart = (e: React.MouseEvent, itemId: string, startDate: string, endDate: string, dragType: 'move' | 'resize-start' | 'resize-end' = 'move') => {
     e.preventDefault();
     e.stopPropagation();
-    console.log(`🎯 Drag Start: ${itemId}, Type: ${dragType}`);
+    console.log(`🎯 Drag Start: ${itemId}, Type: ${dragType}, ClientX: ${e.clientX}`);
     setDraggedItem(itemId);
     setDragStart({ x: e.clientX, startDate, endDate, dragType });
     setIsDraggingBar(true);
@@ -256,9 +265,10 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     const pixelWidthPerDay = 64;
     const daysToMove = Math.round(deltaX / pixelWidthPerDay);
     
-    console.log(`🔄 Drag Move: deltaX=${deltaX}, daysToMove=${daysToMove}, type=${dragStart.dragType}`);
+    console.log(`🔄 Drag Move: deltaX=${deltaX}, daysToMove=${daysToMove}, type=${dragStart.dragType}, draggedItem=${draggedItem}`);
     
-    if (daysToMove !== 0) {
+    // Allow movement even for small deltas to ensure single day tasks can be dragged
+    if (Math.abs(deltaX) > 5) { // Minimum 5px movement threshold
       const newStartDate = new Date(dragStart.startDate);
       const newEndDate = new Date(dragStart.endDate);
       
@@ -267,22 +277,22 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         newEndDate.setDate(newEndDate.getDate() + daysToMove);
       } else if (dragStart.dragType === 'resize-start') {
         newStartDate.setDate(newStartDate.getDate() + daysToMove);
-        // Ensure start date doesn't go after end date
-        if (newStartDate >= newEndDate) {
-          newStartDate.setDate(newEndDate.getDate() - 1);
+        // Allow single day tasks - allow start date to equal end date
+        if (newStartDate > newEndDate) {
+          newStartDate.setDate(newEndDate.getDate());
         }
       } else if (dragStart.dragType === 'resize-end') {
         newEndDate.setDate(newEndDate.getDate() + daysToMove);
-        // Ensure end date doesn't go before start date
-        if (newEndDate <= newStartDate) {
-          newEndDate.setDate(newStartDate.getDate() + 1);
+        // Allow single day tasks - allow end date to equal start date
+        if (newEndDate < newStartDate) {
+          newEndDate.setDate(newStartDate.getDate());
         }
       }
       
       const newStartDateStr = newStartDate.toISOString().split('T')[0];
       const newEndDateStr = newEndDate.toISOString().split('T')[0];
       
-      console.log(`📅 Updated: ${draggedItem} - ${newStartDateStr} to ${newEndDateStr}`);
+      console.log(`📅 Updated: ${draggedItem} - ${newStartDateStr} to ${newEndDateStr}, Duration: ${Math.floor((new Date(newEndDateStr).getTime() - new Date(newStartDateStr).getTime()) / (1000 * 60 * 60 * 24)) + 1} days`);
       
       // Update timelineItems if it's a created item
       setTimelineItems(prev => prev.map(item => {
@@ -336,6 +346,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (draggedItem && dragStart) {
+        console.log(`🌍 Global Mouse Move: draggedItem=${draggedItem}, clientX=${e.clientX}`);
         handleDragMove(e as any);
       }
       
@@ -805,8 +816,9 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                         <button 
                           className="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-colors"
                           onClick={() => handleOpenCreateTaskModal(epic.id, epic.name || (epic as any).title)}
+                          title="Tạo Task mới"
                         >
-                          + Task
+                          +
                         </button>
         </div>
         </div>
@@ -974,20 +986,21 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                               style={{
                                 left: `${epicPosition.left}%`,
                                 width: `${epicPosition.width}%`,
-                                minWidth: '80px',
+                                minWidth: '16px',
                                 backgroundColor: '#ff6b35', // Orange for epic
                                 border: '1px solid rgba(255,255,255,0.3)',
                                 zIndex: draggedItem === epic.id ? 20 : 10
                               }}
                               onMouseDown={(e) => {
                                 e.stopPropagation();
+                                console.log(`🖱️ Epic Mouse Down: ${epic.id}, Position: ${epicPosition.left}%, Width: ${epicPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
                                 handleDragStart(e, epic.id, startDate, endDate, 'move');
                               }}
-                              title={`${epic.name || (epic as any).title} (${epic.startDate} - ${epic.endDate}) - Drag to move, resize handles to adjust duration`}
+                              title={`${epic.name || (epic as any).title}\n📅 ${epic.startDate} - ${epic.endDate}`}
                             >
                               {/* Resize handles */}
                               <div 
-                                className="absolute left-0 top-0 w-8 h-full cursor-ew-resize z-20"
+                                className="absolute left-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-orange-400 hover:to-orange-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-200 rounded-l-md"
                                 onMouseDown={(e) => {
                                   e.stopPropagation();
                                   handleDragStart(e, epic.id, startDate, endDate, 'resize-start');
@@ -995,7 +1008,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                                 title="Drag to resize start date"
                               />
                               <div 
-                                className="absolute right-0 top-0 w-8 h-full cursor-ew-resize z-20"
+                                className="absolute right-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-orange-400 hover:to-orange-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-200 rounded-r-md"
                                 onMouseDown={(e) => {
                                   e.stopPropagation();
                                   handleDragStart(e, epic.id, startDate, endDate, 'resize-end');
@@ -1005,21 +1018,16 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                               
                               {/* Epic content */}
                               <div 
-                                className="h-full bg-orange-300 bg-opacity-40 rounded-md flex items-center px-12 z-10 cursor-move hover:bg-opacity-60 transition-all"
+                                className="h-full bg-orange-300 bg-opacity-40 rounded-md flex items-center px-2 z-10 cursor-move hover:bg-opacity-60 transition-all"
                                 onDoubleClick={(e) => {
                                   e.stopPropagation();
                                   handleOpenEditModal(epic, 'epic');
                                 }}
-                                title="Kéo để di chuyển Epic, kéo handles để điều chỉnh thời gian, double-click để chỉnh sửa"
+                                title={`${(epic as any).startDate} - ${(epic as any).endDate}`}
                               >
                                 <span className="text-xs text-white font-medium truncate">
                                   {epic.name || (epic as any).title}
                                 </span>
-                                {(epic as any).assignee && (
-                                  <div className="ml-1 w-4 h-4 bg-orange-600 bg-opacity-50 text-white text-xs rounded-full flex items-center justify-center font-medium">
-                                    {getAssigneeInitials((epic as any).assignee)}
-                                  </div>
-                                )}
                               </div>
                             </div>
                           </div>
@@ -1061,20 +1069,21 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                                     style={{
                                       left: `${taskPosition.left}%`,
                                       width: `${taskPosition.width}%`,
-                                      minWidth: '80px',
+                                      minWidth: '16px',
                                       backgroundColor: '#8b5cf6', // Purple for task
                                       border: '1px solid rgba(255,255,255,0.3)',
                                       zIndex: draggedItem === task.id ? 20 : 10
                                     }}
                                     onMouseDown={(e) => {
                                       e.stopPropagation();
+                                      console.log(`🖱️ Task Mouse Down: ${task.id}, Position: ${taskPosition.left}%, Width: ${taskPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
                                       handleDragStart(e, task.id, startDate, endDate, 'move');
                                     }}
-                                    title={`${task.title} (${task.startDate} - ${task.endDate}) - Drag to move, resize handles to adjust duration`}
+                                    title={`${task.title}\n📅 ${task.startDate} - ${task.endDate}`}
                                   >
                                     {/* Resize handles */}
                                     <div 
-                                      className="absolute left-0 top-0 w-8 h-full cursor-ew-resize z-20"
+                                      className="absolute left-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-purple-400 hover:to-purple-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-200 rounded-l-md"
                                       onMouseDown={(e) => {
                                         e.stopPropagation();
                                         handleDragStart(e, task.id, startDate, endDate, 'resize-start');
@@ -1082,7 +1091,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                                       title="Drag to resize start date"
                                     />
                                     <div 
-                                      className="absolute right-0 top-0 w-8 h-full cursor-ew-resize z-20"
+                                      className="absolute right-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-purple-400 hover:to-purple-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-200 rounded-r-md"
                                       onMouseDown={(e) => {
                                         e.stopPropagation();
                                         handleDragStart(e, task.id, startDate, endDate, 'resize-end');
@@ -1092,21 +1101,16 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                                     
                                     {/* Task content */}
                                     <div 
-                                      className="h-full bg-purple-300 bg-opacity-40 rounded-md flex items-center px-12 z-10 cursor-move hover:bg-opacity-60 transition-all"
+                                      className="h-full bg-purple-300 bg-opacity-40 rounded-md flex items-center px-2 z-10 cursor-move hover:bg-opacity-60 transition-all"
                                       onDoubleClick={(e) => {
                                         e.stopPropagation();
                                         handleOpenEditModal(task, 'task', epic.name || (epic as any).title);
                                       }}
-                                      title="Kéo để di chuyển Task, kéo handles để điều chỉnh thời gian, double-click để chỉnh sửa"
+                                      title={`${(task as any).startDate} - ${(task as any).endDate}`}
                                     >
                                       <span className="text-xs text-white font-medium truncate">
                                         {task.title}
                                       </span>
-                                      {task.assignee && (
-                                        <div className="ml-1 w-4 h-4 bg-purple-600 bg-opacity-50 text-white text-xs rounded-full flex items-center justify-center font-medium">
-                                          {getAssigneeInitials(task.assignee)}
-                                        </div>
-                                      )}
                                     </div>
                                   </div>
                                 </div>
