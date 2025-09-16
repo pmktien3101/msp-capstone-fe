@@ -59,9 +59,6 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; startDate: string; endDate: string; dragType: 'move' | 'resize-start' | 'resize-end' } | null>(null);
-  const [timelineScroll, setTimelineScroll] = useState(0);
-  const [isDraggingTimeline, setIsDraggingTimeline] = useState(false);
-  const [timelineDragStart, setTimelineDragStart] = useState<{ x: number; scroll: number } | null>(null);
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -82,12 +79,9 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   // Task positions for mockData tasks
   const [taskPositions, setTaskPositions] = useState<{[key: string]: {startDate: string, endDate: string}}>({});
   const timelineRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  // Reset timeline scroll when timeScale changes
-  useEffect(() => {
-
-    setTimelineScroll(0);
-  }, [timeScale]);
 
 
   // Generate timeline items from epics and tasks (only once on mount)
@@ -170,33 +164,60 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   }, [expandedEpics]);
 
 
-  // Generate timeline dates based on time scale using real calendar
+  // Generate timeline dates for infinite scrolling (like a schedule)
   const generateTimelineDates = () => {
     const today = new Date();
     const startDate = new Date(today);
     const endDate = new Date(today);
     
-    // Set date range for week view (12 weeks from today, starting from Monday)
-    const dayOfWeek = today.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday = 1, Sunday = 0
-    startDate.setDate(today.getDate() + mondayOffset - 7); // Start from Monday of previous week
-    endDate.setDate(today.getDate() + mondayOffset + 77); // End 11 weeks from Monday
-    console.log(`📅 Timeline range: ${startDate.toDateString()} to ${endDate.toDateString()}, mondayOffset=${mondayOffset}`);
+    // Generate a large range for infinite scrolling (5 years in each direction)
+    startDate.setFullYear(today.getFullYear() - 5, 0, 1); // January 1st, 5 years ago
+    endDate.setFullYear(today.getFullYear() + 5, 11, 31); // December 31st, 5 years ahead
+    console.log(`📅 Infinite timeline: ${startDate.toDateString()} to ${endDate.toDateString()}`);
 
     const dates: Date[] = [];
-
     const current = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     
     while (current <= endDate) {
       dates.push(new Date(current));
       current.setDate(current.getDate() + 1);
     }
-    console.log(`📅 Week view: Generated ${dates.length} days from ${startDate.toDateString()} to ${endDate.toDateString()}`);
+    console.log(`📅 Infinite timeline: Generated ${dates.length} days from ${startDate.toDateString()} to ${endDate.toDateString()}`);
 
     return dates;
   };
 
   const timelineDates = generateTimelineDates();
+
+  // Auto-scroll to current week on mount
+  useEffect(() => {
+    if (contentRef.current) {
+      const today = new Date();
+      const todayIndex = timelineDates.findIndex(date => 
+        date.getFullYear() === today.getFullYear() && 
+        date.getMonth() === today.getMonth() && 
+        date.getDate() === today.getDate()
+      );
+      
+      if (todayIndex !== -1) {
+        // Calculate scroll position to center the current week
+        const dayWidth = 64; // 64px per day
+        const containerWidth = contentRef.current.clientWidth;
+        const todayPosition = todayIndex * dayWidth;
+        const scrollPosition = Math.max(0, todayPosition - (containerWidth / 2));
+        
+        console.log(`📅 Auto-scroll to today: index=${todayIndex}, position=${todayPosition}px, scroll=${scrollPosition}px`);
+        contentRef.current.scrollLeft = scrollPosition;
+      }
+    }
+  }, []); // Run once on mount
+
+  // Sync scroll between header and content
+  const syncScroll = (sourceRef: React.RefObject<HTMLDivElement | null>, targetRef: React.RefObject<HTMLDivElement | null>) => {
+    if (sourceRef.current && targetRef.current) {
+      targetRef.current.scrollLeft = sourceRef.current.scrollLeft;
+    }
+  };
 
   // Calculate position and width for timeline bars using real calendar
   const calculateBarPosition = (startDate: string, endDate: string) => {
@@ -355,14 +376,6 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         handleDragMove(e as any);
       }
       
-      // Handle timeline drag globally
-      if (isDraggingTimeline && timelineDragStart) {
-        const deltaX = e.clientX - timelineDragStart.x;
-        const sensitivity = 2.5;
-        const newScroll = Math.max(0, timelineDragStart.scroll - (deltaX * sensitivity));
-        const maxScroll = Math.max(0, (timelineDates.length * 64) - (timelineRef.current?.parentElement?.clientWidth || 0));
-        setTimelineScroll(Math.min(newScroll, maxScroll));
-      }
     };
 
     const handleGlobalMouseUp = () => {
@@ -370,13 +383,9 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         handleDragEnd();
       }
       
-      // Handle timeline drag end globally
-      if (isDraggingTimeline) {
-        handleTimelineDragEnd();
-      }
     };
 
-    if (draggedItem || isDraggingTimeline) {
+    if (draggedItem) {
       document.addEventListener('mousemove', handleGlobalMouseMove);
       document.addEventListener('mouseup', handleGlobalMouseUp);
     }
@@ -385,7 +394,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
-  }, [draggedItem, dragStart, isDraggingTimeline, timelineDragStart, timelineDates.length]);
+  }, [draggedItem, dragStart]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -396,32 +405,6 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     };
   }, [clickTimeout]);
 
-  // Handle timeline drag start
-  const handleTimelineDragStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingTimeline(true);
-    setTimelineDragStart({ x: e.clientX, scroll: timelineScroll });
-  };
-
-  // Handle timeline drag move
-  const handleTimelineDragMove = (e: React.MouseEvent) => {
-    if (!isDraggingTimeline || !timelineDragStart) return;
-    
-    const deltaX = e.clientX - timelineDragStart.x;
-    const sensitivity = 2.5; // Optimized sensitivity for smooth dragging
-    const newScroll = Math.max(0, timelineDragStart.scroll - (deltaX * sensitivity));
-    const maxScroll = Math.max(0, (timelineDates.length * 64) - (timelineRef.current?.parentElement?.clientWidth || 0));
-    setTimelineScroll(Math.min(newScroll, maxScroll));
-    
-    console.log(`🔄 Timeline Drag: deltaX=${deltaX}, newScroll=${newScroll}, maxScroll=${maxScroll}`);
-  };
-
-  // Handle timeline drag end
-  const handleTimelineDragEnd = () => {
-    setIsDraggingTimeline(false);
-    setTimelineDragStart(null);
-  };
 
   // Handle open create epic modal
   const handleOpenCreateEpicModal = () => {
@@ -642,15 +625,14 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
           </div>
         </div>
 
-          {/* Timeline Column Header - Scrollable */}
-          <div className="w-[60%] overflow-hidden">
+           {/* Timeline Column Header - Scrollable */}
+           <div 
+             className="w-[60%] overflow-hidden"
+             ref={headerRef}
+           >
             <div 
-              className={`overflow-hidden transition-all duration-200 ${isDraggingTimeline ? 'cursor-grabbing bg-blue-100 shadow-lg' : 'cursor-grab hover:bg-blue-50 hover:shadow-md'} h-16 relative border-l-2 border-blue-200`}
-              onMouseDown={handleTimelineDragStart}
-              onMouseMove={handleTimelineDragMove}
-              onMouseUp={handleTimelineDragEnd}
-              onMouseLeave={handleTimelineDragEnd}
-              title="Kéo để di chuyển timeline"
+              className="overflow-hidden h-16 relative border-l-2 border-blue-200"
+              style={{ width: `${timelineDates.length * 64}px` }}
             >
 
 
@@ -660,9 +642,9 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         </div>
 
               
-              {/* Month Headers Row - Part 1 (1/3 height) */}
-              {timeScale === 'day' && (
-                <div className="flex h-6 min-w-max transition-transform duration-100 border-b border-gray-200" style={{ transform: `translateX(-${timelineScroll}px)` }}>
+               {/* Month Headers Row - Part 1 (1/3 height) */}
+               {timeScale === 'day' && (
+                 <div className="flex h-6 min-w-max border-b border-gray-200">
                   {(() => {
                     const monthGroups: { [key: string]: { start: number; end: number; month: string } } = {};
                     
@@ -697,9 +679,8 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
               
               {/* Days Row - Part 2 (2/3 height) */}
               <div 
-                className="flex h-10 min-w-max transition-transform duration-100" 
-                ref={null}
-                style={{ transform: `translateX(-${timelineScroll}px)` }}
+                className="flex h-10 min-w-max" 
+                ref={timelineRef}
               >
                 {timelineDates.map((date, index) => {
                   const today = new Date();
@@ -899,38 +880,38 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
             </div>
           </div>
 
-          {/* Timeline Column - Scrollable */}
-          <div className="w-[60%] overflow-hidden pb-4">
+            {/* Timeline Column - Scrollable */}
             <div 
-              className={`overflow-hidden transition-all duration-200 ${isDraggingTimeline ? 'cursor-grabbing bg-blue-100' : 'cursor-grab hover:bg-blue-50 hover:shadow-md'} relative`}
-              onMouseDown={handleTimelineDragStart}
-              onMouseMove={handleTimelineDragMove}
-              onMouseUp={handleTimelineDragEnd}
-              onMouseLeave={handleTimelineDragEnd}
+              className="w-[60%] overflow-x-auto overflow-y-hidden pb-4"
+              ref={contentRef}
+              onScroll={() => syncScroll(contentRef, headerRef)}
             >
-              {/* Drag Handle Indicator */}
-              <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-blue-200 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center z-10">
-                <div className="w-1 h-6 bg-blue-500 rounded-full"></div>
-              </div>
-              
-              {/* Drag Instruction Text */}
-              <div className="absolute top-1 left-2 text-xs text-blue-600 font-medium opacity-0 hover:opacity-100 transition-opacity duration-200 z-10">
-                Drag to navigate
-              </div>
-              
-              {/* Drag Indicator Dots */}
-              <div className="absolute top-1 right-12 flex space-x-1 opacity-0 hover:opacity-100 transition-opacity duration-200 z-10">
-                <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse"></div>
-                <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-              </div>
+             <div 
+               className="relative"
+               style={{ width: `${timelineDates.length * 64}px` }}
+             >
               
               
-              <div 
-                className="relative bg-white min-w-max transition-transform duration-100"
-                style={{ transform: `translateX(-${timelineScroll}px)` }}
-              >
-                {/* Today Line */}
+               <div 
+                 className="relative bg-white"
+                 ref={timelineRef}
+               >
+                 {/* Horizontal grid lines background */}
+                 <div className="absolute inset-0 opacity-20">
+                   {Array.from({ length: 20 }, (_, i) => (
+                     <div 
+                       key={i}
+                       className="absolute border-b border-gray-200"
+                       style={{ 
+                         top: `${i * 48}px`, 
+                         height: '1px',
+                         width: `${timelineDates.length * 64}px` // Full timeline width
+                       }}
+                     />
+                   ))}
+                 </div>
+                 
+                 {/* Today Line */}
                 {(() => {
                   const today = new Date();
                   let todayIndex = -1;
@@ -944,17 +925,17 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                   console.log(`📅 Today: ${today.toDateString()}, Found at index: ${todayIndex}`);
                   console.log(`📅 Timeline dates: ${timelineDates.slice(0, 10).map(d => d.toDateString()).join(', ')}...`);
                   
-                  if (todayIndex !== -1) {
-                    const columnWidth = 64;
-                    const todayPosition = todayIndex * columnWidth;
-                    console.log(`📅 Today Line: todayIndex=${todayIndex}, columnWidth=${columnWidth}, todayPosition=${todayPosition}px`);
-                    return (
-                      <div 
-                        className="absolute top-0 bottom-0 w-0.5 bg-blue-500 z-10 pointer-events-none"
-                        style={{ left: `${todayPosition}px` }}
-                      />
-                    );
-                  }
+                   if (todayIndex !== -1) {
+                     const columnWidth = 64;
+                     const todayPosition = (todayIndex * columnWidth) + (columnWidth / 2); // Center in the column
+                     console.log(`📅 Today Line: todayIndex=${todayIndex}, columnWidth=${columnWidth}, todayPosition=${todayPosition}px`);
+                     return (
+                       <div 
+                         className="absolute top-0 bottom-0 w-1 bg-blue-500 z-20 pointer-events-none shadow-lg"
+                         style={{ left: `${todayPosition - 2}px` }} // -2px to center the 4px wide line
+                       />
+                     );
+                   }
                   return null;
                 })()}
 
@@ -1128,17 +1109,18 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                   });
                 })()}
 
-                {/* Add Epic Row - Empty Timeline */}
-                <div className="h-12 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-red-50">
-                  <div className="h-full flex items-center px-2">
-                    <div className="text-sm text-gray-500 italic">Timeline sẽ hiển thị khi có epic</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                 {/* Add Epic Row - Empty Timeline */}
+                 <div className="h-12 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-red-50">
+                   <div className="h-full flex items-center px-2">
+                     <div className="text-sm text-gray-500 italic">Timeline sẽ hiển thị khi có epic</div>
+                   </div>
+                 </div>
+               </div>
+             </div>
+             
+           </div>
+         </div>
+       </div>
 
       {/* Modal */}
       <ItemModal
