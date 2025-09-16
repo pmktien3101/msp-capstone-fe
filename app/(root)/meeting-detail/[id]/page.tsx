@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import "@/app/styles/meeting-detail.scss";
 import { useGetCallById } from "@/hooks/useGetCallById";
-import { Call, useStreamVideoClient } from "@stream-io/video-react-sdk";
+import { Call, CallRecording } from "@stream-io/video-react-sdk";
 import MeetingSetup from "@/components/meeting/MeetingSetup";
 import MeetingRoom from "@/components/meeting/MeetingRoom";
 
@@ -35,6 +35,10 @@ export default function MeetingDetailPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showJoinFlow, setShowJoinFlow] = useState(false); // hiển thị phần join meeting
   const [isSetupComplete, setIsSetupComplete] = useState(false);
+  const [recordings, setRecordings] = useState<CallRecording[]>([]);
+  const [isLoadingRecordings, setIsLoadingRecordings] = useState(false);
+  const [recordingsError, setRecordingsError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   // Khi đã join thì chuyển sang hiển thị MeetingRoom
   useEffect(() => {
@@ -42,6 +46,26 @@ export default function MeetingDetailPage() {
       // nothing else for now
     }
   }, [isSetupComplete]);
+  // Fetch recordings when switching to recording tab and call is available
+  useEffect(() => {
+    const loadRecordings = async () => {
+      if (!call) return;
+      setIsLoadingRecordings(true);
+      setRecordingsError(null);
+      try {
+        const res = await call.queryRecordings();
+        setRecordings(res.recordings || []);
+      } catch (e: any) {
+        console.error("Failed to fetch call recordings", e);
+        setRecordingsError("Không tải được bản ghi cuộc họp");
+      } finally {
+        setIsLoadingRecordings(false);
+      }
+    };
+    if (activeTab === "recording") {
+      loadRecordings();
+    }
+  }, [activeTab, call]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -62,6 +86,58 @@ export default function MeetingDetailPage() {
         return "Hoàn thành";
       default:
         return status;
+    }
+  };
+
+  // Định dạng thời lượng từ mili-giây -> HH:MM:SS (ẩn giờ nếu = 0)
+  const formatDuration = (ms: number) => {
+    if (ms < 0 || !Number.isFinite(ms)) return "-";
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const hh = String(hours).padStart(2, "0");
+    const mm = String(minutes).padStart(2, "0");
+    const ss = String(seconds).padStart(2, "0");
+    return hours > 0 ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`;
+  };
+
+  // Xử lý tải xuống recording (tải blob để đảm bảo đặt được tên file)
+  const handleDownload = async (rec: CallRecording, fallbackIndex: number) => {
+    if (!rec.url) return;
+    try {
+      const uniqueId = rec.url || String(fallbackIndex);
+      setDownloadingId(uniqueId);
+      const res = await fetch(rec.url);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const contentType = blob.type || "video/mp4";
+      const extensionFromType = contentType.includes("mp4")
+        ? "mp4"
+        : contentType.includes("webm")
+        ? "webm"
+        : "mp4";
+      const baseName =
+        rec.filename
+          ?.replace(/\s+/g, "-")
+          .replace(/[^a-zA-Z0-9-_\.]/g, "")
+          .replace(/-{2,}/g, "-") || `recording-${fallbackIndex + 1}`;
+      const finalName = baseName.endsWith(extensionFromType)
+        ? baseName
+        : `${baseName}.${extensionFromType}`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = finalName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download recording error", err);
+      alert("Tải xuống thất bại. Vui lòng thử lại.");
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -98,7 +174,6 @@ export default function MeetingDetailPage() {
   const startsAt = call.state.startsAt
     ? new Date(call.state.startsAt)
     : undefined;
-  const callUrl = `/meeting/${call.id}`; // giả sử route join thực tế
 
   return (
     <div className="meeting-detail-page">
@@ -224,25 +299,81 @@ export default function MeetingDetailPage() {
               <div className="recordings">
                 <h4>Bản ghi cuộc họp</h4>
                 <div className="recording-list">
-                  <div className="recording-item">
-                    <div className="recording-info">
-                      <Video size={20} />
-                      <div>
-                        <h5>Video Recording - Full Meeting</h5>
-                        <p>1h 30m • 1920x1080 • 2.5GB</p>
+                  {isLoadingRecordings && (
+                    <div className="recording-loading">Đang tải bản ghi...</div>
+                  )}
+                  {recordingsError && !isLoadingRecordings && (
+                    <div className="recording-error">{recordingsError}</div>
+                  )}
+                  {!isLoadingRecordings &&
+                    !recordingsError &&
+                    recordings.length === 0 && (
+                      <div className="recording-empty">
+                        Chưa có bản ghi cho cuộc họp này.
                       </div>
-                    </div>
-                    <div className="recording-actions">
-                      <Button variant="outline" size="sm">
-                        <Play size={16} />
-                        Xem
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Download size={16} />
-                        Tải xuống
-                      </Button>
-                    </div>
-                  </div>
+                    )}
+                  {!isLoadingRecordings &&
+                    !recordingsError &&
+                    recordings.map((rec, idx) => {
+                      const displayName =
+                        rec.filename?.substring(0, 80) || "Recording";
+                      const createdAt = rec.start_time
+                        ? new Date(rec.start_time).toLocaleString("vi-VN")
+                        : "-";
+                      const duration =
+                        rec.start_time && rec.end_time
+                          ? formatDuration(
+                              new Date(rec.end_time).getTime() -
+                                new Date(rec.start_time).getTime()
+                            )
+                          : null;
+                      return (
+                        <div className="recording-item" key={rec.url || idx}>
+                          <div className="recording-info">
+                            <Video size={20} />
+                            <div>
+                              <h5>{displayName}</h5>
+                              <p>
+                                {createdAt}
+                                {duration && (
+                                  <span className="recording-duration">
+                                    {" "}
+                                    · Thời lượng: {duration}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="recording-actions">
+                            {rec.url && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(rec.url!, "_blank")}
+                              >
+                                <Play size={16} />
+                                Xem
+                              </Button>
+                            )}
+                            {rec.url && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  downloadingId === (rec.url || String(idx))
+                                }
+                                onClick={() => handleDownload(rec, idx)}
+                              >
+                                <Download size={16} />
+                                {downloadingId === (rec.url || String(idx))
+                                  ? "Đang tải..."
+                                  : "Tải xuống"}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
 
