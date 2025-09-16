@@ -1,80 +1,71 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Meeting } from '@/types/meeting';
-import { Project } from '@/types/project';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, Clock, Users, Video, FileText, MessageSquare, Paperclip, CheckSquare, Play, Download } from 'lucide-react';
-import '@/app/styles/meeting-detail.scss';
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  ArrowLeft,
+  Video,
+  FileText,
+  MessageSquare,
+  Paperclip,
+  CheckSquare,
+  Play,
+  Download,
+} from "lucide-react";
+import "@/app/styles/meeting-detail.scss";
+import { useGetCallById } from "@/hooks/useGetCallById";
+import { Call, useStreamVideoClient } from "@stream-io/video-react-sdk";
+import MeetingSetup from "@/components/meeting/MeetingSetup";
+import MeetingRoom from "@/components/meeting/MeetingRoom";
+
+// Map Stream call state to a simplified status label
+const mapCallStatus = (call?: Call) => {
+  if (!call) return "Unknown";
+  const starts = call.state.startsAt;
+  if (starts && new Date(starts) < new Date()) return "Finished";
+  if (starts && new Date(starts) > new Date()) return "Scheduled";
+  return "Ongoing";
+};
 
 export default function MeetingDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [meeting, setMeeting] = useState<Meeting | null>(null);
-  const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const { call, isLoadingCall } = useGetCallById(params.id as string);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [showJoinFlow, setShowJoinFlow] = useState(false); // hiển thị phần join meeting
+  const [isSetupComplete, setIsSetupComplete] = useState(false);
 
-  // Mock data - trong thực tế sẽ fetch từ API
+  // Khi đã join thì chuyển sang hiển thị MeetingRoom
   useEffect(() => {
-    const fetchMeetingDetail = async () => {
-      setLoading(true);
-      // Mock data
-      const mockMeeting: Meeting = {
-        id: params.id as string,
-        projectId: '1',
-        milestoneId: '1',
-        title: 'Sprint Planning Meeting',
-        description: 'Planning for Sprint 3 features and tasks',
-        startTime: '2024-01-15T09:00:00Z',
-        endTime: '2024-01-15T10:30:00Z',
-        status: 'Finished',
-        roomUrl: 'https://meet.google.com/abc-def-ghi',
-        createdAt: '2024-01-14T10:00:00Z',
-        updatedAt: '2024-01-15T10:30:00Z'
-      };
-
-      const mockProject: Project = {
-        id: '1',
-        name: 'E-commerce Platform',
-        description: 'Building a modern e-commerce platform',
-        status: 'In Progress',
-        startDate: '2024-01-01',
-        endDate: '2024-06-30',
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-15T10:30:00Z'
-      };
-
-      setMeeting(mockMeeting);
-      setProject(mockProject);
-      setLoading(false);
-    };
-
-    fetchMeetingDetail();
-  }, [params.id]);
+    if (isSetupComplete) {
+      // nothing else for now
+    }
+  }, [isSetupComplete]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Scheduled': return '#3b82f6';
-      case 'Ongoing': return '#f59e0b';
-      case 'Finished': return '#10b981';
-      case 'Cancelled': return '#ef4444';
-      default: return '#6b7280';
+      case "Scheduled":
+        return "#3b82f6";
+      case "Finished":
+        return "#10b981";
+      default:
+        return "#6b7280";
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'Scheduled': return 'Đã lên lịch';
-      case 'Ongoing': return 'Đang diễn ra';
-      case 'Finished': return 'Hoàn thành';
-      case 'Cancelled': return 'Đã hủy';
-      default: return status;
+      case "Scheduled":
+        return "Đã lên lịch";
+      case "Finished":
+        return "Hoàn thành";
+      default:
+        return status;
     }
   };
 
-  if (loading) {
+  if (isLoadingCall) {
     return (
       <div className="meeting-detail-loading">
         <div className="loading-spinner"></div>
@@ -83,7 +74,7 @@ export default function MeetingDetailPage() {
     );
   }
 
-  if (!meeting || !project) {
+  if (!call) {
     return (
       <div className="meeting-detail-error">
         <h3>Không tìm thấy cuộc họp</h3>
@@ -93,13 +84,29 @@ export default function MeetingDetailPage() {
     );
   }
 
+  // Derived info từ call
+  const status = mapCallStatus(call);
+  const description =
+    (call.state.custom as any)?.description || "(Không có mô tả)";
+  const createdBy =
+    call.state.createdBy?.name ||
+    (call.state.createdBy as any)?.id ||
+    "Ẩn danh";
+  const createdAt = call.state.createdAt
+    ? new Date(call.state.createdAt)
+    : undefined;
+  const startsAt = call.state.startsAt
+    ? new Date(call.state.startsAt)
+    : undefined;
+  const callUrl = `/meeting/${call.id}`; // giả sử route join thực tế
+
   return (
     <div className="meeting-detail-page">
       {/* Header */}
       <div className="meeting-header">
         <div className="header-left">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => router.back()}
             className="back-btn"
           >
@@ -107,56 +114,53 @@ export default function MeetingDetailPage() {
             Quay lại
           </Button>
           <div className="meeting-title">
-            <h1>{meeting.title}</h1>
+            <h1>{call.state?.custom?.title || call.id}</h1>
             <div className="meeting-meta">
-              <span className="project-name">{project.name}</span>
-              <span className="meeting-status" style={{ backgroundColor: getStatusColor(meeting.status) }}>
-                {getStatusLabel(meeting.status)}
-              </span>
+              <span className="project-name">Cuộc họp</span>
             </div>
           </div>
-        </div>
-        <div className="header-right">
-          <Button className="join-btn">
-            <Video size={16} />
-            Tham gia cuộc họp
-          </Button>
+          <span
+            className="meeting-status"
+            style={{ backgroundColor: getStatusColor(status) }}
+          >
+            {getStatusLabel(status)}
+          </span>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="meeting-tabs">
-        <button 
-          className={`tab ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
+        <button
+          className={`tab ${activeTab === "overview" ? "active" : ""}`}
+          onClick={() => setActiveTab("overview")}
         >
           <FileText size={16} />
           Tổng quan
         </button>
-        <button 
-          className={`tab ${activeTab === 'recording' ? 'active' : ''}`}
-          onClick={() => setActiveTab('recording')}
+        <button
+          className={`tab ${activeTab === "recording" ? "active" : ""}`}
+          onClick={() => setActiveTab("recording")}
         >
           <Video size={16} />
           Recording & Transcript
         </button>
-        <button 
-          className={`tab ${activeTab === 'tasks' ? 'active' : ''}`}
-          onClick={() => setActiveTab('tasks')}
+        <button
+          className={`tab ${activeTab === "tasks" ? "active" : ""}`}
+          onClick={() => setActiveTab("tasks")}
         >
           <CheckSquare size={16} />
           To-do & Tasks
         </button>
-        <button 
-          className={`tab ${activeTab === 'comments' ? 'active' : ''}`}
-          onClick={() => setActiveTab('comments')}
+        <button
+          className={`tab ${activeTab === "comments" ? "active" : ""}`}
+          onClick={() => setActiveTab("comments")}
         >
           <MessageSquare size={16} />
           Bình luận
         </button>
-        <button 
-          className={`tab ${activeTab === 'attachments' ? 'active' : ''}`}
-          onClick={() => setActiveTab('attachments')}
+        <button
+          className={`tab ${activeTab === "attachments" ? "active" : ""}`}
+          onClick={() => setActiveTab("attachments")}
         >
           <Paperclip size={16} />
           Tài liệu
@@ -165,147 +169,142 @@ export default function MeetingDetailPage() {
 
       {/* Content */}
       <div className="meeting-content">
-        {activeTab === 'overview' && (
+        {activeTab === "overview" && !showJoinFlow && (
           <div className="overview-section">
             <div className="meeting-info">
               <h3>Thông tin cuộc họp</h3>
               <div className="info-grid">
                 <div className="info-item">
                   <label>Mô tả:</label>
-                  <p>{meeting.description}</p>
+                  <p>{description}</p>
                 </div>
                 <div className="info-item">
                   <label>Thời gian bắt đầu:</label>
-                  <p>{new Date(meeting.startTime).toLocaleString('vi-VN')}</p>
+                  <p>{startsAt ? startsAt.toLocaleString("vi-VN") : "-"}</p>
                 </div>
-                {meeting.endTime && (
+                {getStatusLabel(status) !== "Hoàn thành" && (
                   <div className="info-item">
-                    <label>Thời gian kết thúc:</label>
-                    <p>{new Date(meeting.endTime).toLocaleString('vi-VN')}</p>
+                    <label>Tham gia cuộc họp:</label>
+                    <button
+                      onClick={() => setShowJoinFlow(true)}
+                      className="room-link"
+                    >
+                      Nhấn để tham gia (ID: {call.id})
+                    </button>
                   </div>
                 )}
                 <div className="info-item">
-                  <label>URL phòng họp:</label>
-                  <a href={meeting.roomUrl} target="_blank" rel="noopener noreferrer" className="room-link">
-                    {meeting.roomUrl}
-                  </a>
-                </div>
-                <div className="info-item">
                   <label>Người tạo:</label>
-                  <p>Nguyễn Văn A</p>
+                  <p>{createdBy}</p>
                 </div>
                 <div className="info-item">
                   <label>Ngày tạo:</label>
-                  <p>{new Date(meeting.createdAt).toLocaleString('vi-VN')}</p>
+                  <p>{createdAt ? createdAt.toLocaleString("vi-VN") : "-"}</p>
                 </div>
               </div>
             </div>
-
-            <div className="project-info">
-              <h3>Dự án liên quan</h3>
-              <div className="project-card">
-                <h4>{project.name}</h4>
-                <p>{project.description}</p>
-                <div className="project-meta">
-                  <span className="project-status">{project.status}</span>
-                  <span className="project-dates">
-                    {new Date(project.startDate).toLocaleDateString('vi-VN')} - {new Date(project.endDate).toLocaleDateString('vi-VN')}
-                  </span>
-                </div>
-              </div>
-            </div>
+            {/* Có thể bổ sung thông tin dự án nếu backend trả về sau */}
           </div>
         )}
 
-        {activeTab === 'recording' && (
-          <div className="recording-section">
-            <h3>Recording & Transcript</h3>
-            {meeting.status === 'Finished' ? (
-              <div className="recording-content">
-                <div className="recordings">
-                  <h4>Bản ghi cuộc họp</h4>
-                  <div className="recording-list">
-                    <div className="recording-item">
-                      <div className="recording-info">
-                        <Video size={20} />
-                        <div>
-                          <h5>Video Recording - Full Meeting</h5>
-                          <p>1h 30m • 1920x1080 • 2.5GB</p>
-                        </div>
-                      </div>
-                      <div className="recording-actions">
-                        <Button variant="outline" size="sm">
-                          <Play size={16} />
-                          Xem
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Download size={16} />
-                          Tải xuống
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="transcript">
-                  <h4>Transcript</h4>
-                  <div className="transcript-content">
-                    <div className="transcript-item">
-                      <span className="timestamp">00:05</span>
-                      <div className="transcript-text">
-                        <strong>Nguyễn Văn A:</strong> Chào mọi người, chúng ta bắt đầu cuộc họp sprint planning hôm nay.
-                      </div>
-                    </div>
-                    <div className="transcript-item">
-                      <span className="timestamp">00:15</span>
-                      <div className="transcript-text">
-                        <strong>Trần Thị B:</strong> Tôi đã chuẩn bị danh sách các task cho sprint này.
-                      </div>
-                    </div>
-                    <div className="transcript-item">
-                      <span className="timestamp">00:30</span>
-                      <div className="transcript-text">
-                        <strong>Lê Văn C:</strong> Chúng ta cần ưu tiên tính năng thanh toán trước.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="summary">
-                  <h4>Tóm tắt AI</h4>
-                  <div className="summary-content">
-                    <p>Cuộc họp tập trung vào việc lập kế hoạch cho Sprint 3 với các tính năng chính: thanh toán, quản lý sản phẩm, và báo cáo. Team đã thống nhất về timeline và phân công công việc.</p>
-                  </div>
-                </div>
-
-                <div className="keywords">
-                  <h4>Từ khóa</h4>
-                  <div className="keyword-tags">
-                    <span className="keyword-tag">sprint planning</span>
-                    <span className="keyword-tag">payment</span>
-                    <span className="keyword-tag">product management</span>
-                    <span className="keyword-tag">timeline</span>
-                    <span className="keyword-tag">tasks</span>
-                  </div>
-                </div>
-              </div>
+        {activeTab === "overview" && showJoinFlow && (
+          <div className="meeting-join-flow">
+            {!isSetupComplete ? (
+              <MeetingSetup setIsSetupComplete={setIsSetupComplete} />
             ) : (
-              <div className="no-recording">
-                <Video size={48} />
-                <h4>Chưa có bản ghi</h4>
-                <p>Bản ghi cuộc họp sẽ có sẵn sau khi cuộc họp kết thúc.</p>
-              </div>
+              <MeetingRoom />
             )}
           </div>
         )}
 
-        {activeTab === 'tasks' && (
+        {activeTab === "recording" && (
+          <div className="recording-section">
+            <h3>Recording & Transcript</h3>
+            <div className="recording-content">
+              <div className="recordings">
+                <h4>Bản ghi cuộc họp</h4>
+                <div className="recording-list">
+                  <div className="recording-item">
+                    <div className="recording-info">
+                      <Video size={20} />
+                      <div>
+                        <h5>Video Recording - Full Meeting</h5>
+                        <p>1h 30m • 1920x1080 • 2.5GB</p>
+                      </div>
+                    </div>
+                    <div className="recording-actions">
+                      <Button variant="outline" size="sm">
+                        <Play size={16} />
+                        Xem
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Download size={16} />
+                        Tải xuống
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="transcript">
+                <h4>Transcript</h4>
+                <div className="transcript-content">
+                  <div className="transcript-item">
+                    <span className="timestamp">00:05</span>
+                    <div className="transcript-text">
+                      <strong>Nguyễn Văn A:</strong> Chào mọi người, chúng ta
+                      bắt đầu cuộc họp sprint planning hôm nay.
+                    </div>
+                  </div>
+                  <div className="transcript-item">
+                    <span className="timestamp">00:15</span>
+                    <div className="transcript-text">
+                      <strong>Trần Thị B:</strong> Tôi đã chuẩn bị danh sách các
+                      task cho sprint này.
+                    </div>
+                  </div>
+                  <div className="transcript-item">
+                    <span className="timestamp">00:30</span>
+                    <div className="transcript-text">
+                      <strong>Lê Văn C:</strong> Chúng ta cần ưu tiên tính năng
+                      thanh toán trước.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="summary">
+                <h4>Tóm tắt AI</h4>
+                <div className="summary-content">
+                  <p>
+                    Cuộc họp tập trung vào việc lập kế hoạch cho Sprint 3 với
+                    các tính năng chính: thanh toán, quản lý sản phẩm, và báo
+                    cáo. Team đã thống nhất về timeline và phân công công việc.
+                  </p>
+                </div>
+              </div>
+
+              <div className="keywords">
+                <h4>Từ khóa</h4>
+                <div className="keyword-tags">
+                  <span className="keyword-tag">sprint planning</span>
+                  <span className="keyword-tag">payment</span>
+                  <span className="keyword-tag">product management</span>
+                  <span className="keyword-tag">timeline</span>
+                  <span className="keyword-tag">tasks</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "tasks" && !showJoinFlow && (
           <div className="tasks-section">
             <div className="tasks-header">
               <h3>To-do & Tasks</h3>
               <Button className="add-task-btn">Thêm task</Button>
             </div>
-            
+
             <div className="tasks-content">
               <div className="task-list">
                 <div className="task-item">
@@ -326,7 +325,9 @@ export default function MeetingDetailPage() {
                 <div className="task-item">
                   <div className="task-info">
                     <h5>Design product management UI</h5>
-                    <p>Create user interface for product management dashboard</p>
+                    <p>
+                      Create user interface for product management dashboard
+                    </p>
                     <div className="task-meta">
                       <span className="assignee">@Trần Thị B</span>
                       <span className="deadline">Hạn: 25/01/2024</span>
@@ -357,12 +358,12 @@ export default function MeetingDetailPage() {
           </div>
         )}
 
-        {activeTab === 'comments' && (
+        {activeTab === "comments" && !showJoinFlow && (
           <div className="comments-section">
             <h3>Bình luận & Feedback</h3>
             <div className="comments-content">
               <div className="comment-form">
-                <textarea 
+                <textarea
                   placeholder="Viết bình luận hoặc feedback về cuộc họp..."
                   className="comment-input"
                 />
@@ -377,7 +378,10 @@ export default function MeetingDetailPage() {
                       <strong>Nguyễn Văn A</strong>
                       <span className="comment-time">2 giờ trước</span>
                     </div>
-                    <p>@Trần Thị B hoàn thành phần báo cáo trước thứ 6 nhé. Cảm ơn!</p>
+                    <p>
+                      @Trần Thị B hoàn thành phần báo cáo trước thứ 6 nhé. Cảm
+                      ơn!
+                    </p>
                   </div>
                 </div>
 
@@ -388,7 +392,10 @@ export default function MeetingDetailPage() {
                       <strong>Trần Thị B</strong>
                       <span className="comment-time">1 giờ trước</span>
                     </div>
-                    <p>Được rồi, tôi sẽ hoàn thành trước thứ 6. Có cần thêm thông tin gì không?</p>
+                    <p>
+                      Được rồi, tôi sẽ hoàn thành trước thứ 6. Có cần thêm thông
+                      tin gì không?
+                    </p>
                   </div>
                 </div>
 
@@ -399,7 +406,10 @@ export default function MeetingDetailPage() {
                       <strong>Lê Văn C</strong>
                       <span className="comment-time">30 phút trước</span>
                     </div>
-                    <p>Cuộc họp hôm nay rất hiệu quả. Timeline được thống nhất rõ ràng.</p>
+                    <p>
+                      Cuộc họp hôm nay rất hiệu quả. Timeline được thống nhất rõ
+                      ràng.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -407,13 +417,13 @@ export default function MeetingDetailPage() {
           </div>
         )}
 
-        {activeTab === 'attachments' && (
+        {activeTab === "attachments" && !showJoinFlow && (
           <div className="attachments-section">
             <div className="attachments-header">
               <h3>Tài liệu & File đính kèm</h3>
               <Button className="upload-btn">Tải lên file</Button>
             </div>
-            
+
             <div className="attachments-content">
               <div className="attachment-list">
                 <div className="attachment-item">

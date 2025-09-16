@@ -6,7 +6,6 @@ export const useGetCall = () => {
   const [calls, setCalls] = useState<Call[]>([]);
   const [isLoadingCall, setIsLoadingCall] = useState<boolean>(false);
   const client = useStreamVideoClient();
-  const [next, setNext] = useState<string | null>(null);
   const { userId } = useUser();
 
   const loadCalls = useCallback(async () => {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Call } from "@stream-io/video-react-sdk";
+import { toast } from "react-toastify";
 
 interface UpdateMeetingModalProps {
   call: Call;
@@ -23,36 +24,41 @@ export const UpdateMeetingModal = ({
   const [description, setDescription] = useState<string>(
     custom?.description || ""
   );
-  const [date, setDate] = useState<string>(
-    startsAt ? startsAt.toISOString().slice(0, 10) : ""
-  );
-  const [time, setTime] = useState<string>(
-    startsAt ? startsAt.toISOString().slice(11, 16) : ""
-  );
+  const initialDateTime = startsAt
+    ? new Date(startsAt.getTime() - startsAt.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16)
+    : "";
+  const [dateTime, setDateTime] = useState<string>(initialDateTime);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
     try {
-      const newStarts = date && time ? new Date(`${date}T${time}`) : undefined;
+      const newStarts = dateTime ? new Date(dateTime) : undefined;
+      if (!title.trim()) throw new Error("Tiêu đề không được để trống");
+      if (newStarts && newStarts.getTime() < Date.now() - 60_000) {
+        throw new Error("Thời gian bắt đầu phải ở tương lai");
+      }
       await call.update({
         custom: {
           ...custom,
-          title,
-          description,
-          scheduledDate: date,
-          scheduledTime: time,
+          title: title.trim(),
+          description: description.trim(),
         },
         starts_at: newStarts?.toISOString(),
       });
+      toast.success("Đã cập nhật cuộc họp");
       if (onUpdated) onUpdated(call);
       onClose();
     } catch (err: any) {
       console.error("Failed to update call", err);
       setError(err?.message || "Cập nhật thất bại");
+      toast.error(err?.message || "Cập nhật thất bại");
     } finally {
       setSaving(false);
     }
@@ -103,23 +109,21 @@ export const UpdateMeetingModal = ({
               rows={4}
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium">Ngày</label>
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-medium">Giờ</label>
-              <Input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-              />
-            </div>
+          <div className="space-y-1">
+            <label className="block text-sm font-medium">
+              Thời gian bắt đầu
+            </label>
+            <Input
+              type="datetime-local"
+              value={dateTime}
+              onChange={(e) => {
+                setDateTime(e.target.value);
+                setTouched(true);
+              }}
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Chỉnh thời gian để cập nhật lịch bắt đầu cuộc họp.
+            </p>
           </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">

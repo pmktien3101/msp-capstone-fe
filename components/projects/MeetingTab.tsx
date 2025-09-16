@@ -8,6 +8,7 @@ import "@/app/styles/meeting-tab.scss";
 import { useGetCall } from "@/hooks/useGetCallList";
 import { Call } from "@stream-io/video-react-sdk";
 import { Loader, MoreHorizontal } from "lucide-react";
+import { tokenService } from "@/services/streamService";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,6 +17,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
+import { toast } from "react-toastify";
 
 interface MeetingTabProps {
   project: Project;
@@ -25,47 +27,13 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
-  const {
-    upcomingCalls,
-    endedCalls,
-    isLoadingCall,
-    callRecordings,
-    refetchCalls,
-  } = useGetCall();
-  const [viewType, setViewType] = useState<"upcoming" | "ended" | "recordings">(
-    "upcoming"
-  );
-  const [recordings, setRecordings] = useState<any[]>([]);
-
-  // Fetch recordings when needed
-  useEffect(() => {
-    const fetchRecordings = async () => {
-      try {
-        const callData = await Promise.all(
-          callRecordings.map((meeting) => meeting.queryRecordings())
-        );
-        const recs = callData
-          .filter((call) => call.recordings.length > 0)
-          .flatMap((call) => call.recordings);
-        setRecordings(recs);
-      } catch (e) {
-        console.error("Failed to fetch recordings", e);
-      }
-    };
-    if (viewType === "recordings") fetchRecordings();
-  }, [viewType, callRecordings]);
+  const { upcomingCalls, endedCalls, isLoadingCall, refetchCalls } =
+    useGetCall();
+  const [viewType, setViewType] = useState<"upcoming" | "ended">("upcoming");
 
   const meetings = useMemo(() => {
-    switch (viewType) {
-      case "ended":
-        return endedCalls;
-      case "recordings":
-        return recordings;
-      case "upcoming":
-      default:
-        return upcomingCalls;
-    }
-  }, [viewType, upcomingCalls, endedCalls, recordings]);
+    return viewType === "ended" ? endedCalls : upcomingCalls;
+  }, [viewType, upcomingCalls, endedCalls]);
 
   const getStatusInfo = (call: Call) => {
     const now = new Date();
@@ -74,12 +42,10 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
       : null;
     const endedAt = call.state?.endedAt ? new Date(call.state.endedAt) : null;
 
-    // Hoàn thành: có endedAt hợp lệ (>= startsAt hoặc không có startsAt nhưng end đã xảy ra)
     if (startsAt && startsAt > now) {
       return { label: "Lên lịch", color: "#3b82f6" };
     }
 
-    // ✅ Tất cả trường hợp còn lại -> Hoàn thành
     return { label: "Hoàn thành", color: "#10b981" };
   };
 
@@ -99,18 +65,12 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const handleDelete = async (call: Call) => {
     if (!confirm("Bạn chắc chắn muốn xóa cuộc họp này?")) return;
     try {
-      await call.delete();
-      // Local removal (optimistic): recordings state or relying on hook reload (hook doesn't refetch automatically)
-      // We just filter from arrays (only affects current view) - simplest approach.
-      if (viewType === "upcoming") {
-        // no direct setter from hook; cannot mutate upstream; page refresh fallback
-        window.location.reload();
-      } else if (viewType === "ended") {
-        window.location.reload();
-      }
-    } catch (e) {
+      await tokenService.deleteCall(call.id, true);
+      await refetchCalls();
+      toast.success("Đã xóa cuộc họp");
+    } catch (e: any) {
       console.error("Delete call failed", e);
-      alert("Xóa thất bại");
+      toast.error(e?.message || "Xóa thất bại");
     }
   };
 
@@ -161,12 +121,6 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
         >
           Đã kết thúc
         </Button>
-        <Button
-          variant={viewType === "recordings" ? "default" : "outline"}
-          onClick={() => setViewType("recordings")}
-        >
-          Ghi hình
-        </Button>
       </div>
 
       <div className="meeting-list">
@@ -193,58 +147,6 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
               <div className="col-actions">Thao tác</div>
             </div>
             {meetings.map((meeting: any, idx: number) => {
-              const isRecording = viewType === "recordings";
-              if (isRecording) {
-                const title = meeting.filename?.substring(0, 50) || "Recording";
-                const description =
-                  meeting.filename?.substring(0, 80) ||
-                  "Recorded meeting session";
-                const date = new Date(
-                  meeting.start_time || Date.now()
-                ).toLocaleString("vi-VN");
-                return (
-                  <div
-                    key={meeting.id || idx}
-                    className="table-row"
-                    style={{ gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1.5fr" }}
-                  >
-                    <div className="col-title">
-                      <div className="meeting-title-text">{title}</div>
-                      <div className="meeting-description">{description}</div>
-                    </div>
-                    <div className="col-time">
-                      <div className="time-info">
-                        <div className="start-time">{date}</div>
-                      </div>
-                    </div>
-                    <div className="col-room">
-                      <a
-                        href={meeting.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="room-link"
-                      >
-                        Xem
-                      </a>
-                    </div>
-                    <div className="col-status">
-                      <span className="status-badge bg-orange-400">
-                        Ghi hình
-                      </span>
-                    </div>
-                    <div className="col-actions">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-orange-600 text-orange-600 hover:bg-orange-50"
-                        onClick={() => window.open(meeting.url, "_blank")}
-                      >
-                        Play
-                      </Button>
-                    </div>
-                  </div>
-                );
-              }
               const call = meeting as Call;
               const title = call.state?.custom?.title || "Cuộc họp";
               const description = call.state?.custom?.description?.substring(
@@ -325,9 +227,11 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                             Tham gia
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem onClick={() => handleEdit(call)}>
-                          Cập nhật
-                        </DropdownMenuItem>
+                        {!(viewType === "ended") && (
+                          <DropdownMenuItem onClick={() => handleEdit(call)}>
+                            Cập nhật
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => handleDelete(call)}
@@ -363,8 +267,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
             setShowUpdateModal(false);
             setSelectedCall(null);
           }}
-          onUpdated={() => {
-            // For now just close; UI will reflect because call state updates locally
+          onUpdated={async () => {
+            await refetchCalls();
           }}
         />
       )}
