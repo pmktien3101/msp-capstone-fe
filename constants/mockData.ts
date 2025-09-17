@@ -25,6 +25,8 @@ export const mockTasks = [
     status: 'todo',
     priority: 'high',
     assignee: 'QL',
+    startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 week from now
+    endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 weeks from now
     dueDate: '2025-09-14',
     createdDate: '2025-09-01',
     updatedDate: '2025-09-01',
@@ -41,6 +43,8 @@ export const mockTasks = [
     status: 'in-progress',
     priority: 'high',
     assignee: 'TB',
+    startDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days from now
+    endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 10 days from now
     dueDate: '2025-09-16',
     createdDate: '2025-09-02',
     updatedDate: '2025-09-10',
@@ -57,6 +61,8 @@ export const mockTasks = [
     status: 'done',
     priority: 'medium',
     assignee: 'NA',
+    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 week ago
+    endDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days ago
     dueDate: '2025-09-10',
     createdDate: '2025-09-01',
     updatedDate: '2025-09-08',
@@ -73,6 +79,8 @@ export const mockTasks = [
     status: 'review',
     priority: 'high',
     assignee: 'NA',
+    startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 weeks from now
+    endDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 4 weeks from now
     dueDate: '2025-09-20',
     createdDate: '2025-09-05',
     updatedDate: '2025-09-15',
@@ -89,6 +97,8 @@ export const mockTasks = [
     status: 'todo',
     priority: 'medium',
     assignee: null,
+    startDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 weeks from now
+    endDate: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 5 weeks from now
     dueDate: '2025-09-25',
     createdDate: '2025-09-08',
     updatedDate: '2025-09-08',
@@ -105,6 +115,8 @@ export const mockTasks = [
     status: 'in-progress',
     priority: 'low',
     assignee: 'QL',
+    startDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 4 weeks from now
+    endDate: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 6 weeks from now
     dueDate: '2025-09-30',
     createdDate: '2025-09-10',
     updatedDate: '2025-09-12',
@@ -122,8 +134,8 @@ export const mockEpics = [
     description: 'Xây dựng hệ thống đăng nhập và xác thực',
     status: 'in-progress',
     progress: 60,
-    startDate: '2025-09-01',
-    endDate: '2025-09-25',
+    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 week ago
+    endDate: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 5 weeks from now
     tasks: mockTasks.filter(task => task.epic === 'XÂY DỰNG HỆ THỐNG LOGIN')
   },
   {
@@ -132,8 +144,8 @@ export const mockEpics = [
     description: 'Xây dựng module thanh toán',
     status: 'in-progress',
     progress: 40,
-    startDate: '2025-09-05',
-    endDate: '2025-09-30',
+    startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 weeks from now
+    endDate: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 6 weeks from now
     tasks: mockTasks.filter(task => task.epic === 'XÂY DỰNG MODULE PAYMENT')
   }
 ];
@@ -219,70 +231,7 @@ export const getMilestoneStatus = (milestoneId: string) => {
   return 'pending';
 };
 
-// Generate hierarchical work items from shared milestone data
-export const mockHierarchicalWorkItems = mockMilestones.map(milestone => {
-  const progress = calculateMilestoneProgress(milestone.id);
-  const status = getMilestoneStatus(milestone.id);
-  
-  return {
-    id: milestone.id,
-    title: milestone.title,
-    type: 'milestone' as const,
-    status: status,
-    dueDate: milestone.dueDate,
-    progress: progress,
-    isExpanded: milestone.id === 'milestone-1', // First milestone expanded by default
-    children: milestone.tasks.map(task => ({
-      id: task.id,
-      title: task.title,
-      type: 'task' as const,
-      status: task.status,
-      assignee: task.assignee,
-      dueDate: task.dueDate,
-      milestoneId: milestone.id
-    }))
-  };
-});
 
-// Generate flattened work items from shared data for Gantt chart synchronization
-export const mockFlattenedWorkItems = (() => {
-  const items: any[] = [];
-  let rowIndex = 0;
-  
-  mockMilestones.forEach(milestone => {
-    const progress = calculateMilestoneProgress(milestone.id);
-    const status = getMilestoneStatus(milestone.id);
-    
-    // Add milestone
-    items.push({
-      id: milestone.id,
-      title: milestone.title,
-      type: 'milestone',
-      status: status,
-      assignee: '',
-      dueDate: milestone.dueDate,
-      progress: progress,
-      rowIndex: rowIndex++
-    });
-    
-    // Add tasks for this milestone
-    milestone.tasks.forEach(task => {
-      items.push({
-        id: task.id,
-        title: task.title,
-        type: 'task',
-        status: task.status,
-        assignee: task.assignee || '',
-        dueDate: task.dueDate,
-        milestoneId: milestone.id,
-        progress: task.status === 'done' ? 100 : task.status === 'in-progress' ? 50 : 0,
-        rowIndex: rowIndex++
-      });
-    });
-  });
-  
-  return items;
-})();
 
 export const mockMeetings = [
   {
