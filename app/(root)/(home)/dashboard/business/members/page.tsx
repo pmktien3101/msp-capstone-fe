@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import * as XLSX from 'xlsx';
 
 interface Member {
   id: string;
   name: string;
   email: string;
+  phone: string;
   role: 'Member' | 'ProjectManager';
   status: 'active' | 'inactive';
   joinDate: string;
@@ -19,6 +21,7 @@ const MembersRolesPage = () => {
       id: '1',
       name: 'Nguyễn Văn A',
       email: 'nguyenvana@company.com',
+      phone: '+84 123 456 789',
       role: 'ProjectManager',
       status: 'active',
       joinDate: '2024-01-15',
@@ -29,6 +32,7 @@ const MembersRolesPage = () => {
       id: '2',
       name: 'Trần Thị B',
       email: 'tranthib@company.com',
+      phone: '+84 987 654 321',
       role: 'Member',
       status: 'active',
       joinDate: '2024-02-20',
@@ -39,6 +43,7 @@ const MembersRolesPage = () => {
       id: '3',
       name: 'Lê Văn C',
       email: 'levanc@company.com',
+      phone: '+84 555 123 456',
       role: 'Member',
       status: 'inactive',
       joinDate: '2024-03-10',
@@ -49,6 +54,7 @@ const MembersRolesPage = () => {
       id: '4',
       name: 'Phạm Thị D',
       email: 'phamthid@company.com',
+      phone: '+84 111 222 333',
       role: 'ProjectManager',
       status: 'active',
       joinDate: '2024-04-05',
@@ -59,15 +65,125 @@ const MembersRolesPage = () => {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'Member' | 'ProjectManager'>('all');
+  const [importedData, setImportedData] = useState<any[]>([]);
 
   const [newMember, setNewMember] = useState({
     name: '',
-    email: '',
+    emailPrefix: '',
+    phone: '',
     role: 'Member' as 'Member' | 'ProjectManager'
   });
+
+  // Company domain - trong thực tế sẽ lấy từ context hoặc props
+  const companyDomain = '@company.com';
+
+  // Download Excel template
+  const downloadTemplate = () => {
+    const templateData = [
+      {
+        'Tên': 'Nguyễn Văn A',
+        'Email (phần trước @)': 'nguyenvana',
+        'Số điện thoại': '+84 123 456 789',
+        'Vai trò': 'Member'
+      },
+      {
+        'Tên': 'Trần Thị B',
+        'Email (phần trước @)': 'tranthib',
+        'Số điện thoại': '+84 987 654 321',
+        'Vai trò': 'ProjectManager'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Members');
+    
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 20 }, // Tên
+      { wch: 25 }, // Email
+      { wch: 20 }, // Số điện thoại
+      { wch: 15 }  // Vai trò
+    ];
+
+    XLSX.writeFile(wb, 'template_members.xlsx');
+  };
+
+  // Handle file import
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      // Validate and format data
+      const validatedData = jsonData.map((row: any, index: number) => {
+        const name = row['Tên'] || '';
+        const emailPrefix = row['Email (phần trước @)'] || '';
+        const phone = row['Số điện thoại'] || '';
+        const role = row['Vai trò'] || 'Member';
+
+        return {
+          rowIndex: index + 2, // +2 because Excel starts from row 1 and we skip header
+          name: name.toString().trim(),
+          emailPrefix: emailPrefix.toString().trim(),
+          phone: phone.toString().trim(),
+          role: role.toString().trim(),
+          isValid: name && emailPrefix && phone,
+          errors: [] as string[]
+        };
+      });
+
+      // Validate data
+      validatedData.forEach(item => {
+        if (!item.name) item.errors.push('Tên không được để trống');
+        if (!item.emailPrefix) item.errors.push('Email không được để trống');
+        if (!item.phone) item.errors.push('Số điện thoại không được để trống');
+        if (!['Member', 'ProjectManager'].includes(item.role)) {
+          item.errors.push('Vai trò phải là Member hoặc ProjectManager');
+        }
+        item.isValid = item.errors.length === 0;
+      });
+
+      setImportedData(validatedData);
+      setShowImportModal(false);
+      setShowPreviewModal(true);
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
+
+  // Confirm import
+  const confirmImport = () => {
+    const validData = importedData.filter(item => item.isValid);
+    
+    const newMembers: Member[] = validData.map(item => ({
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      name: item.name,
+      email: item.emailPrefix + companyDomain,
+      phone: item.phone,
+      role: item.role as 'Member' | 'ProjectManager',
+      status: 'active',
+      joinDate: new Date().toISOString().split('T')[0],
+      lastActive: new Date().toISOString().split('T')[0],
+      projects: 0
+    }));
+
+    setMembers(prev => [...prev, ...newMembers]);
+    setImportedData([]);
+    setShowPreviewModal(false);
+  };
 
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -77,11 +193,12 @@ const MembersRolesPage = () => {
   });
 
   const handleAddMember = () => {
-    if (newMember.name && newMember.email) {
+    if (newMember.name && newMember.emailPrefix && newMember.phone) {
       const member: Member = {
         id: Date.now().toString(),
         name: newMember.name,
-        email: newMember.email,
+        email: newMember.emailPrefix + companyDomain,
+        phone: newMember.phone,
         role: newMember.role,
         status: 'active',
         joinDate: new Date().toISOString().split('T')[0],
@@ -89,7 +206,7 @@ const MembersRolesPage = () => {
         projects: 0
       };
       setMembers([...members, member]);
-      setNewMember({ name: '', email: '', role: 'Member' });
+      setNewMember({ name: '', emailPrefix: '', phone: '', role: 'Member' });
       setShowAddModal(false);
     }
   };
@@ -160,15 +277,6 @@ const MembersRolesPage = () => {
           <h1>Quản Lý Thành Viên & Vai Trò</h1>
           <p>Quản lý thành viên trong team và phân quyền vai trò</p>
         </div>
-        <button 
-          className="add-member-btn"
-          onClick={() => setShowAddModal(true)}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          Thêm Thành Viên
-        </button>
       </div>
 
       {/* Filters */}
@@ -243,14 +351,50 @@ const MembersRolesPage = () => {
       {/* Members Table */}
       <div className="members-table-container">
         <div className="table-header">
-          <h3>Danh Sách Thành Viên</h3>
-          <span className="member-count">{filteredMembers.length} thành viên</span>
+          <div className="header-left">
+            <h3>Danh Sách Thành Viên</h3>
+            <span className="member-count">{filteredMembers.length} thành viên</span>
+          </div>
+          <div className="header-actions">
+            <button 
+              className="download-template-btn"
+              onClick={downloadTemplate}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Tải Template
+            </button>
+            <button 
+              className="import-excel-btn"
+              onClick={() => setShowImportModal(true)}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M17 8L12 3L7 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 3V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Import Excel
+            </button>
+            <button 
+              className="add-member-btn"
+              onClick={() => setShowAddModal(true)}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Thêm Thành Viên
+            </button>
+          </div>
         </div>
         
         <div className="members-table">
           <div className="table-header-row">
             <div className="col-name">Tên</div>
             <div className="col-email">Email</div>
+            <div className="col-phone">Số điện thoại</div>
             <div className="col-role">Vai trò</div>
             <div className="col-status">Trạng thái</div>
             <div className="col-projects">Dự án</div>
@@ -273,6 +417,10 @@ const MembersRolesPage = () => {
               
               <div className="col-email">
                 <span className="email">{member.email}</span>
+              </div>
+              
+              <div className="col-phone">
+                <span className="phone">{member.phone}</span>
               </div>
               
               <div className="col-role">
@@ -341,11 +489,24 @@ const MembersRolesPage = () => {
               
               <div className="form-group">
                 <label>Email</label>
+                <div className="email-input-group">
+                  <input
+                    type="text"
+                    value={newMember.emailPrefix}
+                    onChange={(e) => setNewMember({...newMember, emailPrefix: e.target.value})}
+                    placeholder="Nhập phần trước @"
+                  />
+                  <span className="email-domain">{companyDomain}</span>
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label>Số điện thoại</label>
                 <input
-                  type="email"
-                  value={newMember.email}
-                  onChange={(e) => setNewMember({...newMember, email: e.target.value})}
-                  placeholder="Nhập email"
+                  type="tel"
+                  value={newMember.phone}
+                  onChange={(e) => setNewMember({...newMember, phone: e.target.value})}
+                  placeholder="Nhập số điện thoại"
                 />
               </div>
               
@@ -407,10 +568,22 @@ const MembersRolesPage = () => {
               
               <div className="form-group">
                 <label>Email</label>
+                <div className="email-input-group">
+                  <input
+                    type="text"
+                    value={selectedMember.email.split('@')[0]}
+                    onChange={(e) => setSelectedMember({...selectedMember, email: e.target.value + companyDomain})}
+                  />
+                  <span className="email-domain">{companyDomain}</span>
+                </div>
+              </div>
+              
+              <div className="form-group">
+                <label>Số điện thoại</label>
                 <input
-                  type="email"
-                  value={selectedMember.email}
-                  onChange={(e) => setSelectedMember({...selectedMember, email: e.target.value})}
+                  type="tel"
+                  value={selectedMember.phone}
+                  onChange={(e) => setSelectedMember({...selectedMember, phone: e.target.value})}
                 />
               </div>
               
@@ -449,6 +622,159 @@ const MembersRolesPage = () => {
                 onClick={() => handleUpdateMember(selectedMember)}
               >
                 Cập Nhật
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Excel Modal */}
+      {showImportModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Import Thành Viên từ Excel</h3>
+              <button 
+                className="close-btn"
+                onClick={() => setShowImportModal(false)}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="import-instructions">
+                <h4>Hướng dẫn import:</h4>
+                <ol>
+                  <li>Tải template Excel mẫu bằng nút "Tải Template"</li>
+                  <li>Điền thông tin thành viên vào file Excel</li>
+                  <li>Chọn file Excel đã điền để import</li>
+                </ol>
+              </div>
+              
+              <div className="file-upload-area">
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileImport}
+                  id="excel-file-input"
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="excel-file-input" className="file-upload-label">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                    <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 13H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 17H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span>Chọn file Excel để import</span>
+                  <small>Hỗ trợ file .xlsx, .xls</small>
+                </label>
+              </div>
+            </div>
+            
+            <div className="modal-footer">
+              <button 
+                className="cancel-btn"
+                onClick={() => setShowImportModal(false)}
+              >
+                Hủy
+              </button>
+              <button 
+                className="download-template-btn"
+                onClick={downloadTemplate}
+              >
+                Tải Template
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Import Modal */}
+      {showPreviewModal && (
+        <div className="modal-overlay">
+          <div className="modal preview-modal">
+            <div className="modal-header">
+              <h3>Xem trước dữ liệu import</h3>
+              <button 
+                className="close-btn"
+                onClick={() => setShowPreviewModal(false)}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="import-summary">
+                <div className="summary-item">
+                  <span className="label">Tổng số dòng:</span>
+                  <span className="value">{importedData.length}</span>
+                </div>
+                <div className="summary-item">
+                  <span className="label">Dữ liệu hợp lệ:</span>
+                  <span className="value valid">{importedData.filter(item => item.isValid).length}</span>
+                </div>
+                <div className="summary-item">
+                  <span className="label">Dữ liệu lỗi:</span>
+                  <span className="value error">{importedData.filter(item => !item.isValid).length}</span>
+                </div>
+              </div>
+              
+              <div className="preview-table">
+                <div className="preview-header">
+                  <div className="preview-col">Dòng</div>
+                  <div className="preview-col">Tên</div>
+                  <div className="preview-col">Email</div>
+                  <div className="preview-col">Số điện thoại</div>
+                  <div className="preview-col">Vai trò</div>
+                  <div className="preview-col">Trạng thái</div>
+                </div>
+                
+                {importedData.map((item, index) => (
+                  <div key={index} className={`preview-row ${item.isValid ? 'valid' : 'error'}`}>
+                    <div className="preview-col">{item.rowIndex}</div>
+                    <div className="preview-col">{item.name}</div>
+                    <div className="preview-col">{item.emailPrefix + companyDomain}</div>
+                    <div className="preview-col">{item.phone}</div>
+                    <div className="preview-col">{item.role}</div>
+                    <div className="preview-col">
+                      {item.isValid ? (
+                        <span className="status-valid">✓ Hợp lệ</span>
+                      ) : (
+                        <div className="status-error">
+                          <span>✗ Lỗi</span>
+                          <div className="error-details">
+                            {item.errors.map((error: string, i: number) => (
+                              <div key={i} className="error-item">{error}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="modal-footer">
+              <button 
+                className="cancel-btn"
+                onClick={() => setShowPreviewModal(false)}
+              >
+                Hủy
+              </button>
+              <button 
+                className="confirm-import-btn"
+                onClick={confirmImport}
+                disabled={importedData.filter(item => item.isValid).length === 0}
+              >
+                Import {importedData.filter(item => item.isValid).length} thành viên
               </button>
             </div>
           </div>
@@ -607,6 +933,12 @@ const MembersRolesPage = () => {
           border-bottom: 1px solid #F3F4F6;
         }
 
+        .header-left {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
         .table-header h3 {
           font-size: 18px;
           font-weight: 600;
@@ -619,13 +951,59 @@ const MembersRolesPage = () => {
           color: #787486;
         }
 
+        .header-actions {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+
+        .download-template-btn,
+        .import-excel-btn,
+        .add-member-btn {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 16px;
+          border: 2px solid #E5E7EB;
+          border-radius: 8px;
+          background: white;
+          color: #0D062D;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .download-template-btn:hover {
+          border-color: #10B981;
+          color: #10B981;
+          background: #F0FDF4;
+        }
+
+        .import-excel-btn:hover {
+          border-color: #3B82F6;
+          color: #3B82F6;
+          background: #EFF6FF;
+        }
+
+        .add-member-btn {
+          background: #FF5E13;
+          border-color: #FF5E13;
+          color: white;
+        }
+
+        .add-member-btn:hover {
+          background: #E04A0C;
+          border-color: #E04A0C;
+        }
+
         .members-table {
           overflow-x: auto;
         }
 
         .table-header-row {
           display: grid;
-          grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1fr;
+          grid-template-columns: 2fr 2fr 1.5fr 1fr 1fr 1fr 1fr;
           gap: 16px;
           padding: 16px 24px;
           background: #F9F4EE;
@@ -638,7 +1016,7 @@ const MembersRolesPage = () => {
 
         .table-row {
           display: grid;
-          grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1fr;
+          grid-template-columns: 2fr 2fr 1.5fr 1fr 1fr 1fr 1fr;
           gap: 16px;
           padding: 20px 24px;
           border-bottom: 1px solid #F3F4F6;
@@ -816,6 +1194,229 @@ const MembersRolesPage = () => {
         .form-group select:focus {
           outline: none;
           border-color: #FF5E13;
+        }
+
+        .email-input-group {
+          display: flex;
+          align-items: center;
+          border: 2px solid #E5E7EB;
+          border-radius: 8px;
+          overflow: hidden;
+          transition: border-color 0.3s ease;
+        }
+
+        .email-input-group:focus-within {
+          border-color: #FF5E13;
+        }
+
+        .email-input-group input {
+          flex: 1;
+          border: none;
+          padding: 12px;
+          font-size: 14px;
+          outline: none;
+        }
+
+        .email-domain {
+          padding: 12px;
+          background: #F9F4EE;
+          color: #787486;
+          font-size: 14px;
+          font-weight: 500;
+          border-left: 1px solid #E5E7EB;
+        }
+
+        .phone {
+          color: #0D062D;
+          font-size: 14px;
+        }
+
+        /* Import Modal Styles */
+        .import-instructions {
+          background: #F9F4EE;
+          padding: 16px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+        }
+
+        .import-instructions h4 {
+          margin: 0 0 12px 0;
+          font-size: 14px;
+          font-weight: 600;
+          color: #0D062D;
+        }
+
+        .import-instructions ol {
+          margin: 0;
+          padding-left: 20px;
+        }
+
+        .import-instructions li {
+          font-size: 14px;
+          color: #6B7280;
+          margin-bottom: 4px;
+        }
+
+        .file-upload-area {
+          border: 2px dashed #E5E7EB;
+          border-radius: 8px;
+          padding: 40px 20px;
+          text-align: center;
+          transition: border-color 0.3s ease;
+        }
+
+        .file-upload-area:hover {
+          border-color: #FF5E13;
+        }
+
+        .file-upload-label {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          color: #6B7280;
+        }
+
+        .file-upload-label svg {
+          color: #FF5E13;
+        }
+
+        .file-upload-label span {
+          font-size: 16px;
+          font-weight: 500;
+          color: #0D062D;
+        }
+
+        .file-upload-label small {
+          font-size: 12px;
+          color: #6B7280;
+        }
+
+        /* Preview Modal Styles */
+        .preview-modal {
+          max-width: 1000px;
+          width: 90%;
+        }
+
+        .import-summary {
+          display: flex;
+          gap: 24px;
+          margin-bottom: 20px;
+          padding: 16px;
+          background: #F9F4EE;
+          border-radius: 8px;
+        }
+
+        .summary-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .summary-item .label {
+          font-size: 12px;
+          color: #6B7280;
+          font-weight: 500;
+        }
+
+        .summary-item .value {
+          font-size: 18px;
+          font-weight: 700;
+          color: #0D062D;
+        }
+
+        .summary-item .value.valid {
+          color: #10B981;
+        }
+
+        .summary-item .value.error {
+          color: #EF4444;
+        }
+
+        .preview-table {
+          max-height: 400px;
+          overflow-y: auto;
+          border: 1px solid #E5E7EB;
+          border-radius: 8px;
+        }
+
+        .preview-header {
+          display: grid;
+          grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 1fr;
+          gap: 12px;
+          padding: 12px 16px;
+          background: #F9F4EE;
+          font-size: 12px;
+          font-weight: 600;
+          color: #6B7280;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          position: sticky;
+          top: 0;
+          z-index: 1;
+        }
+
+        .preview-row {
+          display: grid;
+          grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 1fr;
+          gap: 12px;
+          padding: 12px 16px;
+          border-bottom: 1px solid #F3F4F6;
+          font-size: 14px;
+        }
+
+        .preview-row.valid {
+          background: white;
+        }
+
+        .preview-row.error {
+          background: #FEF2F2;
+        }
+
+        .preview-col {
+          display: flex;
+          align-items: center;
+        }
+
+        .status-valid {
+          color: #10B981;
+          font-weight: 500;
+        }
+
+        .status-error {
+          color: #EF4444;
+          font-weight: 500;
+        }
+
+        .error-details {
+          margin-top: 4px;
+        }
+
+        .error-item {
+          font-size: 12px;
+          color: #DC2626;
+          margin-bottom: 2px;
+        }
+
+        .confirm-import-btn {
+          background: #10B981;
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .confirm-import-btn:hover:not(:disabled) {
+          background: #059669;
+        }
+
+        .confirm-import-btn:disabled {
+          background: #D1D5DB;
+          cursor: not-allowed;
         }
 
         .modal-footer {
