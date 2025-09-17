@@ -603,14 +603,40 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
               <p className="text-sm text-gray-600">Track and manage project progress</p>
           </div>
         </div>
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600 font-medium">Time Scale:</span>
-               <div className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-100 text-gray-600">
-                 Week View
-          </div>
-        </div>
-        </div>
+           <div className="flex items-center space-x-3">
+             <div className="flex items-center space-x-2">
+               <div className="flex gap-1">
+                 <button
+                   onClick={() => {
+                     if (contentRef.current) {
+                       const today = new Date();
+                       const todayIndex = timelineDates.findIndex(date => 
+                         date.getFullYear() === today.getFullYear() && 
+                         date.getMonth() === today.getMonth() && 
+                         date.getDate() === today.getDate()
+                       );
+                       
+                       if (todayIndex !== -1) {
+                         const dayWidth = 64;
+                         const containerWidth = contentRef.current.clientWidth;
+                         const todayPosition = todayIndex * dayWidth;
+                         const scrollPosition = Math.max(0, todayPosition - (containerWidth / 2));
+                         contentRef.current.scrollLeft = scrollPosition;
+                       }
+                     }
+                   }}
+                   className="px-3 py-1 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                 >
+                   Hôm nay
+                 </button>
+                 <button
+                   className="px-3 py-1 text-sm rounded-md bg-blue-500 text-white"
+                 >
+                   Tuần
+                 </button>
+               </div>
+         </div>
+         </div>
           </div>
         </div>
 
@@ -982,7 +1008,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                                 console.log(`🖱️ Epic Mouse Down: ${epic.id}, Position: ${epicPosition.left}%, Width: ${epicPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
                                 handleDragStart(e, epic.id, startDate, endDate, 'move');
                               }}
-                              title={`${epic.name || (epic as any).title}\n📅 ${epic.startDate} - ${epic.endDate}`}
+                              title={`${epic.name || (epic as any).title}\n📅 ${new Date(epic.startDate).toLocaleDateString('vi-VN')} - ${new Date(epic.endDate).toLocaleDateString('vi-VN')}`}
                             >
                               {/* Resize handles */}
                               <div 
@@ -1009,7 +1035,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                                   e.stopPropagation();
                                   handleOpenEditModal(epic, 'epic');
                                 }}
-                                title={`${(epic as any).startDate} - ${(epic as any).endDate}`}
+                                title={`${new Date((epic as any).startDate).toLocaleDateString('vi-VN')} - ${new Date((epic as any).endDate).toLocaleDateString('vi-VN')}`}
                               >
                                 <span className="text-xs text-white font-medium truncate">
                                   {epic.name || (epic as any).title}
@@ -1065,7 +1091,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                                       console.log(`🖱️ Task Mouse Down: ${task.id}, Position: ${taskPosition.left}%, Width: ${taskPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
                                       handleDragStart(e, task.id, startDate, endDate, 'move');
                                     }}
-                                    title={`${task.title}\n📅 ${task.startDate} - ${task.endDate}`}
+                                    title={`${task.title}\n📅 ${new Date(task.startDate).toLocaleDateString('vi-VN')} - ${new Date(task.endDate).toLocaleDateString('vi-VN')}`}
                                   >
                                     {/* Resize handles */}
                                     <div 
@@ -1092,7 +1118,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                                         e.stopPropagation();
                                         handleOpenEditModal(task, 'task', epic.name || (epic as any).title);
                                       }}
-                                      title={`${(task as any).startDate} - ${(task as any).endDate}`}
+                                      title={`${new Date((task as any).startDate).toLocaleDateString('vi-VN')} - ${new Date((task as any).endDate).toLocaleDateString('vi-VN')}`}
                                     >
                                       <span className="text-xs text-white font-medium truncate">
                                         {task.title}
