@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Project } from '@/types/project';
-import { CreateProjectModal } from '@/components/modals/CreateProjectModal';
+import { useProjectModal } from '@/contexts/ProjectModalContext';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -13,9 +13,10 @@ interface ProjectSectionProps {
 export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const { openCreateModal } = useProjectModal();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAllProjects, setShowAllProjects] = useState(false);
 
   // Mock data - replace with actual API call
   useEffect(() => {
@@ -61,6 +62,48 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
           { id: '6', name: 'Emma Davis', role: 'Developer', email: 'emma.davis@example.com', avatar: '/avatars/emma.png' }
         ],
         progress: 100
+      },
+      {
+        id: '4',
+        name: 'E-commerce Platform',
+        description: 'Online shopping platform with payment integration',
+        status: 'active' as const,
+        startDate: '2025-08-01',
+        endDate: '2026-02-28',
+        manager: 'Alice Johnson',
+        members: [
+          { id: '7', name: 'Alice Johnson', role: 'Product Manager', email: 'alice.johnson@example.com', avatar: '/avatars/alice.png' },
+          { id: '8', name: 'Bob Wilson', role: 'Full Stack Developer', email: 'bob.wilson@example.com', avatar: '/avatars/bob.png' }
+        ],
+        progress: 45
+      },
+      {
+        id: '5',
+        name: 'Data Analytics Dashboard',
+        description: 'Business intelligence and reporting dashboard',
+        status: 'planning' as const,
+        startDate: '2025-11-01',
+        endDate: '2026-01-31',
+        manager: 'David Lee',
+        members: [
+          { id: '9', name: 'David Lee', role: 'Data Analyst', email: 'david.lee@example.com', avatar: '/avatars/david.png' },
+          { id: '10', name: 'Lisa Chen', role: 'UI/UX Designer', email: 'lisa.chen@example.com', avatar: '/avatars/lisa.png' }
+        ],
+        progress: 15
+      },
+      {
+        id: '6',
+        name: 'Customer Support System',
+        description: 'AI-powered customer support and ticketing system',
+        status: 'on-hold' as const,
+        startDate: '2025-07-01',
+        endDate: '2025-12-31',
+        manager: 'Maria Garcia',
+        members: [
+          { id: '11', name: 'Maria Garcia', role: 'AI Engineer', email: 'maria.garcia@example.com', avatar: '/avatars/maria.png' },
+          { id: '12', name: 'James Taylor', role: 'Backend Developer', email: 'james.taylor@example.com', avatar: '/avatars/james.png' }
+        ],
+        progress: 30
       }
     ];
 
@@ -91,14 +134,16 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
     router.push('/projects');
   };
 
-  const handleCreateProject = () => {
-    setShowCreateModal(true);
+  const handleShowMoreProjects = () => {
+    setShowAllProjects(true);
   };
 
-  const handleProjectCreated = (newProject: Project) => {
-    setProjects(prev => [newProject, ...prev]);
-    // Auto navigate to the new project
-    router.push(`/projects/${newProject.id}`);
+  const handleShowLessProjects = () => {
+    setShowAllProjects(false);
+  };
+
+  const handleCreateProject = () => {
+    openCreateModal();
   };
 
   const isProjectActive = (projectId: string) => {
@@ -169,7 +214,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
             </div>
           ) : (
             <>
-              {projects.map((project) => (
+              {(showAllProjects ? projects : projects.slice(0, 3)).map((project) => (
                 <div
                   key={project.id}
                   className={`project-item ${isProjectActive(project.id) ? 'active' : ''}`}
@@ -195,6 +240,28 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
               ))}
               
               <div className="view-all-section">
+                {!showAllProjects && projects.length > 3 ? (
+                  <button 
+                    className="view-all-btn"
+                    onClick={handleShowMoreProjects}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>Xem thêm ({projects.length - 3} dự án)</span>
+                  </button>
+                ) : showAllProjects && projects.length > 3 ? (
+                  <button 
+                    className="view-all-btn"
+                    onClick={handleShowLessProjects}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M15 6L9 12L15 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <span>Ẩn bớt</span>
+                  </button>
+                ) : null}
+                
                 <button 
                   className="view-all-btn"
                   onClick={handleViewAllProjects}
@@ -210,12 +277,6 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
         </div>
       )}
 
-      {/* Create Project Modal */}
-      <CreateProjectModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onProjectCreated={handleProjectCreated}
-      />
 
       <style jsx>{`
         .project-section {

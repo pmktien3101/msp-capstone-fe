@@ -1,16 +1,15 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
+import { useProjectModal } from "@/contexts/ProjectModalContext";
 
-interface ProjectHeaderProps {
-  onCreateProject: () => void;
-}
+export function ProjectHeader() {
+  const { openCreateModal } = useProjectModal();
 
-export function ProjectHeader({ onCreateProject }: ProjectHeaderProps) {
   return (
     <div className="page-header">
       <div className="header-actions">
-        <Button onClick={onCreateProject} variant="default">
+        <Button onClick={openCreateModal} variant="default">
           ➕ Tạo Dự Án Mới
         </Button>
         <Button variant="secondary">
