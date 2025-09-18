@@ -38,7 +38,9 @@ const AdminFeatures = () => {
     name: '',
     description: '',
     groupId: '',
-    status: 'active'
+    status: 'active',
+    value: '',
+    unit: ''
   });
 
   // Sample data - trong thực tế sẽ lấy từ API
@@ -49,6 +51,8 @@ const AdminFeatures = () => {
       description: 'Cho phép tối đa 10 thành viên trong team',
       groupId: 'users',
       status: 'active',
+      value: '10',
+      unit: 'người dùng',
       createdAt: '2024-01-15',
       updatedAt: '2024-01-15'
     },
@@ -58,6 +62,8 @@ const AdminFeatures = () => {
       description: 'Cho phép tối đa 25 thành viên trong team',
       groupId: 'users',
       status: 'active',
+      value: '25',
+      unit: 'người dùng',
       createdAt: '2024-01-15',
       updatedAt: '2024-01-15'
     },
@@ -67,6 +73,8 @@ const AdminFeatures = () => {
       description: 'Dung lượng lưu trữ 5GB',
       groupId: 'storage',
       status: 'active',
+      value: '5',
+      unit: 'GB',
       createdAt: '2024-01-15',
       updatedAt: '2024-01-15'
     },
@@ -76,6 +84,8 @@ const AdminFeatures = () => {
       description: 'Hỗ trợ khách hàng qua email',
       groupId: 'support',
       status: 'active',
+      value: '',
+      unit: '',
       createdAt: '2024-01-15',
       updatedAt: '2024-01-15'
     },
@@ -85,6 +95,8 @@ const AdminFeatures = () => {
       description: 'Truy cập API để tích hợp với hệ thống khác',
       groupId: 'integrations',
       status: 'active',
+      value: '',
+      unit: '',
       createdAt: '2024-01-15',
       updatedAt: '2024-01-15'
     }
@@ -100,15 +112,30 @@ const AdminFeatures = () => {
 
   // Handler functions
   const handleInputChange = (field: string, value: string) => {
-    setNewFeature(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setNewFeature(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Khi thay đổi groupId, tự động set unit mặc định
+      if (field === 'groupId' && hasValue(value)) {
+        updated.unit = getDefaultUnit(value);
+      }
+      
+      return updated;
+    });
   };
 
   const handleAddFeature = () => {
     if (!newFeature.name || !newFeature.description || !newFeature.groupId) {
       alert('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    // Validate value cho các nhóm cần có value
+    if (hasValue(newFeature.groupId) && !newFeature.value) {
+      alert('Vui lòng nhập giá trị cho tính năng này');
       return;
     }
 
@@ -120,7 +147,7 @@ const AdminFeatures = () => {
     };
 
     setFeatures(prev => [...prev, feature]);
-    setNewFeature({ name: '', description: '', groupId: '', status: 'active' });
+    setNewFeature({ name: '', description: '', groupId: '', status: 'active', value: '', unit: '' });
     setShowAddFeatureModal(false);
   };
 
@@ -130,7 +157,9 @@ const AdminFeatures = () => {
       name: feature.name,
       description: feature.description,
       groupId: feature.groupId,
-      status: feature.status
+      status: feature.status,
+      value: feature.value || '',
+      unit: feature.unit || ''
     });
     setShowEditFeatureModal(true);
   };
@@ -141,13 +170,19 @@ const AdminFeatures = () => {
       return;
     }
 
+    // Validate value cho các nhóm cần có value
+    if (hasValue(newFeature.groupId) && !newFeature.value) {
+      alert('Vui lòng nhập giá trị cho tính năng này');
+      return;
+    }
+
     setFeatures(prev => prev.map(feature => 
       feature.id === selectedFeature?.id 
         ? { ...feature, ...newFeature, updatedAt: new Date().toISOString().split('T')[0] }
         : feature
     ));
 
-    setNewFeature({ name: '', description: '', groupId: '', status: 'active' });
+    setNewFeature({ name: '', description: '', groupId: '', status: 'active', value: '', unit: '' });
     setSelectedFeature(null);
     setShowEditFeatureModal(false);
   };
@@ -182,6 +217,21 @@ const AdminFeatures = () => {
 
   const getGroupInfo = (groupId: string) => {
     return featureGroups.find(group => group.id === groupId);
+  };
+
+  // Các nhóm cần có value
+  const groupsWithValue = ['users', 'storage'];
+  
+  const hasValue = (groupId: string) => {
+    return groupsWithValue.includes(groupId);
+  };
+
+  const getDefaultUnit = (groupId: string) => {
+    const unitMap: Record<string, string> = {
+      'users': 'người dùng',
+      'storage': 'GB'
+    };
+    return unitMap[groupId] || '';
   };
 
   return (
@@ -298,6 +348,11 @@ const AdminFeatures = () => {
               <div className="table-cell" data-label="Tên tính năng">
                 <div className="feature-name">
                   <span className="feature-text">{feature.name}</span>
+                  {feature.value && (
+                    <span className="feature-value">
+                      {feature.value} {feature.unit}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="table-cell" data-label="Mô tả">
@@ -394,6 +449,30 @@ const AdminFeatures = () => {
                   })}
                 </select>
               </div>
+              
+              {hasValue(newFeature.groupId) && (
+                <>
+                  <div className="form-group">
+                    <label>Giá trị *</label>
+                    <input
+                      type="number"
+                      value={newFeature.value}
+                      onChange={(e) => handleInputChange('value', e.target.value)}
+                      placeholder="Nhập giá trị"
+                      min="0"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Đơn vị</label>
+                    <input
+                      type="text"
+                      value={newFeature.unit}
+                      onChange={(e) => handleInputChange('unit', e.target.value)}
+                      placeholder="Nhập đơn vị"
+                    />
+                  </div>
+                </>
+              )}
               <div className="form-group">
                 <label>Trạng thái</label>
                 <select
@@ -470,6 +549,30 @@ const AdminFeatures = () => {
                   ))}
                 </select>
               </div>
+              
+              {hasValue(newFeature.groupId) && (
+                <>
+                  <div className="form-group">
+                    <label>Giá trị *</label>
+                    <input
+                      type="number"
+                      value={newFeature.value}
+                      onChange={(e) => handleInputChange('value', e.target.value)}
+                      placeholder="Nhập giá trị"
+                      min="0"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Đơn vị</label>
+                    <input
+                      type="text"
+                      value={newFeature.unit}
+                      onChange={(e) => handleInputChange('unit', e.target.value)}
+                      placeholder="Nhập đơn vị"
+                    />
+                  </div>
+                </>
+              )}
               <div className="form-group">
                 <label>Trạng thái</label>
                 <select
@@ -523,6 +626,12 @@ const AdminFeatures = () => {
                   <label>Mô tả:</label>
                   <span>{selectedFeature.description}</span>
                 </div>
+                {selectedFeature.value && (
+                  <div className="detail-item">
+                    <label>Giá trị:</label>
+                    <span>{selectedFeature.value} {selectedFeature.unit}</span>
+                  </div>
+                )}
                 <div className="detail-item">
                   <label>Nhóm:</label>
                   <div className="group-badge">
@@ -923,6 +1032,20 @@ const AdminFeatures = () => {
 
         .feature-name {
           font-weight: 600;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .feature-value {
+          font-size: 12px;
+          color: #FF5E13;
+          font-weight: 500;
+          background: #FFF5F0;
+          padding: 2px 6px;
+          border-radius: 4px;
+          display: inline-block;
+          width: fit-content;
         }
 
         .feature-description {
@@ -1025,9 +1148,15 @@ const AdminFeatures = () => {
           background: white;
           border-radius: 12px;
           width: 90%;
-          max-width: 500px;
+          max-width: 600px;
           max-height: 90vh;
           overflow-y: auto;
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* Internet Explorer 10+ */
+        }
+
+        .modal::-webkit-scrollbar {
+          display: none; /* WebKit */
         }
 
         .modal-header {
