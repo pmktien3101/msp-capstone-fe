@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { ProjectTabs } from '@/components/projects/ProjectTabs';
+import { TaskDetailModal } from '@/components/projects/TaskDetailModal';
 import { Project } from '@/types/project';
-import { mockTasks } from '@/constants/mockData';
+import { Task } from '@/types/milestone';
+import { Member } from '@/types/member';
 import '@/app/styles/project-detail.scss';
 
 const ProjectDetailPage = () => {
@@ -12,7 +14,52 @@ const ProjectDetailPage = () => {
   const projectId = params.projectId as string;
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [taskProgress, setTaskProgress] = useState(0);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+
+  // Mock current user - replace with actual auth
+  const currentUser: Member = {
+    id: '1',
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    role: 'Project Manager',
+    avatar: '/avatars/john.svg'
+  };
+
+  // Handlers
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsTaskModalOpen(true);
+  };
+
+  const handleCloseTaskModal = () => {
+    setIsTaskModalOpen(false);
+    setSelectedTask(null);
+  };
+
+  const handleAddComment = (taskId: string, content: string) => {
+    // Mock comment addition - replace with actual API call
+    console.log('Adding comment to task:', taskId, 'Content:', content);
+    // In real implementation, this would call an API to add the comment
+  };
+
+  const handleEditComment = (commentId: string, content: string) => {
+    // Mock comment edit - replace with actual API call
+    console.log('Editing comment:', commentId, 'New content:', content);
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    // Mock comment deletion - replace with actual API call
+    console.log('Deleting comment:', commentId);
+  };
+
+  const handleCreateTask = () => {
+    // Mock task creation - replace with actual API call
+    console.log('Creating new task for project:', projectId);
+    // In real implementation, this would open a create task modal or navigate to create task page
+    alert('Tính năng tạo task sẽ được triển khai!');
+  };
+
 
   // Mock data - replace with actual API call
   useEffect(() => {
@@ -26,8 +73,8 @@ const ProjectDetailPage = () => {
         endDate: '2025-12-31',
         manager: 'John Doe',
         members: [
-          { id: '1', name: 'John Doe', role: 'Project Manager', email: 'john.doe@example.com', avatar: '/avatars/john.png' },
-          { id: '2', name: 'Jane Smith', role: 'Developer', email: 'jane.smith@example.com', avatar: '/avatars/jane.png' }
+          { id: '1', name: 'John Doe', role: 'Project Manager', email: 'john.doe@example.com', avatar: '/avatars/john.svg' },
+          { id: '2', name: 'Jane Smith', role: 'Developer', email: 'jane.smith@example.com', avatar: '/avatars/jane.svg' }
         ],
         progress: 75
       },
@@ -64,12 +111,6 @@ const ProjectDetailPage = () => {
     const foundProject = mockProjects.find(p => p.id === projectId);
     setProject(foundProject || null);
     
-    // Calculate progress based on task completion
-    const completedTasks = mockTasks.filter(task => task.status === 'done').length;
-    const totalTasks = mockTasks.length;
-    const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    setTaskProgress(progressPercentage);
-    
     setLoading(false);
   }, [projectId]);
 
@@ -104,15 +145,6 @@ const ProjectDetailPage = () => {
               {project.status === 'on-hold' && 'Tạm dừng'}
               {project.status === 'completed' && 'Hoàn thành'}
             </span>
-            <div className="progress-section">
-              <span className="progress-text">Tiến độ: {taskProgress}%</span>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill" 
-                  style={{ width: `${taskProgress}%` }}
-                ></div>
-              </div>
-            </div>
           </div>
         </div>
         <div className="project-actions">
@@ -121,7 +153,21 @@ const ProjectDetailPage = () => {
         </div>
       </div>
 
-      <ProjectTabs project={project} />
+      <ProjectTabs project={project} onTaskClick={handleTaskClick} onCreateTask={handleCreateTask} />
+      
+      {/* Task Detail Modal */}
+      {selectedTask && project && (
+        <TaskDetailModal
+          isOpen={isTaskModalOpen}
+          onClose={handleCloseTaskModal}
+          task={selectedTask}
+          projectMembers={project.members}
+          currentUser={currentUser}
+          onAddComment={handleAddComment}
+          onEditComment={handleEditComment}
+          onDeleteComment={handleDeleteComment}
+        />
+      )}
     </div>
   );
 };

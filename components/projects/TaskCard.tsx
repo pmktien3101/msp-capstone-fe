@@ -1,23 +1,16 @@
 'use client';
 
-interface Task {
-  id: string;
-  title: string;
-  epic: string;
-  status: string;
-  assignee: string | null;
-  dueDate: string;
-  priority: string;
-}
+import { Task } from '@/types/milestone';
 
 interface TaskCardProps {
   task: Task;
   onMove: (newStatus: string) => void;
   onDragStart?: (e: React.DragEvent) => void;
+  onTaskClick?: (task: Task) => void;
   isDragging?: boolean;
 }
 
-export const TaskCard = ({ task, onMove, onDragStart, isDragging }: TaskCardProps) => {
+export const TaskCard = ({ task, onMove, onDragStart, onTaskClick, isDragging }: TaskCardProps) => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -44,11 +37,20 @@ export const TaskCard = ({ task, onMove, onDragStart, isDragging }: TaskCardProp
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't open modal if clicking on interactive elements
+    if ((e.target as HTMLElement).closest('.task-menu-btn, .link-btn, input[type="checkbox"]')) {
+      return;
+    }
+    onTaskClick?.(task);
+  };
+
   return (
     <div 
       className={`task-card ${isDragging ? 'dragging' : ''}`} 
       draggable 
       onDragStart={onDragStart}
+      onClick={handleCardClick}
     >
       <div className="task-header">
         <h4 className="task-title">{task.title}</h4>
@@ -115,7 +117,7 @@ export const TaskCard = ({ task, onMove, onDragStart, isDragging }: TaskCardProp
           border-radius: 8px;
           padding: 16px;
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          cursor: grab;
+          cursor: pointer;
           transition: all 0.2s ease;
           position: relative;
         }

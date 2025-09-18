@@ -2,6 +2,10 @@
 
 import { useState } from 'react';
 import { Project } from '@/types/project';
+import { Member } from '@/types/member';
+import { AddMemberModal } from './modals/AddMemberModal';
+import { EditMemberModal } from './modals/EditMemberModal';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 
 interface ProjectSettingsProps {
   project: Project;
@@ -28,6 +32,10 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
     }
   });
 
+  const [members, setMembers] = useState<Member[]>(project.members);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
+
   const handleInputChange = (field: string, value: any) => {
     setSettings(prev => ({
       ...prev,
@@ -48,6 +56,29 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
   const handleSave = () => {
     // TODO: Implement save functionality
     console.log('Saving settings:', settings);
+    console.log('Saving members:', members);
+  };
+
+  const handleAddMember = (member: Member) => {
+    setMembers(prev => [...prev, member]);
+    setShowAddMemberModal(false);
+  };
+
+  const handleEditMember = (member: Member) => {
+    setEditingMember(member);
+  };
+
+  const handleUpdateMember = (updatedMember: Member) => {
+    setMembers(prev => prev.map(m => 
+      m.id === updatedMember.id ? updatedMember : m
+    ));
+    setEditingMember(null);
+  };
+
+  const handleDeleteMember = (memberId: string) => {
+    if (confirm('Bạn có chắc chắn muốn xóa thành viên này?')) {
+      setMembers(prev => prev.filter(m => m.id !== memberId));
+    }
   };
 
   return (
@@ -203,25 +234,75 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         </div>
 
         <div className="settings-section">
-          <h4>Thành viên dự án</h4>
-          <div className="members-list">
-            {project.members.map((member) => (
-              <div key={member.id} className="member-item">
-                <div className="member-avatar">
-                  {member.name.charAt(0)}
-                </div>
-                <div className="member-info">
-                  <div className="member-name">{member.name}</div>
-                  <div className="member-role">{member.role}</div>
-                </div>
-                <div className="member-actions">
-                  <button className="btn btn-sm btn-secondary">Chỉnh sửa</button>
-                  <button className="btn btn-sm btn-danger">Xóa</button>
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h4>Thành viên dự án ({members.length})</h4>
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowAddMemberModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <Plus size={16} />
+              Thêm thành viên
+            </button>
           </div>
-          <button className="btn btn-primary">Thêm thành viên</button>
+          <div className="members-list">
+            {members.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: '#6b7280',
+                  fontStyle: 'italic'
+                }}
+              >
+                <p style={{ margin: 0 }}>Chưa có thành viên nào</p>
+                <p style={{ margin: '8px 0 0 0' }}>Hãy thêm thành viên đầu tiên!</p>
+              </div>
+            ) : (
+              members.map((member) => (
+                <div key={member.id} className="member-item">
+                  <div className="member-avatar">
+                    {member.avatar}
+                  </div>
+                  <div className="member-info">
+                    <div className="member-name">{member.name}</div>
+                    <div className="member-role">{member.role}</div>
+                    <div className="member-email">{member.email}</div>
+                  </div>
+                  <div className="member-actions">
+                    <button 
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => handleEditMember(member)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Edit size={12} />
+                      Sửa
+                    </button>
+                    <button 
+                      className="btn btn-sm btn-danger"
+                      onClick={() => handleDeleteMember(member.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Trash2 size={12} />
+                      Xóa
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         <div className="settings-actions">
@@ -229,6 +310,22 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
           <button className="btn btn-primary" onClick={handleSave}>Lưu thay đổi</button>
         </div>
       </div>
+
+      {/* Add Member Modal */}
+      <AddMemberModal
+        isOpen={showAddMemberModal}
+        onClose={() => setShowAddMemberModal(false)}
+        onAddMember={handleAddMember}
+        existingMembers={members}
+      />
+
+      {/* Edit Member Modal */}
+      <EditMemberModal
+        isOpen={!!editingMember}
+        onClose={() => setEditingMember(null)}
+        onUpdateMember={handleUpdateMember}
+        member={editingMember}
+      />
 
       <style jsx>{`
         .project-settings {
@@ -372,6 +469,12 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         .member-role {
           font-size: 12px;
           color: #6b7280;
+        }
+
+        .member-email {
+          font-size: 11px;
+          color: #9ca3af;
+          margin-top: 2px;
         }
 
         .member-actions {

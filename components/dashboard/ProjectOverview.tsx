@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Project } from '@/types/project';
+import { mockTasks, additionalMockTasks } from '@/constants/mockData';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -61,25 +62,46 @@ export default function ProjectOverview({
     };
   }, []);
 
-  // Mock data - trong thực tế sẽ lấy từ API
-  const stats = selectedProject ? {
-    // Stats cho project cụ thể
-    totalTasks: 24,
-    completedTasks: 18,
-    totalMilestones: 5,
-    completedMilestones: 3,
-    completedMeetings: 8,
-    upcomingMeetings: 3
-  } : {
-    // Stats tổng hợp cho tất cả projects
-    totalTasks: 67,
-    completedTasks: 45,
-    totalMilestones: 12,
-    completedMilestones: 8,
-    completedMeetings: 23,
-    upcomingMeetings: 7
+  // Calculate real stats based on tasks
+  const calculateStats = () => {
+    if (selectedProject) {
+      // Stats cho project cụ thể
+      const projectTaskMapping: { [key: string]: string[] } = {
+        '1': ['MWA-1', 'MWA-2', 'MWA-3', 'MWA-4', 'MWA-5'],
+        '2': ['MKT-1', 'MKT-2', 'MKT-3'],
+        '3': ['MOB-1', 'MOB-2', 'MOB-3', 'MOB-4'],
+        '4': ['E-1', 'E-2', 'E-3'],
+        '5': ['DA-1', 'DA-2'],
+        '6': ['CS-1', 'CS-2', 'CS-3']
+      };
+
+      const taskIds = projectTaskMapping[selectedProject.id] || [];
+      const allTasks = [...mockTasks, ...additionalMockTasks];
+      const tasks = allTasks.filter(task => taskIds.includes(task.id));
+      
+      return {
+        totalTasks: tasks.length,
+        completedTasks: tasks.filter(task => task.status === 'done' || task.status === 'completed').length,
+        totalMilestones: 5,
+        completedMilestones: 3,
+        completedMeetings: 8,
+        upcomingMeetings: 3
+      };
+    } else {
+      // Stats tổng hợp cho tất cả projects
+      const allTasks = [...mockTasks, ...additionalMockTasks];
+      return {
+        totalTasks: allTasks.length,
+        completedTasks: allTasks.filter(task => task.status === 'done' || task.status === 'completed').length,
+        totalMilestones: 12,
+        completedMilestones: 8,
+        completedMeetings: 23,
+        upcomingMeetings: 7
+      };
+    }
   };
 
+  const stats = calculateStats();
   const progressPercentage = Math.round((stats.completedTasks / stats.totalTasks) * 100);
 
   // Generate project chart data based on time filter (yearly/monthly view)

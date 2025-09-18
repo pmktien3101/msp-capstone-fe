@@ -1,14 +1,39 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
 import { PMDashboardHeader } from '@/components/dashboard/PMDashboardHeader';
 import { PMProjectsOverview } from '@/components/dashboard/PMProjectsOverview';
+import { mockTasks, additionalMockTasks } from '@/constants/mockData';
 import '@/app/styles/dashboard.scss';
 
 export default function DashboardPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  // Calculate progress based on tasks for each project
+  const calculateProjectProgress = (projectId: string) => {
+    // Map projectId to tasks - in real app this would come from API
+    const projectTaskMapping: { [key: string]: string[] } = {
+      '1': ['MWA-1', 'MWA-2', 'MWA-3', 'MWA-4', 'MWA-5'], // Project Management System
+      '2': ['MKT-1', 'MKT-2', 'MKT-3'], // Marketing Campaign
+      '3': ['MOB-1', 'MOB-2', 'MOB-3', 'MOB-4'], // Mobile App Development
+      '4': ['E-1', 'E-2', 'E-3'], // E-commerce Platform
+      '5': ['DA-1', 'DA-2'], // Data Analytics Dashboard
+      '6': ['CS-1', 'CS-2', 'CS-3'], // Customer Support System
+      '7': [], // HR Management System - no tasks yet
+      '8': [] // Inventory Management - no tasks yet
+    };
+
+    const taskIds = projectTaskMapping[projectId] || [];
+    const allTasks = [...mockTasks, ...additionalMockTasks];
+    const tasks = allTasks.filter(task => taskIds.includes(task.id));
+    const completedTasks = tasks.filter(task => task.status === 'done' || task.status === 'completed').length;
+    const totalTasks = tasks.length;
+    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  };
 
   // Mock data - trong thực tế sẽ lấy từ API
-  const projects: Project[] = [
+  const mockProjects: Project[] = [
     {
       id: '1',
       name: 'Project Management System',
@@ -126,6 +151,15 @@ export default function DashboardPage() {
     }
   ];
 
+  // Update projects with calculated progress
+  useEffect(() => {
+    const updatedProjects = mockProjects.map(project => ({
+      ...project,
+      progress: calculateProjectProgress(project.id)
+    }));
+    
+    setProjects(updatedProjects);
+  }, []);
 
   // Calculate statistics
   const averageProgress = projects.length > 0 

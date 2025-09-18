@@ -5,16 +5,23 @@ import { Project } from '@/types/project';
 import { TaskCard } from './TaskCard';
 import { AddColumnModal } from './AddColumnModal';
 import { ColumnMenu } from './ColumnMenu';
+import { CreateTaskModal } from './modals/CreateTaskModal';
 import { mockTasks } from '@/constants/mockData';
+import { Task } from '@/types/milestone';
+import { Member } from '@/types/member';
 
 interface BoardColumnsProps {
   project: Project;
   searchQuery: string;
   groupBy: string;
+  onTaskClick?: (task: any) => void;
+  onCreateTask?: () => void;
 }
 
-export const BoardColumns = ({ project, searchQuery, groupBy }: BoardColumnsProps) => {
+export const BoardColumns = ({ project, searchQuery, groupBy, onTaskClick, onCreateTask }: BoardColumnsProps) => {
   const [tasks, setTasks] = useState(mockTasks);
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
+  const [createTaskColumn, setCreateTaskColumn] = useState<string>('');
 
   const [columns, setColumns] = useState([
     {
@@ -91,6 +98,35 @@ export const BoardColumns = ({ project, searchQuery, groupBy }: BoardColumnsProp
     };
     setColumns(prev => [...prev, newColumn]);
     setShowAddColumnModal(false);
+  };
+
+  const handleCreateTaskClick = (columnId: string) => {
+    setCreateTaskColumn(columnId);
+    setShowCreateTaskModal(true);
+  };
+
+  const handleCreateTask = (taskData: any) => {
+    const newTask: Task = {
+      id: `task-${Date.now()}`,
+      name: taskData.title,
+      title: taskData.title,
+      description: taskData.description,
+      status: taskData.status,
+      priority: taskData.priority,
+      dueDate: taskData.endDate || new Date().toISOString().split('T')[0], // Use endDate as dueDate for compatibility
+      assignedTo: taskData.assigneeId ? project.members.find(m => m.id === taskData.assigneeId) || null : null,
+      assignee: taskData.assigneeId ? project.members.find(m => m.id === taskData.assigneeId)?.name || '' : '',
+      milestoneId: 'milestone-1', // Default milestone
+      comments: [],
+      createdDate: new Date().toISOString().split('T')[0],
+      updatedDate: new Date().toISOString().split('T')[0],
+      tags: taskData.tags || [],
+      epic: ''
+    };
+
+    setTasks(prev => [...prev, newTask]);
+    setShowCreateTaskModal(false);
+    setCreateTaskColumn('');
   };
 
   const handleDeleteColumn = (columnId: string) => {
@@ -202,11 +238,15 @@ export const BoardColumns = ({ project, searchQuery, groupBy }: BoardColumnsProp
                     task={task}
                     onMove={(newStatus) => handleTaskMove(task.id, newStatus)}
                     onDragStart={(e) => handleDragStart(e, task.id)}
+                    onTaskClick={onTaskClick}
                     isDragging={draggedTask === task.id}
                   />
                 ))}
                 
-                <button className="create-task-btn">
+                <button 
+                  className="create-task-btn"
+                  onClick={() => handleCreateTaskClick(column.id)}
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -234,6 +274,16 @@ export const BoardColumns = ({ project, searchQuery, groupBy }: BoardColumnsProp
         <AddColumnModal
           onClose={() => setShowAddColumnModal(false)}
           onAdd={handleAddColumn}
+        />
+      )}
+
+      {showCreateTaskModal && (
+        <CreateTaskModal
+          isOpen={showCreateTaskModal}
+          onClose={() => setShowCreateTaskModal(false)}
+          onCreateTask={handleCreateTask}
+          projectMembers={project.members}
+          defaultStatus={createTaskColumn}
         />
       )}
 

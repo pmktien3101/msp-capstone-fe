@@ -8,9 +8,11 @@ import { mockProject } from '@/constants/mockData';
 
 interface ProjectBoardProps {
   project: Project;
+  onTaskClick?: (task: any) => void;
+  onCreateTask?: () => void;
 }
 
-export const ProjectBoard = ({ project }: ProjectBoardProps) => {
+export const ProjectBoard = ({ project, onTaskClick, onCreateTask }: ProjectBoardProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [groupBy, setGroupBy] = useState('status');
 
@@ -26,6 +28,8 @@ export const ProjectBoard = ({ project }: ProjectBoardProps) => {
         project={mockProject}
         searchQuery={searchQuery}
         groupBy={groupBy}
+        onTaskClick={onTaskClick}
+        onCreateTask={onCreateTask}
       />
       
       <style jsx>{`

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Project } from '@/types/project';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
+import { mockTasks, additionalMockTasks } from '@/constants/mockData';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -18,6 +19,26 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
   const [loading, setLoading] = useState(true);
   const [showAllProjects, setShowAllProjects] = useState(false);
 
+  // Calculate progress based on tasks for each project
+  const calculateProjectProgress = (projectId: string) => {
+    // Map projectId to tasks - in real app this would come from API
+    const projectTaskMapping: { [key: string]: string[] } = {
+      '1': ['MWA-1', 'MWA-2', 'MWA-3', 'MWA-4', 'MWA-5'], // Project Management System
+      '2': ['MKT-1', 'MKT-2', 'MKT-3'], // Marketing Campaign
+      '3': ['MOB-1', 'MOB-2', 'MOB-3', 'MOB-4'], // Mobile App Development
+      '4': ['E-1', 'E-2', 'E-3'], // E-commerce Platform
+      '5': ['DA-1', 'DA-2'], // Data Analytics Dashboard
+      '6': ['CS-1', 'CS-2', 'CS-3'] // Customer Support System
+    };
+
+    const taskIds = projectTaskMapping[projectId] || [];
+    const allTasks = [...mockTasks, ...additionalMockTasks];
+    const tasks = allTasks.filter(task => taskIds.includes(task.id));
+    const completedTasks = tasks.filter(task => task.status === 'done' || task.status === 'completed').length;
+    const totalTasks = tasks.length;
+    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  };
+
   // Mock data - replace with actual API call
   useEffect(() => {
     const mockProjects: Project[] = [
@@ -30,8 +51,8 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
         endDate: '2025-12-31',
         manager: 'John Doe',
         members: [
-          { id: '1', name: 'John Doe', role: 'Project Manager', email: 'john.doe@example.com', avatar: '/avatars/john.png' },
-          { id: '2', name: 'Jane Smith', role: 'Developer', email: 'jane.smith@example.com', avatar: '/avatars/jane.png' }
+          { id: '1', name: 'John Doe', role: 'Project Manager', email: 'john.doe@example.com', avatar: '/avatars/john.svg' },
+          { id: '2', name: 'Jane Smith', role: 'Developer', email: 'jane.smith@example.com', avatar: '/avatars/jane.svg' }
         ],
         progress: 75
       },
@@ -107,7 +128,13 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
       }
     ];
 
-    setProjects(mockProjects);
+    // Update projects with calculated progress
+    const updatedProjects = mockProjects.map(project => ({
+      ...project,
+      progress: calculateProjectProgress(project.id)
+    }));
+    
+    setProjects(updatedProjects);
     setLoading(false);
   }, []);
 

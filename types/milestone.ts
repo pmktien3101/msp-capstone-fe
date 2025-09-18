@@ -1,4 +1,5 @@
 import { Member } from './member'
+import { Comment } from './comment'
 
 export interface MilestoneFormData {
   name: string;
@@ -27,10 +28,11 @@ export interface Milestone {
 }
 
 export interface Task {
-  id: number;
+  id: number | string;
   name: string;
+  title?: string; // For compatibility with existing code
   description: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'blocked';
+  status: 'pending' | 'in-progress' | 'completed' | 'blocked' | 'todo' | 'done' | 'review';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   dueDate: string;
   assignedTo: {
@@ -40,5 +42,11 @@ export interface Task {
     role: string;
     avatar: string;
   } | null;
-  milestoneId: number;
+  assignee?: string; // For compatibility with existing code
+  milestoneId: number | string;
+  comments?: Comment[];
+  createdDate?: string;
+  updatedDate?: string;
+  tags?: string[];
+  epic?: string;
 }
