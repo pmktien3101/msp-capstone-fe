@@ -1,22 +1,16 @@
-import React, { ReactNode } from 'react'
-import MainLayout from '@/components/layout/MainLayout'
-import AuthGuard from '@/components/auth/AuthGuard'
-import { ProjectModalProvider } from '@/contexts/ProjectModalContext'
-import { GlobalModals } from '@/components/layout/GlobalModals'
+import React, { ReactNode } from "react";
+import MainLayout from "@/components/layout/MainLayout";
+import AuthGuard from "@/components/auth/AuthGuard";
+import { StreamVideoProvider } from "@/providers/StreamVideoProvider";
 
-const RootLayout = ({children}: {children:ReactNode}) => {
+const RootLayout = ({ children }: { children: ReactNode }) => {
   return (
     <AuthGuard>
-      <ProjectModalProvider>
-        <MainLayout>
-          {/* <StreamVideoProvider> */}
-            {children}
-          {/* </StreamVideoProvider> */}
-          <GlobalModals />
-        </MainLayout>
-      </ProjectModalProvider>
+      <MainLayout>
+        <StreamVideoProvider>{children}</StreamVideoProvider>
+      </MainLayout>
     </AuthGuard>
-  )
-}
+  );
+};
 
-export default RootLayout
+export default RootLayout;

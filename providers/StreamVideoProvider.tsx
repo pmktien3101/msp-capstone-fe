@@ -1,55 +1,72 @@
-// 'use client';
-// import { useUser } from "@/hooks/useUser";
-// import { streamService } from "@/services/streamService";
+"use client";
 
-// import {
-//     StreamVideo,
-//   StreamVideoClient,
-// } from "@stream-io/video-react-sdk";
-// import { LoaderIcon } from "lucide-react";
-// import { useCallback, useEffect, useState } from "react";
+import { StreamVideo, StreamVideoClient } from "@stream-io/video-react-sdk";
+import { Loader } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useUser } from "@/hooks/useUser";
+import { tokenService } from "@/services/streamService";
 
-// const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY || "";
-// const StreamVideoProvider = ({children}:{children: React.ReactNode}) => {
-//     const [videoClient, setVideoClient] = useState<StreamVideoClient>();
-//     const { userId, email } = useUser();
+const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY || "";
 
-//     const tokenProvider = useCallback(async () => {
-//         if (!userId) throw new Error("User ID is required");
-//         return streamService.getToken({
-//             id: userId,
-//             role: "user",
-//             name: email || userId,
-//             image: null
-//         });
-//     }, [userId, email]);
+export const StreamVideoProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const [videoClient, setVideoClient] = useState<StreamVideoClient>();
+  const [error, setError] = useState<string | null>(null);
+  const { userId, email, image } = useUser();
+  
+  useEffect(() => {
+    if (!apiKey) {
+      console.warn("Stream API key not provided. Video features will be disabled.");
+      setError("Stream API key not configured");
+      return;
+    }
+    if (!userId || !email) return;
 
-//     useEffect(() => {
-//         if (!userId) return;
-//         if(!apiKey) throw new Error("Stream API key missing");
+    let client: StreamVideoClient | undefined;
+    
+    try {
+      client = new StreamVideoClient({
+        apiKey,
+        user: {
+          id: userId,
+          name: email,
+          image: image,
+        },
+        tokenProvider: async () => {
+          return await tokenService.getStreamToken({
+            id: userId,
+            name: email,
+            image: image,
+          });
+        },
+      });
+      console.log("Stream Video Client initialized:", client);
+      setVideoClient(client);
+    } catch (err) {
+      console.error("Failed to initialize Stream Video Client:", err);
+      setError("Failed to initialize video client");
+    }
 
-//         const client = new StreamVideoClient({
-//             apiKey,
-//             user: {
-//                 id: userId,
-//                 name: email || userId,
-//                 image: undefined,
-//             },
-//             tokenProvider,
-//         });
+    return () => {
+      if (client) {
+        client.disconnectUser();
+      }
+      setVideoClient(undefined);
+    };
+  }, [userId, email, image]);
 
-//         setVideoClient(client);
-//     }, [userId]);
+  // If there's an error (like missing API key), render children without StreamVideo wrapper
+  if (error) {
+    console.warn("StreamVideoProvider error:", error);
+    return <>{children}</>;
+  }
 
-//     if (!videoClient) {
-//         return <LoaderIcon/>
-//     }
-
-//     return (
-//         <StreamVideo client={videoClient}>
-//             {children}
-//         </StreamVideo>
-//     );
-// };
-
-// export default StreamVideoProvider;
+  if (!userId || !email || !videoClient) {
+    return <Loader />;
+  }
+  
+  return <StreamVideo client={videoClient}>{children}</StreamVideo>;
+};

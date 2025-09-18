@@ -51,9 +51,9 @@ export const RecentActivity = () => {
       description: activity.description,
       user: activity.user,
       timestamp: getTimeAgo(activity.timestamp),
-      status: activity.status || 'todo',
-      statusColor: getStatusColor(activity.status || 'todo'),
-      statusLabel: getStatusLabel(activity.status || 'todo'),
+      status: (activity as any).status || 'todo',
+      statusColor: getStatusColor((activity as any).status || 'todo'),
+      statusLabel: getStatusLabel((activity as any).status || 'todo'),
       taskId: activity.taskId
     };
   });
