@@ -7,17 +7,10 @@ import { CreateMeetingModal } from "./modals/CreateMeetingModal";
 import "@/app/styles/meeting-tab.scss";
 import { useGetCall } from "@/hooks/useGetCallList";
 import { Call } from "@stream-io/video-react-sdk";
-import { Loader, MoreHorizontal } from "lucide-react";
 import { tokenService } from "@/services/streamService";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 import { toast } from "react-toastify";
+import { Eye, LogIn, Pencil, Trash } from "lucide-react";
 
 interface MeetingTabProps {
   project: Project;
@@ -29,11 +22,39 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const { upcomingCalls, endedCalls, isLoadingCall, refetchCalls } =
     useGetCall();
-  const [viewType, setViewType] = useState<"upcoming" | "ended">("upcoming");
+  const [viewType, setViewType] = useState<"all" | "upcoming" | "ended">("all");
 
+  // Lọc meetings theo projectId
+  const allMeetings = useMemo(() => {
+    return [...upcomingCalls, ...endedCalls].filter(
+      (meeting: any) =>
+        meeting.state?.custom?.projectId === project.id ||
+        meeting.projectId === project.id
+    );
+  }, [upcomingCalls, endedCalls, project.id]);
+
+  const upcomingProjectMeetings = useMemo(() => {
+    return upcomingCalls.filter(
+      (meeting: any) =>
+        meeting.state?.custom?.projectId === project.id ||
+        meeting.projectId === project.id
+    );
+  }, [upcomingCalls, project.id]);
+
+  const endedProjectMeetings = useMemo(() => {
+    return endedCalls.filter(
+      (meeting: any) =>
+        meeting.state?.custom?.projectId === project.id ||
+        meeting.projectId === project.id
+    );
+  }, [endedCalls, project.id]);
+
+  // Meetings hiển thị theo tab
   const meetings = useMemo(() => {
-    return viewType === "ended" ? endedCalls : upcomingCalls;
-  }, [viewType, upcomingCalls, endedCalls]);
+    if (viewType === "all") return allMeetings;
+    if (viewType === "upcoming") return upcomingProjectMeetings;
+    return endedProjectMeetings;
+  }, [viewType, allMeetings, upcomingProjectMeetings, endedProjectMeetings]);
 
   const getStatusInfo = (call: Call) => {
     const now = new Date();
@@ -43,10 +64,10 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
     const endedAt = call.state?.endedAt ? new Date(call.state.endedAt) : null;
 
     if (startsAt && startsAt > now) {
-      return { label: "Lên lịch", color: "#3b82f6" };
+      return { label: "Lên lịch", color: "#BDE3C3" };
     }
 
-    return { label: "Hoàn thành", color: "#10b981" };
+    return { label: "Hoàn thành", color: "#F5D2D2" };
   };
 
   const handleJoin = (call: Call) => {
@@ -93,22 +114,26 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
       </div>
       <div className="meeting-stats">
         <div className="stat-card">
-          <div className="stat-number">
-            {upcomingCalls.length + endedCalls.length}
-          </div>
+          <div className="stat-number">{allMeetings.length}</div>
           <div className="stat-label">Tổng cuộc họp</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{upcomingCalls.length}</div>
+          <div className="stat-number">{upcomingProjectMeetings.length}</div>
           <div className="stat-label">Đã lên lịch</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{endedCalls.length}</div>
+          <div className="stat-number">{endedProjectMeetings.length}</div>
           <div className="stat-label">Hoàn thành</div>
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <Button
+          variant={viewType === "all" ? "default" : "outline"}
+          onClick={() => setViewType("all")}
+        >
+          Tất cả
+        </Button>
         <Button
           variant={viewType === "upcoming" ? "default" : "outline"}
           onClick={() => setViewType("upcoming")}
@@ -208,40 +233,39 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       {statusInfo.label}
                     </span>
                   </div>
-                  <div className="col-actions flex items-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
-                          aria-label="Actions"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-40">
-                        <DropdownMenuItem onClick={() => handleView(call)}>
-                          Xem chi tiết
-                        </DropdownMenuItem>
-                        {!(viewType === "ended") && (
-                          <DropdownMenuItem onClick={() => handleJoin(call)}>
-                            Tham gia
-                          </DropdownMenuItem>
-                        )}
-                        {!(viewType === "ended") && (
-                          <DropdownMenuItem onClick={() => handleEdit(call)}>
-                            Cập nhật
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(call)}
-                          className="text-red-600 focus:text-red-700"
-                          data-variant="destructive"
-                        >
-                          Xóa
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <div className="col-actions flex items-center gap-2">
+                    <button
+                      className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                      title="Xem chi tiết"
+                      onClick={() => handleView(call)}
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
+                    {!(viewType === "ended") && (
+                      <button
+                        className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                        title="Tham gia"
+                        onClick={() => handleJoin(call)}
+                      >
+                        <LogIn className="w-5 h-5" />
+                      </button>
+                    )}
+                    {!(viewType === "ended") && (
+                      <button
+                        className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                        title="Cập nhật"
+                        onClick={() => handleEdit(call)}
+                      >
+                        <Pencil className="w-5 h-5" />
+                      </button>
+                    )}
+                    <button
+                      className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                      title="Xóa"
+                      onClick={() => handleDelete(call)}
+                    >
+                      <Trash className="w-5 h-5 text-red-500" />
+                    </button>
                   </div>
                 </div>
               );
@@ -253,6 +277,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
       {/* Modals */}
       {showCreateModal && (
         <CreateMeetingModal
+          projectId={project.id}
           onClose={() => setShowCreateModal(false)}
           onCreated={() => {
             // Refetch list so the new meeting appears immediately

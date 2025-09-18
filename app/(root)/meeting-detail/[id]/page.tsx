@@ -70,9 +70,9 @@ export default function MeetingDetailPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Scheduled":
-        return "#3b82f6";
+        return "#BDE3C3";
       case "Finished":
-        return "#10b981";
+        return "#F5D2D2";
       default:
         return "#6b7280";
     }
@@ -261,10 +261,12 @@ export default function MeetingDetailPage() {
                   <div className="info-item">
                     <label>Tham gia cuộc họp:</label>
                     <button
-                      onClick={() => setShowJoinFlow(true)}
+                      onClick={() =>
+                        window.open(`/meeting/${call.id}`, "_blank")
+                      }
                       className="room-link"
                     >
-                      Nhấn để tham gia (ID: {call.id})
+                      Nhấn để tham gia
                     </button>
                   </div>
                 )}
@@ -282,15 +284,7 @@ export default function MeetingDetailPage() {
           </div>
         )}
 
-        {activeTab === "overview" && showJoinFlow && (
-          <div className="meeting-join-flow">
-            {!isSetupComplete ? (
-              <MeetingSetup setIsSetupComplete={setIsSetupComplete} />
-            ) : (
-              <MeetingRoom />
-            )}
-          </div>
-        )}
+        {/* Đã bỏ flow MeetingSetup/MeetingRoom khi join trực tiếp */}
 
         {activeTab === "recording" && (
           <div className="recording-section">

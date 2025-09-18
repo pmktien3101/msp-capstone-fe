@@ -13,18 +13,23 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 const formSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"),
-  date: z.string().min(1, "Date is required"),
-  time: z.string().min(1, "Time is required"),
+  title: z.string().min(1, "Vui lòng nhập tiêu đề"),
+  description: z.string().min(1, "Vui lòng nhập mô tả"),
+  date: z.string().min(1, "Vui lòng chọn ngày"),
+  time: z.string().min(1, "Vui lòng chọn giờ"),
 });
 
 interface MeetingFormProps {
   onClose?: () => void;
   onCreated?: (call: Call) => void;
+  projectId?: string;
 }
 
-export default function MeetingForm({ onClose, onCreated }: MeetingFormProps) {
+export default function MeetingForm({
+  onClose,
+  onCreated,
+  projectId,
+}: MeetingFormProps) {
   const router = useRouter();
   const { userId } = useUser();
   const client = useStreamVideoClient();
@@ -56,6 +61,7 @@ export default function MeetingForm({ onClose, onCreated }: MeetingFormProps) {
             description: values.description,
             scheduledDate: values.date,
             scheduledTime: values.time,
+            projectId: projectId, // Lưu projectId vào custom field
           },
           starts_at: new Date(`${values.date}T${values.time}`).toISOString(),
           members: [{ user_id: userId }],
@@ -96,39 +102,37 @@ export default function MeetingForm({ onClose, onCreated }: MeetingFormProps) {
           ✕
         </button>
         <div className="mb-4">
-          <h3 className="text-lg font-semibold">Schedule a Meeting</h3>
+          <h3 className="text-lg font-semibold">Tạo cuộc họp mới</h3>
           <p className="text-xs text-muted-foreground">
-            Fill details below to create a meeting
+            Vui lòng điền thông tin để lên lịch cuộc họp cho dự án
           </p>
         </div>
         <div className="max-w-2xl mx-auto w-full">
           {callDetails ? (
             <div className="text-center">
               <h2 className="text-2xl font-semibold mb-4 text-orange-800">
-                Meeting Created!
+                Đã tạo cuộc họp!
               </h2>
-              <p className="mb-4">
-                Your meeting has been scheduled successfully.
-              </p>
+              <p className="mb-4">Cuộc họp đã được lên lịch thành công.</p>
               <div className="flex items-center justify-center gap-4">
                 <Button
                   onClick={() => {
                     if (meetingLink) {
                       navigator.clipboard.writeText(meetingLink);
-                      toast.success("Link copied!");
+                      toast.success("Đã sao chép link!");
                     }
                   }}
-                  className="flex items-center gap-2 text-orange-600 cursor-pointer"
+                  className="flex items-center gap-2 bg-orange-500 text-white cursor-pointer"
                 >
-                  Copy Meeting Link
+                  Sao chép link cuộc họp
                 </Button>
                 <Button
                   onClick={() =>
                     window.open(`/meeting/${callDetails?.id}`, "_blank")
                   }
-                  className="text-orange-600 cursor-pointer"
+                  className="bg-orange-500 text-white cursor-pointer"
                 >
-                  Start Meeting
+                  Vào phòng họp
                 </Button>
               </div>
             </div>
@@ -139,10 +143,10 @@ export default function MeetingForm({ onClose, onCreated }: MeetingFormProps) {
             >
               <div className="space-y-2">
                 <label className="block text-sm font-medium">
-                  Meeting Title
+                  Tiêu đề cuộc họp
                 </label>
                 <Input
-                  placeholder="Enter meeting title"
+                  placeholder="Nhập tiêu đề cuộc họp"
                   {...form.register("title")}
                 />
                 {form.formState.errors.title && (
@@ -152,14 +156,14 @@ export default function MeetingForm({ onClose, onCreated }: MeetingFormProps) {
                 )}
               </div>
               <div className="space-y-2">
-                <label className="block text-sm font-medium">Description</label>
+                <label className="block text-sm font-medium">Mô tả</label>
                 <Textarea
-                  placeholder="Enter meeting description"
+                  placeholder="Nhập mô tả nội dung cuộc họp"
                   className="resize-none"
                   {...form.register("description")}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Brief description about the meeting agenda
+                  Mô tả ngắn về nội dung, mục tiêu cuộc họp
                 </p>
                 {form.formState.errors.description && (
                   <p className="text-sm text-red-500">
@@ -169,7 +173,7 @@ export default function MeetingForm({ onClose, onCreated }: MeetingFormProps) {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium">Date</label>
+                  <label className="block text-sm font-medium">Ngày họp</label>
                   <Input type="date" {...form.register("date")} />
                   {form.formState.errors.date && (
                     <p className="text-sm text-red-500">
@@ -178,8 +182,8 @@ export default function MeetingForm({ onClose, onCreated }: MeetingFormProps) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium">Time</label>
-                  <Input type="time" {...form.register("time")} />
+                  <label className="block text-sm font-medium">Giờ họp</label>
+                  <Input type="time" step="60" {...form.register("time")} />
                   {form.formState.errors.time && (
                     <p className="text-sm text-red-500">
                       {form.formState.errors.time.message}
@@ -190,14 +194,14 @@ export default function MeetingForm({ onClose, onCreated }: MeetingFormProps) {
               <div className="flex justify-end space-x-4">
                 {onClose && (
                   <Button variant="outline" type="button" onClick={onClose}>
-                    Cancel
+                    Hủy
                   </Button>
                 )}
                 <Button
                   type="submit"
-                  className="text-orange-600 cursor-pointer"
+                  className="bg-orange-500 text-white cursor-pointer"
                 >
-                  Schedule Meeting
+                  Tạo cuộc họp
                 </Button>
               </div>
             </form>
