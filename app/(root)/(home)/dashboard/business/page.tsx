@@ -8,25 +8,26 @@ const BusinessDashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [hoveredStat, setHoveredStat] = useState<string | null>(null);
   const [showAllMeetings, setShowAllMeetings] = useState(false);
+  const [customDateRange, setCustomDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
   const meetingChartRef = useRef<HTMLCanvasElement>(null);
   const meetingChartInstance = useRef<Chart | null>(null);
 
-  // Revenue data for Recharts
-  const revenueData = [
-    { month: 'T1', revenue: 45 },
-    { month: 'T2', revenue: 52 },
-    { month: 'T3', revenue: 48 },
-    { month: 'T4', revenue: 61 },
-    { month: 'T5', revenue: 55 },
-    { month: 'T6', revenue: 67 },
-    { month: 'T7', revenue: 72 },
-    { month: 'T8', revenue: 68 },
-    { month: 'T9', revenue: 75 },
-    { month: 'T10', revenue: 82 },
-    { month: 'T11', revenue: 78 },
-    { month: 'T12', revenue: 85 }
+  // Project data for Recharts
+  const projectData = [
+    { month: 'T1', projects: 8 },
+    { month: 'T2', projects: 12 },
+    { month: 'T3', projects: 10 },
+    { month: 'T4', projects: 15 },
+    { month: 'T5', projects: 13 },
+    { month: 'T6', projects: 18 },
+    { month: 'T7', projects: 20 },
+    { month: 'T8', projects: 17 },
+    { month: 'T9', projects: 22 },
   ];
 
   useEffect(() => {
@@ -360,25 +361,58 @@ const BusinessDashboard = () => {
         <div className="time-filter-header">
           <h3>Bộ lọc thời gian</h3>
         </div>
-        <div className="time-filter-buttons">
-          <button 
-            className={`time-filter-btn ${selectedPeriod === 'week' ? 'active' : ''}`}
-            onClick={() => setSelectedPeriod('week')}
+        <div className="time-filter-select">
+          <select 
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="time-filter-dropdown"
           >
-            Tuần
-          </button>
-          <button 
-            className={`time-filter-btn ${selectedPeriod === 'month' ? 'active' : ''}`}
-            onClick={() => setSelectedPeriod('month')}
-          >
-            Tháng
-          </button>
-          <button 
-            className={`time-filter-btn ${selectedPeriod === 'quarter' ? 'active' : ''}`}
-            onClick={() => setSelectedPeriod('quarter')}
-          >
-            Quý
-          </button>
+            <option value="week">Tuần này</option>
+            <option value="month">Tháng này</option>
+            <option value="quarter">Quý này</option>
+            <option value="year">Năm này</option>
+            <option value="last-week">Tuần trước</option>
+            <option value="last-month">Tháng trước</option>
+            <option value="last-quarter">Quý trước</option>
+            <option value="last-year">Năm trước</option>
+            <option value="custom">Tùy chỉnh</option>
+          </select>
+          
+          {selectedPeriod === 'custom' && (
+            <div className="custom-date-range">
+              <div className="date-input-group">
+                <label>Từ ngày:</label>
+                <input
+                  type="date"
+                  value={customDateRange.startDate}
+                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="date-input"
+                />
+              </div>
+              <div className="date-input-group">
+                <label>Đến ngày:</label>
+                <input
+                  type="date"
+                  value={customDateRange.endDate}
+                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="date-input"
+                  min={customDateRange.startDate}
+                />
+              </div>
+              <button 
+                className="apply-date-btn"
+                onClick={() => {
+                  if (customDateRange.startDate && customDateRange.endDate) {
+                    console.log('Áp dụng khoảng thời gian:', customDateRange);
+                    // Ở đây bạn có thể thêm logic để filter dữ liệu theo khoảng thời gian
+                  }
+                }}
+                disabled={!customDateRange.startDate || !customDateRange.endDate}
+              >
+                Áp dụng
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -471,25 +505,25 @@ const BusinessDashboard = () => {
                     </div>
                   </div>
                   
-        {/* Revenue Trend Chart */}
+        {/* Project Trend Chart */}
         <div className="revenue-trend-section">
           <div className="section-header">
-            <h3>Xu Hướng Doanh Thu</h3>
+            <h3>Xu hướng dự án năm 2025</h3>
             <div className="revenue-stats">
               <div className="revenue-stat">
                 <span className="stat-label">Tháng này</span>
-                <span className="stat-value">85M</span>
+                <span className="stat-value">27</span>
                     </div>
               <div className="revenue-stat">
                 <span className="stat-label">Tăng trưởng</span>
-                <span className="stat-value positive">+12.5%</span>
+                <span className="stat-value positive">+17.4%</span>
                   </div>
                 </div>
           </div>
 
           <div className="revenue-chart-wrapper">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revenueData}>
+              <LineChart data={projectData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                 <XAxis
                   dataKey="month"
@@ -499,9 +533,9 @@ const BusinessDashboard = () => {
                 <YAxis
                   stroke="#6b7280"
                   fontSize={10}
-                  domain={[0, 100]}
+                  domain={[0, 30]}
                   tickCount={6}
-                  tickFormatter={(value) => `${value}M`}
+                  tickFormatter={(value) => `${value}`}
                   interval={0}
                   allowDecimals={false}
                   tick={{ fontSize: 10, fill: '#6b7280' }}
@@ -513,11 +547,11 @@ const BusinessDashboard = () => {
                     border: '1px solid #FF5E13',
                     borderRadius: '8px'
                   }}
-                  formatter={(value: any) => [`${value} triệu VNĐ`, 'Doanh thu']}
+                  formatter={(value: any) => [`${value} dự án`, 'Số dự án']}
                 />
                 <Line
                   type="monotone"
-                  dataKey="revenue"
+                  dataKey="projects"
                   stroke="#FF5E13"
                   strokeWidth={3}
                   dot={{ fill: '#FF5E13', stroke: '#FFFFFF', strokeWidth: 2, r: 6 }}
@@ -653,33 +687,102 @@ const BusinessDashboard = () => {
           color: #1C1C1C;
         }
 
-        .time-filter-buttons {
+        .time-filter-select {
           display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
+          flex-direction: column;
+          gap: 16px;
         }
 
-        .time-filter-btn {
-          padding: 10px 20px;
+        .time-filter-dropdown {
+          width: 200px;
+          padding: 12px 16px;
           border: 2px solid #E5E7EB;
           border-radius: 8px;
           background: white;
-          color: #6B7280;
+          color: #1C1C1C;
           font-size: 14px;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
+          appearance: none;
+          background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          background-size: 16px;
+          padding-right: 40px;
         }
 
-        .time-filter-btn:hover {
+        .time-filter-dropdown:hover {
           border-color: #FF8C42;
-          color: #FF8C42;
         }
 
-        .time-filter-btn.active {
+        .time-filter-dropdown:focus {
+          outline: none;
+          border-color: #FF8C42;
+          box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+        }
+
+        .custom-date-range {
+          display: flex;
+          align-items: end;
+          gap: 16px;
+          padding: 16px;
+          background: #F9FAFB;
+          border-radius: 8px;
+          border: 1px solid #E5E7EB;
+        }
+
+        .date-input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .date-input-group label {
+          font-size: 12px;
+          font-weight: 500;
+          color: #6B7280;
+        }
+
+        .date-input {
+          padding: 8px 12px;
+          border: 1px solid #D1D5DB;
+          border-radius: 6px;
+          background: white;
+          color: #1C1C1C;
+          font-size: 14px;
+          transition: all 0.2s ease;
+        }
+
+        .date-input:focus {
+          outline: none;
+          border-color: #FF8C42;
+          box-shadow: 0 0 0 2px rgba(255, 140, 66, 0.1);
+        }
+
+        .apply-date-btn {
+          padding: 8px 16px;
           background: #FF8C42;
-          border-color: #FF8C42;
           color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          height: fit-content;
+        }
+
+        .apply-date-btn:hover:not(:disabled) {
+          background: #FF7A2E;
+          transform: translateY(-1px);
+        }
+
+        .apply-date-btn:disabled {
+          background: #D1D5DB;
+          color: #9CA3AF;
+          cursor: not-allowed;
+          transform: none;
         }
 
         /* Stats Container */
@@ -1286,14 +1389,22 @@ const BusinessDashboard = () => {
             padding: 16px;
           }
 
-          .time-filter-buttons {
-            flex-direction: column;
-            gap: 8px;
+          .time-filter-select {
+            width: 100%;
           }
 
-          .time-filter-btn {
+          .time-filter-dropdown {
             width: 100%;
-            text-align: center;
+          }
+
+          .custom-date-range {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+
+          .date-input-group {
+            width: 100%;
           }
 
           .project-stats {

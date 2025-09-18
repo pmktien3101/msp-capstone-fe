@@ -14,37 +14,59 @@ export const StreamVideoProvider = ({
   children: React.ReactNode;
 }) => {
   const [videoClient, setVideoClient] = useState<StreamVideoClient>();
+  const [error, setError] = useState<string | null>(null);
   const { userId, email, image } = useUser();
+  
   useEffect(() => {
-    if (!apiKey) throw new Error("No API key provided");
+    if (!apiKey) {
+      console.warn("Stream API key not provided. Video features will be disabled.");
+      setError("Stream API key not configured");
+      return;
+    }
     if (!userId || !email) return;
 
-    const client = new StreamVideoClient({
-      apiKey,
-      user: {
-        id: userId,
-        name: email,
-        image: image,
-      },
-      tokenProvider: async () => {
-        return await tokenService.getStreamToken({
+    let client: StreamVideoClient | undefined;
+    
+    try {
+      client = new StreamVideoClient({
+        apiKey,
+        user: {
           id: userId,
           name: email,
           image: image,
-        });
-      },
-    });
-    console.log("Stream Video Client initialized:", client);
-    setVideoClient(client);
+        },
+        tokenProvider: async () => {
+          return await tokenService.getStreamToken({
+            id: userId,
+            name: email,
+            image: image,
+          });
+        },
+      });
+      console.log("Stream Video Client initialized:", client);
+      setVideoClient(client);
+    } catch (err) {
+      console.error("Failed to initialize Stream Video Client:", err);
+      setError("Failed to initialize video client");
+    }
 
     return () => {
-      client.disconnectUser();
+      if (client) {
+        client.disconnectUser();
+      }
       setVideoClient(undefined);
     };
   }, [userId, email, image]);
 
+  // If there's an error (like missing API key), render children without StreamVideo wrapper
+  if (error) {
+    console.warn("StreamVideoProvider error:", error);
+    return <>{children}</>;
+  }
+
   if (!userId || !email || !videoClient) {
     return <Loader />;
   }
+  
   return <StreamVideo client={videoClient}>{children}</StreamVideo>;
 };
