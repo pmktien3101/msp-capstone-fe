@@ -102,7 +102,7 @@ const MembersRolesPage = () => {
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Members');
-
+    
     // Set column widths
     ws['!cols'] = [
       { wch: 20 }, // Tên
@@ -167,7 +167,7 @@ const MembersRolesPage = () => {
   // Confirm import
   const confirmImport = () => {
     const validData = importedData.filter(item => item.isValid);
-
+    
     const newMembers: Member[] = validData.map(item => ({
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       name: item.name,
@@ -187,7 +187,7 @@ const MembersRolesPage = () => {
 
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase());
+                         member.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || member.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -217,7 +217,7 @@ const MembersRolesPage = () => {
   };
 
   const handleUpdateMember = (updatedMember: Member) => {
-    setMembers(members.map(member =>
+    setMembers(members.map(member => 
       member.id === updatedMember.id ? updatedMember : member
     ));
     setShowEditModal(false);
@@ -232,16 +232,17 @@ const MembersRolesPage = () => {
 
   const getRoleBadge = (role: string) => {
     const roleConfig = {
-      ProjectManager: { textColor: '#1E40AF', text: 'Project Manager' },
-      Member: { textColor: '#065F46', text: 'Member' }
+      ProjectManager: { color: '#DBEAFE', textColor: '#1E40AF', text: 'Project Manager' },
+      Member: { color: '#D1FAE5', textColor: '#065F46', text: 'Member' }
     };
-
+    
     const config = roleConfig[role as keyof typeof roleConfig];
     return (
-      <span
+      <span 
         className="role-badge"
-        style={{
-          color: config.textColor
+        style={{ 
+          backgroundColor: config.color, 
+          color: config.textColor 
         }}
       >
         {config.text}
@@ -251,16 +252,17 @@ const MembersRolesPage = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { textColor: '#065F46', text: 'Hoạt động' },
-      inactive: { textColor: '#DC2626', text: 'Không hoạt động' }
+      active: { color: '#D1FAE5', textColor: '#065F46', text: 'Hoạt động' },
+      inactive: { color: '#FEE2E2', textColor: '#DC2626', text: 'Không hoạt động' }
     };
-
+    
     const config = statusConfig[status as keyof typeof statusConfig];
     return (
-      <span
+      <span 
         className="status-badge"
-        style={{
-          color: config.textColor
+        style={{ 
+          backgroundColor: config.color, 
+          color: config.textColor 
         }}
       >
         {config.text}
@@ -281,8 +283,8 @@ const MembersRolesPage = () => {
       <div className="filters-section">
         <div className="search-box">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
-            <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2"/>
+            <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <input
             type="text"
@@ -291,10 +293,10 @@ const MembersRolesPage = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-
+        
         <div className="role-filter">
-          <select
-            value={roleFilter}
+          <select 
+            value={roleFilter} 
             onChange={(e) => setRoleFilter(e.target.value as any)}
           >
             <option value="all">Tất cả vai trò</option>
@@ -309,8 +311,8 @@ const MembersRolesPage = () => {
         <div className="stat-card">
           <div className="stat-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
           <div className="stat-content">
@@ -322,8 +324,8 @@ const MembersRolesPage = () => {
         <div className="stat-card">
           <div className="stat-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="8" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="8" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
           <div className="stat-content">
@@ -335,8 +337,8 @@ const MembersRolesPage = () => {
         <div className="stat-card">
           <div className="stat-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
           <div className="stat-content">
@@ -354,40 +356,40 @@ const MembersRolesPage = () => {
             <span className="member-count">{filteredMembers.length} thành viên</span>
           </div>
           <div className="header-actions">
-            <button
+            <button 
               className="download-template-btn"
               onClick={downloadTemplate}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Tải Template
             </button>
-            <button
+            <button 
               className="import-excel-btn"
               onClick={() => setShowImportModal(true)}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M17 8L12 3L7 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M12 3V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M17 8L12 3L7 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 3V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Import Excel
             </button>
-            <button
+            <button 
               className="add-member-btn"
               onClick={() => setShowAddModal(true)}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Thêm Thành Viên
             </button>
           </div>
         </div>
-
+        
         <div className="members-table">
           <div className="table-header-row">
             <div className="col-name">Tên</div>
@@ -398,7 +400,7 @@ const MembersRolesPage = () => {
             <div className="col-projects">Dự án</div>
             <div className="col-actions">Thao tác</div>
           </div>
-
+          
           {filteredMembers.map((member) => (
             <div key={member.id} className="table-row">
               <div className="col-name">
@@ -412,44 +414,44 @@ const MembersRolesPage = () => {
                   </div>
                 </div>
               </div>
-
+              
               <div className="col-email">
                 <span className="email">{member.email}</span>
               </div>
-
+              
               <div className="col-phone">
                 <span className="phone">{member.phone}</span>
               </div>
-
+              
               <div className="col-role">
-                <span className="role-badge">{getRoleBadge(member.role)}</span>
+                {getRoleBadge(member.role)}
               </div>
-
+              
               <div className="col-status">
-                <span className="status-badge">{getStatusBadge(member.status)}</span>
+                {getStatusBadge(member.status)}
               </div>
-
+              
               <div className="col-projects">
                 <span className="project-count">{member.projects} dự án</span>
               </div>
-
+              
               <div className="col-actions">
-                <button
+                <button 
                   className="action-btn edit"
                   onClick={() => handleEditMember(member)}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
-                <button
+                <button 
                   className="action-btn delete"
                   onClick={() => handleDeleteMember(member.id)}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
               </div>
@@ -464,70 +466,70 @@ const MembersRolesPage = () => {
           <div className="modal">
             <div className="modal-header">
               <h3>Thêm Thành Viên Mới</h3>
-              <button
+              <button 
                 className="close-btn"
                 onClick={() => setShowAddModal(false)}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
             </div>
-
+            
             <div className="modal-body">
               <div className="form-group">
                 <label>Tên thành viên</label>
                 <input
                   type="text"
                   value={newMember.name}
-                  onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
+                  onChange={(e) => setNewMember({...newMember, name: e.target.value})}
                   placeholder="Nhập tên thành viên"
                 />
               </div>
-
+              
               <div className="form-group">
                 <label>Email</label>
                 <div className="email-input-group">
                   <input
                     type="text"
                     value={newMember.emailPrefix}
-                    onChange={(e) => setNewMember({ ...newMember, emailPrefix: e.target.value })}
+                    onChange={(e) => setNewMember({...newMember, emailPrefix: e.target.value})}
                     placeholder="Nhập phần trước @"
                   />
                   <span className="email-domain">{companyDomain}</span>
                 </div>
               </div>
-
+              
               <div className="form-group">
                 <label>Số điện thoại</label>
                 <input
                   type="tel"
                   value={newMember.phone}
-                  onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })}
+                  onChange={(e) => setNewMember({...newMember, phone: e.target.value})}
                   placeholder="Nhập số điện thoại"
                 />
               </div>
-
+              
               <div className="form-group">
                 <label>Vai trò</label>
                 <select
                   value={newMember.role}
-                  onChange={(e) => setNewMember({ ...newMember, role: e.target.value as 'Member' | 'ProjectManager' })}
+                  onChange={(e) => setNewMember({...newMember, role: e.target.value as 'Member' | 'ProjectManager'})}
                 >
                   <option value="Member">Member</option>
                   <option value="ProjectManager">Project Manager</option>
                 </select>
               </div>
             </div>
-
+            
             <div className="modal-footer">
-              <button
+              <button 
                 className="cancel-btn"
                 onClick={() => setShowAddModal(false)}
               >
                 Hủy
               </button>
-              <button
+              <button 
                 className="save-btn"
                 onClick={handleAddMember}
               >
@@ -544,78 +546,78 @@ const MembersRolesPage = () => {
           <div className="modal">
             <div className="modal-header">
               <h3>Chỉnh Sửa Thành Viên</h3>
-              <button
+              <button 
                 className="close-btn"
                 onClick={() => setShowEditModal(false)}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
             </div>
-
+            
             <div className="modal-body">
               <div className="form-group">
                 <label>Tên thành viên</label>
                 <input
                   type="text"
                   value={selectedMember.name}
-                  onChange={(e) => setSelectedMember({ ...selectedMember, name: e.target.value })}
+                  onChange={(e) => setSelectedMember({...selectedMember, name: e.target.value})}
                 />
               </div>
-
+              
               <div className="form-group">
                 <label>Email</label>
                 <div className="email-input-group">
                   <input
                     type="text"
                     value={selectedMember.email.split('@')[0]}
-                    onChange={(e) => setSelectedMember({ ...selectedMember, email: e.target.value + companyDomain })}
+                    onChange={(e) => setSelectedMember({...selectedMember, email: e.target.value + companyDomain})}
                   />
                   <span className="email-domain">{companyDomain}</span>
                 </div>
               </div>
-
+              
               <div className="form-group">
                 <label>Số điện thoại</label>
                 <input
                   type="tel"
                   value={selectedMember.phone}
-                  onChange={(e) => setSelectedMember({ ...selectedMember, phone: e.target.value })}
+                  onChange={(e) => setSelectedMember({...selectedMember, phone: e.target.value})}
                 />
               </div>
-
+              
               <div className="form-group">
                 <label>Vai trò</label>
                 <select
                   value={selectedMember.role}
-                  onChange={(e) => setSelectedMember({ ...selectedMember, role: e.target.value as 'Member' | 'ProjectManager' })}
+                  onChange={(e) => setSelectedMember({...selectedMember, role: e.target.value as 'Member' | 'ProjectManager'})}
                 >
                   <option value="Member">Member</option>
                   <option value="ProjectManager">Project Manager</option>
                 </select>
               </div>
-
+              
               <div className="form-group">
                 <label>Trạng thái</label>
                 <select
                   value={selectedMember.status}
-                  onChange={(e) => setSelectedMember({ ...selectedMember, status: e.target.value as 'active' | 'inactive' })}
+                  onChange={(e) => setSelectedMember({...selectedMember, status: e.target.value as 'active' | 'inactive'})}
                 >
                   <option value="active">Hoạt động</option>
                   <option value="inactive">Không hoạt động</option>
                 </select>
               </div>
             </div>
-
+            
             <div className="modal-footer">
-              <button
+              <button 
                 className="cancel-btn"
                 onClick={() => setShowEditModal(false)}
               >
                 Hủy
               </button>
-              <button
+              <button 
                 className="save-btn"
                 onClick={() => handleUpdateMember(selectedMember)}
               >
@@ -632,16 +634,16 @@ const MembersRolesPage = () => {
           <div className="modal">
             <div className="modal-header">
               <h3>Import Thành Viên từ Excel</h3>
-              <button
+              <button 
                 className="close-btn"
                 onClick={() => setShowImportModal(false)}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
             </div>
-
+            
             <div className="modal-body">
               <div className="import-instructions">
                 <h4>Hướng dẫn import:</h4>
@@ -651,7 +653,7 @@ const MembersRolesPage = () => {
                   <li>Chọn file Excel đã điền để import</li>
                 </ol>
               </div>
-
+              
               <div className="file-upload-area">
                 <input
                   type="file"
@@ -662,26 +664,26 @@ const MembersRolesPage = () => {
                 />
                 <label htmlFor="excel-file-input" className="file-upload-label">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                    <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M16 13H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M16 17H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 13H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 17H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   <span>Chọn file Excel để import</span>
                   <small>Hỗ trợ file .xlsx, .xls</small>
                 </label>
               </div>
             </div>
-
+            
             <div className="modal-footer">
-              <button
+              <button 
                 className="cancel-btn"
                 onClick={() => setShowImportModal(false)}
               >
                 Hủy
               </button>
-              <button
+              <button 
                 className="download-template-btn"
                 onClick={downloadTemplate}
               >
@@ -698,16 +700,16 @@ const MembersRolesPage = () => {
           <div className="modal preview-modal">
             <div className="modal-header">
               <h3>Xem trước dữ liệu import</h3>
-              <button
+              <button 
                 className="close-btn"
                 onClick={() => setShowPreviewModal(false)}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
             </div>
-
+            
             <div className="modal-body">
               <div className="import-summary">
                 <div className="summary-item">
@@ -723,7 +725,7 @@ const MembersRolesPage = () => {
                   <span className="value error">{importedData.filter(item => !item.isValid).length}</span>
                 </div>
               </div>
-
+              
               <div className="preview-table">
                 <div className="preview-header">
                   <div className="preview-col">Dòng</div>
@@ -733,7 +735,7 @@ const MembersRolesPage = () => {
                   <div className="preview-col">Vai trò</div>
                   <div className="preview-col">Trạng thái</div>
                 </div>
-
+                
                 {importedData.map((item, index) => (
                   <div key={index} className={`preview-row ${item.isValid ? 'valid' : 'error'}`}>
                     <div className="preview-col">{item.rowIndex}</div>
@@ -759,15 +761,15 @@ const MembersRolesPage = () => {
                 ))}
               </div>
             </div>
-
+            
             <div className="modal-footer">
-              <button
+              <button 
                 className="cancel-btn"
                 onClick={() => setShowPreviewModal(false)}
               >
                 Hủy
               </button>
-              <button
+              <button 
                 className="confirm-import-btn"
                 onClick={confirmImport}
                 disabled={importedData.filter(item => item.isValid).length === 0}
@@ -835,8 +837,6 @@ const MembersRolesPage = () => {
         .search-box {
           position: relative;
           flex: 1;
-          background: white;
-          border-radius: 8px;
         }
 
         .search-box svg {
@@ -920,22 +920,9 @@ const MembersRolesPage = () => {
 
         .members-table-container {
           background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
           overflow: hidden;
-          border: 1px solid #F1F5F9;
-          position: relative;
-        }
-
-        .members-table-container::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, #FF5E13, transparent);
-          opacity: 0.3;
         }
 
         .table-header {
@@ -1018,27 +1005,13 @@ const MembersRolesPage = () => {
           display: grid;
           grid-template-columns: 2fr 2fr 1.5fr 1fr 1fr 1fr 1fr;
           gap: 16px;
-          padding: 20px 24px;
-          background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+          padding: 16px 24px;
+          background: #F9F4EE;
           font-size: 12px;
-          font-weight: 700;
-          color: #475569;
+          font-weight: 600;
+          color: #787486;
           text-transform: uppercase;
-          letter-spacing: 0.8px;
-          border-bottom: 2px solid #E2E8F0;
-          position: relative;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        .table-header-row::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, #FF5E13, #FF8C42, #FFA463);
-          border-radius: 0 0 2px 2px;
+          letter-spacing: 0.5px;
         }
 
         .table-row {
@@ -1046,25 +1019,13 @@ const MembersRolesPage = () => {
           grid-template-columns: 2fr 2fr 1.5fr 1fr 1fr 1fr 1fr;
           gap: 16px;
           padding: 20px 24px;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid #F3F4F6;
           align-items: center;
-          transition: all 0.3s ease;
-          background: white;
+          transition: background-color 0.3s ease;
         }
 
         .table-row:hover {
-          background: linear-gradient(135deg, #FEF7F0 0%, #FFF5F0 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.08);
-          border-left: 3px solid #FF5E13;
-        }
-
-        .table-row:nth-child(even) {
-          background: #FAFBFC;
-        }
-
-        .table-row:nth-child(even):hover {
-          background: linear-gradient(135deg, #FEF7F0 0%, #FFF5F0 100%);
+          background: #F9F4EE;
         }
 
         .member-info {
@@ -1074,117 +1035,49 @@ const MembersRolesPage = () => {
         }
 
         .member-avatar {
-          width: 44px;
-          height: 44px;
-          background: linear-gradient(135deg, #FF5E13, #FF8C42);
+          width: 40px;
+          height: 40px;
+          background: #FF5E13;
           color: white;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 700;
+          font-weight: 600;
           font-size: 16px;
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.3);
-          border: 3px solid white;
-          position: relative;
-          transition: all 0.3s ease;
-        }
-
-        .member-avatar::before {
-          content: '';
-          position: absolute;
-          inset: -2px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #FF5E13, #FF8C42, #FFA463);
-          z-index: -1;
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-
-        .member-avatar:hover::before {
-          opacity: 1;
-        }
-
-        .member-avatar:hover {
-          transform: scale(1.05);
-          box-shadow: 0 6px 20px rgba(255, 94, 19, 0.4);
         }
 
         .member-details {
           display: flex;
           flex-direction: column;
-          gap: 2px;
         }
 
         .member-name {
-          font-size: 15px;
-          font-weight: 700;
+          font-size: 14px;
+          font-weight: 600;
           color: #0D062D;
-          transition: color 0.3s ease;
-        }
-
-        .table-row:hover .member-name {
-          color: #FF5E13;
         }
 
         .join-date {
           font-size: 12px;
-          color: #64748B;
-          font-weight: 500;
+          color: #787486;
         }
 
         .email {
           font-size: 14px;
-          color: #475569;
-          font-weight: 500;
-          transition: color 0.3s ease;
-        }
-
-        .table-row:hover .email {
-          color: #FF5E13;
+          color: #0D062D;
         }
 
         .role-badge, .status-badge {
-          font-size: 12px;
-          font-weight: 600;
-          color: #059669;
-          background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
           padding: 4px 8px;
           border-radius: 6px;
-          display: inline-block;
-          transition: all 0.3s ease;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-          overflow: hidden;
-          max-width: 100%;
-        }
-
-        .table-row:hover .role-badge {
-          background: linear-gradient(135deg, #FEF7F0, #FFF5F0);
-          color: #FF5E13;
-          transform: scale(1.05);
-        }
-
-        .table-row:hover .status-badge {
-          background: linear-gradient(135deg, #FEF7F0, #FFF5F0);
-          color: #FF5E13;
-          transform: scale(1.05);
+          font-size: 12px;
+          font-weight: 500;
         }
 
         .project-count {
           font-size: 14px;
-          color: #475569;
-          font-weight: 600;
-          background: linear-gradient(135deg, #F1F5F9, #E2E8F0);
-          padding: 4px 8px;
-          border-radius: 12px;
-          display: inline-block;
-          transition: all 0.3s ease;
-        }
-
-        .table-row:hover .project-count {
-          background: linear-gradient(135deg, #FEF7F0, #FFF5F0);
-          color: #FF5E13;
+          color: #0D062D;
         }
 
         .col-actions {
@@ -1193,54 +1086,33 @@ const MembersRolesPage = () => {
         }
 
         .action-btn {
-          width: 36px;
-          height: 36px;
+          width: 32px;
+          height: 32px;
           border: none;
-          border-radius: 8px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           transition: all 0.3s ease;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .action-btn::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-
-        .action-btn:hover::before {
-          opacity: 1;
         }
 
         .action-btn.edit {
-          background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
+          background: #DBEAFE;
           color: #1E40AF;
-          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
         }
 
         .action-btn.edit:hover {
-          background: linear-gradient(135deg, #BFDBFE, #93C5FD);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+          background: #BFDBFE;
         }
 
         .action-btn.delete {
-          background: linear-gradient(135deg, #FEE2E2, #FECACA);
+          background: #FEE2E2;
           color: #DC2626;
-          box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
         }
 
         .action-btn.delete:hover {
-          background: linear-gradient(135deg, #FECACA, #FCA5A5);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+          background: #FECACA;
         }
 
         .modal-overlay {
@@ -1355,14 +1227,8 @@ const MembersRolesPage = () => {
         }
 
         .phone {
-          color: #475569;
+          color: #0D062D;
           font-size: 14px;
-          font-weight: 500;
-          transition: color 0.3s ease;
-        }
-
-        .table-row:hover .phone {
-          color: #FF5E13;
         }
 
         /* Import Modal Styles */
@@ -1607,7 +1473,6 @@ const MembersRolesPage = () => {
 
           .filters-section {
             flex-direction: column;
-            padding: 16px;
           }
 
           .stats-grid {

@@ -15,10 +15,6 @@ interface SubscriptionPlan {
 const SubscriptionBillingPage = () => {
   const [currentPlan, setCurrentPlan] = useState('professional');
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [showDowngradeModal, setShowDowngradeModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
-  const [upgradeOption, setUpgradeOption] = useState<'immediate' | 'end_of_period'>('immediate');
 
   const plans: SubscriptionPlan[] = [
     {
@@ -101,41 +97,18 @@ const SubscriptionBillingPage = () => {
     }
   ];
 
-  const handleUpgrade = (plan: SubscriptionPlan) => {
-    setSelectedPlan(plan);
-    setShowUpgradeModal(true);
+  const handleUpgrade = (planId: string) => {
+    if (confirm('Bạn có chắc chắn muốn nâng cấp gói này?')) {
+      setCurrentPlan(planId);
+      alert('Nâng cấp thành công!');
+    }
   };
 
-  const handleDowngrade = (plan: SubscriptionPlan) => {
-    setSelectedPlan(plan);
-    setShowDowngradeModal(true);
-  };
-
-  const processUpgrade = () => {
-    if (!selectedPlan) return;
-    
-    // Giả định thanh toán thành công
-    setTimeout(() => {
-      if (upgradeOption === 'immediate') {
-        setCurrentPlan(selectedPlan.id);
-        alert(`Nâng cấp thành công! Bạn đã được chuyển sang gói ${selectedPlan.name} ngay lập tức.`);
-      } else {
-        alert(`Thanh toán thành công! Bạn sẽ được chuyển sang gói ${selectedPlan.name} sau khi gói hiện tại kết thúc (01/01/2025).`);
-      }
-      setShowUpgradeModal(false);
-      setSelectedPlan(null);
-    }, 1000);
-  };
-
-  const processDowngrade = () => {
-    if (!selectedPlan) return;
-    
-    // Giả định thanh toán thành công
-    setTimeout(() => {
-      alert(`Thanh toán thành công! Bạn sẽ được chuyển sang gói ${selectedPlan.name} sau khi gói hiện tại kết thúc (01/01/2025).`);
-      setShowDowngradeModal(false);
-      setSelectedPlan(null);
-    }, 1000);
+  const handleDowngrade = (planId: string) => {
+    if (confirm('Bạn có chắc chắn muốn hạ cấp gói này?')) {
+      setCurrentPlan(planId);
+      alert('Hạ cấp thành công!');
+    }
   };
 
   const handleCancel = () => {
@@ -146,23 +119,20 @@ const SubscriptionBillingPage = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      paid: { 
-        text: 'Đã thanh toán',
-        className: 'status-badge paid'
-      },
-      pending: { 
-        text: 'Chờ thanh toán',
-        className: 'status-badge pending'
-      },
-      failed: { 
-        text: 'Thất bại',
-        className: 'status-badge failed'
-      }
+      paid: { color: '#D1FAE5', textColor: '#065F46', text: 'Đã thanh toán' },
+      pending: { color: '#FEF3C7', textColor: '#92400E', text: 'Chờ thanh toán' },
+      failed: { color: '#FEE2E2', textColor: '#DC2626', text: 'Thất bại' }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig];
     return (
-      <span className={config.className}>
+      <span 
+        className="status-badge"
+        style={{ 
+          backgroundColor: config.color, 
+          color: config.textColor 
+        }}
+      >
         {config.text}
       </span>
     );
@@ -284,14 +254,14 @@ const SubscriptionBillingPage = () => {
                 ) : plan.price > (currentPlanData?.price || 0) ? (
                   <button 
                     className="upgrade-btn"
-                    onClick={() => handleUpgrade(plan)}
+                    onClick={() => handleUpgrade(plan.id)}
                   >
                     Nâng cấp
                   </button>
                 ) : (
                   <button 
                     className="downgrade-btn"
-                    onClick={() => handleDowngrade(plan)}
+                    onClick={() => handleDowngrade(plan.id)}
                   >
                     Hạ cấp
                   </button>
@@ -326,7 +296,7 @@ const SubscriptionBillingPage = () => {
                 <span className="amount">${bill.amount}</span>
               </div>
               <div className="col-status">
-                <span className="amount">{getStatusBadge(bill.status)}</span> 
+                {getStatusBadge(bill.status)}
               </div>
               <div className="col-action">
                 <button className="download-btn">
@@ -344,7 +314,7 @@ const SubscriptionBillingPage = () => {
       </div>
 
       {/* Payment Method */}
-      {/* <div className="payment-method-section">
+      <div className="payment-method-section">
         <h2>Phương Thức Thanh Toán</h2>
         <div className="payment-card">
           <div className="payment-info">
@@ -366,140 +336,7 @@ const SubscriptionBillingPage = () => {
             </button>
           </div>
         </div>
-      </div> */}
-
-      {/* Upgrade Modal */}
-      {showUpgradeModal && selectedPlan && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Nâng cấp gói {selectedPlan.name}</h3>
-              <button 
-                className="close-btn"
-                onClick={() => setShowUpgradeModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="plan-comparison">
-                <div className="current-plan">
-                  <h4>Gói hiện tại: {currentPlanData?.name}</h4>
-                  <div className="price">${currentPlanData?.price}/{billingPeriod === 'monthly' ? 'tháng' : 'năm'}</div>
-                </div>
-                <div className="arrow">→</div>
-                <div className="new-plan">
-                  <h4>Gói mới: {selectedPlan.name}</h4>
-                  <div className="price">${selectedPlan.price}/{billingPeriod === 'monthly' ? 'tháng' : 'năm'}</div>
-                </div>
-              </div>
-              
-              <div className="upgrade-options">
-                <h4>Chọn thời điểm nâng cấp:</h4>
-                <div className="option-group">
-                  <label className="option-item">
-                    <input
-                      type="radio"
-                      name="upgradeOption"
-                      value="immediate"
-                      checked={upgradeOption === 'immediate'}
-                      onChange={(e) => setUpgradeOption(e.target.value as 'immediate' | 'end_of_period')}
-                    />
-                    <div className="option-content">
-                      <div className="option-title">Nâng cấp ngay lập tức</div>
-                      <div className="option-description">Chuyển sang gói mới ngay bây giờ</div>
-                    </div>
-                  </label>
-                  
-                  <label className="option-item">
-                    <input
-                      type="radio"
-                      name="upgradeOption"
-                      value="end_of_period"
-                      checked={upgradeOption === 'end_of_period'}
-                      onChange={(e) => setUpgradeOption(e.target.value as 'immediate' | 'end_of_period')}
-                    />
-                    <div className="option-content">
-                      <div className="option-title">Nâng cấp sau khi kết thúc gói hiện tại</div>
-                      <div className="option-description">Chuyển sang gói mới vào 01/01/2025</div>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="cancel-btn"
-                onClick={() => setShowUpgradeModal(false)}
-              >
-                Hủy
-              </button>
-              <button 
-                className="confirm-btn"
-                onClick={processUpgrade}
-              >
-                Thanh toán và nâng cấp
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Downgrade Modal */}
-      {showDowngradeModal && selectedPlan && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Hạ cấp gói {selectedPlan.name}</h3>
-              <button 
-                className="close-btn"
-                onClick={() => setShowDowngradeModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="warning-message">
-                <div className="warning-icon">⚠️</div>
-                <div className="warning-text">
-                  <h4>Bạn có chắc chắn muốn hạ cấp xuống gói {selectedPlan.name}?</h4>
-                  <p>Một số tính năng có thể bị hạn chế sau khi hạ cấp.</p>
-                </div>
-              </div>
-              
-              <div className="plan-comparison">
-                <div className="current-plan">
-                  <h4>Gói hiện tại: {currentPlanData?.name}</h4>
-                  <div className="price">${currentPlanData?.price}/{billingPeriod === 'monthly' ? 'tháng' : 'năm'}</div>
-                </div>
-                <div className="arrow">→</div>
-                <div className="new-plan">
-                  <h4>Gói mới: {selectedPlan.name}</h4>
-                  <div className="price">${selectedPlan.price}/{billingPeriod === 'monthly' ? 'tháng' : 'năm'}</div>
-                </div>
-              </div>
-              
-              <div className="downgrade-info">
-                <p><strong>Lưu ý:</strong> Bạn sẽ được chuyển sang gói {selectedPlan.name} sau khi gói hiện tại kết thúc (01/01/2025).</p>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="cancel-btn"
-                onClick={() => setShowDowngradeModal(false)}
-              >
-                Hủy
-              </button>
-              <button 
-                className="confirm-btn downgrade"
-                onClick={processDowngrade}
-              >
-                Đồng ý và thanh toán
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
 
       <style jsx>{`
         .subscription-billing-page {
@@ -734,9 +571,6 @@ const SubscriptionBillingPage = () => {
           border: 2px solid transparent;
           position: relative;
           transition: all 0.3s ease;
-          display: flex;
-          flex-direction: column;
-          height: 100%;
         }
 
         .plan-card:hover {
@@ -783,80 +617,42 @@ const SubscriptionBillingPage = () => {
         .plan-card .plan-features ul {
           grid-template-columns: 1fr;
           margin-bottom: 24px;
-          flex-grow: 1;
-        }
-
-        .plan-actions {
-          margin-top: auto;
-          padding-top: 20px;
-          border-top: 1px solid #F3F4F6;
         }
 
         .upgrade-btn, .downgrade-btn, .current-btn {
           width: 100%;
-          padding: 14px 24px;
+          padding: 12px 24px;
           border: none;
-          border-radius: 10px;
+          border-radius: 8px;
           font-size: 14px;
-          font-weight: 600;
+          font-weight: 500;
           cursor: pointer;
           transition: all 0.3s ease;
-          position: relative;
-          overflow: hidden;
         }
 
         .upgrade-btn {
-          background: linear-gradient(135deg, #FF5E13, #FF8C42);
+          background: #FF5E13;
           color: white;
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.3);
         }
 
         .upgrade-btn:hover {
-          background: linear-gradient(135deg, #FF8C42, #FFA463);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(255, 94, 19, 0.4);
-        }
-
-        .upgrade-btn::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-          transition: left 0.5s;
-        }
-
-        .upgrade-btn:hover::before {
-          left: 100%;
+          background: #FFA463;
         }
 
         .downgrade-btn {
-          background: linear-gradient(135deg, #F3F4F6, #E5E7EB);
+          background: #F3F4F6;
           color: #0D062D;
-          border: 2px solid #D1D5DB;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          border: 2px solid #E5E7EB;
         }
 
         .downgrade-btn:hover {
-          background: linear-gradient(135deg, #E5E7EB, #D1D5DB);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          border-color: #9CA3AF;
+          background: #E5E7EB;
         }
 
         .current-btn {
-          background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+          background: #D1FAE5;
           color: #065F46;
           cursor: not-allowed;
-          border: 2px solid #10B981;
-          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
-        }
-
-        .current-btn:hover {
-          transform: none;
-          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
         }
 
         .billing-history-section {
@@ -872,49 +668,22 @@ const SubscriptionBillingPage = () => {
 
         .billing-table {
           background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
           overflow: hidden;
-          border: 1px solid #F1F5F9;
-          position: relative;
-        }
-
-        .billing-table::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, #FF5E13, transparent);
-          opacity: 0.3;
         }
 
         .table-header {
           display: grid;
           grid-template-columns: 1fr 2fr 1fr 1fr 1fr;
           gap: 16px;
-          padding: 20px 24px;
-          background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+          padding: 16px 24px;
+          background: #F9F4EE;
           font-size: 12px;
-          font-weight: 700;
-          color: #475569;
+          font-weight: 600;
+          color: #787486;
           text-transform: uppercase;
-          letter-spacing: 0.8px;
-          border-bottom: 2px solid #E2E8F0;
-          position: relative;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        .table-header::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, #FF5E13, #FF8C42, #FFA463);
-          border-radius: 0 0 2px 2px;
+          letter-spacing: 0.5px;
         }
 
         .table-row {
@@ -922,115 +691,43 @@ const SubscriptionBillingPage = () => {
           grid-template-columns: 1fr 2fr 1fr 1fr 1fr;
           gap: 16px;
           padding: 20px 24px;
-          border-bottom: 1px solid #F1F5F9;
+          border-bottom: 1px solid #F3F4F6;
           align-items: center;
-          transition: all 0.3s ease;
-          background: white;
-        }
-
-        .table-row:nth-child(even) {
-          background: #FAFBFC;
         }
 
         .table-row:hover {
-          background: linear-gradient(135deg, #FEF7F0 0%, #FFF5F0 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.08);
-          border-left: 3px solid #FF5E13;
+          background: #F9F4EE;
         }
 
-        .table-row:nth-child(even):hover {
-          background: linear-gradient(135deg, #FEF7F0 0%, #FFF5F0 100%);
-        }
-
-        .date {
-          font-size: 14px;
-          color: #475569;
-          font-weight: 500;
-          transition: color 0.3s ease;
-        }
-
-        .table-row:hover .date {
-          color: #FF5E13;
-        }
-
-        .description {
+        .date, .description, .amount {
           font-size: 14px;
           color: #0D062D;
-          font-weight: 500;
-          transition: color 0.3s ease;
-        }
-
-        .table-row:hover .description {
-          color: #FF5E13;
         }
 
         .amount {
-          font-size: 16px;
-          font-weight: 700;
-          color: #059669;
-          background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
-          padding: 6px 12px;
-          border-radius: 8px;
-          display: inline-block;
-          transition: all 0.3s ease;
-        }
-
-        .table-row:hover .amount {
-          background: linear-gradient(135deg, #FEF7F0, #FFF5F0);
-          color: #FF5E13;
-          transform: scale(1.05);
+          font-weight: 600;
         }
 
         .download-btn {
           display: flex;
           align-items: center;
           gap: 6px;
-          padding: 8px 16px;
-          border: 2px solid #E5E7EB;
-          background: linear-gradient(135deg, #FFFFFF, #F9FAFB);
-          color: #475569;
-          border-radius: 8px;
+          padding: 6px 12px;
+          border: 1px solid #E5E7EB;
+          background: white;
+          color: #787486;
+          border-radius: 6px;
           font-size: 12px;
-          font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .download-btn::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 94, 19, 0.1), transparent);
-          transition: left 0.5s;
-        }
-
-        .download-btn:hover::before {
-          left: 100%;
         }
 
         .download-btn:hover {
           border-color: #FF5E13;
           color: #FF5E13;
-          background: linear-gradient(135deg, #FEF7F0, #FFF5F0);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.2);
         }
 
-        .download-btn svg {
-          transition: transform 0.3s ease;
-        }
-
-        .download-btn:hover svg {
-          transform: translateY(-1px);
-        }
-
-        /* .payment-method-section h2 {
+        .payment-method-section h2 {
           font-size: 24px;
           font-weight: 600;
           color: #0D062D;
@@ -1104,309 +801,13 @@ const SubscriptionBillingPage = () => {
         .update-card-btn:hover {
           background: #FF5E13;
           color: white;
-        } */
+        }
 
         .status-badge {
-          padding: 6px 12px;
-          border-radius: 8px;
+          padding: 4px 8px;
+          border-radius: 6px;
           font-size: 12px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          transition: all 0.3s ease;
-          display: inline-block;
-        }
-
-        .status-badge.paid {
-          font-size: 16px;
-          font-weight: 700;
-          color: #059669;
-          background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
-          padding: 6px 12px;
-          border-radius: 8px;
-          display: inline-block;
-          transition: all 0.3s ease;
-        }
-
-        .status-badge.pending {
-          color: #92400E;
-          background: linear-gradient(135deg, #FEF3C7, #FDE68A);
-          font-weight: 700;
-        }
-
-        .status-badge.failed {
-          color: #DC2626;
-          background: linear-gradient(135deg, #FEE2E2, #FECACA);
-          font-weight: 700;
-        }
-
-        .table-row:hover .status-badge.paid {
-          background: linear-gradient(135deg, #FEF7F0, #FFF5F0);
-          color: #FF5E13;
-          transform: scale(1.05);
-        }
-
-        .table-row:hover .status-badge.pending {
-          background: linear-gradient(135deg, #FEF7F0, #FFF5F0);
-          color: #FF5E13;
-          transform: scale(1.05);
-        }
-
-        .table-row:hover .status-badge.failed {
-          background: linear-gradient(135deg, #FEF7F0, #FFF5F0);
-          color: #FF5E13;
-          transform: scale(1.05);
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal {
-          background: white;
-          border-radius: 16px;
-          width: 90%;
-          max-width: 600px;
-          max-height: 90vh;
-          overflow-y: auto;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-        }
-
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 24px 24px 0 24px;
-          border-bottom: 1px solid #F3F4F6;
-          margin-bottom: 24px;
-        }
-
-        .modal-header h3 {
-          font-size: 20px;
-          font-weight: 600;
-          color: #0D062D;
-          margin: 0;
-        }
-
-        .close-btn {
-          background: none;
-          border: none;
-          font-size: 24px;
-          color: #787486;
-          cursor: pointer;
-          padding: 0;
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          transition: all 0.3s ease;
-        }
-
-        .close-btn:hover {
-          background: #F3F4F6;
-          color: #0D062D;
-        }
-
-        .modal-body {
-          padding: 0 24px;
-        }
-
-        .plan-comparison {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          background: #F9F4EE;
-          padding: 20px;
-          border-radius: 12px;
-          margin-bottom: 24px;
-        }
-
-        .current-plan, .new-plan {
-          text-align: center;
-          flex: 1;
-        }
-
-        .current-plan h4, .new-plan h4 {
-          font-size: 14px;
-          font-weight: 600;
-          color: #0D062D;
-          margin: 0 0 8px 0;
-        }
-
-        .current-plan .price, .new-plan .price {
-          font-size: 18px;
-          font-weight: 700;
-          color: #FF5E13;
-        }
-
-        .arrow {
-          font-size: 24px;
-          color: #FF5E13;
-          margin: 0 20px;
-        }
-
-        .upgrade-options h4 {
-          font-size: 16px;
-          font-weight: 600;
-          color: #0D062D;
-          margin: 0 0 16px 0;
-        }
-
-        .option-group {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .option-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          padding: 16px;
-          border: 2px solid #E5E7EB;
-          border-radius: 12px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .option-item:hover {
-          border-color: #FF5E13;
-          background: #FEF7F0;
-        }
-
-        .option-item input[type="radio"] {
-          margin: 0;
-          accent-color: #FF5E13;
-        }
-
-        .option-item input[type="radio"]:checked + .option-content {
-          color: #FF5E13;
-        }
-
-        .option-item:has(input[type="radio"]:checked) {
-          border-color: #FF5E13;
-          background: #FEF7F0;
-        }
-
-        .option-content {
-          flex: 1;
-        }
-
-        .option-title {
-          font-size: 14px;
-          font-weight: 600;
-          color: #0D062D;
-          margin-bottom: 4px;
-        }
-
-        .option-description {
-          font-size: 12px;
-          color: #787486;
-        }
-
-        .warning-message {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          background: #FEF3C7;
-          padding: 16px;
-          border-radius: 12px;
-          margin-bottom: 24px;
-          border-left: 4px solid #F59E0B;
-        }
-
-        .warning-icon {
-          font-size: 20px;
-          flex-shrink: 0;
-        }
-
-        .warning-text h4 {
-          font-size: 14px;
-          font-weight: 600;
-          color: #92400E;
-          margin: 0 0 4px 0;
-        }
-
-        .warning-text p {
-          font-size: 12px;
-          color: #92400E;
-          margin: 0;
-        }
-
-        .downgrade-info {
-          background: #F3F4F6;
-          padding: 16px;
-          border-radius: 12px;
-          margin-bottom: 24px;
-        }
-
-        .downgrade-info p {
-          font-size: 14px;
-          color: #0D062D;
-          margin: 0;
-        }
-
-        .modal-footer {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          padding: 24px;
-          border-top: 1px solid #F3F4F6;
-          margin-top: 24px;
-        }
-
-        .modal-footer .cancel-btn {
-          padding: 12px 24px;
-          border: 2px solid #E5E7EB;
-          background: white;
-          color: #787486;
-          border-radius: 8px;
-          font-size: 14px;
           font-weight: 500;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .modal-footer .cancel-btn:hover {
-          border-color: #D1D5DB;
-          color: #0D062D;
-        }
-
-        .modal-footer .confirm-btn {
-          padding: 12px 24px;
-          border: none;
-          background: #FF5E13;
-          color: white;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .modal-footer .confirm-btn:hover {
-          background: #FF8C42;
-        }
-
-        .modal-footer .confirm-btn.downgrade {
-          background: #DC2626;
-        }
-
-        .modal-footer .confirm-btn.downgrade:hover {
-          background: #B91C1C;
         }
 
         @media (max-width: 768px) {
@@ -1434,50 +835,16 @@ const SubscriptionBillingPage = () => {
             grid-template-columns: 1fr;
           }
 
-          .plan-card {
-            height: auto;
-            min-height: 400px;
-          }
-
-          .plan-actions {
-            margin-top: 20px;
-            padding-top: 16px;
-          }
-
           .table-header,
           .table-row {
             grid-template-columns: 1fr;
             gap: 8px;
           }
 
-          /* .payment-info {
+          .payment-info {
             flex-direction: column;
             align-items: flex-start;
             gap: 16px;
-          } */
-
-          .modal {
-            width: 95%;
-            margin: 20px;
-          }
-
-          .plan-comparison {
-            flex-direction: column;
-            gap: 16px;
-          }
-
-          .arrow {
-            transform: rotate(90deg);
-            margin: 8px 0;
-          }
-
-          .modal-footer {
-            flex-direction: column;
-          }
-
-          .modal-footer .cancel-btn,
-          .modal-footer .confirm-btn {
-            width: 100%;
           }
         }
       `}</style>

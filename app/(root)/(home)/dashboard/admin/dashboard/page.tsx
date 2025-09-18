@@ -762,7 +762,7 @@ const AdminDashboard = () => {
       <style jsx>{`
         .admin-dashboard {
           width: 100%;
-          min-height: calc(100vh - 90px - 48px);
+          height: 100%;
           display: flex;
           flex-direction: column;
           gap: 28px;

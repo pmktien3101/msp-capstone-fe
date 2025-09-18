@@ -449,26 +449,20 @@ const AdminPlans = () => {
                    <button 
                      className="action-btn edit"
                      onClick={() => handleEditPlan(plan)}
-                     title="Chỉnh sửa gói"
                    >
-                     <Edit size={16} />
-                     <span>Chỉnh sửa</span>
+                     Chỉnh sửa
                    </button>
                    <button 
                      className="action-btn view"
                      onClick={() => handleViewPlan(plan)}
-                     title="Xem chi tiết gói"
                    >
-                     <Eye size={16} />
-                     <span>Chi tiết</span>
+                     Xem chi tiết
                    </button>
                    <button 
                      className="action-btn delete"
                      onClick={() => handleDeletePlan(plan)}
-                     title="Xóa gói"
                    >
-                     <Trash2 size={16} />
-                     <span>Xóa</span>
+                     Xóa
                    </button>
                  </div>
               </div>
@@ -1080,9 +1074,6 @@ const AdminPlans = () => {
           padding: 24px;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
           transition: transform 0.3s ease;
-          display: flex;
-          flex-direction: column;
-          height: 100%;
         }
 
         .plan-card:hover {
@@ -1144,7 +1135,6 @@ const AdminPlans = () => {
           padding: 16px;
           background: #F9F4EE;
           border-radius: 10px;
-          flex-grow: 1;
         }
 
         .stat {
@@ -1166,103 +1156,48 @@ const AdminPlans = () => {
 
         .plan-actions {
           display: flex;
-          gap: 8px;
-          margin-top: auto;
-          padding-top: 20px;
-          border-top: 1px solid #F3F4F6;
+          gap: 12px;
         }
 
         .action-btn {
           flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          padding: 14px 10px;
-          border: 1px solid #E5E7EB;
+          padding: 10px 16px;
+          border: 2px solid #E5E7EB;
           background: white;
-          border-radius: 12px;
-          font-size: 12px;
-          font-weight: 600;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
           cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-          min-width: 0;
-          white-space: nowrap;
-        }
-
-        .action-btn::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-          transition: left 0.5s;
-        }
-
-        .action-btn:hover::before {
-          left: 100%;
+          transition: all 0.3s ease;
         }
 
         .action-btn.edit {
           color: #FF5E13;
           border-color: #FF5E13;
-          background: linear-gradient(135deg, #FFF5F0 0%, #FFE4D6 100%);
         }
 
         .action-btn.edit:hover {
-          background: linear-gradient(135deg, #FF5E13 0%, #E04A0C 100%);
+          background: #FF5E13;
           color: white;
-          transform: translateY(-3px);
-          box-shadow: 0 10px 30px rgba(255, 94, 19, 0.4);
-          border-color: #E04A0C;
         }
 
         .action-btn.view {
-          color: #3B82F6;
-          border-color: #3B82F6;
-          background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+          color: #6B7280;
         }
 
-        .action-btn.view:hover {
-          background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-          color: white;
-          transform: translateY(-3px);
-          box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
-          border-color: #1D4ED8;
-        }
+         .action-btn.view:hover {
+           background: #F3F4F6;
+         }
 
-        .action-btn.delete {
-          color: #DC2626;
-          border-color: #DC2626;
-          background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
-        }
+         .action-btn.delete {
+           color: #DC2626;
+           border-color: #DC2626;
+         }
 
-        .action-btn.delete:hover {
-          background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
-          color: white;
-          transform: translateY(-3px);
-          box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);
-          border-color: #B91C1C;
-        }
-
-        .action-btn:active {
-          transform: translateY(0);
-          transition: transform 0.1s;
-        }
-
-        .action-btn span {
-          font-size: 12px;
-          font-weight: 600;
-          letter-spacing: 0.025em;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
+         .action-btn.delete:hover {
+           background: #DC2626;
+           color: white;
+         }
 
         .subscriptions-filters {
           display: flex;
@@ -1393,12 +1328,6 @@ const AdminPlans = () => {
           max-height: 90vh;
           overflow-y: auto;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-          scrollbar-width: none; /* Firefox */
-          -ms-overflow-style: none; /* Internet Explorer 10+ */
-        }
-
-        .modal-content::-webkit-scrollbar {
-          display: none; /* WebKit */
         }
 
         .modal-header {
@@ -1778,12 +1707,6 @@ const AdminPlans = () => {
           flex: 1;
           overflow-y: auto;
           padding: 16px 24px;
-          scrollbar-width: none; /* Firefox */
-          -ms-overflow-style: none; /* Internet Explorer 10+ */
-        }
-
-        .sidebar-content::-webkit-scrollbar {
-          display: none; /* WebKit */
         }
 
         /* Feature Groups */
@@ -2262,49 +2185,6 @@ const AdminPlans = () => {
 
           .modal-footer {
             padding: 20px;
-          }
-
-          /* Mobile button improvements */
-          .plan-actions {
-            flex-direction: column;
-            gap: 10px;
-            padding-top: 16px;
-          }
-
-          .action-btn {
-            padding: 16px 12px;
-            font-size: 13px;
-            white-space: nowrap;
-            border-radius: 10px;
-          }
-
-          .action-btn span {
-            font-size: 13px;
-            white-space: nowrap;
-          }
-
-          .action-btn:hover {
-            transform: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          }
-        }
-
-        @media (max-width: 480px) {
-          .plan-actions {
-            gap: 8px;
-            padding-top: 14px;
-          }
-
-          .action-btn {
-            padding: 14px 10px;
-            font-size: 12px;
-            white-space: nowrap;
-            border-radius: 8px;
-          }
-
-          .action-btn span {
-            font-size: 12px;
-            white-space: nowrap;
           }
         }
       `}</style>
