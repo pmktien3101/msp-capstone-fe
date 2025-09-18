@@ -114,8 +114,8 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
             status: task.status,
             priority: task.priority,
             assignee: task.assignee,
-            startDate: task.startDate || task.createdDate,
-            endDate: task.endDate || task.dueDate,
+            startDate: (task as any).startDate || task.createdDate,
+            endDate: (task as any).endDate || task.dueDate,
             progress: task.status === 'done' ? 100 : task.status === 'in-progress' ? 50 : 0,
             epicId: epic.id,
             rowIndex: rowIndex++
@@ -223,6 +223,12 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   const calculateBarPosition = (startDate: string, endDate: string) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
+    
+    // Validate dates
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      console.warn(`⚠️ Invalid dates: startDate=${startDate}, endDate=${endDate}`);
+      return { left: 0, width: 0 };
+    }
     
     // Get timeline range from generated dates
     const timelineStart = timelineDates[0];

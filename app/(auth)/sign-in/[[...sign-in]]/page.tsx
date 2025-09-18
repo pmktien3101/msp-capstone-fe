@@ -12,7 +12,7 @@ import "../../../styles/auth.scss";
 const MOCK_USERS = [
   {
     email: "pm@gmail.com",
-    password: "pm123",
+    password: "123",
     userData: {
       userId: "1",
       email: "pm@gmail.com",
@@ -22,7 +22,7 @@ const MOCK_USERS = [
   },
   {
     email: "admin@gmail.com",
-    password: "admin123",
+    password: "123",
     userData: {
       userId: "2",
       email: "admin@gmail.com",
@@ -32,7 +32,7 @@ const MOCK_USERS = [
   },
   {
     email: "business@gmail.com",
-    password: "business123",
+    password: "123",
     userData: {
       userId: "3",
       email: "business@gmail.com",

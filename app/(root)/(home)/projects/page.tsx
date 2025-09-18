@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProjectsTable } from '@/components/projects/ProjectsTable';
 import { EditProjectModal } from '@/components/projects/modals/EditProjectModal';
-import { AddMeetingModal } from '@/components/projects/modals/AddMeetingModal';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import '@/app/styles/projects.scss';
 import { Project } from '@/types/project';
@@ -176,14 +175,6 @@ const ProjectsPage = () => {
         <EditProjectModal
           isOpen={showEditProjectModal}
           onClose={handleCloseEditProject}
-          project={selectedProject}
-        />
-      )}
-
-      {showAddMeetingModal && selectedProject && (
-        <AddMeetingModal
-          isOpen={showAddMeetingModal}
-          onClose={handleCloseMeeting}
           project={selectedProject}
         />
       )}
