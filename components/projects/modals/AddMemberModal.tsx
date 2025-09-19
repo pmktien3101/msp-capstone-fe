@@ -178,6 +178,14 @@ export function AddMemberModal({
               transition: 'all 0.2s ease'
             }}
             onClick={handleClose}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f3f4f6';
+              e.currentTarget.style.color = '#374151';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#6b7280';
+            }}
           >
             <X size={20} />
           </button>
@@ -280,7 +288,7 @@ export function AddMemberModal({
                       style={{
                         width: '40px',
                         height: '40px',
-                        background: '#3b82f6',
+                        background: '#FF5E13',
                         color: 'white',
                         borderRadius: '50%',
                         display: 'flex',
@@ -455,15 +463,24 @@ export function AddMemberModal({
                   width: '100%',
                   padding: '12px',
                   fontSize: '14px',
-                  background: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
+                  background: 'transparent',
+                  color: '#FF5E13',
+                  border: '1px solid #FF5E13',
                   borderRadius: '8px',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#FF5E13';
+                  e.currentTarget.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = '#FF5E13';
                 }}
               >
                 <Plus size={16} />

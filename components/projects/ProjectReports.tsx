@@ -211,12 +211,14 @@ export const ProjectReports = ({ project }: ProjectReportsProps) => {
         }
 
         .btn-primary {
-          background: #ff5e13;
-          color: white;
+          background: transparent;
+          color: #FF5E13;
+          border: 1px solid #FF5E13;
         }
 
         .btn-primary:hover {
-          background: #e54e0a;
+          background: #FF5E13;
+          color: white;
         }
 
         .btn-secondary {
@@ -249,8 +251,9 @@ export const ProjectReports = ({ project }: ProjectReportsProps) => {
         }
 
         .report-card:hover {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.2);
           transform: translateY(-1px);
+          border-color: #FF5E13;
         }
 
         .report-header {

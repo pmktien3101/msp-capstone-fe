@@ -1,6 +1,7 @@
 'use client';
 
 import { Project } from '@/types/project';
+import { FolderOpen, PlayCircle, CheckCircle, TrendingUp } from 'lucide-react';
 
 interface PMDashboardHeaderProps {
   projects: Project[];
@@ -35,7 +36,9 @@ export function PMDashboardHeader({
 
       <div className="stats-overview">
         <div className="stat-card">
-          <div className="stat-icon projects">📁</div>
+          <div className="stat-icon projects">
+            <FolderOpen size={20} />
+          </div>
           <div className="stat-content">
             <div className="stat-number">{projects.length}</div>
             <div className="stat-label">Tổng Dự Án</div>
@@ -43,7 +46,9 @@ export function PMDashboardHeader({
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon active">🟢</div>
+          <div className="stat-icon active">
+            <PlayCircle size={20} />
+          </div>
           <div className="stat-content">
             <div className="stat-number">{activeProjects}</div>
             <div className="stat-label">Đang Thực Hiện</div>
@@ -51,7 +56,9 @@ export function PMDashboardHeader({
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon completed">✅</div>
+          <div className="stat-icon completed">
+            <CheckCircle size={20} />
+          </div>
           <div className="stat-content">
             <div className="stat-number">{completedProjects}</div>
             <div className="stat-label">Hoàn Thành</div>
@@ -59,7 +66,9 @@ export function PMDashboardHeader({
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon progress">📈</div>
+          <div className="stat-icon progress">
+            <TrendingUp size={20} />
+          </div>
           <div className="stat-content">
             <div className="stat-number">{averageProgress}%</div>
             <div className="stat-label">Tiến Độ TB</div>
@@ -70,12 +79,13 @@ export function PMDashboardHeader({
 
       <style jsx>{`
         .pm-dashboard-header {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
+          background: white;
+          color: #1f2937;
           padding: 24px;
           border-radius: 12px;
           margin-bottom: 24px;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          border: 1px solid #e5e7eb;
         }
 
         .header-content {
@@ -100,26 +110,27 @@ export function PMDashboardHeader({
           width: 60px;
           height: 60px;
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.2);
+          background: #f3f4f6;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 24px;
           font-weight: bold;
-          border: 3px solid rgba(255, 255, 255, 0.3);
+          border: 3px solid #e5e7eb;
+          color: #6b7280;
         }
 
         .pm-details h1 {
           margin: 0;
           font-size: 28px;
           font-weight: 700;
-          color: white;
+          color: #1f2937;
         }
 
         .pm-details p {
           margin: 4px 0 0 0;
           font-size: 16px;
-          color: rgba(255, 255, 255, 0.8);
+          color: #6b7280;
         }
 
 
@@ -130,9 +141,8 @@ export function PMDashboardHeader({
         }
 
         .stat-card {
-          background: rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
           border-radius: 8px;
           padding: 16px;
           display: flex;
@@ -142,12 +152,12 @@ export function PMDashboardHeader({
         }
 
         .stat-card:hover {
-          background: rgba(255, 255, 255, 0.15);
+          background: #f3f4f6;
           transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .stat-icon {
-          font-size: 24px;
           width: 40px;
           height: 40px;
           border-radius: 8px;
@@ -156,10 +166,22 @@ export function PMDashboardHeader({
           justify-content: center;
         }
 
-        .stat-icon.projects { background: rgba(59, 130, 246, 0.2); }
-        .stat-icon.active { background: rgba(34, 197, 94, 0.2); }
-        .stat-icon.completed { background: rgba(16, 185, 129, 0.2); }
-        .stat-icon.progress { background: rgba(245, 158, 11, 0.2); }
+        .stat-icon.projects { 
+          background: rgba(59, 130, 246, 0.1); 
+          color: #3b82f6;
+        }
+        .stat-icon.active { 
+          background: rgba(34, 197, 94, 0.1); 
+          color: #22c55e;
+        }
+        .stat-icon.completed { 
+          background: rgba(16, 185, 129, 0.1); 
+          color: #10b981;
+        }
+        .stat-icon.progress { 
+          background: rgba(245, 158, 11, 0.1); 
+          color: #f59e0b;
+        }
 
         .stat-content {
           flex: 1;
@@ -168,13 +190,13 @@ export function PMDashboardHeader({
         .stat-number {
           font-size: 24px;
           font-weight: 700;
-          color: white;
+          color: #1f2937;
           line-height: 1;
         }
 
         .stat-label {
           font-size: 12px;
-          color: rgba(255, 255, 255, 0.8);
+          color: #6b7280;
           margin-top: 4px;
           font-weight: 500;
         }
