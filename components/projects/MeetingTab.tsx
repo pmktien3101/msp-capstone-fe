@@ -212,7 +212,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     </div>
                   </div>
                   <div className="col-room">
-                    {viewType === "ended" ? (
+                    {statusInfo.label === "Hoàn thành" ? (
                       <span className="text-xs text-gray-400 italic">
                         (Đã kết thúc)
                       </span>
@@ -225,6 +225,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       </button>
                     )}
                   </div>
+
                   <div className="col-status">
                     <span
                       className="status-badge"
