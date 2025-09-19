@@ -141,7 +141,7 @@ export const mockTasks = [
     epic: 'XÂY DỰNG MODULE PAYMENT',
     status: 'review',
     priority: 'high',
-    assignee: 'NA',
+    assignee: 'Member',
     dueDate: '2025-09-20',
     createdDate: '2025-09-05',
     updatedDate: '2025-09-15',
@@ -594,7 +594,7 @@ export const additionalMockTasks = [
     epic: 'MOBILE DEVELOPMENT',
     status: 'in-progress',
     priority: 'high',
-    assignee: 'TB',
+    assignee: 'Member',
     assignedTo: {
       id: 5,
       name: 'Tom Brown',
@@ -742,7 +742,7 @@ export const additionalMockTasks = [
     epic: 'DATA ANALYTICS',
     status: 'in-progress',
     priority: 'medium',
-    assignee: 'LC',
+    assignee: 'Member',
     assignedTo: {
       id: 10,
       name: 'Lisa Chen',
@@ -816,7 +816,7 @@ export const additionalMockTasks = [
     epic: 'CUSTOMER SUPPORT',
     status: 'todo',
     priority: 'medium',
-    assignee: 'JT',
+    assignee: 'Member',
     assignedTo: {
       id: 12,
       name: 'James Taylor',

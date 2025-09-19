@@ -109,8 +109,8 @@ const Sidebar = () => {
     }
   ];
 
-  // Regular user menu items
-  const userSidebarItems: SidebarItem[] = [
+  // PM menu items
+  const pmSidebarItems: SidebarItem[] = [
     {
       id: 'dashboard',
       label: 'Tổng Quan Dự Án',
@@ -123,6 +123,33 @@ const Sidebar = () => {
     },
   ];
 
+  // Member menu items
+  const memberSidebarItems: SidebarItem[] = [
+    {
+      id: 'member-dashboard',
+      label: 'Tổng quan',
+      route: '/dashboard/member',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+    {
+      id: 'calendar',
+      label: 'Lịch',
+      route: '/calendar',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
+  ];
+
   // Get sidebar items based on role
   const getSidebarItems = () => {
     switch (role) {
@@ -130,8 +157,11 @@ const Sidebar = () => {
         return adminSidebarItems;
       case 'BusinessOwner':
         return businessOwnerSidebarItems;
+      case 'Member':
+        return memberSidebarItems;
+      case 'pm':
       default:
-        return userSidebarItems;
+        return pmSidebarItems;
     }
   };
   
@@ -199,8 +229,8 @@ const Sidebar = () => {
             </div>
           ))}
           
-          {/* Project Section - Only show for regular users (not admin or business owner) */}
-          {role !== 'AdminSystem' && role !== 'BusinessOwner' && (
+          {/* Project Section - Only show for PM and Member (not admin or business owner) */}
+          {(role === 'pm' || role === 'Member') && (
             <ProjectSection
               isExpanded={isProjectSectionExpanded}
               onToggle={handleProjectSectionToggle}

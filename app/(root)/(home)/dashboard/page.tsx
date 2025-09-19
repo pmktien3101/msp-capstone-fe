@@ -17,6 +17,9 @@ export default function DashboardPage() {
       case 'BusinessOwner':
         router.push('/dashboard/business');
         break;
+      case 'Member':
+        router.push('/dashboard/member');
+        break;
       case 'pm':
       default:
         router.push('/dashboard/pm');

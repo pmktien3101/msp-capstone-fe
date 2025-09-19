@@ -40,6 +40,16 @@ const MOCK_USERS = [
       image: "https://getstream.io/random_svg/?id=3&name=business",
     },
   },
+  {
+    email: "member@gmail.com",
+    password: "123",
+    userData: {
+      userId: "4",
+      email: "member@gmail.com",
+      role: "Member",
+      image: "https://getstream.io/random_svg/?id=4&name=staff",
+    },
+  },
 ];
 
 export default function SignInPage() {
