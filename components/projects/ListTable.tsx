@@ -38,6 +38,21 @@ export const ListTable = ({
     }
   };
 
+  const getStatusBackgroundColor = (status: string) => {
+    switch (status) {
+      case 'todo':
+        return '#f3f4f6';
+      case 'in-progress':
+        return '#fef3c7';
+      case 'review':
+        return '#dbeafe';
+      case 'done':
+        return '#dcfce7';
+      default:
+        return '#f3f4f6';
+    }
+  };
+
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'todo':
@@ -63,6 +78,19 @@ export const ListTable = ({
         return '#10b981';
       default:
         return '#6b7280';
+    }
+  };
+
+  const getPriorityBackgroundColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return '#fee2e2';
+      case 'medium':
+        return '#fef3c7';
+      case 'low':
+        return '#dcfce7';
+      default:
+        return '#f3f4f6';
     }
   };
 
@@ -147,7 +175,11 @@ export const ListTable = ({
                 <td className="status-col">
                   <span 
                     className="status-badge"
-                    style={{ backgroundColor: getStatusColor(task.status) }}
+                    style={{ 
+                      color: getStatusColor(task.status),
+                      backgroundColor: getStatusBackgroundColor(task.status),
+                      borderColor: getStatusBackgroundColor(task.status)
+                    }}
                   >
                     {getStatusLabel(task.status)}
                   </span>
@@ -167,7 +199,11 @@ export const ListTable = ({
                 <td className="priority-col">
                   <span 
                     className="priority-badge"
-                    style={{ backgroundColor: getPriorityColor(task.priority) }}
+                    style={{ 
+                      color: getPriorityColor(task.priority),
+                      backgroundColor: getPriorityBackgroundColor(task.priority),
+                      borderColor: getPriorityBackgroundColor(task.priority)
+                    }}
                   >
                     {getPriorityLabel(task.priority)}
                   </span>
@@ -310,13 +346,13 @@ export const ListTable = ({
 
         .status-badge {
           display: inline-block;
-          color: white;
           font-size: 12px;
           font-weight: 500;
           padding: 4px 8px;
           border-radius: 12px;
           text-align: center;
           min-width: 80px;
+          border: 1px solid;
         }
 
         .assignee {
@@ -328,7 +364,7 @@ export const ListTable = ({
         .assignee-avatar {
           width: 24px;
           height: 24px;
-          background: #3b82f6;
+          background: #FF5E13;
           color: white;
           border-radius: 50%;
           display: flex;
@@ -345,13 +381,13 @@ export const ListTable = ({
 
         .priority-badge {
           display: inline-block;
-          color: white;
           font-size: 12px;
           font-weight: 500;
           padding: 4px 8px;
           border-radius: 12px;
           text-align: center;
           min-width: 80px;
+          border: 1px solid;
         }
 
         .due-date {

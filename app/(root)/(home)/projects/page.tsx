@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProjectsTable } from '@/components/projects/ProjectsTable';
 import { EditProjectModal } from '@/components/projects/modals/EditProjectModal';
+import { CreateProjectModal } from '@/components/projects/modals/CreateProjectModal';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
+import { useProjectModal } from '@/contexts/ProjectModalContext';
 import '@/app/styles/projects.scss';
 import { Project } from '@/types/project';
 
 const ProjectsPage = () => {
   const router = useRouter();
+  const { isCreateModalOpen, closeCreateModal } = useProjectModal();
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
   const [showAddMeetingModal, setShowAddMeetingModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
@@ -171,6 +174,11 @@ const ProjectsPage = () => {
       />
 
       {/* Modals */}
+      <CreateProjectModal
+        isOpen={isCreateModalOpen}
+        onClose={closeCreateModal}
+      />
+      
       {showEditProjectModal && selectedProject && (
         <EditProjectModal
           isOpen={showEditProjectModal}

@@ -201,9 +201,9 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
         <Button
           onClick={() => setShowUploadModal(true)}
           style={{
-            background: '#3b82f6',
-            color: 'white',
-            border: 'none',
+            background: 'transparent',
+            color: '#FF5E13',
+            border: '1px solid #FF5E13',
             borderRadius: '8px',
             padding: '10px 20px',
             cursor: 'pointer',
@@ -211,7 +211,16 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
             fontWeight: 500,
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#FF5E13';
+            e.currentTarget.style.color = 'white';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = '#FF5E13';
           }}
         >
           <Upload size={16} />
@@ -298,8 +307,8 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                 transition: 'all 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#3b82f6';
-                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.borderColor = '#FF5E13';
+                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(255, 94, 19, 0.2)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#e5e7eb';
@@ -544,12 +553,25 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                 disabled={!uploadFile}
                 style={{
                   padding: '10px 20px',
-                  background: uploadFile ? '#3b82f6' : '#9ca3af',
-                  color: 'white',
-                  border: 'none',
+                  background: uploadFile ? 'transparent' : '#f3f4f6',
+                  color: uploadFile ? '#FF5E13' : '#9ca3af',
+                  border: uploadFile ? '1px solid #FF5E13' : '1px solid #d1d5db',
                   borderRadius: '8px',
                   cursor: uploadFile ? 'pointer' : 'not-allowed',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (uploadFile) {
+                    e.currentTarget.style.background = '#FF5E13';
+                    e.currentTarget.style.color = 'white';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (uploadFile) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#FF5E13';
+                  }
                 }}
               >
                 Tải lên

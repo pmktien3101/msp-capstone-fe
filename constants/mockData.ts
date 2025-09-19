@@ -34,7 +34,8 @@ export const mockTasks = [
       role: 'Backend Developer',
       avatar: '/avatars/quang.png'
     },
-    dueDate: '2025-09-14',
+    startDate: '2025-09-01',
+    endDate: '2025-09-14',
     createdDate: '2025-09-01',
     updatedDate: '2025-09-01',
     tags: ['backend', 'api', 'auth'],
@@ -87,7 +88,8 @@ export const mockTasks = [
       role: 'Frontend Developer',
       avatar: '/avatars/binh.png'
     },
-    dueDate: '2025-09-16',
+    startDate: '2025-09-15',
+    endDate: '2025-09-16',
     createdDate: '2025-09-02',
     updatedDate: '2025-09-10',
     tags: ['frontend', 'ui', 'responsive'],
@@ -126,7 +128,8 @@ export const mockTasks = [
       role: 'Database Designer',
       avatar: '/avatars/an.png'
     },
-    dueDate: '2025-09-10',
+    startDate: '2025-09-01',
+    endDate: '2025-09-10',
     createdDate: '2025-09-01',
     updatedDate: '2025-09-08',
     tags: ['database', 'design', 'schema'],
@@ -142,7 +145,8 @@ export const mockTasks = [
     status: 'review',
     priority: 'high',
     assignee: 'NA',
-    dueDate: '2025-09-20',
+    startDate: '2025-09-15',
+    endDate: '2025-09-20',
     createdDate: '2025-09-05',
     updatedDate: '2025-09-15',
     tags: ['payment', 'integration', 'vnpay'],
@@ -156,7 +160,8 @@ export const mockTasks = [
     status: 'todo',
     priority: 'medium',
     assignee: null,
-    dueDate: '2025-09-25',
+    startDate: '2025-09-20',
+    endDate: '2025-09-25',
     createdDate: '2025-09-08',
     updatedDate: '2025-09-08',
     tags: ['user-management', 'permissions', 'backend'],
@@ -170,7 +175,8 @@ export const mockTasks = [
     status: 'in-progress',
     priority: 'low',
     assignee: 'QL',
-    dueDate: '2025-09-30',
+    startDate: '2025-09-25',
+    endDate: '2025-09-30',
     createdDate: '2025-09-10',
     updatedDate: '2025-09-12',
     tags: ['email', 'notification', 'service'],
@@ -178,28 +184,6 @@ export const mockTasks = [
   }
 ];
 
-export const mockEpics = [
-  {
-    id: 'epic-1',
-    name: 'XÂY DỰNG HỆ THỐNG LOGIN',
-    description: 'Xây dựng hệ thống đăng nhập và xác thực',
-    status: 'in-progress',
-    progress: 60,
-    startDate: '2025-09-01',
-    endDate: '2025-09-25',
-    tasks: mockTasks.filter(task => task.epic === 'XÂY DỰNG HỆ THỐNG LOGIN')
-  },
-  {
-    id: 'epic-2',
-    name: 'XÂY DỰNG MODULE PAYMENT',
-    description: 'Xây dựng module thanh toán',
-    status: 'in-progress',
-    progress: 40,
-    startDate: '2025-09-05',
-    endDate: '2025-09-30',
-    tasks: mockTasks.filter(task => task.epic === 'XÂY DỰNG MODULE PAYMENT')
-  }
-];
 
 export const mockActivities = [
   {
@@ -240,7 +224,7 @@ export const mockActivities = [
 export const mockMilestones = [
   {
     id: 'milestone-1',
-    title: 'Hoàn thành hệ thống đăng nhập',
+    name: 'Hoàn thành hệ thống đăng nhập',
     description: 'Hoàn thành tất cả tính năng đăng nhập và xác thực',
     dueDate: '2025-09-25',
     status: 'in-progress',
@@ -249,7 +233,7 @@ export const mockMilestones = [
   },
   {
     id: 'milestone-2',
-    title: 'Hoàn thành module thanh toán',
+    name: 'Hoàn thành module thanh toán',
     description: 'Hoàn thành tích hợp thanh toán VNPay',
     dueDate: '2025-09-30',
     status: 'pending',
@@ -289,10 +273,11 @@ export const mockHierarchicalWorkItems = mockMilestones.map(milestone => {
   
   return {
     id: milestone.id,
-    title: milestone.title,
+    title: milestone.name,
     type: 'milestone' as const,
     status: status,
-    dueDate: milestone.dueDate,
+    startDate: milestone.dueDate,
+    endDate: milestone.dueDate,
     progress: progress,
     isExpanded: milestone.id === 'milestone-1', // First milestone expanded by default
     children: milestone.tasks.map(task => ({
@@ -301,7 +286,8 @@ export const mockHierarchicalWorkItems = mockMilestones.map(milestone => {
       type: 'task' as const,
       status: task.status,
       assignee: task.assignee,
-      dueDate: task.dueDate,
+      startDate: task.startDate,
+      endDate: task.endDate,
       milestoneId: milestone.id
     }))
   };
@@ -319,11 +305,12 @@ export const mockFlattenedWorkItems = (() => {
     // Add milestone
     items.push({
       id: milestone.id,
-      title: milestone.title,
+      title: milestone.name,
       type: 'milestone',
       status: status,
       assignee: '',
-      dueDate: milestone.dueDate,
+      startDate: milestone.dueDate,
+      endDate: milestone.dueDate,
       progress: progress,
       rowIndex: rowIndex++
     });
@@ -336,7 +323,8 @@ export const mockFlattenedWorkItems = (() => {
         type: 'task',
         status: task.status,
         assignee: task.assignee || '',
-        dueDate: task.dueDate,
+        startDate: task.startDate,
+        endDate: task.endDate,
         milestoneId: milestone.id,
         progress: task.status === 'done' ? 100 : task.status === 'in-progress' ? 50 : 0,
         rowIndex: rowIndex++
@@ -440,8 +428,8 @@ export const getTasksByAssignee = (assignee: string) => {
   return mockTasks.filter(task => task.assignee === assignee);
 };
 
-export const getTasksByEpic = (epic: string) => {
-  return mockTasks.filter(task => task.epic === epic);
+export const getTasksByMilestone = (milestone: string) => {
+  return mockTasks.filter(task => task.epic === milestone);
 };
 
 export const getProjectStats = () => {
@@ -480,7 +468,8 @@ export const additionalMockTasks = [
       role: 'Marketing Lead',
       avatar: '/avatars/mike.png'
     },
-    dueDate: '2025-10-15',
+    startDate: '2025-10-01',
+    endDate: '2025-10-15',
     createdDate: '2025-10-01',
     updatedDate: '2025-10-01',
     tags: ['marketing', 'social'],
@@ -504,7 +493,8 @@ export const additionalMockTasks = [
       role: 'Content Creator',
       avatar: '/avatars/sarah.png'
     },
-    dueDate: '2025-11-01',
+    startDate: '2025-10-15',
+    endDate: '2025-11-01',
     createdDate: '2025-10-01',
     updatedDate: '2025-10-01',
     tags: ['content', 'marketing'],
@@ -528,7 +518,8 @@ export const additionalMockTasks = [
       role: 'Marketing Lead',
       avatar: '/avatars/mike.png'
     },
-    dueDate: '2025-11-15',
+    startDate: '2025-11-01',
+    endDate: '2025-11-15',
     createdDate: '2025-10-01',
     updatedDate: '2025-10-01',
     tags: ['analytics', 'tracking'],
@@ -554,7 +545,8 @@ export const additionalMockTasks = [
       role: 'Tech Lead',
       avatar: '/avatars/tom.png'
     },
-    dueDate: '2025-08-15',
+    startDate: '2025-08-01',
+    endDate: '2025-08-15',
     createdDate: '2025-08-01',
     updatedDate: '2025-08-01',
     tags: ['architecture', 'mobile'],
@@ -578,7 +570,8 @@ export const additionalMockTasks = [
       role: 'Developer',
       avatar: '/avatars/emma.png'
     },
-    dueDate: '2025-08-30',
+    startDate: '2025-08-15',
+    endDate: '2025-08-30',
     createdDate: '2025-08-01',
     updatedDate: '2025-08-01',
     tags: ['ui', 'ux', 'design'],
@@ -602,7 +595,8 @@ export const additionalMockTasks = [
       role: 'Tech Lead',
       avatar: '/avatars/tom.png'
     },
-    dueDate: '2025-09-15',
+    startDate: '2025-08-30',
+    endDate: '2025-09-15',
     createdDate: '2025-08-01',
     updatedDate: '2025-08-01',
     tags: ['backend', 'api'],
@@ -626,7 +620,8 @@ export const additionalMockTasks = [
       role: 'Developer',
       avatar: '/avatars/emma.png'
     },
-    dueDate: '2025-09-30',
+    startDate: '2025-09-25',
+    endDate: '2025-09-30',
     createdDate: '2025-08-01',
     updatedDate: '2025-08-01',
     tags: ['testing', 'qa'],
@@ -652,7 +647,8 @@ export const additionalMockTasks = [
       role: 'Product Manager',
       avatar: '/avatars/alice.png'
     },
-    dueDate: '2025-09-01',
+    startDate: '2025-08-25',
+    endDate: '2025-09-01',
     createdDate: '2025-08-01',
     updatedDate: '2025-08-01',
     tags: ['catalog', 'products'],
@@ -676,7 +672,8 @@ export const additionalMockTasks = [
       role: 'Full Stack Developer',
       avatar: '/avatars/bob.png'
     },
-    dueDate: '2025-09-15',
+    startDate: '2025-08-30',
+    endDate: '2025-09-15',
     createdDate: '2025-08-01',
     updatedDate: '2025-08-01',
     tags: ['payment', 'integration'],
@@ -700,7 +697,8 @@ export const additionalMockTasks = [
       role: 'Full Stack Developer',
       avatar: '/avatars/bob.png'
     },
-    dueDate: '2025-10-01',
+    startDate: '2025-09-01',
+    endDate: '2025-10-01',
     createdDate: '2025-08-01',
     updatedDate: '2025-08-01',
     tags: ['orders', 'management'],
@@ -726,7 +724,8 @@ export const additionalMockTasks = [
       role: 'Data Analyst',
       avatar: '/avatars/david.png'
     },
-    dueDate: '2025-11-15',
+    startDate: '2025-11-01',
+    endDate: '2025-11-15',
     createdDate: '2025-11-01',
     updatedDate: '2025-11-01',
     tags: ['data', 'collection'],
@@ -750,7 +749,8 @@ export const additionalMockTasks = [
       role: 'UI/UX Designer',
       avatar: '/avatars/lisa.png'
     },
-    dueDate: '2025-12-01',
+    startDate: '2025-11-15',
+    endDate: '2025-12-01',
     createdDate: '2025-11-01',
     updatedDate: '2025-11-01',
     tags: ['dashboard', 'design'],
@@ -776,7 +776,8 @@ export const additionalMockTasks = [
       role: 'AI Engineer',
       avatar: '/avatars/maria.png'
     },
-    dueDate: '2025-08-30',
+    startDate: '2025-08-15',
+    endDate: '2025-08-30',
     createdDate: '2025-07-01',
     updatedDate: '2025-07-01',
     tags: ['tickets', 'support'],
@@ -800,7 +801,8 @@ export const additionalMockTasks = [
       role: 'AI Engineer',
       avatar: '/avatars/maria.png'
     },
-    dueDate: '2025-09-15',
+    startDate: '2025-08-30',
+    endDate: '2025-09-15',
     createdDate: '2025-07-01',
     updatedDate: '2025-07-01',
     tags: ['ai', 'chatbot'],
@@ -824,7 +826,8 @@ export const additionalMockTasks = [
       role: 'Backend Developer',
       avatar: '/avatars/james.png'
     },
-    dueDate: '2025-10-01',
+    startDate: '2025-09-01',
+    endDate: '2025-10-01',
     createdDate: '2025-07-01',
     updatedDate: '2025-07-01',
     tags: ['knowledge', 'base'],

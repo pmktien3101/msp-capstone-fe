@@ -147,10 +147,6 @@ const ProjectDetailPage = () => {
             </span>
           </div>
         </div>
-        <div className="project-actions">
-          <button className="btn btn-secondary">Chia sẻ</button>
-          <button className="btn btn-primary">Cài đặt</button>
-        </div>
       </div>
 
       <ProjectTabs project={project} onTaskClick={handleTaskClick} onCreateTask={handleCreateTask} />

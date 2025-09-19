@@ -18,8 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { Project } from "@/types/project";
+import { Edit, Calendar, PlayCircle, Pause, CheckCircle, X, Save } from 'lucide-react';
 
 interface EditProjectModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ interface EditProjectModalProps {
 }
 
 export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalProps) {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, control, formState: { errors } } = useForm({
     defaultValues: {
       name: project.name,
       description: project.description,
@@ -48,7 +49,10 @@ export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalP
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>✏️ Chỉnh Sửa Dự Án</DialogTitle>
+          <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Edit size={20} />
+            Chỉnh Sửa Dự Án
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -92,40 +96,105 @@ export function EditProjectModal({ isOpen, onClose, project }: EditProjectModalP
 
             <div>
               <Label>Trạng thái</Label>
-              <Select {...register("status")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="planning">📋 Lập kế hoạch</SelectItem>
-                  <SelectItem value="active">🚀 Đang thực hiện</SelectItem>
-                  <SelectItem value="on-hold">⏸️ Tạm dừng</SelectItem>
-                  <SelectItem value="completed">✅ Hoàn thành</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="planning">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Calendar size={16} />
+                          Lập kế hoạch
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="active">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <PlayCircle size={16} />
+                          Đang thực hiện
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="on-hold">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Pause size={16} />
+                          Tạm dừng
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="completed">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <CheckCircle size={16} />
+                          Hoàn thành
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
-            {/* Project Preview */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
-              <h4 className="text-sm font-medium mb-2">👁️ Xem trước thay đổi</h4>
-              <div className="bg-white p-4 rounded-md">
-                <div className="flex items-start gap-4">
-                  <div className="text-2xl">📁</div>
-                  <div className="flex-1">
-                    <h5 className="text-base font-medium">{project.name}</h5>
-                    <p className="text-sm text-gray-500">{project.description}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={onClose}>
-              ❌ Hủy bỏ
+            <Button 
+              type="button" 
+              variant="secondary" 
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                color: '#6b7280',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '10px 20px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f3f4f6';
+                e.currentTarget.style.borderColor = '#9ca3af';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = '#d1d5db';
+              }}
+            >
+              <X size={16} />
+              Hủy bỏ
             </Button>
-            <Button type="submit">
-              💾 Cập nhật dự án
+            <Button 
+              type="submit"
+              style={{
+                background: 'transparent',
+                color: '#FF5E13',
+                border: '1px solid #FF5E13',
+                borderRadius: '8px',
+                padding: '10px 20px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#FF5E13';
+                e.currentTarget.style.color = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#FF5E13';
+              }}
+            >
+              <Save size={16} />
+              Cập nhật dự án
             </Button>
           </DialogFooter>
         </form>
