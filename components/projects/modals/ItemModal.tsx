@@ -88,6 +88,9 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       const today = new Date().toISOString().split('T')[0];
       const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       
+      // Check if creating task within a milestone
+      const defaultMilestoneId = (itemType === 'task' && item?.milestoneId) ? item.milestoneId : 'none';
+      
       setFormData({
         title: '',
         description: '',
@@ -98,7 +101,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
         dueDate: itemType === 'milestone' ? nextWeek : '',
         status: 'todo',
         progress: 0,
-        milestoneId: 'none' // Default to no milestone for same-level tasks
+        milestoneId: defaultMilestoneId // Use milestoneId if creating task within milestone
       });
     }
   }, [item, itemType, mode]);

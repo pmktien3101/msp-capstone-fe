@@ -1,7 +1,7 @@
 'use client';
 
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { mockMilestones, mockTasks, mockProject } from '@/constants/mockData';
 import { ItemModal } from './modals/ItemModal';
 
@@ -126,7 +126,6 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
       }
     });
 
-    console.log('🔄 Initial timeline items loaded:', items);
     setTimelineItems(items);
   }, []); // Remove expandedMilestones dependency to prevent re-loading
 
@@ -160,14 +159,13 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         }
       });
 
-      console.log('🔄 Updated timeline items for expandedMilestones:', items);
       return items;
     });
   }, [expandedMilestones]);
 
 
-  // Generate timeline dates for infinite scrolling (like a schedule)
-  const generateTimelineDates = () => {
+  // Generate timeline dates for infinite scrolling (like a schedule) - Memoized
+  const timelineDates = useMemo(() => {
     const today = new Date();
     const startDate = new Date(today);
     const endDate = new Date(today);
@@ -175,7 +173,6 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     // Generate a large range for infinite scrolling (5 years in each direction)
     startDate.setFullYear(today.getFullYear() - 5, 0, 1); // January 1st, 5 years ago
     endDate.setFullYear(today.getFullYear() + 5, 11, 31); // December 31st, 5 years ahead
-    console.log(`📅 Infinite timeline: ${startDate.toDateString()} to ${endDate.toDateString()}`);
 
     const dates: Date[] = [];
     const current = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
@@ -184,12 +181,26 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
       dates.push(new Date(current));
       current.setDate(current.getDate() + 1);
     }
-    console.log(`📅 Infinite timeline: Generated ${dates.length} days from ${startDate.toDateString()} to ${endDate.toDateString()}`);
 
     return dates;
-  };
+  }, []); // Only generate once on mount
 
-  const timelineDates = generateTimelineDates();
+  // Memoize month groups to avoid recalculation on every render
+  const monthGroups = useMemo(() => {
+    const groups: { [key: string]: { start: number; end: number; month: string } } = {};
+    
+    timelineDates.forEach((date, index) => {
+      const monthKey = `${date.getMonth() + 1}/${date.getFullYear()}`;
+      
+      if (!groups[monthKey]) {
+        groups[monthKey] = { start: index, end: index, month: monthKey };
+      } else {
+        groups[monthKey].end = index;
+      }
+    });
+    
+    return Object.values(groups);
+  }, [timelineDates]);
 
   // Auto-scroll to current week on mount
   useEffect(() => {
@@ -208,7 +219,6 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         const todayPosition = todayIndex * dayWidth;
         const scrollPosition = Math.max(0, todayPosition - (containerWidth / 2));
         
-        console.log(`📅 Auto-scroll to today: index=${todayIndex}, position=${todayPosition}px, scroll=${scrollPosition}px`);
         contentRef.current.scrollLeft = scrollPosition;
       }
     }
@@ -267,7 +277,6 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     // Use exact calculated width for all durations, don't force minimum
     const widthPercent = calculatedWidth;
     
-    console.log(`📊 Date Calculation: start=${start.toISOString().split('T')[0]}, end=${end.toISOString().split('T')[0]}, startOffset=${startOffset}, duration=${duration}, totalUnits=${totalUnits}, calculatedWidth=${calculatedWidth}%, widthPercent=${widthPercent}%`);
     
     return { left: leftPercent, width: widthPercent };
   };
@@ -276,7 +285,6 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   const handleDragStart = (e: React.MouseEvent, itemId: string, startDate: string, endDate: string, dragType: 'move' | 'resize-start' | 'resize-end' = 'move') => {
     e.preventDefault();
     e.stopPropagation();
-    console.log(`🎯 Drag Start: ${itemId}, Type: ${dragType}, ClientX: ${e.clientX}`);
     setDraggedItem(itemId);
     setDragStart({ x: e.clientX, startDate, endDate, dragType });
     setIsDraggingBar(true);
@@ -484,7 +492,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     setModalMode('create');
     setModalItemType('task');
     setSelectedEpicForTask({ id: milestoneId, title: milestoneTitle });
-    setSelectedItem({ milestoneId });
+    setSelectedItem({ milestoneId, milestoneTitle }); // Pass milestone info to modal
     setIsModalOpen(true);
   };
 
@@ -707,35 +715,18 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                {/* Month Headers Row - Part 1 (1/3 height) */}
                {timeScale === 'day' && (
                  <div className="flex h-6 min-w-max border-b border-gray-200">
-                  {(() => {
-                    const monthGroups: { [key: string]: { start: number; end: number; month: string } } = {};
-                    
-                    timelineDates.forEach((date, index) => {
-                      const monthKey = `${date.getMonth() + 1}/${date.getFullYear()}`;
-                      
-                      if (!monthGroups[monthKey]) {
-                        monthGroups[monthKey] = { start: index, end: index, month: monthKey };
-                      } else {
-                        monthGroups[monthKey].end = index;
-                      }
-                    });
-                    
-                    console.log('📅 Month Groups:', monthGroups);
-                    console.log('📅 Timeline Dates:', timelineDates.length);
-                    
-                    return Object.values(monthGroups).map((group, groupIndex) => {
-                      const width = (group.end - group.start + 1) * 64; // 64px per day
-                      return (
-                        <div 
-                          key={groupIndex}
-                          className="bg-gradient-to-r from-blue-50 to-indigo-50 border-r border-blue-200 flex items-center justify-center"
-                          style={{ width: `${width}px` }}
-                        >
-                          <span className="text-xs font-semibold text-blue-800">{group.month}</span>
-                        </div>
-                      );
-                    });
-                  })()}
+                  {monthGroups.map((group, groupIndex) => {
+                    const width = (group.end - group.start + 1) * 64; // 64px per day
+                    return (
+                      <div 
+                        key={groupIndex}
+                        className="bg-gradient-to-r from-blue-50 to-indigo-50 border-r border-blue-200 flex items-center justify-center"
+                        style={{ width: `${width}px` }}
+                      >
+                        <span className="text-xs font-semibold text-blue-800">{group.month}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               
@@ -753,18 +744,12 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                     date.getDate() === today.getDate();
                   
                   // Debug log for today detection
-                  if (isToday && timeScale === 'day') {
-                    console.log(`📅 Today detected: ${date.toDateString()} vs ${today.toDateString()}`);
-                  }
                   
                   // Show detailed day info for week view
                   const showDayDetails = true;
                   
                   // Debug week boundary
                   const isWeekStart = date.getDay() === 1;
-                  if (isWeekStart) {
-                    console.log(`📅 haha Week boundary: ${date.toDateString()}, getDay()=${date.getDay()}`);
-                  }
                   
                   return (
                     <div key={index} className={`${showDayDetails ? 'w-16' : 'w-24'} ${isWeekStart ? 'border-l-2 border-blue-400' : 'border-r border-gray-200'} px-2 py-1 text-center transition-colors flex-shrink-0 ${isToday ? 'bg-blue-100 border-blue-300' : 'bg-white hover:bg-gray-50'}`}>
