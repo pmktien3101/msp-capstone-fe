@@ -2,7 +2,7 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { mockEpics, mockTasks, mockProject } from '@/constants/mockData';
+import { mockMilestones, mockTasks, mockProject } from '@/constants/mockData';
 import { ItemModal } from './modals/ItemModal';
 
 interface Task {
@@ -13,7 +13,8 @@ interface Task {
   status: 'todo' | 'in-progress' | 'review' | 'done';
   priority: 'low' | 'medium' | 'high';
   assignee: string | null;
-  dueDate: string;
+  startDate: string;
+  endDate: string;
   createdDate: string;
   updatedDate: string;
   estimatedHours: number;
@@ -22,28 +23,28 @@ interface Task {
   milestoneId: string;
 }
 
-interface Epic {
+interface Milestone {
   id: string;
   name: string;
   description: string;
   status: 'todo' | 'in-progress' | 'review' | 'done';
   progress: number;
-  startDate: string;
-  endDate: string;
+  dueDate: string;
   tasks: Task[];
 }
 
 interface TimelineItem {
   id: string;
   title: string;
-  type: 'epic' | 'task';
+  type: 'milestone' | 'task';
   status: string;
   priority: string;
   assignee: string | null;
   startDate: string;
   endDate: string;
+  dueDate?: string;
   progress: number;
-  epicId?: string;
+  milestoneId?: string;
   rowIndex: number;
 }
 
@@ -55,7 +56,7 @@ interface ProjectTimelineProps {
 export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
 
   const [timeScale, setTimeScale] = useState<'day'>('day');
-  const [expandedEpics, setExpandedEpics] = useState<Set<string>>(new Set(['epic-1']));
+  const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set(['milestone-1']));
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; startDate: string; endDate: string; dragType: 'move' | 'resize-start' | 'resize-end' } | null>(null);
@@ -63,7 +64,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
-  const [modalItemType, setModalItemType] = useState<'epic' | 'task'>('epic');
+  const [modalItemType, setModalItemType] = useState<'milestone' | 'task'>('milestone');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [selectedEpicForTask, setSelectedEpicForTask] = useState<{ id: string; title: string } | null>(null);
   
@@ -73,8 +74,8 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   const [dragStartTime, setDragStartTime] = useState<number>(0);
   const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null);
   
-  // Epic positions for mockData epics
-  const [epicPositions, setEpicPositions] = useState<{[key: string]: {startDate: string, endDate: string}}>({});
+  // Milestone positions for mockData milestones
+  const [milestonePositions, setMilestonePositions] = useState<{[key: string]: {dueDate: string}}>({});
   
   // Task positions for mockData tasks
   const [taskPositions, setTaskPositions] = useState<{[key: string]: {startDate: string, endDate: string}}>({});
@@ -84,29 +85,30 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
 
 
 
-  // Generate timeline items from epics and tasks (only once on mount)
+  // Generate timeline items from milestones and tasks (only once on mount)
   useEffect(() => {
     const items: TimelineItem[] = [];
     let rowIndex = 0;
 
-    mockEpics.forEach(epic => {
-      // Add epic
+    mockMilestones.forEach(milestone => {
+      // Add milestone
       items.push({
-        id: epic.id,
-        title: epic.name,
-        type: 'epic',
-        status: epic.status,
+        id: milestone.id,
+        title: milestone.name,
+        type: 'milestone',
+        status: milestone.status,
         priority: 'high',
         assignee: null,
-        startDate: epic.startDate,
-        endDate: epic.endDate,
-        progress: epic.progress,
+        startDate: (milestone as any).dueDate,
+        endDate: (milestone as any).dueDate,
+        dueDate: (milestone as any).dueDate,
+        progress: milestone.progress,
         rowIndex: rowIndex++
       });
 
-      // Add tasks if epic is expanded
-      if (expandedEpics.has(epic.id)) {
-        epic.tasks.forEach(task => {
+      // Add tasks if milestone is expanded
+      if (expandedMilestones.has(milestone.id)) {
+        milestone.tasks.forEach(task => {
           items.push({
             id: task.id,
             title: task.title,
@@ -115,9 +117,9 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
             priority: task.priority,
             assignee: task.assignee,
             startDate: (task as any).startDate || task.createdDate,
-            endDate: (task as any).endDate || task.dueDate,
+            endDate: (task as any).endDate || task.endDate,
             progress: task.status === 'done' ? 100 : task.status === 'in-progress' ? 50 : 0,
-            epicId: epic.id,
+            milestoneId: milestone.id,
             rowIndex: rowIndex++
           });
         });
@@ -126,9 +128,9 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
 
     console.log('🔄 Initial timeline items loaded:', items);
     setTimelineItems(items);
-  }, []); // Remove expandedEpics dependency to prevent re-loading
+  }, []); // Remove expandedMilestones dependency to prevent re-loading
 
-  // Update timeline items when expandedEpics changes (for showing/hiding tasks)
+  // Update timeline items when expandedMilestones changes (for showing/hiding tasks)
   useEffect(() => {
     if (timelineItems.length === 0) return; // Don't run on initial load
     
@@ -136,19 +138,19 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
       const items: TimelineItem[] = [];
       let rowIndex = 0;
 
-      // Get all epics (including newly created ones)
-      const epics = prev.filter(item => item.type === 'epic');
+      // Get all milestones (including newly created ones)
+      const milestones = prev.filter(item => item.type === 'milestone');
       
-      epics.forEach(epic => {
-        // Add epic
+      milestones.forEach(milestone => {
+        // Add milestone
         items.push({
-          ...epic,
+          ...milestone,
           rowIndex: rowIndex++
         });
 
-        // Add tasks for this epic if expanded
-        if (expandedEpics.has(epic.id)) {
-          const tasks = prev.filter(task => task.type === 'task' && task.epicId === epic.id);
+        // Add tasks for this milestone if expanded
+        if (expandedMilestones.has(milestone.id)) {
+          const tasks = prev.filter(task => task.type === 'task' && task.milestoneId === milestone.id);
           tasks.forEach(task => {
             items.push({
               ...task,
@@ -158,10 +160,10 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         }
       });
 
-      console.log('🔄 Updated timeline items for expandedEpics:', items);
+      console.log('🔄 Updated timeline items for expandedMilestones:', items);
       return items;
     });
-  }, [expandedEpics]);
+  }, [expandedMilestones]);
 
 
   // Generate timeline dates for infinite scrolling (like a schedule)
@@ -287,7 +289,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     }
   };
 
-  // Handle drag move
+  // Handle drag move with throttling for smooth performance
   const handleDragMove = (e: React.MouseEvent) => {
     if (!draggedItem || !dragStart) return;
 
@@ -297,10 +299,8 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     const pixelWidthPerDay = 64;
     const daysToMove = Math.round(deltaX / pixelWidthPerDay);
     
-    console.log(`🔄 Drag Move: deltaX=${deltaX}, daysToMove=${daysToMove}, type=${dragStart.dragType}, draggedItem=${draggedItem}`);
-    
-    // Allow movement even for small deltas to ensure single day tasks can be dragged
-    if (Math.abs(deltaX) > 5) { // Minimum 5px movement threshold
+    // Only update if there's significant movement to reduce re-renders
+    if (Math.abs(deltaX) > 5) {
       const newStartDate = new Date(dragStart.startDate);
       const newEndDate = new Date(dragStart.endDate);
       
@@ -309,13 +309,11 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         newEndDate.setDate(newEndDate.getDate() + daysToMove);
       } else if (dragStart.dragType === 'resize-start') {
         newStartDate.setDate(newStartDate.getDate() + daysToMove);
-        // Allow single day tasks - allow start date to equal end date
         if (newStartDate > newEndDate) {
           newStartDate.setDate(newEndDate.getDate());
         }
       } else if (dragStart.dragType === 'resize-end') {
         newEndDate.setDate(newEndDate.getDate() + daysToMove);
-        // Allow single day tasks - allow end date to equal start date
         if (newEndDate < newStartDate) {
           newEndDate.setDate(newStartDate.getDate());
         }
@@ -324,35 +322,36 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
       const newStartDateStr = newStartDate.toISOString().split('T')[0];
       const newEndDateStr = newEndDate.toISOString().split('T')[0];
       
-      console.log(`📅 Updated: ${draggedItem} - ${newStartDateStr} to ${newEndDateStr}, Duration: ${Math.floor((new Date(newEndDateStr).getTime() - new Date(newStartDateStr).getTime()) / (1000 * 60 * 60 * 24)) + 1} days`);
-      
-      // Update timelineItems if it's a created item
-      setTimelineItems(prev => prev.map(item => {
-        if (item.id !== draggedItem) return item;
-        return {
-          ...item,
-          startDate: newStartDateStr,
-          endDate: newEndDateStr
-        };
-      }));
-      
-      // Update epicPositions for mockData epics
-      setEpicPositions(prev => ({
-        ...prev,
-        [draggedItem]: {
-          startDate: newStartDateStr,
-          endDate: newEndDateStr
-        }
-      }));
-      
-      // Update taskPositions for mockData tasks
-      setTaskPositions(prev => ({
-        ...prev,
-        [draggedItem]: {
-          startDate: newStartDateStr,
-          endDate: newEndDateStr
-        }
-      }));
+      // Batch state updates to prevent multiple re-renders
+      requestAnimationFrame(() => {
+        // Update timelineItems if it's a created item
+        setTimelineItems(prev => prev.map(item => {
+          if (item.id !== draggedItem) return item;
+          return {
+            ...item,
+            startDate: newStartDateStr,
+            endDate: newEndDateStr,
+            dueDate: item.type === 'milestone' ? newStartDateStr : item.dueDate
+          };
+        }));
+        
+        // Update milestonePositions for mockData milestones
+        setMilestonePositions(prev => ({
+          ...prev,
+          [draggedItem]: {
+            dueDate: newStartDateStr
+          }
+        }));
+        
+        // Update taskPositions for mockData tasks
+        setTaskPositions(prev => ({
+          ...prev,
+          [draggedItem]: {
+            startDate: newStartDateStr,
+            endDate: newEndDateStr
+          }
+        }));
+      });
     }
   };
 
@@ -374,29 +373,48 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     }
   };
 
-  // Add global event listeners for drag
+  // Add global event listeners for drag with throttling
   useEffect(() => {
+    let animationFrameId: number;
+    let lastUpdateTime = 0;
+    const throttleDelay = 16; // ~60fps
+
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (draggedItem && dragStart) {
-        console.log(`🌍 Global Mouse Move: draggedItem=${draggedItem}, clientX=${e.clientX}`);
-        handleDragMove(e as any);
+        const now = Date.now();
+        
+        // Throttle updates to 60fps for smooth performance
+        if (now - lastUpdateTime >= throttleDelay) {
+          if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+          }
+          
+          animationFrameId = requestAnimationFrame(() => {
+            handleDragMove(e as any);
+            lastUpdateTime = now;
+          });
+        }
       }
-      
     };
 
     const handleGlobalMouseUp = () => {
       if (draggedItem) {
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
         handleDragEnd();
       }
-      
     };
 
     if (draggedItem) {
-      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mousemove', handleGlobalMouseMove, { passive: true });
       document.addEventListener('mouseup', handleGlobalMouseUp);
     }
 
     return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
@@ -412,11 +430,20 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   }, [clickTimeout]);
 
 
-  // Handle open create epic modal
-  const handleOpenCreateEpicModal = () => {
+  // Handle open create milestone modal
+  const handleOpenCreateMilestoneModal = () => {
     setModalMode('create');
-    setModalItemType('epic');
+    setModalItemType('milestone');
     setSelectedItem(null);
+    setIsModalOpen(true);
+  };
+
+  // Handle open create task modal (same level as milestone)
+  const handleOpenCreateTaskModalSameLevel = () => {
+    setModalMode('create');
+    setModalItemType('task');
+    setSelectedItem(null);
+    setSelectedEpicForTask(null);
     setIsModalOpen(true);
   };
 
@@ -428,7 +455,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     assignee: string;
     startDate: string;
     endDate: string;
-    epicId: string;
+    milestoneId: string;
   }) => {
     const newTask: TimelineItem = {
       id: `task-${Date.now()}`,
@@ -439,7 +466,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
       assignee: taskData.assignee,
       startDate: taskData.startDate,
       endDate: taskData.endDate,
-      epicId: taskData.epicId,
+      milestoneId: taskData.milestoneId,
       rowIndex: timelineItems.length,
       progress: 0
     };
@@ -453,11 +480,11 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   };
 
   // Handle open create task modal
-  const handleOpenCreateTaskModal = (epicId: string, epicTitle: string) => {
+  const handleOpenCreateTaskModal = (milestoneId: string, milestoneTitle: string) => {
     setModalMode('create');
     setModalItemType('task');
-    setSelectedEpicForTask({ id: epicId, title: epicTitle });
-    setSelectedItem({ epicId });
+    setSelectedEpicForTask({ id: milestoneId, title: milestoneTitle });
+    setSelectedItem({ milestoneId });
     setIsModalOpen(true);
   };
 
@@ -468,28 +495,30 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     description: string;
     priority: string;
     assignee: string;
-    startDate: string;
-    endDate: string;
+    startDate?: string;
+    endDate?: string;
+    dueDate?: string;
     status: string;
     progress: number;
-    epicId?: string;
+    milestoneId?: string;
   }) => {
     if (modalMode === 'create') {
-      if (modalItemType === 'epic') {
-        const newEpic: TimelineItem = {
-          id: `epic-${Date.now()}`,
+      if (modalItemType === 'milestone') {
+        const newMilestone: TimelineItem = {
+          id: `milestone-${Date.now()}`,
           title: itemData.title,
-          type: 'epic',
+          type: 'milestone',
           status: itemData.status,
           priority: itemData.priority as 'low' | 'medium' | 'high' | 'urgent',
           assignee: itemData.assignee,
-          startDate: itemData.startDate,
-          endDate: itemData.endDate,
+          startDate: itemData.dueDate || '',
+          endDate: itemData.dueDate || '',
+          dueDate: itemData.dueDate,
           rowIndex: timelineItems.length,
           progress: itemData.progress
         };
-        setTimelineItems(prev => [...prev, newEpic]);
-        console.log('✅ Created epic:', newEpic);
+        setTimelineItems(prev => [...prev, newMilestone]);
+        console.log('✅ Created milestone:', newMilestone);
       } else {
         const newTask: TimelineItem = {
           id: `task-${Date.now()}`,
@@ -498,9 +527,9 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
           status: itemData.status,
           priority: itemData.priority as 'low' | 'medium' | 'high' | 'urgent',
           assignee: itemData.assignee,
-          startDate: itemData.startDate,
-          endDate: itemData.endDate,
-          epicId: itemData.epicId || '',
+          startDate: itemData.startDate || '',
+          endDate: itemData.endDate || '',
+          milestoneId: itemData.milestoneId || undefined, // undefined for same-level tasks
           rowIndex: timelineItems.length,
           progress: itemData.progress
         };
@@ -517,8 +546,9 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                 title: itemData.title,
                 priority: itemData.priority as 'low' | 'medium' | 'high' | 'urgent',
                 assignee: itemData.assignee,
-                startDate: itemData.startDate,
-                endDate: itemData.endDate,
+                startDate: modalItemType === 'milestone' ? (itemData.dueDate || '') : (itemData.startDate || ''),
+                endDate: modalItemType === 'milestone' ? (itemData.dueDate || '') : (itemData.endDate || ''),
+                dueDate: itemData.dueDate,
                 status: itemData.status,
                 progress: itemData.progress
               }
@@ -530,15 +560,15 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   };
 
   // Handle open edit modal
-  const handleOpenEditModal = (item: any, type: 'epic' | 'task', epicTitle?: string) => {
+  const handleOpenEditModal = (item: any, type: 'milestone' | 'task', milestoneTitle?: string) => {
     setModalMode('edit');
     setModalItemType(type);
-    setSelectedItem({ ...item, epicTitle });
+    setSelectedItem({ ...item, milestoneTitle });
     setIsModalOpen(true);
   };
 
   // Handle click with drag detection
-  const handleBarClick = (e: React.MouseEvent, item: any, itemType: 'epic' | 'task') => {
+  const handleBarClick = (e: React.MouseEvent, item: any, itemType: 'milestone' | 'task') => {
     // Only open modal if it's a click (not a drag)
     if (!isDraggingBar && !draggedItem) {
       e.stopPropagation();
@@ -568,7 +598,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     console.log(`🔍 DEBUG: ${item.title} - Type: "${item.type}", Status: "${item.status}"`);
     
     // Test với màu sắc cố định để debug
-    if (item.type === 'epic') {
+    if (item.type === 'milestone') {
       console.log(`🟠 EPIC: ${item.title} - Using ORANGE`);
       return '#ff6b35'; // Bright orange để test
     } else {
@@ -759,56 +789,63 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         <div className="flex">
           {/* Work Items Column - Fixed */}
           <div className="w-[40%] border-r border-gray-200 overflow-y-auto">
-            {/* Display Epics and their Tasks */}
+            {/* Display Milestones and their Tasks */}
             {(() => {
-              // Get all epics from mockData + newly created epics
-              const allEpics = [...mockEpics];
-              const createdEpics = timelineItems.filter(item => item.type === 'epic' && !mockEpics.find(mockEpic => mockEpic.id === item.id));
-              const epics = [...allEpics, ...createdEpics.map(createdEpic => ({
-                id: createdEpic.id,
-                name: createdEpic.title,
+              // Get all milestones from mockData + newly created milestones
+              const allMilestones = [...mockMilestones];
+              const createdMilestones = timelineItems.filter(item => item.type === 'milestone' && !mockMilestones.find(mockMilestone => mockMilestone.id === item.id));
+              const milestones = [...allMilestones, ...createdMilestones.map(createdMilestone => ({
+                id: createdMilestone.id,
+                name: createdMilestone.title,
                 description: '',
-                status: createdEpic.status,
-                progress: createdEpic.progress,
-                startDate: createdEpic.startDate,
-                endDate: createdEpic.endDate,
+                status: createdMilestone.status,
+                progress: createdMilestone.progress,
+                dueDate: createdMilestone.dueDate || createdMilestone.startDate,
                 tasks: []
               }))];
               
-              console.log('🎯 All epics for display:', epics);
-              return epics.map((epic, epicIndex) => (
-                <React.Fragment key={`epic-${epic.id}-${epicIndex}`}>
-                  {/* Epic Row */}
-                  <div className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors ${epicIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+              // Get same-level tasks (tasks without milestoneId)
+              const sameLevelTasks = timelineItems.filter(item => item.type === 'task' && !item.milestoneId);
+              
+              console.log('🎯 All milestones for display:', milestones);
+              console.log('🎯 Same-level tasks:', sameLevelTasks);
+              
+              return (
+                <>
+                  {/* Render milestones */}
+                  {milestones.map((milestone, milestoneIndex) => (
+                <React.Fragment key={`milestone-${milestone.id}-${milestoneIndex}`}>
+                  {/* Milestone Row */}
+                  <div className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors ${milestoneIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                     <div className="h-full flex items-center px-3">
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
                         <button 
                           className="text-blue-600 hover:text-blue-800 transition-colors text-sm"
                           onClick={() => {
-                            const newExpanded = new Set(expandedEpics);
-                            if (newExpanded.has(epic.id)) {
-                              newExpanded.delete(epic.id);
+                            const newExpanded = new Set(expandedMilestones);
+                            if (newExpanded.has(milestone.id)) {
+                              newExpanded.delete(milestone.id);
                             } else {
-                              newExpanded.add(epic.id);
+                              newExpanded.add(milestone.id);
                             }
-                            setExpandedEpics(newExpanded);
+                            setExpandedMilestones(newExpanded);
                           }}
                         >
-                          {expandedEpics.has(epic.id) ? '▼' : '▶'}
+                          {expandedMilestones.has(milestone.id) ? '▼' : '▶'}
                         </button>
-                        <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ backgroundColor: '#f97316' }}>
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: '#ea580c' }}>
                           <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
                           </svg>
                         </div>
                         <span 
                           className="text-sm font-semibold text-gray-900 truncate cursor-pointer hover:text-orange-600 transition-colors"
-                          onClick={() => handleOpenEditModal(epic, 'epic')}
-                          title="Click để chỉnh sửa Epic"
+                          onClick={() => handleOpenEditModal(milestone, 'milestone')}
+                          title="Click để chỉnh sửa Milestone"
                         >
-                          {epic.name || (epic as any).title}
+                          {milestone.name || (milestone as any).title}
                         </span>
-                        <span className="text-xs text-gray-500">({epic.id})</span>
+                        <span className="text-xs text-gray-500">({milestone.id})</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <div className="flex items-center space-x-2">
@@ -816,24 +853,24 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                             <div 
                               className="h-2 rounded-full transition-all duration-300"
                               style={{ 
-                                width: `${epic.progress}%`,
-                                background: 'linear-gradient(to right, #f97316, #ea580c)'
+                                width: `${milestone.progress}%`,
+                                background: 'linear-gradient(to right, #ea580c, #dc2626)'
                               }}
                             />
                           </div>
-                          <span className="text-xs text-gray-600 font-medium">{epic.progress}%</span>
+                          <span className="text-xs text-gray-600 font-medium">{milestone.progress}%</span>
                         </div>
-                        {(epic as any).assignee && (
+                        {(milestone as any).assignee && (
                           <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm">
-                            {getAssigneeInitials((epic as any).assignee)}
+                            {getAssigneeInitials((milestone as any).assignee)}
           </div>
                         )}
-                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(epic.status)} text-white`}>
-                          {epic.status.toUpperCase()}
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(milestone.status)} text-white`}>
+                          {milestone.status.toUpperCase()}
                         </span>
                         <button 
-                          className="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-colors"
-                          onClick={() => handleOpenCreateTaskModal(epic.id, epic.name || (epic as any).title)}
+                          className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors"
+                          onClick={() => handleOpenCreateTaskModal(milestone.id, milestone.name || (milestone as any).title)}
                           title="Tạo Task mới"
                         >
                           +
@@ -842,11 +879,11 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         </div>
       </div>
 
-                  {/* Show child tasks if epic is expanded */}
-                  {expandedEpics.has(epic.id) && (() => {
+                  {/* Show child tasks if milestone is expanded */}
+                  {expandedMilestones.has(milestone.id) && (() => {
                     // Get tasks from both mockData and newly created tasks
-                    const mockTasks = epic.tasks || [];
-                    const createdTasks = timelineItems.filter(task => task.type === 'task' && task.epicId === epic.id);
+                    const mockTasks = milestone.tasks || [];
+                    const createdTasks = timelineItems.filter(task => task.type === 'task' && task.milestoneId === milestone.id);
                     
                     // Remove duplicates by using a Map with task.id as key
                     const taskMap = new Map();
@@ -863,15 +900,15 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                     
                     const allTasks = Array.from(taskMap.values());
                     
-                    console.log(`🎯 Epic ${epic.id} tasks:`, { mockTasks, createdTasks, allTasks });
+                    console.log(`🎯 Milestone ${milestone.id} tasks:`, { mockTasks, createdTasks, allTasks });
                     return allTasks.map((task, taskIndex) => (
-                      <div key={`${epic.id}-task-${task.id}-${taskIndex}`} className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors bg-gray-25 ml-6`}>
+                      <div key={`${milestone.id}-task-${task.id}-${taskIndex}`} className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors bg-gray-25 ml-6`}>
                         <div className="h-full flex items-center px-3">
                           <div className="flex items-center space-x-3 flex-1 min-w-0">
-                            <div className="w-2 h-2 bg-purple-400 rounded-full" />
+                            <div className="w-2 h-2 bg-orange-400 rounded-full" />
                             <span 
-                              className="text-sm font-medium text-gray-700 truncate cursor-pointer hover:text-purple-600 transition-colors"
-                              onClick={() => handleOpenEditModal(task, 'task', epic.name || (epic as any).title)}
+                              className="text-sm font-medium text-gray-700 truncate cursor-pointer hover:text-orange-600 transition-colors"
+                              onClick={() => handleOpenEditModal(task, 'task', milestone.name || (milestone as any).title)}
                               title="Click để chỉnh sửa Task"
                             >
                               {task.title}
@@ -880,7 +917,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                           </div>
                           <div className="flex items-center space-x-2">
                             {task.assignee && (
-                              <div className="w-5 h-5 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm">
+                              <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm">
                                 {getAssigneeInitials(task.assignee)}
                               </div>
                             )}
@@ -893,20 +930,61 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                     ));
                   })()}
                 </React.Fragment>
-              ));
+                  ))}
+                  
+                  {/* Render same-level tasks */}
+                  {sameLevelTasks.map((task, taskIndex) => (
+                    <div key={`same-level-task-${task.id}-${taskIndex}`} className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors ${(milestones.length + taskIndex) % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                      <div className="h-full flex items-center px-3">
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <div className="w-2 h-2 bg-orange-400 rounded-full" />
+                          <span 
+                            className="text-sm font-medium text-gray-700 truncate cursor-pointer hover:text-orange-600 transition-colors"
+                            onClick={() => handleOpenEditModal(task, 'task')}
+                            title="Click để chỉnh sửa Task"
+                          >
+                            {task.title}
+                          </span>
+                          <span className="text-xs text-gray-500">({task.id})</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {task.assignee && (
+                            <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm">
+                              {getAssigneeInitials(task.assignee)}
+                            </div>
+                          )}
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(task.status)} text-white`}>
+                            {task.status.toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              );
             })()}
 
-            {/* Add Epic Row - At the end */}
+            {/* Add Milestone Row - At the end */}
             <div className="h-12 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100 transition-colors">
-              <div className="h-full flex items-center px-3">
+              <div className="h-full flex items-center px-3 space-x-3">
                 <button 
                   className="flex items-center space-x-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
-                  onClick={handleOpenCreateEpicModal}
+                  onClick={handleOpenCreateMilestoneModal}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7l9 6 9-6" />
                   </svg>
-                  <span>Tạo Epic</span>
+                  <span>Tạo Milestone</span>
+                </button>
+                <button 
+                  className="flex items-center space-x-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
+                  onClick={handleOpenCreateTaskModalSameLevel}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                  </svg>
+                  <span>Tạo Task</span>
                 </button>
               </div>
             </div>
@@ -971,188 +1049,238 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                   return null;
                 })()}
 
-                {/* Display Epic and Task Timeline Bars */}
-                {(() => {
-                  // Get all epics from mockData + newly created epics
-                  const allEpics = [...mockEpics];
-                  const createdEpics = timelineItems.filter(item => item.type === 'epic' && !mockEpics.find(mockEpic => mockEpic.id === item.id));
-                  const epics = [...allEpics, ...createdEpics.map(createdEpic => ({
-                    id: createdEpic.id,
-                    name: createdEpic.title,
-                    description: '',
-                    status: createdEpic.status,
-                    progress: createdEpic.progress,
-                    startDate: createdEpic.startDate,
-                    endDate: createdEpic.endDate,
-                    tasks: []
-                  }))];
+                 {/* Display Milestone and Task Timeline Bars */}
+                 {(() => {
+                   // Get all milestones from mockData + newly created milestones
+                   const allMilestones = [...mockMilestones];
+                   const createdMilestones = timelineItems.filter(item => item.type === 'milestone' && !mockMilestones.find(mockMilestone => mockMilestone.id === item.id));
+                   const milestones = [...allMilestones, ...createdMilestones.map(createdMilestone => ({
+                     id: createdMilestone.id,
+                     name: createdMilestone.title,
+                     description: '',
+                     status: createdMilestone.status,
+                     progress: createdMilestone.progress,
+                     dueDate: createdMilestone.dueDate || createdMilestone.startDate,
+                     tasks: []
+                   }))];
+                   
+                   // Get same-level tasks (tasks without milestoneId)
+                   const sameLevelTasks = timelineItems.filter(item => item.type === 'task' && !item.milestoneId);
+                   
+                   console.log('🎯 Timeline milestones for display:', milestones);
+                   console.log('🎯 Timeline same-level tasks:', sameLevelTasks);
+                   
+                   return (
+                     <>
+                       {/* Render milestone timeline bars */}
+                       {milestones.map((milestone, milestoneIndex) => {
+                     // Use custom position if available, otherwise use original dates
+                     const customPosition = milestonePositions[milestone.id];
+                     const dueDate = customPosition ? customPosition.dueDate : (milestone as any).dueDate;
+                     const milestonePosition = calculateBarPosition(dueDate, dueDate);
+                     return (
+                       <React.Fragment key={`timeline-milestone-${milestone.id}-${milestoneIndex}`}>
+                         {/* Milestone Timeline Flag */}
+                         <div className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors relative ${milestoneIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                           <div className="absolute top-2 left-0 h-8" style={{ width: `${timelineDates.length * 64}px` }}>
+                             {/* Milestone Flag */}
+                             <div 
+                               className="absolute h-8 cursor-move z-10"
+                               style={{
+                                 left: `${milestonePosition.left}%`,
+                                 willChange: 'transform, left',
+                                 transform: 'translateZ(0)' // Force hardware acceleration
+                               }}
+                               onMouseDown={(e) => {
+                                 e.stopPropagation();
+                                 console.log(`🖱️ Milestone Mouse Down: ${milestone.id}, Position: ${milestonePosition.left}%, ClientX: ${e.clientX}, Target: ${e.target}`);
+                                 handleDragStart(e, milestone.id, dueDate, dueDate, 'move');
+                               }}
+                               title={`${milestone.name || (milestone as any).title}\n📅 ${new Date(dueDate).toLocaleDateString('vi-VN')}`}
+                             >
+                                  {/* Flag Icon */}
+                                  <div className={`w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-700 rounded-full flex items-center justify-center ml-5 transition-all duration-500 ease-out ${draggedItem === milestone.id ? 'scale-110 shadow-2xl bg-gradient-to-br from-orange-400 to-orange-600 ring-3 ring-orange-300 ring-opacity-50' : 'hover:scale-105 hover:shadow-2xl hover:bg-gradient-to-br hover:from-orange-400 hover:to-orange-600 hover:ring-2 hover:ring-orange-200 hover:ring-opacity-60'}`}>
+                                    <svg className={`w-5 h-5 text-white mx-auto transition-all duration-500 ease-out ${draggedItem === milestone.id ? 'scale-110 drop-shadow-lg' : 'hover:scale-110 hover:drop-shadow-lg'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                    </svg>
+                                  </div>
+                             </div>
+                           </div>
+                         </div>
+
+                         {/* Show child task timeline bars if milestone is expanded */}
+                         {expandedMilestones.has(milestone.id) && (() => {
+                           // Get tasks from both mockData and newly created tasks
+                           const mockTasks = milestone.tasks || [];
+                           const createdTasks = timelineItems.filter(task => task.type === 'task' && task.milestoneId === milestone.id);
+                           
+                           // Remove duplicates by using a Map with task.id as key
+                           const taskMap = new Map();
+                           
+                           // Add mock tasks first
+                           mockTasks.forEach(task => {
+                             taskMap.set(task.id, task);
+                           });
+                           
+                           // Add created tasks (they will override mock tasks with same ID)
+                           createdTasks.forEach(task => {
+                             taskMap.set(task.id, task);
+                           });
+                           
+                           const allTasks = Array.from(taskMap.values());
+                           
+                           console.log(`🎯 Timeline Milestone ${milestone.id} tasks:`, { mockTasks, createdTasks, allTasks });
+                           return allTasks.map((task, taskIndex) => {
+                             // Use custom position if available, otherwise use original dates
+                             const customPosition = taskPositions[task.id];
+                             const startDate = customPosition ? customPosition.startDate : task.startDate;
+                             const endDate = customPosition ? customPosition.endDate : task.endDate;
+                             const taskPosition = calculateBarPosition(startDate, endDate);
+                             return (
+                               <div key={`${milestone.id}-timeline-task-${task.id}-${taskIndex}`} className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors relative bg-gray-25`}>
+                                 <div className="absolute top-2 left-0 h-8" style={{ width: `${timelineDates.length * 64}px` }}>
+                                   <div 
+                                     className={`absolute h-8 rounded-md cursor-move group transition-all duration-300 ease-in-out ${draggedItem === task.id ? 'ring-2 ring-blue-400 ring-opacity-50 shadow-xl z-30' : 'hover:shadow-lg z-10'}`}
+                                     style={{
+                                       left: `${taskPosition.left}%`,
+                                       width: `${taskPosition.width}%`,
+                                       minWidth: '16px',
+                                       backgroundColor: '#f97316', // Orange for task
+                                       border: '1px solid rgba(255,255,255,0.3)',
+                                       zIndex: draggedItem === task.id ? 30 : 10,
+                                       willChange: draggedItem === task.id ? 'transform, left, width' : 'auto',
+                                       transform: 'translateZ(0)' // Force hardware acceleration
+                                     }}
+                                     onMouseDown={(e) => {
+                                       e.stopPropagation();
+                                       console.log(`🖱️ Task Mouse Down: ${task.id}, Position: ${taskPosition.left}%, Width: ${taskPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
+                                       handleDragStart(e, task.id, startDate, endDate, 'move');
+                                     }}
+                                     title={`${task.title}\n📅 ${new Date(task.startDate).toLocaleDateString('vi-VN')} - ${new Date(task.endDate).toLocaleDateString('vi-VN')}`}
+                                   >
+                                     {/* Resize handles */}
+                                     <div 
+                                       className="absolute left-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-orange-400 hover:to-orange-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-300 ease-in-out rounded-l-md opacity-0 group-hover:opacity-100"
+                                       onMouseDown={(e) => {
+                                         e.stopPropagation();
+                                         handleDragStart(e, task.id, startDate, endDate, 'resize-start');
+                                       }}
+                                       title="Drag to resize start date"
+                                     />
+                                     <div 
+                                       className="absolute right-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-orange-400 hover:to-orange-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-300 ease-in-out rounded-r-md opacity-0 group-hover:opacity-100"
+                                       onMouseDown={(e) => {
+                                         e.stopPropagation();
+                                         handleDragStart(e, task.id, startDate, endDate, 'resize-end');
+                                       }}
+                                       title="Drag to resize end date"
+                                     />
+                                     
+                                     {/* Task content */}
+                                     <div 
+                                       className="h-full bg-orange-300 bg-opacity-40 rounded-md flex items-center px-2 z-10 cursor-move hover:bg-opacity-60 transition-all duration-300 ease-in-out group-hover:bg-opacity-70"
+                                       onDoubleClick={(e) => {
+                                         e.stopPropagation();
+                                         handleOpenEditModal(task, 'task', milestone.name || (milestone as any).title);
+                                       }}
+                                       title={`${new Date((task as any).startDate).toLocaleDateString('vi-VN')} - ${new Date((task as any).endDate).toLocaleDateString('vi-VN')}`}
+                                     >
+                                       <span className="text-xs text-white font-medium truncate transition-all duration-300 group-hover:text-orange-100">
+                                         {task.title}
+                                       </span>
+                                     </div>
+                                   </div>
+                                 </div>
+                               </div>
+                             );
+                           });
+                         })()}
+                      </React.Fragment>
+                    );
+                  })}
                   
-                  console.log('🎯 Timeline epics for display:', epics);
-                  return epics.map((epic, epicIndex) => {
+                  {/* Render same-level task timeline bars */}
+                  {sameLevelTasks.map((task, taskIndex) => {
                     // Use custom position if available, otherwise use original dates
-                    const customPosition = epicPositions[epic.id];
-                    const startDate = customPosition ? customPosition.startDate : epic.startDate;
-                    const endDate = customPosition ? customPosition.endDate : epic.endDate;
-                    const epicPosition = calculateBarPosition(startDate, endDate);
+                    const customPosition = taskPositions[task.id];
+                    const startDate = customPosition ? customPosition.startDate : task.startDate;
+                    const endDate = customPosition ? customPosition.endDate : task.endDate;
+                    const taskPosition = calculateBarPosition(startDate, endDate);
+                    
                     return (
-                      <React.Fragment key={`timeline-epic-${epic.id}-${epicIndex}`}>
-                        {/* Epic Timeline Bar */}
-                        <div className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors relative ${epicIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                          <div className="absolute top-2 left-0 h-8" style={{ width: `${timelineDates.length * 64}px` }}>
+                      <div key={`same-level-timeline-task-${task.id}-${taskIndex}`} className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors relative ${(milestones.length + taskIndex) % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                        <div className="absolute top-2 left-0 h-8" style={{ width: `${timelineDates.length * 64}px` }}>
+                          <div 
+                            className={`absolute h-8 rounded-md cursor-move group transition-all duration-300 ease-in-out ${draggedItem === task.id ? 'ring-2 ring-blue-400 ring-opacity-50 shadow-xl z-30' : 'hover:shadow-lg z-10'}`}
+                            style={{
+                              left: `${taskPosition.left}%`,
+                              width: `${taskPosition.width}%`,
+                              minWidth: '16px',
+                              backgroundColor: '#f97316', // Orange for same-level task (same as milestone tasks)
+                              border: '1px solid rgba(255,255,255,0.3)',
+                              zIndex: draggedItem === task.id ? 30 : 10,
+                              willChange: draggedItem === task.id ? 'transform, left, width' : 'auto',
+                              transform: 'translateZ(0)' // Force hardware acceleration
+                            }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              console.log(`🖱️ Same-level Task Mouse Down: ${task.id}, Position: ${taskPosition.left}%, Width: ${taskPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
+                              handleDragStart(e, task.id, startDate, endDate, 'move');
+                            }}
+                            title={`${task.title}\n📅 ${new Date(task.startDate).toLocaleDateString('vi-VN')} - ${new Date(task.endDate).toLocaleDateString('vi-VN')}`}
+                          >
+                            {/* Resize handles */}
                             <div 
-                              className={`absolute h-8 rounded-md cursor-move group transition-all duration-200 ${draggedItem === epic.id ? 'ring-2 ring-blue-400 ring-opacity-50 shadow-xl scale-105' : 'hover:shadow-lg hover:scale-102'}`}
-                              style={{
-                                left: `${epicPosition.left}%`,
-                                width: `${epicPosition.width}%`,
-                                minWidth: '16px',
-                                backgroundColor: '#ff6b35', // Orange for epic
-                                border: '1px solid rgba(255,255,255,0.3)',
-                                zIndex: draggedItem === epic.id ? 20 : 10
-                              }}
+                              className="absolute left-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-orange-400 hover:to-orange-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-300 ease-in-out rounded-l-md opacity-0 group-hover:opacity-100"
                               onMouseDown={(e) => {
                                 e.stopPropagation();
-                                console.log(`🖱️ Epic Mouse Down: ${epic.id}, Position: ${epicPosition.left}%, Width: ${epicPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
-                                handleDragStart(e, epic.id, startDate, endDate, 'move');
+                                handleDragStart(e, task.id, startDate, endDate, 'resize-start');
                               }}
-                              title={`${epic.name || (epic as any).title}\n📅 ${new Date(epic.startDate).toLocaleDateString('vi-VN')} - ${new Date(epic.endDate).toLocaleDateString('vi-VN')}`}
+                              title="Drag to resize start date"
+                            />
+                            <div 
+                              className="absolute right-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-orange-400 hover:to-orange-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-300 ease-in-out rounded-r-md opacity-0 group-hover:opacity-100"
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                handleDragStart(e, task.id, startDate, endDate, 'resize-end');
+                              }}
+                              title="Drag to resize end date"
+                            />
+                            
+                            {/* Task content */}
+                            <div 
+                              className="h-full bg-orange-300 bg-opacity-40 rounded-md flex items-center px-2 z-10 cursor-move hover:bg-opacity-60 transition-all duration-300 ease-in-out group-hover:bg-opacity-70"
+                              onDoubleClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditModal(task, 'task');
+                              }}
+                              title={`${new Date(task.startDate).toLocaleDateString('vi-VN')} - ${new Date(task.endDate).toLocaleDateString('vi-VN')}`}
                             >
-                              {/* Resize handles */}
-                              <div 
-                                className="absolute left-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-orange-400 hover:to-orange-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-200 rounded-l-md"
-                                onMouseDown={(e) => {
-                                  e.stopPropagation();
-                                  handleDragStart(e, epic.id, startDate, endDate, 'resize-start');
-                                }}
-                                title="Drag to resize start date"
-                              />
-                              <div 
-                                className="absolute right-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-orange-400 hover:to-orange-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-200 rounded-r-md"
-                                onMouseDown={(e) => {
-                                  e.stopPropagation();
-                                  handleDragStart(e, epic.id, startDate, endDate, 'resize-end');
-                                }}
-                                title="Drag to resize end date"
-                              />
-                              
-                              {/* Epic content */}
-                              <div 
-                                className="h-full bg-orange-300 bg-opacity-40 rounded-md flex items-center px-2 z-10 cursor-move hover:bg-opacity-60 transition-all"
-                                onDoubleClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenEditModal(epic, 'epic');
-                                }}
-                                title={`${new Date((epic as any).startDate).toLocaleDateString('vi-VN')} - ${new Date((epic as any).endDate).toLocaleDateString('vi-VN')}`}
-                              >
-                                <span className="text-xs text-white font-medium truncate">
-                                  {epic.name || (epic as any).title}
-                                </span>
-                              </div>
+                              <span className="text-xs text-white font-medium truncate transition-all duration-300 group-hover:text-orange-100">
+                                {task.title}
+                              </span>
                             </div>
                           </div>
                         </div>
-
-                        {/* Show child task timeline bars if epic is expanded */}
-                        {expandedEpics.has(epic.id) && (() => {
-                          // Get tasks from both mockData and newly created tasks
-                          const mockTasks = epic.tasks || [];
-                          const createdTasks = timelineItems.filter(task => task.type === 'task' && task.epicId === epic.id);
-                          
-                          // Remove duplicates by using a Map with task.id as key
-                          const taskMap = new Map();
-                          
-                          // Add mock tasks first
-                          mockTasks.forEach(task => {
-                            taskMap.set(task.id, task);
-                          });
-                          
-                          // Add created tasks (they will override mock tasks with same ID)
-                          createdTasks.forEach(task => {
-                            taskMap.set(task.id, task);
-                          });
-                          
-                          const allTasks = Array.from(taskMap.values());
-                          
-                          console.log(`🎯 Timeline Epic ${epic.id} tasks:`, { mockTasks, createdTasks, allTasks });
-                          return allTasks.map((task, taskIndex) => {
-                            // Use custom position if available, otherwise use original dates
-                            const customPosition = taskPositions[task.id];
-                            const startDate = customPosition ? customPosition.startDate : task.startDate;
-                            const endDate = customPosition ? customPosition.endDate : task.endDate;
-                            const taskPosition = calculateBarPosition(startDate, endDate);
-                            return (
-                              <div key={`${epic.id}-timeline-task-${task.id}-${taskIndex}`} className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors relative bg-gray-25`}>
-                                <div className="absolute top-2 left-0 h-8" style={{ width: `${timelineDates.length * 64}px` }}>
-                                  <div 
-                                    className={`absolute h-8 rounded-md cursor-move group transition-all duration-200 ${draggedItem === task.id ? 'ring-2 ring-blue-400 ring-opacity-50 shadow-xl scale-105' : 'hover:shadow-lg hover:scale-102'}`}
-                                    style={{
-                                      left: `${taskPosition.left}%`,
-                                      width: `${taskPosition.width}%`,
-                                      minWidth: '16px',
-                                      backgroundColor: '#8b5cf6', // Purple for task
-                                      border: '1px solid rgba(255,255,255,0.3)',
-                                      zIndex: draggedItem === task.id ? 20 : 10
-                                    }}
-                                    onMouseDown={(e) => {
-                                      e.stopPropagation();
-                                      console.log(`🖱️ Task Mouse Down: ${task.id}, Position: ${taskPosition.left}%, Width: ${taskPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
-                                      handleDragStart(e, task.id, startDate, endDate, 'move');
-                                    }}
-                                    title={`${task.title}\n📅 ${new Date(task.startDate).toLocaleDateString('vi-VN')} - ${new Date(task.endDate).toLocaleDateString('vi-VN')}`}
-                                  >
-                                    {/* Resize handles */}
-                                    <div 
-                                      className="absolute left-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-purple-400 hover:to-purple-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-200 rounded-l-md"
-                                      onMouseDown={(e) => {
-                                        e.stopPropagation();
-                                        handleDragStart(e, task.id, startDate, endDate, 'resize-start');
-                                      }}
-                                      title="Drag to resize start date"
-                                    />
-                                    <div 
-                                      className="absolute right-0 top-0 w-3 h-full cursor-ew-resize z-20 hover:bg-gradient-to-r hover:from-purple-400 hover:to-purple-500 hover:bg-opacity-60 hover:shadow-lg transition-all duration-200 rounded-r-md"
-                                      onMouseDown={(e) => {
-                                        e.stopPropagation();
-                                        handleDragStart(e, task.id, startDate, endDate, 'resize-end');
-                                      }}
-                                      title="Drag to resize end date"
-                                    />
-                                    
-                                    {/* Task content */}
-                                    <div 
-                                      className="h-full bg-purple-300 bg-opacity-40 rounded-md flex items-center px-2 z-10 cursor-move hover:bg-opacity-60 transition-all"
-                                      onDoubleClick={(e) => {
-                                        e.stopPropagation();
-                                        handleOpenEditModal(task, 'task', epic.name || (epic as any).title);
-                                      }}
-                                      title={`${new Date((task as any).startDate).toLocaleDateString('vi-VN')} - ${new Date((task as any).endDate).toLocaleDateString('vi-VN')}`}
-                                    >
-                                      <span className="text-xs text-white font-medium truncate">
-                                        {task.title}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          });
-                        })()}
-                      </React.Fragment>
+                      </div>
                     );
-                  });
+                  })}
+                    </>
+                  );
                 })()}
 
-                 {/* Add Epic Row - Empty Timeline */}
-                 <div className="h-12 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-red-50">
-                   <div className="h-full flex items-center px-2">
-                     <div className="text-sm text-gray-500 italic">Timeline sẽ hiển thị khi có epic</div>
-                   </div>
-                 </div>
-               </div>
-             </div>
-             
-           </div>
-         </div>
-       </div>
+                  {/* Add Milestone Row - Empty Timeline */}
+                  <div className="h-12 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-red-50">
+                    <div className="h-full flex items-center px-2">
+                      <div className="text-sm text-gray-500 italic">Timeline sẽ hiển thị khi có milestone</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+          </div>
+        </div>
 
       {/* Modal */}
       <ItemModal
@@ -1160,9 +1288,13 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleModalSubmit}
         item={selectedItem}
-        itemType={modalItemType}
-        epicTitle={selectedEpicForTask?.title || selectedItem?.epicTitle}
+        itemType={modalItemType as 'milestone' | 'task'}
+        epicTitle={selectedEpicForTask?.title || selectedItem?.milestoneTitle}
         mode={modalMode}
+        milestones={mockMilestones.map((milestone: any) => ({
+          id: milestone.id,
+          name: milestone.name
+        }))}
       />
     </div>
   );
