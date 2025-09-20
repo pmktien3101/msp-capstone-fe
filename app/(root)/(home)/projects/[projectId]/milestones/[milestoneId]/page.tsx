@@ -1,36 +1,36 @@
-'use client'
+"use client";
 
-import React, { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { MeetingDetailModal } from '@/components/modals/MeetingDetailModal'
-import { CreateMeetingModal } from '@/components/modals/CreateMeetingModal'
-import { format } from 'date-fns'
-import { Member } from '@/types'
-import { Milestone } from '@/types/milestone'
-import '@/app/styles/milestone.scss'
-import { useUser } from '@/hooks/useUser'
-import { Call, useStreamVideoClient } from '@stream-io/video-react-sdk'
-import { describe } from 'node:test'
-import { link } from 'fs'
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { MeetingDetailModal } from "@/components/modals/MeetingDetailModal";
+import { CreateMeetingModal } from "@/components/modals/CreateMeetingModal";
+import { format } from "date-fns";
+import { Member } from "@/types";
+import { Milestone } from "@/types/milestone";
+import "@/app/styles/milestone.scss";
+import { useUser } from "@/hooks/useUser";
+import { Call, useStreamVideoClient } from "@stream-io/video-react-sdk";
+import { describe } from "node:test";
+import { link } from "fs";
 
 export default function MilestoneDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const [milestone, setMilestone] = useState<Milestone | null>(null)
-  const [members, setMembers] = useState<Member[]>([])
-  const [selectedMeeting, setSelectedMeeting] = useState<any>(null)
-  const [isMeetingDetailOpen, setIsMeetingDetailOpen] = useState(false)
-  const [isCreateMeetingOpen, setIsCreateMeetingOpen] = useState(false)
+  const params = useParams();
+  const router = useRouter();
+  const [milestone, setMilestone] = useState<Milestone | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
+  const [isMeetingDetailOpen, setIsMeetingDetailOpen] = useState(false);
+  const [isCreateMeetingOpen, setIsCreateMeetingOpen] = useState(false);
 
-  const { userId, email } = useUser()
-  const client = useStreamVideoClient()
+  const { userId, email } = useUser();
+  const client = useStreamVideoClient();
   const [values, setValues] = useState({
     dataTime: new Date(),
-    description: '',
-    link:''
-  })
-  const [callDetails, setCallDetails] = useState<Call | null>(null)
+    description: "",
+    link: "",
+  });
+  const [callDetails, setCallDetails] = useState<Call | null>(null);
 
   const handleCreateMeeting = async () => {
     if (!client || !userId) {
@@ -39,95 +39,96 @@ export default function MilestoneDetailPage() {
 
     try {
       const callId = crypto.randomUUID();
-      const call = client.call('default', callId);
-      if(!call) throw new Error('Failed to create call');
+      const call = client.call("default", callId);
+      if (!call) throw new Error("Failed to create call");
 
-      const startsAt = values.dataTime.toISOString() || new Date().toISOString();
-      const description = values.description || 'Instant Meeting';
+      const startsAt =
+        values.dataTime.toISOString() || new Date().toISOString();
+      const description = values.description || "Instant Meeting";
 
       await call.getOrCreate({
-        data:{
-            starts_at: startsAt,
-            custom:{
-                description,
-            }
-        }
-      })
+        data: {
+          starts_at: startsAt,
+          custom: {
+            description,
+          },
+        },
+      });
       setCallDetails(call);
-      if(!values.description){
-        router.push(`/meeting/${call.id}`)
+      if (!values.description) {
+        router.push(`/meeting/${call.id}`);
       }
     } catch (error) {
       console.log(error);
     }
-  }
+  };
 
   useEffect(() => {
     // TODO: Replace with actual API call
     // This is mock data for now
     const mockMilestone = {
       id: params.milestoneId as string,
-      name: 'Thiết Kế UI/UX',
-      description: 'Thiết kế giao diện người dùng và trải nghiệm người dùng',
-      startDate: '2024-01-01',
-      endDate: '2024-02-15',
-      status: 'completed' as const,
-      priority: 'high' as const,
+      name: "Thiết Kế UI/UX",
+      description: "Thiết kế giao diện người dùng và trải nghiệm người dùng",
+      startDate: "2024-01-01",
+      endDate: "2024-02-15",
+      status: "completed" as const,
+      priority: "high" as const,
       projectId: params.projectId as string,
-      createdAt: '2024-01-01',
-      updatedAt: '2024-02-15',
+      createdAt: "2024-01-01",
+      updatedAt: "2024-02-15",
       progress: 100,
-      projectName: 'Website E-commerce',
-      members: []
-    }
+      projectName: "Website E-commerce",
+      members: [],
+    };
 
     const mockMembers = [
       {
-        id: '1',
-        name: 'Nguyễn Văn A',
-        email: 'nguyenvana@company.com',
-        role: 'Frontend Developer',
-        avatar: 'NA'
+        id: "1",
+        name: "Nguyễn Văn A",
+        email: "nguyenvana@company.com",
+        role: "Frontend Developer",
+        avatar: "NA",
       },
       {
-        id: '2',
-        name: 'Trần Thị B',
-        email: 'tranthib@company.com',
-        role: 'Backend Developer',
-        avatar: 'TB'
-      }
-    ]
+        id: "2",
+        name: "Trần Thị B",
+        email: "tranthib@company.com",
+        role: "Backend Developer",
+        avatar: "TB",
+      },
+    ];
 
-    setMilestone(mockMilestone)
-    setMembers(mockMembers)
-  }, [params])
+    setMilestone(mockMilestone);
+    setMembers(mockMembers);
+  }, [params]);
 
   const formatDate = (date: string) => {
-    return format(new Date(date), 'dd/MM/yyyy')
-  }
+    return format(new Date(date), "dd/MM/yyyy");
+  };
 
   const getStatusText = (status: string) => {
     const statusMap: { [key: string]: string } = {
-      'pending': 'Chờ thực hiện',
-      'in-progress': 'Đang thực hiện',
-      'completed': 'Hoàn thành',
-      'delayed': 'Bị trễ'
-    }
-    return statusMap[status] || status
-  }
+      pending: "Chờ thực hiện",
+      "in-progress": "Đang thực hiện",
+      completed: "Hoàn thành",
+      delayed: "Bị trễ",
+    };
+    return statusMap[status] || status;
+  };
 
   const getPriorityText = (priority: string) => {
     const priorityMap: { [key: string]: string } = {
-      'low': 'Thấp',
-      'medium': 'Trung bình',
-      'high': 'Cao',
-      'urgent': 'Khẩn cấp'
-    }
-    return priorityMap[priority] || priority
-  }
+      low: "Thấp",
+      medium: "Trung bình",
+      high: "Cao",
+      urgent: "Khẩn cấp",
+    };
+    return priorityMap[priority] || priority;
+  };
 
   if (!milestone) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
 
   return (
@@ -169,7 +170,8 @@ export default function MilestoneDetailPage() {
               <div className="info-item">
                 <span className="label">Thời gian:</span>
                 <span className="value">
-                  {formatDate(milestone.startDate)} - {formatDate(milestone.endDate)}
+                  {formatDate(milestone.startDate)} -{" "}
+                  {formatDate(milestone.endDate)}
                 </span>
               </div>
               <div className="info-item">
@@ -194,7 +196,7 @@ export default function MilestoneDetailPage() {
           <div className="section-card">
             <h3>Thành viên ({members.length})</h3>
             <div className="members-grid">
-              {members.map(member => (
+              {members.map((member) => (
                 <div key={member.id} className="member-card">
                   <div className="member-avatar">{member.avatar}</div>
                   <div className="member-info">
@@ -214,7 +216,7 @@ export default function MilestoneDetailPage() {
           <div className="section-card">
             <div className="section-header">
               <h3>Cuộc họp</h3>
-              <Button 
+              <Button
                 variant="default"
                 onClick={() => setIsCreateMeetingOpen(true)}
               >
@@ -236,7 +238,10 @@ export default function MilestoneDetailPage() {
                   </div>
                   <div className="meeting-info">
                     <h4>Review tiến độ UI/UX</h4>
-                    <p className="description">Họp review các màn hình đã thiết kế và thảo luận các thay đổi cần thiết</p>
+                    <p className="description">
+                      Họp review các màn hình đã thiết kế và thảo luận các thay
+                      đổi cần thiết
+                    </p>
                     <div className="meeting-meta">
                       <span className="duration">60 phút</span>
                       <span className="attendees">8 thành viên</span>
@@ -255,23 +260,25 @@ export default function MilestoneDetailPage() {
                   </div>
                   <div className="meeting-info">
                     <h4>Kick-off Milestone UI/UX</h4>
-                    <p className="description">Phân công công việc và thống nhất timeline thực hiện</p>
+                    <p className="description">
+                      Phân công công việc và thống nhất timeline thực hiện
+                    </p>
                     <div className="meeting-meta">
                       <span className="duration">45 phút</span>
                       <span className="attendees">6 thành viên</span>
                     </div>
                   </div>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="view-button"
                     onClick={() => {
                       setSelectedMeeting({
-                        title: 'Kick-off Milestone UI/UX',
-                        date: '10/09/2023',
-                        time: '10:00 - 11:00',
-                        attendees: 6
-                      })
-                      setIsMeetingDetailOpen(true)
+                        title: "Kick-off Milestone UI/UX",
+                        date: "10/09/2023",
+                        time: "10:00 - 11:00",
+                        attendees: 6,
+                      });
+                      setIsMeetingDetailOpen(true);
                     }}
                   >
                     Xem chi tiết
@@ -283,7 +290,7 @@ export default function MilestoneDetailPage() {
         </div>
 
         {/* Meeting Detail Modal */}
-        <MeetingDetailModal 
+        <MeetingDetailModal
           isOpen={isMeetingDetailOpen}
           onClose={() => setIsMeetingDetailOpen(false)}
           meeting={selectedMeeting}
@@ -294,9 +301,9 @@ export default function MilestoneDetailPage() {
           onClose={() => setIsCreateMeetingOpen(false)}
           onSave={async (meetingData) => {
             setValues({
-              dataTime: meetingData.startTime,
+              dataTime: new Date(meetingData.startTime),
               description: meetingData.description,
-              link: ''
+              link: "",
             });
             await handleCreateMeeting();
           }}
@@ -318,5 +325,5 @@ export default function MilestoneDetailPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
