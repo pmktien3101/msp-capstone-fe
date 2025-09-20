@@ -1,25 +1,24 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Project } from '@/types/project';
-import { 
-  LayoutDashboard, 
-  Layers, 
-  Kanban, 
-  List, 
-  FileText, 
-  Video, 
-  BarChart3, 
-  Settings 
-} from 'lucide-react';
-import { ProjectSummary } from './ProjectSummary';
-import { ProjectTimeline } from './ProjectTimeline';
-import { ProjectBoard } from './ProjectBoard';
-import { ProjectList } from './ProjectList';
-import { ProjectReports } from './ProjectReports';
-import { ProjectSettings } from './ProjectSettings';
-import { MeetingTab } from './MeetingTab';
-import { ProjectDocuments } from './ProjectDocuments';
+import { useState } from "react";
+import { Project } from "@/types/project";
+import {
+  LayoutDashboard,
+  Layers,
+  Kanban,
+  List,
+  FileText,
+  Video,
+  BarChart3,
+  Settings,
+} from "lucide-react";
+import { ProjectSummary } from "./ProjectSummary";
+import { ProjectBoard } from "./ProjectBoard";
+import { ProjectList } from "./ProjectList";
+import { ProjectReports } from "./ProjectReports";
+import { ProjectSettings } from "./ProjectSettings";
+import { MeetingTab } from "./MeetingTab";
+import { ProjectDocuments } from "./ProjectDocuments";
 
 interface ProjectTabsProps {
   project: Project;
@@ -27,69 +26,79 @@ interface ProjectTabsProps {
   onCreateTask?: () => void;
 }
 
-export const ProjectTabs = ({ project, onTaskClick, onCreateTask }: ProjectTabsProps) => {
-  const [activeTab, setActiveTab] = useState('summary');
+export const ProjectTabs = ({
+  project,
+  onTaskClick,
+  onCreateTask,
+}: ProjectTabsProps) => {
+  const [activeTab, setActiveTab] = useState("summary");
 
   const tabs = [
     {
-      id: 'summary',
-      label: 'Tổng quan',
-      icon: <LayoutDashboard size={20} />
+      id: "summary",
+      label: "Tổng quan",
+      icon: <LayoutDashboard size={20} />,
     },
     {
-      id: 'timeline',
-      label: 'Timeline',
-      icon: <Layers size={20} />
+      id: "timeline",
+      label: "Timeline",
+      icon: <Layers size={20} />,
     },
     {
-      id: 'board',
-      label: 'Bảng',
-      icon: <Kanban size={20} />
+      id: "board",
+      label: "Bảng",
+      icon: <Kanban size={20} />,
     },
     {
-      id: 'list',
-      label: 'Danh sách',
-      icon: <List size={20} />
+      id: "list",
+      label: "Danh sách",
+      icon: <List size={20} />,
     },
     {
-      id: 'documents',
-      label: 'Tài liệu',
-      icon: <FileText size={20} />
+      id: "documents",
+      label: "Tài liệu",
+      icon: <FileText size={20} />,
     },
     {
-      id: 'meetings',
-      label: 'Cuộc họp',
-      icon: <Video size={20} />
+      id: "meetings",
+      label: "Cuộc họp",
+      icon: <Video size={20} />,
     },
     {
-      id: 'reports',
-      label: 'Báo cáo',
-      icon: <BarChart3 size={20} />
+      id: "reports",
+      label: "Báo cáo",
+      icon: <BarChart3 size={20} />,
     },
     {
-      id: 'settings',
-      label: 'Cài đặt',
-      icon: <Settings size={20} />
-    }
+      id: "settings",
+      label: "Cài đặt",
+      icon: <Settings size={20} />,
+    },
   ];
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'summary':
+      case "summary":
         return <ProjectSummary projects={[project]} />;
-      case 'timeline':
-        return <ProjectTimeline project={project} />;
-      case 'board':
-        return <ProjectBoard project={project} onTaskClick={onTaskClick} onCreateTask={onCreateTask} />;
-      case 'list':
+      case "timeline":
+        return "";
+      case "board":
+        return (
+          <ProjectBoard
+            project={project}
+            onTaskClick={onTaskClick}
+            onCreateTask={onCreateTask}
+          />
+        );
+      case "list":
         return <ProjectList project={project} />;
-      case 'documents':
+      case "documents":
         return <ProjectDocuments project={project} />;
-      case 'meetings':
+      case "meetings":
         return <MeetingTab project={project} />;
-      case 'reports':
+      case "reports":
         return <ProjectReports project={project} />;
-      case 'settings':
+      case "settings":
         return <ProjectSettings project={project} />;
       default:
         return <ProjectSummary projects={[project]} />;
@@ -103,7 +112,7 @@ export const ProjectTabs = ({ project, onTaskClick, onCreateTask }: ProjectTabsP
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+              className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
               onClick={() => setActiveTab(tab.id)}
             >
               <span className="tab-icon">{tab.icon}</span>
@@ -113,9 +122,7 @@ export const ProjectTabs = ({ project, onTaskClick, onCreateTask }: ProjectTabsP
         </div>
       </div>
 
-      <div className="tabs-content">
-        {renderTabContent()}
-      </div>
+      <div className="tabs-content">{renderTabContent()}</div>
 
       <style jsx>{`
         .project-tabs {
