@@ -56,7 +56,7 @@ interface ProjectTimelineProps {
 export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
 
   const [timeScale, setTimeScale] = useState<'day'>('day');
-  const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set(['milestone-1']));
+  const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set(['milestone-1', 'milestone-2', 'milestone-3']));
   const [timelineItems, setTimelineItems] = useState<TimelineItem[]>([]);
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; startDate: string; endDate: string; dragType: 'move' | 'resize-start' | 'resize-end' } | null>(null);
@@ -79,6 +79,14 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
   
   // Task positions for mockData tasks
   const [taskPositions, setTaskPositions] = useState<{[key: string]: {startDate: string, endDate: string}}>({});
+  
+  // Task drag & drop states
+  const [draggedTask, setDraggedTask] = useState<string | null>(null);
+  const [dragOverMilestone, setDragOverMilestone] = useState<string | null>(null);
+  const [dragOverTask, setDragOverTask] = useState<string | null>(null);
+  const [isHtml5Drag, setIsHtml5Drag] = useState(false);
+  const [dragOverSameLevel, setDragOverSameLevel] = useState(false);
+  
   const timelineRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -381,6 +389,200 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     }
   };
 
+  // Task drag & drop handlers
+  const handleTaskDragStart = (e: React.DragEvent, taskId: string) => {
+    e.stopPropagation(); // Prevent timeline drag
+    setIsHtml5Drag(true);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', taskId);
+    setDraggedTask(taskId);
+    console.log(`🚀 Task drag start: ${taskId}`);
+  };
+
+  const handleTaskDragEnd = () => {
+    setDraggedTask(null);
+    setDragOverMilestone(null);
+    setDragOverTask(null);
+    setDragOverSameLevel(false);
+    setIsHtml5Drag(false);
+    // console.log('🏁 Task drag end');
+  };
+
+  const handleMilestoneDragOver = (e: React.DragEvent, milestoneId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverMilestone(milestoneId);
+    console.log(`🎯 Drag over milestone: ${milestoneId}`);
+  };
+
+  const handleTaskDragOver = (e: React.DragEvent, taskId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverTask(taskId);
+    console.log(`🎯 Drag over task: ${taskId}`);
+  };
+
+  const handleSameLevelDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverSameLevel(true);
+    console.log(`🎯 Drag over same level`);
+  };
+
+  const handleMilestoneDrop = (e: React.DragEvent, targetMilestoneId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const draggedTaskId = e.dataTransfer.getData('text/plain');
+    
+    if (draggedTaskId) {
+      // console.log(`📦 Drop task ${draggedTaskId} into milestone ${targetMilestoneId}`);
+      
+      setTimelineItems(prev => 
+        prev.map(item => {
+          if (item.id === draggedTaskId && item.type === 'task') {
+            return {
+              ...item,
+              milestoneId: targetMilestoneId
+            };
+          }
+          return item;
+        })
+      );
+      
+      // Cập nhật mockData để xóa task khỏi milestone cũ và thêm vào milestone mới
+      const draggedTask = timelineItems.find(item => item.id === draggedTaskId);
+      if (draggedTask) {
+        // Xóa task khỏi milestone cũ trong mockData
+        mockMilestones.forEach(milestone => {
+          if (milestone.tasks) {
+            milestone.tasks = milestone.tasks.filter(task => task.id !== draggedTaskId);
+          }
+        });
+        
+        // Thêm task vào milestone mới trong mockData
+        const targetMilestone = mockMilestones.find(m => m.id === targetMilestoneId);
+        if (targetMilestone && targetMilestone.tasks) {
+          const taskToAdd = {
+            id: draggedTask.id,
+            title: draggedTask.title,
+            description: '',
+            epic: '',
+            status: draggedTask.status as 'todo' | 'in-progress' | 'review' | 'done',
+            priority: draggedTask.priority as 'low' | 'medium' | 'high',
+            assignee: draggedTask.assignee || '',
+            startDate: draggedTask.startDate,
+            endDate: draggedTask.endDate,
+            createdDate: new Date().toISOString().split('T')[0],
+            updatedDate: new Date().toISOString().split('T')[0],
+            estimatedHours: 0,
+            actualHours: 0,
+            tags: [],
+            milestoneId: targetMilestoneId
+          };
+          targetMilestone.tasks.push(taskToAdd);
+        }
+      }
+    }
+    
+    setDragOverMilestone(null);
+  };
+
+  const handleTaskDrop = (e: React.DragEvent, targetTaskId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const draggedTaskId = e.dataTransfer.getData('text/plain');
+    
+    if (draggedTaskId && draggedTaskId !== targetTaskId) {
+      // console.log(`📦 Drop task ${draggedTaskId} after task ${targetTaskId}`);
+      
+      // Find target task's milestone
+      const targetTask = timelineItems.find(item => item.id === targetTaskId);
+      if (targetTask && targetTask.milestoneId) {
+        setTimelineItems(prev => 
+          prev.map(item => {
+            if (item.id === draggedTaskId && item.type === 'task') {
+              return {
+                ...item,
+                milestoneId: targetTask.milestoneId
+              };
+            }
+            return item;
+          })
+        );
+        
+        // Cập nhật mockData để xóa task khỏi milestone cũ và thêm vào milestone mới
+        const draggedTask = timelineItems.find(item => item.id === draggedTaskId);
+        if (draggedTask) {
+          // Xóa task khỏi milestone cũ trong mockData
+          mockMilestones.forEach(milestone => {
+            if (milestone.tasks) {
+              milestone.tasks = milestone.tasks.filter(task => task.id !== draggedTaskId);
+            }
+          });
+          
+          // Thêm task vào milestone mới trong mockData
+          const targetMilestone = mockMilestones.find(m => m.id === targetTask.milestoneId);
+          if (targetMilestone && targetMilestone.tasks) {
+            const taskToAdd = {
+              id: draggedTask.id,
+              title: draggedTask.title,
+              description: '',
+              epic: '',
+              status: draggedTask.status as 'todo' | 'in-progress' | 'review' | 'done',
+              priority: draggedTask.priority as 'low' | 'medium' | 'high',
+              assignee: draggedTask.assignee || '',
+              startDate: draggedTask.startDate,
+              endDate: draggedTask.endDate,
+              createdDate: new Date().toISOString().split('T')[0],
+              updatedDate: new Date().toISOString().split('T')[0],
+              estimatedHours: 0,
+              actualHours: 0,
+              tags: [],
+              milestoneId: targetTask.milestoneId
+            };
+            targetMilestone.tasks.push(taskToAdd);
+          }
+        }
+      }
+    }
+    
+    setDragOverTask(null);
+  };
+
+  const handleSameLevelDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const draggedTaskId = e.dataTransfer.getData('text/plain');
+    
+    if (draggedTaskId) {
+      // console.log(`📦 Drop task ${draggedTaskId} to same level (no milestone)`);
+      
+      setTimelineItems(prev => 
+        prev.map(item => {
+          if (item.id === draggedTaskId && item.type === 'task') {
+            return {
+              ...item,
+              milestoneId: undefined
+            };
+          }
+          return item;
+        })
+      );
+      
+      // Xóa task khỏi milestone cũ trong mockData
+      mockMilestones.forEach(milestone => {
+        if (milestone.tasks) {
+          milestone.tasks = milestone.tasks.filter(task => task.id !== draggedTaskId);
+        }
+      });
+    }
+    
+    setDragOverSameLevel(false);
+  };
+
   // Add global event listeners for drag with throttling
   useEffect(() => {
     let animationFrameId: number;
@@ -479,10 +681,10 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
       progress: 0
     };
     
-    console.log('🚀 Creating new task:', newTask);
+    // console.log('🚀 Creating new task:', newTask);
     setTimelineItems(prev => {
       const updated = [...prev, newTask];
-      console.log('📝 Updated timelineItems with new task:', updated);
+      // console.log('📝 Updated timelineItems with new task:', updated);
       return updated;
     });
   };
@@ -507,7 +709,6 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     endDate?: string;
     dueDate?: string;
     status: string;
-    progress: number;
     milestoneId?: string;
   }) => {
     if (modalMode === 'create') {
@@ -523,10 +724,10 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
           endDate: itemData.dueDate || '',
           dueDate: itemData.dueDate,
           rowIndex: timelineItems.length,
-          progress: itemData.progress
+          progress: 0
         };
         setTimelineItems(prev => [...prev, newMilestone]);
-        console.log('✅ Created milestone:', newMilestone);
+        // console.log('✅ Created milestone:', newMilestone);
       } else {
         const newTask: TimelineItem = {
           id: `task-${Date.now()}`,
@@ -539,10 +740,10 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
           endDate: itemData.endDate || '',
           milestoneId: itemData.milestoneId || undefined, // undefined for same-level tasks
           rowIndex: timelineItems.length,
-          progress: itemData.progress
+          progress: 0
         };
         setTimelineItems(prev => [...prev, newTask]);
-        console.log('✅ Created task:', newTask);
+        // console.log('✅ Created task:', newTask);
       }
     } else {
       // Edit mode
@@ -558,12 +759,12 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                 endDate: modalItemType === 'milestone' ? (itemData.dueDate || '') : (itemData.endDate || ''),
                 dueDate: itemData.dueDate,
                 status: itemData.status,
-                progress: itemData.progress
+                progress: 0
               }
             : item
         )
       );
-      console.log(`🔄 Updated ${modalItemType}:`, itemData);
+      // console.log(`🔄 Updated ${modalItemType}:`, itemData);
     }
   };
 
@@ -590,27 +791,64 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
     }
   };
 
-  // Get status color
+  // Get status color (giống như tab Danh sách)
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'done': return 'bg-green-500';
-      case 'in-progress': return 'bg-blue-500';
-      case 'review': return 'bg-yellow-500';
-      case 'todo': return 'bg-gray-400';
-      default: return 'bg-gray-400';
+      case 'todo':
+        return '#6b7280';
+      case 'in-progress':
+        return '#f59e0b';
+      case 'review':
+        return '#3b82f6';
+      case 'done':
+        return '#10b981';
+      default:
+        return '#6b7280';
+    }
+  };
+
+  // Get status background color (giống như tab Danh sách)
+  const getStatusBackgroundColor = (status: string) => {
+    switch (status) {
+      case 'todo':
+        return '#f3f4f6';
+      case 'in-progress':
+        return '#fef3c7';
+      case 'review':
+        return '#dbeafe';
+      case 'done':
+        return '#dcfce7';
+      default:
+        return '#f3f4f6';
+    }
+  };
+
+  // Get status label in Vietnamese (giống như tab Danh sách)
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'todo':
+        return 'Cần làm';
+      case 'in-progress':
+        return 'Đang làm';
+      case 'review':
+        return 'Đang review';
+      case 'done':
+        return 'Hoàn thành';
+      default:
+        return status;
     }
   };
 
   // Get timeline bar color based on type
   const getTimelineBarColor = (item: TimelineItem) => {
-    console.log(`🔍 DEBUG: ${item.title} - Type: "${item.type}", Status: "${item.status}"`);
+    // console.log(`🔍 DEBUG: ${item.title} - Type: "${item.type}", Status: "${item.status}"`);
     
     // Test với màu sắc cố định để debug
     if (item.type === 'milestone') {
-      console.log(`🟠 EPIC: ${item.title} - Using ORANGE`);
+      // console.log(`🟠 EPIC: ${item.title} - Using ORANGE`);
       return '#ff6b35'; // Bright orange để test
     } else {
-      console.log(`🟣 TASK: ${item.title} - Using PURPLE`);
+      // console.log(`🟣 TASK: ${item.title} - Using PURPLE`);
       return '#8b5cf6'; // Bright purple để test
     }
   };
@@ -644,7 +882,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">Project Timeline</h2>
-              <p className="text-sm text-gray-600">Track and manage project progress</p>
+              <p className="text-sm text-gray-600">Theo dõi và quản lý tiến độ dự án</p>
           </div>
         </div>
            <div className="flex items-center space-x-3">
@@ -774,35 +1012,40 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         <div className="flex">
           {/* Work Items Column - Fixed */}
           <div className="w-[40%] border-r border-gray-200 overflow-y-auto">
-            {/* Display Milestones and their Tasks */}
-            {(() => {
-              // Get all milestones from mockData + newly created milestones
-              const allMilestones = [...mockMilestones];
-              const createdMilestones = timelineItems.filter(item => item.type === 'milestone' && !mockMilestones.find(mockMilestone => mockMilestone.id === item.id));
-              const milestones = [...allMilestones, ...createdMilestones.map(createdMilestone => ({
-                id: createdMilestone.id,
-                name: createdMilestone.title,
-                description: '',
-                status: createdMilestone.status,
-                progress: createdMilestone.progress,
-                dueDate: createdMilestone.dueDate || createdMilestone.startDate,
-                tasks: []
-              }))];
+             {/* Display Milestones and their Tasks */}
+             {useMemo(() => {
+               // Get all milestones from mockData + newly created milestones
+               const allMilestones = [...mockMilestones];
+               const createdMilestones = timelineItems.filter(item => item.type === 'milestone' && !mockMilestones.find(mockMilestone => mockMilestone.id === item.id));
+               const milestones = [...allMilestones, ...createdMilestones.map(createdMilestone => ({
+                 id: createdMilestone.id,
+                 name: createdMilestone.title,
+                 description: '',
+                 status: createdMilestone.status,
+                 progress: createdMilestone.progress,
+                 dueDate: createdMilestone.dueDate || createdMilestone.startDate,
+                 tasks: []
+               }))];
+               
+               // Get same-level tasks (tasks without milestoneId)
+               const sameLevelTasks = timelineItems.filter(item => item.type === 'task' && !item.milestoneId);
               
-              // Get same-level tasks (tasks without milestoneId)
-              const sameLevelTasks = timelineItems.filter(item => item.type === 'task' && !item.milestoneId);
-              
-              console.log('🎯 All milestones for display:', milestones);
-              console.log('🎯 Same-level tasks:', sameLevelTasks);
+               // console.log('🎯 All milestones for display:', milestones);
+               // console.log('🎯 Same-level tasks:', sameLevelTasks);
               
               return (
                 <>
                   {/* Render milestones */}
                   {milestones.map((milestone, milestoneIndex) => (
                 <React.Fragment key={`milestone-${milestone.id}-${milestoneIndex}`}>
-                  {/* Milestone Row */}
-                  <div className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors ${milestoneIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                    <div className="h-full flex items-center px-3">
+                   {/* Milestone Row */}
+                   <div 
+                     className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors ${milestoneIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${dragOverMilestone === milestone.id ? 'bg-blue-50 border-blue-200' : ''}`}
+                     onDragOver={(e) => handleMilestoneDragOver(e, milestone.id)}
+                     onDrop={(e) => handleMilestoneDrop(e, milestone.id)}
+                     onDragLeave={() => setDragOverMilestone(null)}
+                   >
+                     <div className="h-full flex items-center px-3">
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
                         <button 
                           className="text-blue-600 hover:text-blue-800 transition-colors text-sm"
@@ -850,8 +1093,14 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                             {getAssigneeInitials((milestone as any).assignee)}
           </div>
                         )}
-                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(milestone.status)} text-white`}>
-                          {milestone.status.toUpperCase()}
+                        <span 
+                          className="px-2 py-1 text-xs rounded-full font-medium"
+                          style={{
+                            backgroundColor: getStatusBackgroundColor(milestone.status),
+                            color: getStatusColor(milestone.status)
+                          }}
+                        >
+                          {getStatusLabel(milestone.status)}
                         </span>
                         <button 
                           className="px-2 py-1 bg-orange-500 text-white text-xs rounded hover:bg-orange-600 transition-colors"
@@ -885,75 +1134,139 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                     
                     const allTasks = Array.from(taskMap.values());
                     
-                    console.log(`🎯 Milestone ${milestone.id} tasks:`, { mockTasks, createdTasks, allTasks });
-                    return allTasks.map((task, taskIndex) => (
-                      <div key={`${milestone.id}-task-${task.id}-${taskIndex}`} className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors bg-gray-25 ml-6`}>
-                        <div className="h-full flex items-center px-3">
-                          <div className="flex items-center space-x-3 flex-1 min-w-0">
-                            <div className="w-2 h-2 bg-orange-400 rounded-full" />
-                            <span 
-                              className="text-sm font-medium text-gray-700 truncate cursor-pointer hover:text-orange-600 transition-colors"
-                              onClick={() => handleOpenEditModal(task, 'task', milestone.name || (milestone as any).title)}
-                              title="Click để chỉnh sửa Task"
-                            >
-                              {task.title}
-                            </span>
-                            <span className="text-xs text-gray-500">({task.id})</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            {task.assignee && (
-                              <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm">
-                                {getAssigneeInitials(task.assignee)}
-                              </div>
-                            )}
-                            <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(task.status)} text-white`}>
-                              {task.status.toUpperCase()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ));
+                     // console.log(`🎯 Milestone ${milestone.id} tasks:`, { mockTasks, createdTasks, allTasks });
+                     return allTasks.map((task, taskIndex) => (
+                       <div 
+                         key={`${milestone.id}-task-${task.id}-${taskIndex}`} 
+                         className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors bg-gray-25 ml-6 ${dragOverTask === task.id ? 'bg-blue-50 border-blue-200' : ''}`}
+                         onDragOver={(e) => handleTaskDragOver(e, task.id)}
+                         onDrop={(e) => handleTaskDrop(e, task.id)}
+                         onDragLeave={() => setDragOverTask(null)}
+                       >
+                         <div className="h-full flex items-center px-3">
+                           <div className="flex items-center space-x-3 flex-1 min-w-0">
+                             <div 
+                               className="flex items-center space-x-2 flex-1 min-w-0"
+                             >
+                               <div
+                                 className="cursor-move p-1 hover:bg-gray-100 rounded"
+                                 draggable={true}
+                                 onDragStart={(e) => {
+                                   e.stopPropagation();
+                                   handleTaskDragStart(e, task.id);
+                                 }}
+                                 onDragEnd={handleTaskDragEnd}
+                                 title="Kéo để di chuyển task"
+                               >
+                                 <svg className="w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors cursor-grab active:cursor-grabbing" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h16M4 16h16" />
+                                 </svg>
+                               </div>
+                               <span 
+                                 className="text-sm font-medium text-gray-700 truncate cursor-pointer hover:text-orange-600 transition-colors"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleOpenEditModal(task, 'task', milestone.name || (milestone as any).title);
+                                 }}
+                                 title="Click để chỉnh sửa Task"
+                               >
+                                 {task.title}
+                               </span>
+                               <span className="text-xs text-gray-500">({task.id})</span>
+                             </div>
+                           </div>
+                           <div className="flex items-center space-x-2">
+                             {task.assignee && (
+                               <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm">
+                                 {getAssigneeInitials(task.assignee)}
+                               </div>
+                             )}
+                             <span 
+                               className="px-2 py-1 text-xs rounded-full font-medium"
+                               style={{
+                                 backgroundColor: getStatusBackgroundColor(task.status),
+                                 color: getStatusColor(task.status)
+                               }}
+                             >
+                               {getStatusLabel(task.status)}
+                             </span>
+                           </div>
+                         </div>
+                       </div>
+                     ));
                   })()}
                 </React.Fragment>
                   ))}
                   
-                  {/* Render same-level tasks */}
-                  {sameLevelTasks.map((task, taskIndex) => (
-                    <div key={`same-level-task-${task.id}-${taskIndex}`} className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors ${(milestones.length + taskIndex) % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                      <div className="h-full flex items-center px-3">
-                        <div className="flex items-center space-x-3 flex-1 min-w-0">
-                          <div className="w-2 h-2 bg-orange-400 rounded-full" />
-                          <span 
-                            className="text-sm font-medium text-gray-700 truncate cursor-pointer hover:text-orange-600 transition-colors"
-                            onClick={() => handleOpenEditModal(task, 'task')}
-                            title="Click để chỉnh sửa Task"
-                          >
-                            {task.title}
-                          </span>
-                          <span className="text-xs text-gray-500">({task.id})</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {task.assignee && (
-                            <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm">
-                              {getAssigneeInitials(task.assignee)}
-                            </div>
-                          )}
-                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(task.status)} text-white`}>
-                            {task.status.toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                   {/* Render same-level tasks */}
+                   {sameLevelTasks.map((task, taskIndex) => (
+                       <div 
+                         key={`same-level-task-${task.id}-${taskIndex}`} 
+                         className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors ${(milestones.length + taskIndex) % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${dragOverTask === task.id ? 'bg-blue-50 border-blue-200' : ''}`}
+                         onDragOver={(e) => handleTaskDragOver(e, task.id)}
+                         onDrop={(e) => handleTaskDrop(e, task.id)}
+                         onDragLeave={() => setDragOverTask(null)}
+                       >
+                         <div className="h-full flex items-center px-3">
+                           <div className="flex items-center space-x-3 flex-1 min-w-0">
+                             <div 
+                               className="flex items-center space-x-2 flex-1 min-w-0"
+                             >
+                               <div
+                                 className="cursor-move p-1 hover:bg-gray-100 rounded"
+                                 draggable={true}
+                                 onDragStart={(e) => {
+                                   e.stopPropagation();
+                                   handleTaskDragStart(e, task.id);
+                                 }}
+                                 onDragEnd={handleTaskDragEnd}
+                                 title="Kéo để di chuyển task"
+                               >
+                                 <svg className="w-5 h-5 text-gray-400 hover:text-gray-600 transition-colors cursor-grab active:cursor-grabbing" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h16M4 16h16" />
+                                 </svg>
+                               </div>
+                               <span 
+                                 className="text-sm font-medium text-gray-700 truncate cursor-pointer hover:text-orange-600 transition-colors"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   handleOpenEditModal(task, 'task');
+                                 }}
+                                 title="Click để chỉnh sửa Task"
+                               >
+                                 {task.title}
+                               </span>
+                               <span className="text-xs text-gray-500">({task.id})</span>
+                             </div>
+                           </div>
+                           <div className="flex items-center space-x-2">
+                             {task.assignee && (
+                               <div className="w-5 h-5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm">
+                                 {getAssigneeInitials(task.assignee)}
+                               </div>
+                             )}
+                             <span 
+                               className="px-2 py-1 text-xs rounded-full font-medium"
+                               style={{
+                                 backgroundColor: getStatusBackgroundColor(task.status),
+                                 color: getStatusColor(task.status)
+                               }}
+                             >
+                               {getStatusLabel(task.status)}
+                             </span>
+                           </div>
+                         </div>
+                       </div>
+                     ))}
                 </>
               );
-            })()}
+            }, [timelineItems, expandedMilestones, dragOverTask, dragOverMilestone])}
 
             {/* Add Milestone Row - At the end */}
             <div className="h-12 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100 transition-colors">
               <div className="h-full flex items-center px-3 space-x-3">
                 <button 
-                  className="flex items-center space-x-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
+                  className="flex items-center space-x-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium cursor-pointer"
                   onClick={handleOpenCreateMilestoneModal}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -963,7 +1276,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                   <span>Tạo Milestone</span>
                 </button>
                 <button 
-                  className="flex items-center space-x-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
+                  className="flex items-center space-x-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium cursor-pointer"
                   onClick={handleOpenCreateTaskModalSameLevel}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1017,13 +1330,13 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                     date.getMonth() === today.getMonth() && 
                     date.getDate() === today.getDate()
                   );
-                  console.log(`📅 Today: ${today.toDateString()}, Found at index: ${todayIndex}`);
-                  console.log(`📅 Timeline dates: ${timelineDates.slice(0, 10).map(d => d.toDateString()).join(', ')}...`);
+                  // console.log(`📅 Today: ${today.toDateString()}, Found at index: ${todayIndex}`);
+                  // console.log(`📅 Timeline dates: ${timelineDates.slice(0, 10).map(d => d.toDateString()).join(', ')}...`);
                   
                    if (todayIndex !== -1) {
                      const columnWidth = 64;
                      const todayPosition = (todayIndex * columnWidth) + (columnWidth / 2); // Center in the column
-                     console.log(`📅 Today Line: todayIndex=${todayIndex}, columnWidth=${columnWidth}, todayPosition=${todayPosition}px`);
+                     // console.log(`📅 Today Line: todayIndex=${todayIndex}, columnWidth=${columnWidth}, todayPosition=${todayPosition}px`);
                      return (
                        <div 
                          className="absolute top-0 bottom-0 w-1 bg-blue-500 z-20 pointer-events-none shadow-lg"
@@ -1034,26 +1347,26 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                   return null;
                 })()}
 
-                 {/* Display Milestone and Task Timeline Bars */}
-                 {(() => {
-                   // Get all milestones from mockData + newly created milestones
-                   const allMilestones = [...mockMilestones];
-                   const createdMilestones = timelineItems.filter(item => item.type === 'milestone' && !mockMilestones.find(mockMilestone => mockMilestone.id === item.id));
-                   const milestones = [...allMilestones, ...createdMilestones.map(createdMilestone => ({
-                     id: createdMilestone.id,
-                     name: createdMilestone.title,
-                     description: '',
-                     status: createdMilestone.status,
-                     progress: createdMilestone.progress,
-                     dueDate: createdMilestone.dueDate || createdMilestone.startDate,
-                     tasks: []
-                   }))];
+                  {/* Display Milestone and Task Timeline Bars */}
+                  {useMemo(() => {
+                    // Get all milestones from mockData + newly created milestones
+                    const allMilestones = [...mockMilestones];
+                    const createdMilestones = timelineItems.filter(item => item.type === 'milestone' && !mockMilestones.find(mockMilestone => mockMilestone.id === item.id));
+                    const milestones = [...allMilestones, ...createdMilestones.map(createdMilestone => ({
+                      id: createdMilestone.id,
+                      name: createdMilestone.title,
+                      description: '',
+                      status: createdMilestone.status,
+                      progress: createdMilestone.progress,
+                      dueDate: createdMilestone.dueDate || createdMilestone.startDate,
+                      tasks: []
+                    }))];
+                    
+                    // Get same-level tasks (tasks without milestoneId)
+                    const sameLevelTasks = timelineItems.filter(item => item.type === 'task' && !item.milestoneId);
                    
-                   // Get same-level tasks (tasks without milestoneId)
-                   const sameLevelTasks = timelineItems.filter(item => item.type === 'task' && !item.milestoneId);
-                   
-                   console.log('🎯 Timeline milestones for display:', milestones);
-                   console.log('🎯 Timeline same-level tasks:', sameLevelTasks);
+                    // console.log('🎯 Timeline milestones for display:', milestones);
+                    // console.log('🎯 Timeline same-level tasks:', sameLevelTasks);
                    
                    return (
                      <>
@@ -1066,7 +1379,10 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                      return (
                        <React.Fragment key={`timeline-milestone-${milestone.id}-${milestoneIndex}`}>
                          {/* Milestone Timeline Flag */}
-                         <div className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors relative ${milestoneIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                         <div className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors relative ${milestoneIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${dragOverMilestone === milestone.id ? 'bg-blue-50 border-blue-200' : ''}`}
+                               onDragOver={(e) => handleMilestoneDragOver(e, milestone.id)}
+                               onDrop={(e) => handleMilestoneDrop(e, milestone.id)}
+                               onDragLeave={() => setDragOverMilestone(null)}>
                            <div className="absolute top-2 left-0 h-8" style={{ width: `${timelineDates.length * 64}px` }}>
                              {/* Milestone Flag */}
                              <div 
@@ -1078,7 +1394,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                                }}
                                onMouseDown={(e) => {
                                  e.stopPropagation();
-                                 console.log(`🖱️ Milestone Mouse Down: ${milestone.id}, Position: ${milestonePosition.left}%, ClientX: ${e.clientX}, Target: ${e.target}`);
+                                 // console.log(`🖱️ Milestone Mouse Down: ${milestone.id}, Position: ${milestonePosition.left}%, ClientX: ${e.clientX}, Target: ${e.target}`);
                                  handleDragStart(e, milestone.id, dueDate, dueDate, 'move');
                                }}
                                title={`${milestone.name || (milestone as any).title}\n📅 ${new Date(dueDate).toLocaleDateString('vi-VN')}`}
@@ -1114,7 +1430,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                            
                            const allTasks = Array.from(taskMap.values());
                            
-                           console.log(`🎯 Timeline Milestone ${milestone.id} tasks:`, { mockTasks, createdTasks, allTasks });
+                            // console.log(`🎯 Timeline Milestone ${milestone.id} tasks:`, { mockTasks, createdTasks, allTasks });
                            return allTasks.map((task, taskIndex) => {
                              // Use custom position if available, otherwise use original dates
                              const customPosition = taskPositions[task.id];
@@ -1122,8 +1438,14 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                              const endDate = customPosition ? customPosition.endDate : task.endDate;
                              const taskPosition = calculateBarPosition(startDate, endDate);
                              return (
-                               <div key={`${milestone.id}-timeline-task-${task.id}-${taskIndex}`} className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors relative bg-gray-25`}>
-                                 <div className="absolute top-2 left-0 h-8" style={{ width: `${timelineDates.length * 64}px` }}>
+                                <div 
+                                  key={`${milestone.id}-timeline-task-${task.id}-${taskIndex}`} 
+                                  className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors relative bg-gray-25 ${dragOverTask === task.id ? 'bg-blue-50 border-blue-200' : ''}`}
+                                  onDragOver={(e) => handleTaskDragOver(e, task.id)}
+                                  onDrop={(e) => handleTaskDrop(e, task.id)}
+                                  onDragLeave={() => setDragOverTask(null)}
+                                >
+                                  <div className="absolute top-2 left-0 h-8" style={{ width: `${timelineDates.length * 64}px` }}>
                                    <div 
                                      className={`absolute h-8 rounded-md cursor-move group transition-all duration-300 ease-in-out ${draggedItem === task.id ? 'ring-2 ring-blue-400 ring-opacity-50 shadow-xl z-30' : 'hover:shadow-lg z-10'}`}
                                      style={{
@@ -1138,7 +1460,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                                      }}
                                      onMouseDown={(e) => {
                                        e.stopPropagation();
-                                       console.log(`🖱️ Task Mouse Down: ${task.id}, Position: ${taskPosition.left}%, Width: ${taskPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
+                                       // console.log(`🖱️ Task Mouse Down: ${task.id}, Position: ${taskPosition.left}%, Width: ${taskPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
                                        handleDragStart(e, task.id, startDate, endDate, 'move');
                                      }}
                                      title={`${task.title}\n📅 ${new Date(task.startDate).toLocaleDateString('vi-VN')} - ${new Date(task.endDate).toLocaleDateString('vi-VN')}`}
@@ -1184,8 +1506,8 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                     );
                   })}
                   
-                  {/* Render same-level task timeline bars */}
-                  {sameLevelTasks.map((task, taskIndex) => {
+                   {/* Render same-level task timeline bars */}
+                   {sameLevelTasks.map((task, taskIndex) => {
                     // Use custom position if available, otherwise use original dates
                     const customPosition = taskPositions[task.id];
                     const startDate = customPosition ? customPosition.startDate : task.startDate;
@@ -1193,8 +1515,14 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                     const taskPosition = calculateBarPosition(startDate, endDate);
                     
                     return (
-                      <div key={`same-level-timeline-task-${task.id}-${taskIndex}`} className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors relative ${(milestones.length + taskIndex) % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                        <div className="absolute top-2 left-0 h-8" style={{ width: `${timelineDates.length * 64}px` }}>
+                       <div 
+                         key={`same-level-timeline-task-${task.id}-${taskIndex}`} 
+                         className={`h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors relative ${(milestones.length + taskIndex) % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${dragOverTask === task.id ? 'bg-blue-50 border-blue-200' : ''}`}
+                         onDragOver={(e) => handleTaskDragOver(e, task.id)}
+                         onDrop={(e) => handleTaskDrop(e, task.id)}
+                         onDragLeave={() => setDragOverTask(null)}
+                       >
+                         <div className="absolute top-2 left-0 h-8" style={{ width: `${timelineDates.length * 64}px` }}>
                           <div 
                             className={`absolute h-8 rounded-md cursor-move group transition-all duration-300 ease-in-out ${draggedItem === task.id ? 'ring-2 ring-blue-400 ring-opacity-50 shadow-xl z-30' : 'hover:shadow-lg z-10'}`}
                             style={{
@@ -1209,7 +1537,7 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                             }}
                             onMouseDown={(e) => {
                               e.stopPropagation();
-                              console.log(`🖱️ Same-level Task Mouse Down: ${task.id}, Position: ${taskPosition.left}%, Width: ${taskPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
+                              // console.log(`🖱️ Same-level Task Mouse Down: ${task.id}, Position: ${taskPosition.left}%, Width: ${taskPosition.width}%, ClientX: ${e.clientX}, Target: ${e.target}`);
                               handleDragStart(e, task.id, startDate, endDate, 'move');
                             }}
                             title={`${task.title}\n📅 ${new Date(task.startDate).toLocaleDateString('vi-VN')} - ${new Date(task.endDate).toLocaleDateString('vi-VN')}`}
@@ -1248,11 +1576,11 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-                    </>
-                  );
-                })()}
+                     );
+                   })}
+                     </>
+                   );
+                 }, [timelineItems, expandedMilestones, milestonePositions, taskPositions, draggedItem, dragOverMilestone, dragOverTask])}
 
                   {/* Add Milestone Row - Empty Timeline */}
                   <div className="h-12 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-red-50">
@@ -1276,10 +1604,25 @@ export const ProjectTimeline = ({ project }: ProjectTimelineProps) => {
         itemType={modalItemType as 'milestone' | 'task'}
         epicTitle={selectedEpicForTask?.title || selectedItem?.milestoneTitle}
         mode={modalMode}
-        milestones={mockMilestones.map((milestone: any) => ({
-          id: milestone.id,
-          name: milestone.name
-        }))}
+        milestones={(() => {
+          // Get all milestones from mockData + newly created milestones
+          const allMilestones = [...mockMilestones];
+          const createdMilestones = timelineItems.filter(item => item.type === 'milestone' && !mockMilestones.find(mockMilestone => mockMilestone.id === item.id));
+          const milestones = [...allMilestones, ...createdMilestones.map(createdMilestone => ({
+            id: createdMilestone.id,
+            name: createdMilestone.title
+          }))];
+          return milestones.map((milestone: any) => ({
+            id: milestone.id,
+            name: milestone.name
+          }));
+        })()}
+        assignees={[
+          { id: '1', name: 'Phuoc Loc' },
+          { id: '2', name: 'Quang Long' },
+          { id: '3', name: 'Minh Duc' },
+          { id: '4', name: 'Van Anh' }
+        ]}
       />
     </div>
   );

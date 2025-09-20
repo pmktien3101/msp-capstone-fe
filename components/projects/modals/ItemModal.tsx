@@ -1,10 +1,95 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../ui/dialog';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Textarea } from '../../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
+
+interface DropdownOption {
+  value: string;
+  label: string;
+}
+
+interface CustomDropdownProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: DropdownOption[];
+  placeholder?: string;
+  className?: string;
+}
+
+const CustomDropdown: React.FC<CustomDropdownProps> = ({
+  value,
+  onChange,
+  options,
+  placeholder = "Chọn...",
+  className = ""
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const selectedOption = options.find(option => option.value === value);
+
+  return (
+    <div ref={dropdownRef} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full h-12 px-4 py-2 text-sm font-medium text-gray-700 bg-white border-2 border-orange-200 rounded-xl shadow-sm hover:border-orange-300 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 focus:outline-none transition-all duration-200 ease-in-out cursor-pointer bg-gradient-to-r from-white to-orange-50 hover:from-orange-50 hover:to-orange-100 flex items-center justify-between"
+      >
+        <span className={selectedOption ? "text-gray-700" : "text-gray-400"}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <svg
+          className={`w-5 h-5 text-orange-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-2 bg-white border-2 border-orange-200 rounded-xl shadow-lg overflow-hidden">
+          <div className="max-h-60 overflow-y-auto">
+            {options.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full px-4 py-3 text-left text-sm font-medium transition-all duration-150 hover:bg-orange-100 hover:text-orange-700 ${
+                  value === option.value 
+                    ? 'bg-orange-500 text-white hover:bg-orange-600 hover:text-white' 
+                    : 'text-gray-700'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface ItemModalProps {
   isOpen: boolean;
@@ -19,7 +104,6 @@ interface ItemModalProps {
     endDate?: string;
     dueDate?: string;
     status: string;
-    progress: number;
     milestoneId?: string;
   }) => void;
   item?: {
@@ -33,13 +117,16 @@ interface ItemModalProps {
     endDate?: string;
     dueDate?: string;
     status: string;
-    progress?: number;
     milestoneId?: string;
   } | null;
   itemType: 'milestone' | 'task';
   epicTitle?: string;
   mode: 'create' | 'edit';
   milestones?: Array<{
+    id: string;
+    name: string;
+  }>;
+  assignees?: Array<{
     id: string;
     name: string;
   }>;
@@ -53,7 +140,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   itemType,
   epicTitle,
   mode,
-  milestones = []
+  milestones = [],
+  assignees = []
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -64,7 +152,6 @@ export const ItemModal: React.FC<ItemModalProps> = ({
     endDate: '',
     dueDate: '',
     status: 'todo',
-    progress: 0,
     milestoneId: 'none'
   });
 
@@ -75,12 +162,11 @@ export const ItemModal: React.FC<ItemModalProps> = ({
         title: item.title || item.name || '',
         description: item.description || '',
         priority: item.priority || (itemType === 'milestone' ? 'high' : 'medium'),
-        assignee: item.assignee || (itemType === 'milestone' ? 'Phuoc Loc' : 'Quang Long'),
+        assignee: item.assignee || (assignees.length > 0 ? assignees[0].name : 'Phuoc Loc'),
         startDate: item.startDate || '',
         endDate: item.endDate || '',
         dueDate: item.dueDate || '',
         status: item.status,
-        progress: item.progress || 0,
         milestoneId: item.milestoneId || 'none'
       });
     } else if (mode === 'create') {
@@ -95,16 +181,40 @@ export const ItemModal: React.FC<ItemModalProps> = ({
         title: '',
         description: '',
         priority: itemType === 'milestone' ? 'high' : 'medium',
-        assignee: itemType === 'milestone' ? 'Phuoc Loc' : 'Quang Long',
+        assignee: assignees.length > 0 ? assignees[0].name : 'Phuoc Loc',
         startDate: itemType === 'task' ? today : '',
         endDate: itemType === 'task' ? nextWeek : '',
         dueDate: itemType === 'milestone' ? nextWeek : '',
         status: 'todo',
-        progress: 0,
         milestoneId: defaultMilestoneId // Use milestoneId if creating task within milestone
       });
     }
   }, [item, itemType, mode]);
+
+  // Update assignee default when assignees prop changes
+  useEffect(() => {
+    console.log('🔍 ItemModal - assignees:', assignees);
+    console.log('🔍 ItemModal - formData.assignee:', formData.assignee);
+    console.log('🔍 ItemModal - formData.status:', formData.status);
+    console.log('🔍 ItemModal - formData.priority:', formData.priority);
+    console.log('🔍 ItemModal - formData.milestoneId:', formData.milestoneId);
+    // Only update if assignees are available and no assignee is set
+    if (assignees.length > 0 && !formData.assignee) {
+      setFormData(prev => ({
+        ...prev,
+        assignee: assignees[0].name
+      }));
+    }
+  }, [assignees, formData.assignee]);
+
+  // Debug when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      console.log('🔍 Modal opened with formData:', formData);
+      console.log('🔍 Modal opened with assignees:', assignees);
+      console.log('🔍 Modal opened with milestones:', milestones);
+    }
+  }, [isOpen, formData, assignees, milestones]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -129,46 +239,33 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className={`sm:max-w-[600px] bg-white shadow-2xl rounded-xl border-0 overflow-hidden pt-4 mt-8`}>
-        {/* Header with gradient background */}
-        <div className={`bg-gradient-to-r ${iconColor} p-6 -m-6 mb-6 relative overflow-hidden`}>
-          {/* Background pattern */}
-          <div className="absolute inset-0 bg-orange-300 bg-opacity-10"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500 bg-opacity-5 rounded-full -translate-y-16 translate-x-16"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-orange-500 bg-opacity-5 rounded-full translate-y-12 -translate-x-12"></div>
-          
-          <DialogHeader className="pb-0 relative z-10">
-            <DialogTitle className="text-white flex items-center gap-4">
-              <div className="w-12 h-12 flex items-center justify-center">
-                {isMilestone ? (
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7l9 6 9-6" />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                  </svg>
-                )}
+        {/* Simple Header */}
+        <DialogHeader className="pb-4 border-b border-gray-200">
+          <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-3">
+            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+              {isMilestone ? (
+                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7l9 6 9-6" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <div className="text-xl font-semibold text-gray-900">
+                {mode === 'create' ? `Tạo ${isMilestone ? 'Milestone' : 'Task'} Mới` : `Chỉnh sửa ${isMilestone ? 'Milestone' : 'Task'}`}
               </div>
-              <div>
-                <div className="text-xl font-bold text-white drop-shadow-lg">
-                  {mode === 'create' ? `Tạo ${isMilestone ? 'Milestone' : 'Task'} Mới` : `Chỉnh sửa ${isMilestone ? 'Milestone' : 'Task'}`}
+              {epicTitle && !isMilestone && (
+                <div className="text-sm text-gray-500 mt-1">
+                  Trong Milestone: <span className="font-medium text-gray-700">{epicTitle}</span>
                 </div>
-                <div className="text-white text-opacity-95 text-sm font-normal mt-1 drop-shadow-md">
-                  {mode === 'create' 
-                    ? `${isMilestone ? 'Tạo một Milestone để đánh dấu mốc quan trọng' : 'Tạo một Task mới trong Milestone'}`
-                    : `${isMilestone ? 'Cập nhật thông tin Milestone hiện tại' : 'Cập nhật thông tin Task hiện tại'}`
-                  }
-                </div>
-                {epicTitle && !isMilestone && (
-                  <div className="text-sm text-white text-opacity-90 mt-2 drop-shadow-md">
-                    Trong Milestone: <span className="bg-orange-500 px-2 py-1 rounded-md text-xs">{epicTitle}</span>
-                  </div>
-                )}
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-        </div>
+              )}
+            </div>
+          </DialogTitle>
+        </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 px-2">
           {/* Title */}
@@ -192,60 +289,63 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               <Label htmlFor="status" className="text-sm font-medium text-gray-600">
                 Trạng thái
               </Label>
-              <Select
+              <CustomDropdown
                 value={formData.status}
-                onValueChange={(value: string) => setFormData({ ...formData, status: value })}
-              >
-                <SelectTrigger className={`${inputColor} rounded-lg h-10 border focus:ring-1 focus:ring-opacity-50 transition-all`}>
-                  <SelectValue placeholder="Chọn trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todo">Chưa bắt đầu</SelectItem>
-                  <SelectItem value="in-progress">Đang làm</SelectItem>
-                  <SelectItem value="review">Đang review</SelectItem>
-                  <SelectItem value="done">Hoàn thành</SelectItem>
-                </SelectContent>
-              </Select>
+                onChange={(value) => {
+                  console.log('🔍 Status changed to:', value);
+                  setFormData({ ...formData, status: value });
+                }}
+                options={[
+                  { value: 'todo', label: 'Chưa bắt đầu' },
+                  { value: 'in-progress', label: 'Đang làm' },
+                  { value: 'review', label: 'Đang review' },
+                  { value: 'done', label: 'Hoàn thành' }
+                ]}
+                placeholder="Chọn trạng thái"
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="priority" className="text-sm font-medium text-gray-600">
                 Độ ưu tiên
               </Label>
-              <Select
+              <CustomDropdown
                 value={formData.priority}
-                onValueChange={(value: string) => setFormData({ ...formData, priority: value })}
-              >
-                <SelectTrigger className={`${inputColor} rounded-lg h-10 border focus:ring-1 focus:ring-opacity-50 transition-all`}>
-                  <SelectValue placeholder="Chọn độ ưu tiên" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Thấp</SelectItem>
-                  <SelectItem value="medium">Trung bình</SelectItem>
-                  <SelectItem value="high">Cao</SelectItem>
-                  <SelectItem value="urgent">Khẩn cấp</SelectItem>
-                </SelectContent>
-              </Select>
+                onChange={(value) => {
+                  console.log('🔍 Priority changed to:', value);
+                  setFormData({ ...formData, priority: value });
+                }}
+                options={[
+                  { value: 'low', label: 'Thấp' },
+                  { value: 'medium', label: 'Trung bình' },
+                  { value: 'high', label: 'Cao' },
+                  { value: 'urgent', label: 'Khẩn cấp' }
+                ]}
+                placeholder="Chọn độ ưu tiên"
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="assignee" className="text-sm font-medium text-gray-600">
                 Người phụ trách
               </Label>
-              <Select
+              <CustomDropdown
                 value={formData.assignee}
-                onValueChange={(value: string) => setFormData({ ...formData, assignee: value })}
-              >
-                <SelectTrigger className={`${inputColor} rounded-lg h-10 border focus:ring-1 focus:ring-opacity-50 transition-all`}>
-                  <SelectValue placeholder="Chọn người phụ trách" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Phuoc Loc">Phuoc Loc</SelectItem>
-                  <SelectItem value="Quang Long">Quang Long</SelectItem>
-                  <SelectItem value="Minh Duc">Minh Duc</SelectItem>
-                  <SelectItem value="Van Anh">Van Anh</SelectItem>
-                </SelectContent>
-              </Select>
+                onChange={(value) => {
+                  console.log('🔍 Assignee changed to:', value);
+                  setFormData({ ...formData, assignee: value });
+                }}
+                options={assignees.length > 0 
+                  ? assignees.map(assignee => ({ value: assignee.name, label: assignee.name }))
+                  : [
+                      { value: 'Phuoc Loc', label: 'Phuoc Loc' },
+                      { value: 'Quang Long', label: 'Quang Long' },
+                      { value: 'Minh Duc', label: 'Minh Duc' },
+                      { value: 'Van Anh', label: 'Van Anh' }
+                    ]
+                }
+                placeholder="Chọn người phụ trách"
+              />
             </div>
           </div>
 
@@ -255,22 +355,18 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               <Label htmlFor="milestoneId" className="text-sm font-medium text-gray-600">
                 Thuộc Milestone
               </Label>
-              <Select
-                value={formData.milestoneId}
-                onValueChange={(value: string) => setFormData({ ...formData, milestoneId: value })}
-              >
-                <SelectTrigger className={`${inputColor} rounded-lg h-10 border focus:ring-1 focus:ring-opacity-50 transition-all`}>
-                  <SelectValue placeholder="Chọn Milestone (tùy chọn)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Không thuộc Milestone</SelectItem>
-                  {milestones.map((milestone) => (
-                    <SelectItem key={milestone.id} value={milestone.id}>
-                      {milestone.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+               <CustomDropdown
+                 value={formData.milestoneId}
+                 onChange={(value) => {
+                   console.log('🔍 Milestone changed to:', value);
+                   setFormData({ ...formData, milestoneId: value });
+                 }}
+                 options={[
+                   { value: 'none', label: 'Không thuộc Milestone' },
+                   ...milestones.map(milestone => ({ value: milestone.id, label: milestone.name }))
+                 ]}
+                 placeholder="Chọn Milestone (tùy chọn)"
+               />
             </div>
           )}
 
@@ -290,22 +386,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           </div>
 
           {/* Progress and Dates Row */}
-          <div className={`grid ${isMilestone ? 'grid-cols-2' : 'grid-cols-3'} gap-4`}>
-            <div className="space-y-2">
-              <Label htmlFor="progress" className="text-sm font-medium text-gray-600">
-                Tiến độ (%)
-              </Label>
-              <Input
-                id="progress"
-                type="number"
-                min="0"
-                max="100"
-                value={formData.progress}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, progress: parseInt(e.target.value) || 0 })}
-                className={`${inputColor} rounded-lg h-10 text-center font-medium border focus:ring-1 focus:ring-opacity-50 transition-all`}
-              />
-            </div>
-
+          <div className={`grid ${isMilestone ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
             {isMilestone ? (
               <div className="space-y-2">
                 <Label htmlFor="dueDate" className="text-sm font-medium text-gray-600">
