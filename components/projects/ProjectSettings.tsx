@@ -493,12 +493,14 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         }
 
         .btn-primary {
-          background: #ff5e13;
-          color: white;
+          background: transparent;
+          color: #FF5E13;
+          border: 1px solid #FF5E13;
         }
 
         .btn-primary:hover {
-          background: #e54e0a;
+          background: #FF5E13;
+          color: white;
         }
 
         .btn-secondary {

@@ -10,7 +10,7 @@ import { Call } from "@stream-io/video-react-sdk";
 import { tokenService } from "@/services/streamService";
 import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 import { toast } from "react-toastify";
-import { Eye, LogIn, Pencil, Trash } from "lucide-react";
+import { Eye, LogIn, Pencil, Trash, Plus } from "lucide-react";
 
 interface MeetingTabProps {
   project: Project;
@@ -107,9 +107,31 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
             console.log("Create meeting button clicked");
             setShowCreateModal(true);
           }}
-          className="create-meeting-btn"
+          style={{
+            background: 'transparent',
+            color: '#FF5E13',
+            border: '1px solid #FF5E13',
+            borderRadius: '8px',
+            padding: '10px 20px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#FF5E13';
+            e.currentTarget.style.color = 'white';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = '#FF5E13';
+          }}
         >
-          ➕ Tạo cuộc họp
+          <Plus size={16} />
+          Tạo cuộc họp
         </Button>
       </div>
       <div className="meeting-stats">
@@ -129,20 +151,86 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <Button
-          variant={viewType === "all" ? "default" : "outline"}
           onClick={() => setViewType("all")}
+          style={{
+            background: viewType === "all" ? '#FF5E13' : 'transparent',
+            color: viewType === "all" ? 'white' : '#FF5E13',
+            border: '1px solid #FF5E13',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 500,
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (viewType !== "all") {
+              e.currentTarget.style.background = '#FF5E13';
+              e.currentTarget.style.color = 'white';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (viewType !== "all") {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = '#FF5E13';
+            }
+          }}
         >
           Tất cả
         </Button>
         <Button
-          variant={viewType === "upcoming" ? "default" : "outline"}
           onClick={() => setViewType("upcoming")}
+          style={{
+            background: viewType === "upcoming" ? '#FF5E13' : 'transparent',
+            color: viewType === "upcoming" ? 'white' : '#FF5E13',
+            border: '1px solid #FF5E13',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 500,
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (viewType !== "upcoming") {
+              e.currentTarget.style.background = '#FF5E13';
+              e.currentTarget.style.color = 'white';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (viewType !== "upcoming") {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = '#FF5E13';
+            }
+          }}
         >
           Sắp tới
         </Button>
         <Button
-          variant={viewType === "ended" ? "default" : "outline"}
           onClick={() => setViewType("ended")}
+          style={{
+            background: viewType === "ended" ? '#FF5E13' : 'transparent',
+            color: viewType === "ended" ? 'white' : '#FF5E13',
+            border: '1px solid #FF5E13',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 500,
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (viewType !== "ended") {
+              e.currentTarget.style.background = '#FF5E13';
+              e.currentTarget.style.color = 'white';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (viewType !== "ended") {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = '#FF5E13';
+            }
+          }}
         >
           Đã kết thúc
         </Button>
@@ -212,7 +300,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     </div>
                   </div>
                   <div className="col-room">
-                    {viewType === "ended" ? (
+                    {statusInfo.label === "Hoàn thành" ? (
                       <span className="text-xs text-gray-400 italic">
                         (Đã kết thúc)
                       </span>
@@ -225,6 +313,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       </button>
                     )}
                   </div>
+
                   <div className="col-status">
                     <span
                       className="status-badge"

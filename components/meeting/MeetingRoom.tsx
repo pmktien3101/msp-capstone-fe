@@ -8,6 +8,7 @@ import {
   SpeakerLayout,
   useCallStateHooks,
   useCall,
+  TranscriptionSettingsRequestModeEnum,
 } from "@stream-io/video-react-sdk";
 import BackgroundFilterSettings from "../filters/background-filter-settings";
 import React, { Fragment, useEffect, useRef, useState } from "react";
@@ -18,11 +19,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Filter, LayoutList, Loader, User } from "lucide-react";
+import { Filter, LayoutList, User } from "lucide-react";
 import { Button } from "../ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import EndCallButton from "../ui/end-call-button";
-import { size } from "zod";
 
 type CallLayoutType = "grid" | "speaker-left" | "speaker-right";
 
@@ -33,9 +33,19 @@ const MeetingRoom = () => {
   const [layout, setLayout] = useState<CallLayoutType>("speaker-left");
   const [showParticipantsBar, setShowParticipantsBar] = useState(false);
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
-  const { useCallCallingState } = useCallStateHooks();
+
+  const {
+    useCallCallingState,
+    useCallSettings,
+    useIsCallTranscribingInProgress,
+  } = useCallStateHooks();
   const callingState = useCallCallingState();
   const call = useCall();
+
+  // transcription hooks
+  const { transcription } = useCallSettings() || {};
+  const isTranscribing = useIsCallTranscribingInProgress();
+
   // Dùng ref để biết user đã từng join call chưa nhằm tránh redirect khi đang load ban đầu
   const wasJoinedRef = useRef(false);
 
@@ -43,13 +53,11 @@ const MeetingRoom = () => {
     if (callingState === CallingState.JOINED) {
       wasJoinedRef.current = true;
     }
-    // Khi đã từng JOINED và giờ không còn JOINED nữa => user vừa leave/end call
     if (
       wasJoinedRef.current &&
       callingState !== CallingState.JOINED &&
       callingState !== undefined
     ) {
-      // Tắt camera & microphone nếu vẫn còn bật để tránh nhấp nháy / giữ thiết bị
       (async () => {
         try {
           await call?.camera?.disable();
@@ -73,6 +81,7 @@ const MeetingRoom = () => {
         return <SpeakerLayout participantsBarPosition="left" />;
     }
   };
+
   return (
     <section className="relative h-screen w-full overflow-hidden pt-4 text-white">
       <div className="relative flex size-full justify-center items-center">
@@ -91,16 +100,18 @@ const MeetingRoom = () => {
           <CallParticipantsList onClose={() => setShowParticipantsBar(false)} />
         </div>
       </div>
+
+      {/* Controls */}
       <div className="fixed bottom-0 flex w-full justify-center items-center gap-5 flex-wrap">
         <CallControls />
 
+        {/* Layout Switch */}
         <DropdownMenu>
           <div className="flex items-center gap-2 bg-gray-800 rounded-3xl hover:bg-gray-700 transition-colors">
             <DropdownMenuTrigger className="cursor-pointer px-4 py-2">
               <LayoutList size={20} className="text-white" />
             </DropdownMenuTrigger>
           </div>
-
           <DropdownMenuContent className="border-orange-600 bg-white text-black">
             {["Grid", "Speaker Left", "Speaker Right"].map((item, index) => (
               <Fragment key={index}>
@@ -121,22 +132,48 @@ const MeetingRoom = () => {
         </DropdownMenu>
 
         <CallStatsButton />
+
+        {/* Participants */}
         <Button
           onClick={() => setShowParticipantsBar((prev) => !prev)}
           className=" cursor-pointer flex items-center bg-gray-800 hover:bg-gray-700  rounded-3xl"
         >
-          <div>
-            <User size={20} />
-          </div>
+          <User size={20} />
         </Button>
+
+        {/* Background Filters */}
         <Button
           onClick={() => setShowFiltersPanel((prev) => !prev)}
           className="cursor-pointer bg-gray-800 hover:bg-gray-700 rounded-3xl px-4 py-2"
         >
           <Filter size={20} className="text-white" />
         </Button>
+
+        {/* Transcription Toggle */}
+        {transcription?.mode !==
+          TranscriptionSettingsRequestModeEnum.DISABLED && (
+          <Button
+            onClick={() => {
+              if (isTranscribing) {
+                call?.stopTranscription().catch((err) => {
+                  console.error("Failed to stop transcription", err);
+                });
+              } else {
+                call?.startTranscription().catch((err) => {
+                  console.error("Failed to start transcription", err);
+                });
+              }
+            }}
+            className="cursor-pointer bg-gray-800 hover:bg-gray-700 rounded-3xl px-4 py-2"
+          >
+            {isTranscribing ? "Stop Transcript" : "Start Transcript"}
+          </Button>
+        )}
+
         {!isPersonalRoom && <EndCallButton />}
       </div>
+
+      {/* Filters Panel */}
       {showFiltersPanel && (
         <div className="fixed right-4 bottom-28 w-72 max-h-[60vh] overflow-y-auto rounded-lg border border-orange-600/40 bg-black/70 p-4 text-white backdrop-blur">
           <div className="flex items-center justify-between mb-2">

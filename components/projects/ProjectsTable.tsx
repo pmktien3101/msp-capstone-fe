@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Project } from '@/types/project';
+import { Eye, Edit, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface ProjectsTableProps {
   projects: Project[];
@@ -26,6 +27,21 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
         return '#6b7280';
       default:
         return '#6b7280';
+    }
+  };
+
+  const getStatusBackgroundColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return '#dcfce7';
+      case 'planning':
+        return '#fef3c7';
+      case 'on-hold':
+        return '#fee2e2';
+      case 'completed':
+        return '#f3f4f6';
+      default:
+        return '#f3f4f6';
     }
   };
 
@@ -80,15 +96,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                   <span>Tên dự án</span>
                   <div className="sort-indicator">
                     {sortField === 'name' && (
-                      <svg 
-                        width="12" 
-                        height="12" 
-                        viewBox="0 0 24 24" 
-                        fill="none"
-                        className={sortDirection === 'asc' ? 'asc' : 'desc'}
-                      >
-                        <path d="M7 14L12 9L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                      sortDirection === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
                     )}
                   </div>
                 </div>
@@ -101,15 +109,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                   <span>Trạng thái</span>
                   <div className="sort-indicator">
                     {sortField === 'status' && (
-                      <svg 
-                        width="12" 
-                        height="12" 
-                        viewBox="0 0 24 24" 
-                        fill="none"
-                        className={sortDirection === 'asc' ? 'asc' : 'desc'}
-                      >
-                        <path d="M7 14L12 9L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                      sortDirection === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
                     )}
                   </div>
                 </div>
@@ -122,15 +122,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                   <span>Tiến độ</span>
                   <div className="sort-indicator">
                     {sortField === 'progress' && (
-                      <svg 
-                        width="12" 
-                        height="12" 
-                        viewBox="0 0 24 24" 
-                        fill="none"
-                        className={sortDirection === 'asc' ? 'asc' : 'desc'}
-                      >
-                        <path d="M7 14L12 9L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                      sortDirection === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
                     )}
                   </div>
                 </div>
@@ -143,15 +135,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                   <span>Ngày bắt đầu</span>
                   <div className="sort-indicator">
                     {sortField === 'startDate' && (
-                      <svg 
-                        width="12" 
-                        height="12" 
-                        viewBox="0 0 24 24" 
-                        fill="none"
-                        className={sortDirection === 'asc' ? 'asc' : 'desc'}
-                      >
-                        <path d="M7 14L12 9L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                      sortDirection === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
                     )}
                   </div>
                 </div>
@@ -164,15 +148,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                   <span>Ngày kết thúc</span>
                   <div className="sort-indicator">
                     {sortField === 'endDate' && (
-                      <svg 
-                        width="12" 
-                        height="12" 
-                        viewBox="0 0 24 24" 
-                        fill="none"
-                        className={sortDirection === 'asc' ? 'asc' : 'desc'}
-                      >
-                        <path d="M7 14L12 9L17 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                      sortDirection === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
                     )}
                   </div>
                 </div>
@@ -192,7 +168,14 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                   </div>
                 </td>
                 <td className="status-cell">
-                  <div className="status-badge" style={{ backgroundColor: getStatusColor(project.status) }}>
+                  <div 
+                    className="status-badge" 
+                    style={{ 
+                      color: getStatusColor(project.status),
+                      backgroundColor: getStatusBackgroundColor(project.status),
+                      borderColor: getStatusColor(project.status)
+                    }}
+                  >
                     {getStatusText(project.status)}
                   </div>
                 </td>
@@ -236,38 +219,21 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                       onClick={() => onViewProject(project.id)}
                       title="Xem chi tiết"
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                      <Eye size={16} />
                     </button>
                     <button 
                       className="action-btn edit-btn"
                       onClick={() => onEditProject(project)}
                       title="Chỉnh sửa"
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                      <Edit size={16} />
                     </button>
                     <button 
                       className="action-btn meeting-btn"
                       onClick={() => onAddMeeting(project)}
                       title="Thêm cuộc họp"
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M8 2V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M16 2V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M8 14H8.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M12 14H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M16 14H16.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M8 18H8.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M12 18H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M16 18H16.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                      <Calendar size={16} />
                     </button>
                   </div>
                 </td>
@@ -333,13 +299,9 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
           align-items: center;
         }
 
-        .sort-indicator svg {
+        .sort-indicator {
           color: #6b7280;
           transition: transform 0.2s ease;
-        }
-
-        .sort-indicator svg.asc {
-          transform: rotate(180deg);
         }
 
         .projects-table tbody tr {
@@ -397,8 +359,8 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
         .status-badge {
           display: inline-block;
           padding: 4px 12px;
-          border-radius: 20px;
-          color: white;
+          border-radius: 12px;
+          border: 1px solid;
           font-size: 11px;
           font-weight: 600;
           text-transform: uppercase;
@@ -426,7 +388,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
 
         .progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, #10b981, #059669);
+          background: #FF5E13;
           border-radius: 3px;
           transition: width 0.3s ease;
         }
@@ -503,33 +465,36 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
         }
 
         .view-btn {
-          background: #f3f4f6;
-          color: #6b7280;
+          background: transparent;
+          color: #FF5E13;
+          border: 1px solid #FF5E13;
         }
 
         .view-btn:hover {
-          background: #e5e7eb;
-          color: #374151;
+          background: #FF5E13;
+          color: white;
         }
 
         .edit-btn {
-          background: #fef3c7;
-          color: #d97706;
+          background: transparent;
+          color: #FF5E13;
+          border: 1px solid #FF5E13;
         }
 
         .edit-btn:hover {
-          background: #fde68a;
-          color: #b45309;
+          background: #FF5E13;
+          color: white;
         }
 
         .meeting-btn {
-          background: #dbeafe;
-          color: #2563eb;
+          background: transparent;
+          color: #FF5E13;
+          border: 1px solid #FF5E13;
         }
 
         .meeting-btn:hover {
-          background: #bfdbfe;
-          color: #1d4ed8;
+          background: #FF5E13;
+          color: white;
         }
 
         @media (max-width: 768px) {

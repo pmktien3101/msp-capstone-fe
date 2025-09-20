@@ -13,15 +13,30 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return '#10b981';
+        return '#10b981'; // Green for active
       case 'planning':
-        return '#f59e0b';
+        return '#f59e0b'; // Orange for planning
       case 'on-hold':
-        return '#ef4444';
+        return '#ef4444'; // Red for on-hold
       case 'completed':
-        return '#6b7280';
+        return '#10b981'; // Green for completed (same as your example)
       default:
-        return '#6b7280';
+        return '#6b7280'; // Gray for unknown
+    }
+  };
+
+  const getStatusBackgroundColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return '#dcfce7'; // Light green background
+      case 'planning':
+        return '#fef3c7'; // Light orange background
+      case 'on-hold':
+        return '#fee2e2'; // Light red background
+      case 'completed':
+        return '#dcfce7'; // Light green background
+      default:
+        return '#f3f4f6'; // Light gray background
     }
   };
 
@@ -68,7 +83,11 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
                 <h3>{project.name}</h3>
                 <div 
                   className="status-badge"
-                  style={{ backgroundColor: getStatusColor(project.status) }}
+                  style={{ 
+                    color: getStatusColor(project.status),
+                    backgroundColor: getStatusBackgroundColor(project.status),
+                    borderColor: getStatusBackgroundColor(project.status)
+                  }}
                 >
                   {getStatusText(project.status)}
                 </div>
@@ -166,7 +185,7 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
         .view-all-btn {
           background: none;
           border: none;
-          color: #6366f1;
+          color: #FF5E13;
           font-weight: 500;
           cursor: pointer;
           padding: 8px 12px;
@@ -175,7 +194,7 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
         }
 
         .view-all-btn:hover {
-          background: #f3f4f6;
+          background: #fef3c7;
         }
 
         .projects-grid {
@@ -194,8 +213,8 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
         }
 
         .project-card:hover {
-          border-color: #6366f1;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          border-color: #FF5E13;
+          box-shadow: 0 4px 6px -1px rgba(255, 94, 19, 0.2);
           transform: translateY(-2px);
         }
 
@@ -220,12 +239,12 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
         }
 
         .status-badge {
-          color: white;
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 500;
           padding: 4px 8px;
           border-radius: 12px;
           white-space: nowrap;
+          border: 1px solid;
         }
 
         .project-progress {
@@ -244,7 +263,7 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
 
         .progress-fill {
           height: 100%;
-          background: #6366f1;
+          background: #FF5E13;
           transition: width 0.3s ease;
         }
 
@@ -350,12 +369,14 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
         }
 
         .action-btn.primary {
-          background: #6366f1;
-          color: white;
+          background: transparent;
+          color: #FF5E13;
+          border: 1px solid #FF5E13;
         }
 
         .action-btn.primary:hover {
-          background: #4f46e5;
+          background: #FF5E13;
+          color: white;
         }
 
         @media (max-width: 768px) {

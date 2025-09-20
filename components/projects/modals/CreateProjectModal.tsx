@@ -21,6 +21,7 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { FolderOpen, Calendar, PlayCircle, Pause, CheckCircle } from 'lucide-react';
 
 const projectSchema = z.object({
   name: z.string().min(1, "Tên dự án là bắt buộc"),
@@ -60,7 +61,10 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>📁 Tạo Dự Án Mới</DialogTitle>
+          <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FolderOpen size={20} />
+            Tạo Dự Án Mới
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -125,10 +129,30 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
                       <SelectValue placeholder="Chọn trạng thái" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="planning">📋 Lập kế hoạch</SelectItem>
-                      <SelectItem value="active">🚀 Đang thực hiện</SelectItem>
-                      <SelectItem value="on-hold">⏸️ Tạm dừng</SelectItem>
-                      <SelectItem value="completed">✅ Hoàn thành</SelectItem>
+                      <SelectItem value="planning">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Calendar size={16} />
+                          Lập kế hoạch
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="active">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <PlayCircle size={16} />
+                          Đang thực hiện
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="on-hold">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Pause size={16} />
+                          Tạm dừng
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="completed">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <CheckCircle size={16} />
+                          Hoàn thành
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 )}
@@ -140,10 +164,56 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={onClose}>
+            <Button 
+              type="button" 
+              variant="secondary" 
+              onClick={onClose}
+              style={{
+                background: 'transparent',
+                color: '#6b7280',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                padding: '10px 20px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 500,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f3f4f6';
+                e.currentTarget.style.borderColor = '#9ca3af';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = '#d1d5db';
+              }}
+            >
               Hủy
             </Button>
-            <Button type="submit">Tạo dự án</Button>
+            <Button 
+              type="submit"
+              style={{
+                background: 'transparent',
+                color: '#FF5E13',
+                border: '1px solid #FF5E13',
+                borderRadius: '8px',
+                padding: '10px 20px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 500,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#FF5E13';
+                e.currentTarget.style.color = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = '#FF5E13';
+              }}
+            >
+              Tạo dự án
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

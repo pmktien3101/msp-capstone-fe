@@ -15,11 +15,12 @@ interface ItemModalProps {
     description: string;
     priority: string;
     assignee: string;
-    startDate: string;
-    endDate: string;
+    startDate?: string;
+    endDate?: string;
+    dueDate?: string;
     status: string;
     progress: number;
-    epicId?: string;
+    milestoneId?: string;
   }) => void;
   item?: {
     id: string;
@@ -28,15 +29,20 @@ interface ItemModalProps {
     description?: string;
     priority?: string;
     assignee?: string;
-    startDate: string;
-    endDate: string;
+    startDate?: string;
+    endDate?: string;
+    dueDate?: string;
     status: string;
     progress?: number;
-    epicId?: string;
+    milestoneId?: string;
   } | null;
-  itemType: 'epic' | 'task';
+  itemType: 'milestone' | 'task';
   epicTitle?: string;
   mode: 'create' | 'edit';
+  milestones?: Array<{
+    id: string;
+    name: string;
+  }>;
 }
 
 export const ItemModal: React.FC<ItemModalProps> = ({
@@ -46,7 +52,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   item,
   itemType,
   epicTitle,
-  mode
+  mode,
+  milestones = []
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -55,8 +62,10 @@ export const ItemModal: React.FC<ItemModalProps> = ({
     assignee: 'Phuoc Loc',
     startDate: '',
     endDate: '',
+    dueDate: '',
     status: 'todo',
-    progress: 0
+    progress: 0,
+    milestoneId: 'none'
   });
 
   // Update form data when item changes (for edit mode)
@@ -65,24 +74,34 @@ export const ItemModal: React.FC<ItemModalProps> = ({
       setFormData({
         title: item.title || item.name || '',
         description: item.description || '',
-        priority: item.priority || (itemType === 'epic' ? 'high' : 'medium'),
-        assignee: item.assignee || (itemType === 'epic' ? 'Phuoc Loc' : 'Quang Long'),
-        startDate: item.startDate,
-        endDate: item.endDate,
+        priority: item.priority || (itemType === 'milestone' ? 'high' : 'medium'),
+        assignee: item.assignee || (itemType === 'milestone' ? 'Phuoc Loc' : 'Quang Long'),
+        startDate: item.startDate || '',
+        endDate: item.endDate || '',
+        dueDate: item.dueDate || '',
         status: item.status,
-        progress: item.progress || 0
+        progress: item.progress || 0,
+        milestoneId: item.milestoneId || 'none'
       });
     } else if (mode === 'create') {
       // Reset form for create mode
+      const today = new Date().toISOString().split('T')[0];
+      const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      // Check if creating task within a milestone
+      const defaultMilestoneId = (itemType === 'task' && item?.milestoneId) ? item.milestoneId : 'none';
+      
       setFormData({
         title: '',
         description: '',
-        priority: itemType === 'epic' ? 'high' : 'medium',
-        assignee: itemType === 'epic' ? 'Phuoc Loc' : 'Quang Long',
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        priority: itemType === 'milestone' ? 'high' : 'medium',
+        assignee: itemType === 'milestone' ? 'Phuoc Loc' : 'Quang Long',
+        startDate: itemType === 'task' ? today : '',
+        endDate: itemType === 'task' ? nextWeek : '',
+        dueDate: itemType === 'milestone' ? nextWeek : '',
         status: 'todo',
-        progress: 0
+        progress: 0,
+        milestoneId: defaultMilestoneId // Use milestoneId if creating task within milestone
       });
     }
   }, [item, itemType, mode]);
@@ -90,16 +109,17 @@ export const ItemModal: React.FC<ItemModalProps> = ({
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (formData.title.trim()) {
+      const { milestoneId, ...restFormData } = formData;
       onSubmit({
         id: item?.id,
-        epicId: item?.epicId || '',
-        ...formData
+        milestoneId: milestoneId === 'none' ? undefined : milestoneId,
+        ...restFormData
       });
       onClose();
     }
   };
 
-  const isEpic = itemType === 'epic';
+  const isMilestone = itemType === 'milestone';
   const primaryColor = 'orange';
   const iconColor = 'from-orange-500 to-red-500';
   const inputColor = 'border-orange-200 focus:border-orange-400 focus:ring-orange-400';
@@ -119,9 +139,10 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           <DialogHeader className="pb-0 relative z-10">
             <DialogTitle className="text-white flex items-center gap-4">
               <div className="w-12 h-12 flex items-center justify-center">
-                {isEpic ? (
+                {isMilestone ? (
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7l9 6 9-6" />
                   </svg>
                 ) : (
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,17 +152,17 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               </div>
               <div>
                 <div className="text-xl font-bold text-white drop-shadow-lg">
-                  {mode === 'create' ? `Tạo ${isEpic ? 'Epic' : 'Task'} Mới` : `Chỉnh sửa ${isEpic ? 'Epic' : 'Task'}`}
+                  {mode === 'create' ? `Tạo ${isMilestone ? 'Milestone' : 'Task'} Mới` : `Chỉnh sửa ${isMilestone ? 'Milestone' : 'Task'}`}
                 </div>
                 <div className="text-white text-opacity-95 text-sm font-normal mt-1 drop-shadow-md">
                   {mode === 'create' 
-                    ? `${isEpic ? 'Tạo một Epic lớn để quản lý nhiều Task con' : 'Tạo một Task mới trong Epic'}`
-                    : `${isEpic ? 'Cập nhật thông tin Epic hiện tại' : 'Cập nhật thông tin Task hiện tại'}`
+                    ? `${isMilestone ? 'Tạo một Milestone để đánh dấu mốc quan trọng' : 'Tạo một Task mới trong Milestone'}`
+                    : `${isMilestone ? 'Cập nhật thông tin Milestone hiện tại' : 'Cập nhật thông tin Task hiện tại'}`
                   }
                 </div>
-                {epicTitle && !isEpic && (
+                {epicTitle && !isMilestone && (
                   <div className="text-sm text-white text-opacity-90 mt-2 drop-shadow-md">
-                    Trong Epic: <span className="bg-orange-500 px-2 py-1 rounded-md text-xs">{epicTitle}</span>
+                    Trong Milestone: <span className="bg-orange-500 px-2 py-1 rounded-md text-xs">{epicTitle}</span>
                   </div>
                 )}
               </div>
@@ -153,13 +174,13 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title" className="text-sm font-medium text-gray-600">
-              Tên {isEpic ? 'Epic' : 'Task'} *
+              Tên {isMilestone ? 'Milestone' : 'Task'} *
             </Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, title: e.target.value })}
-              placeholder={isEpic ? "Ví dụ: XÂY DỰNG HỆ THỐNG LOGIN" : "Ví dụ: API Authentication"}
+              placeholder={isMilestone ? "Ví dụ: HOÀN THÀNH PHẦN BACKEND" : "Ví dụ: API Authentication"}
               className={`${inputColor} rounded-lg h-10 text-sm font-medium px-3 border focus:ring-1 focus:ring-opacity-50 transition-all`}
               required
             />
@@ -228,6 +249,31 @@ export const ItemModal: React.FC<ItemModalProps> = ({
             </div>
           </div>
 
+          {/* Milestone Selection - Only for tasks */}
+          {!isMilestone && (
+            <div className="space-y-2">
+              <Label htmlFor="milestoneId" className="text-sm font-medium text-gray-600">
+                Thuộc Milestone
+              </Label>
+              <Select
+                value={formData.milestoneId}
+                onValueChange={(value: string) => setFormData({ ...formData, milestoneId: value })}
+              >
+                <SelectTrigger className={`${inputColor} rounded-lg h-10 border focus:ring-1 focus:ring-opacity-50 transition-all`}>
+                  <SelectValue placeholder="Chọn Milestone (tùy chọn)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Không thuộc Milestone</SelectItem>
+                  {milestones.map((milestone) => (
+                    <SelectItem key={milestone.id} value={milestone.id}>
+                      {milestone.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description" className="text-sm font-medium text-gray-600">
@@ -237,14 +283,14 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               id="description"
               value={formData.description}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
-              placeholder={`Mô tả chi tiết về ${isEpic ? 'epic' : 'task'} này...`}
+              placeholder={`Mô tả chi tiết về ${isMilestone ? 'milestone' : 'task'} này...`}
               className={`${inputColor} rounded-lg resize-none border focus:ring-1 focus:ring-opacity-50 transition-all px-3 py-2`}
               rows={3}
             />
           </div>
 
           {/* Progress and Dates Row */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className={`grid ${isMilestone ? 'grid-cols-2' : 'grid-cols-3'} gap-4`}>
             <div className="space-y-2">
               <Label htmlFor="progress" className="text-sm font-medium text-gray-600">
                 Tiến độ (%)
@@ -260,33 +306,51 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="startDate" className="text-sm font-medium text-gray-600">
-                Ngày bắt đầu
-              </Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, startDate: e.target.value })}
-                className={`${inputColor} rounded-lg h-10 text-sm border focus:ring-1 focus:ring-opacity-50 transition-all`}
-                required
-              />
-            </div>
+            {isMilestone ? (
+              <div className="space-y-2">
+                <Label htmlFor="dueDate" className="text-sm font-medium text-gray-600">
+                  Ngày dự kiến *
+                </Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, dueDate: e.target.value })}
+                  className={`${inputColor} rounded-lg h-10 text-sm border focus:ring-1 focus:ring-opacity-50 transition-all`}
+                  required
+                />
+              </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="startDate" className="text-sm font-medium text-gray-600">
+                    Ngày bắt đầu *
+                  </Label>
+                  <Input
+                    id="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, startDate: e.target.value })}
+                    className={`${inputColor} rounded-lg h-10 text-sm border focus:ring-1 focus:ring-opacity-50 transition-all`}
+                    required
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="endDate" className="text-sm font-medium text-gray-600">
-                Ngày kết thúc
-              </Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, endDate: e.target.value })}
-                className={`${inputColor} rounded-lg h-10 text-sm border focus:ring-1 focus:ring-opacity-50 transition-all`}
-                required
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endDate" className="text-sm font-medium text-gray-600">
+                    Ngày kết thúc *
+                  </Label>
+                  <Input
+                    id="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, endDate: e.target.value })}
+                    className={`${inputColor} rounded-lg h-10 text-sm border focus:ring-1 focus:ring-opacity-50 transition-all`}
+                    required
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Footer */}
@@ -303,7 +367,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({
               type="submit"
               className={`px-8 py-2 bg-gradient-to-r ${buttonColor} text-white rounded-lg font-semibold text-sm shadow-lg hover:shadow-xl transition-all transform hover:scale-105 border-0`}
             >
-              {mode === 'create' ? `Tạo ${isEpic ? 'Epic' : 'Task'}` : `Cập nhật ${isEpic ? 'Epic' : 'Task'}`}
+              {mode === 'create' ? `Tạo ${isMilestone ? 'Milestone' : 'Task'}` : `Cập nhật ${isMilestone ? 'Milestone' : 'Task'}`}
             </Button>
           </div>
         </form>
