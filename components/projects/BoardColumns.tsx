@@ -1,14 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Project } from '@/types/project';
-import { TaskCard } from './TaskCard';
-import { AddColumnModal } from './AddColumnModal';
-import { ColumnMenu } from './ColumnMenu';
-import { CreateTaskModal } from './modals/CreateTaskModal';
-import { mockTasks } from '@/constants/mockData';
-import { Task } from '@/types/milestone';
-import { Member } from '@/types/member';
+import { useState } from "react";
+import { Project } from "@/types/project";
+import { TaskCard } from "./TaskCard";
+import { AddColumnModal } from "./AddColumnModal";
+import { ColumnMenu } from "./ColumnMenu";
+import { CreateTaskModal } from "./modals/CreateTaskModal";
+import { mockTasks } from "@/constants/mockData";
+import { Task } from "@/types/milestone";
 
 interface BoardColumnsProps {
   project: Project;
@@ -18,61 +17,72 @@ interface BoardColumnsProps {
   onCreateTask?: () => void;
 }
 
-export const BoardColumns = ({ project, searchQuery, groupBy, onTaskClick, onCreateTask }: BoardColumnsProps) => {
-  const [tasks, setTasks] = useState(mockTasks);
+export const BoardColumns = ({
+  project,
+  searchQuery,
+  groupBy,
+  onTaskClick,
+}: BoardColumnsProps) => {
+  const [tasks, setTasks] = useState<Task[]>(mockTasks as Task[]);
+
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
-  const [createTaskColumn, setCreateTaskColumn] = useState<string>('');
+  const [createTaskColumn, setCreateTaskColumn] = useState<string>("");
 
   const [columns, setColumns] = useState([
     {
-      id: 'todo',
-      title: 'CẦN LÀM',
-      color: '#6b7280',
-      order: 0
+      id: "todo",
+      title: "CẦN LÀM",
+      color: "#6b7280",
+      order: 0,
     },
     {
-      id: 'in-progress',
-      title: 'ĐANG LÀM',
-      color: '#f59e0b',
-      order: 1
+      id: "in-progress",
+      title: "ĐANG LÀM",
+      color: "#f59e0b",
+      order: 1,
     },
     {
-      id: 'done',
-      title: 'HOÀN THÀNH',
-      color: '#10b981',
-      order: 2
+      id: "done",
+      title: "HOÀN THÀNH",
+      color: "#10b981",
+      order: 2,
     },
     {
-      id: 'review',
-      title: 'ĐANG REVIEW',
-      color: '#3b82f6',
-      order: 3
-    }
+      id: "review",
+      title: "ĐANG REVIEW",
+      color: "#3b82f6",
+      order: 3,
+    },
   ]);
 
   const [showAddColumnModal, setShowAddColumnModal] = useState(false);
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
-  const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(null);
+  const [draggedOverColumn, setDraggedOverColumn] = useState<string | null>(
+    null
+  );
 
-  const filteredTasks = tasks.filter(task => 
-    task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    task.epic.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredTasks = tasks.filter(
+    (task) =>
+      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.epic?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleTaskMove = (taskId: string, newStatus: string) => {
-    setTasks(prev => prev.map(task => 
-      task.id === taskId ? { ...task, status: newStatus } : task
-    ));
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId ? { ...task, status: newStatus } : task
+      )
+    );
   };
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     setDraggedTask(taskId);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDragOver = (e: React.DragEvent, columnId: string) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.dataTransfer.dropEffect = "move";
     setDraggedOverColumn(columnId);
   };
 
@@ -94,9 +104,9 @@ export const BoardColumns = ({ project, searchQuery, groupBy, onTaskClick, onCre
       id: `column-${Date.now()}`,
       title: title.toUpperCase(),
       color,
-      order: columns.length
+      order: columns.length,
     };
-    setColumns(prev => [...prev, newColumn]);
+    setColumns((prev) => [...prev, newColumn]);
     setShowAddColumnModal(false);
   };
 
@@ -106,74 +116,89 @@ export const BoardColumns = ({ project, searchQuery, groupBy, onTaskClick, onCre
   };
 
   const handleCreateTask = (taskData: any) => {
+    const assignee = taskData.assigneeId
+      ? project.members.find((m) => m.id === taskData.assigneeId) || null
+      : null;
+
     const newTask: Task = {
       id: `task-${Date.now()}`,
-      name: taskData.title,
       title: taskData.title,
-      description: taskData.description,
-      status: taskData.status,
-      priority: taskData.priority,
-      dueDate: taskData.endDate || new Date().toISOString().split('T')[0], // Use endDate as dueDate for compatibility
-      assignedTo: taskData.assigneeId ? project.members.find(m => m.id === taskData.assigneeId) || null : null,
-      assignee: taskData.assigneeId ? project.members.find(m => m.id === taskData.assigneeId)?.name || '' : '',
-      milestoneId: 'milestone-1', // Default milestone
-      comments: [],
-      createdDate: new Date().toISOString().split('T')[0],
-      updatedDate: new Date().toISOString().split('T')[0],
+      name: taskData.title,
+      description: taskData.description || "",
+      epic: taskData.epic || "",
+      status: taskData.status || "todo",
+      priority: taskData.priority || "medium",
+      assignee: assignee?.name || taskData.assignee || null,
+      assignedTo: assignee,
+      startDate: taskData.startDate,
+      endDate: taskData.endDate,
+      dueDate: taskData.endDate || new Date().toISOString().split("T")[0],
+      createdDate: new Date().toISOString(),
+      updatedDate: new Date().toISOString(),
       tags: taskData.tags || [],
-      epic: ''
+      projectId: project.id,
+      milestoneId: taskData.milestoneId || "milestone-1",
+      comments: [],
     };
 
-    setTasks(prev => [...prev, newTask]);
+    setTasks((prev) => [...prev, newTask]);
     setShowCreateTaskModal(false);
-    setCreateTaskColumn('');
+    setCreateTaskColumn("");
   };
 
   const handleDeleteColumn = (columnId: string) => {
     // Move all tasks from this column to the first column
     const firstColumnId = columns[0].id;
-    setTasks(prev => prev.map(task => 
-      task.status === columnId ? { ...task, status: firstColumnId } : task
-    ));
-    
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.status === columnId ? { ...task, status: firstColumnId } : task
+      )
+    );
+
     // Remove the column
-    setColumns(prev => prev.filter(col => col.id !== columnId));
+    setColumns((prev) => prev.filter((col) => col.id !== columnId));
   };
 
   const handleMoveColumnLeft = (columnId: string) => {
-    setColumns(prev => {
+    setColumns((prev) => {
       const newColumns = [...prev];
-      const currentIndex = newColumns.findIndex(col => col.id === columnId);
-      
+      const currentIndex = newColumns.findIndex((col) => col.id === columnId);
+
       if (currentIndex > 0) {
         // Swap with previous column
-        [newColumns[currentIndex], newColumns[currentIndex - 1]] = [newColumns[currentIndex - 1], newColumns[currentIndex]];
-        
+        [newColumns[currentIndex], newColumns[currentIndex - 1]] = [
+          newColumns[currentIndex - 1],
+          newColumns[currentIndex],
+        ];
+
         // Update order values
         newColumns.forEach((col, index) => {
           col.order = index;
         });
       }
-      
+
       return newColumns;
     });
   };
 
   const handleMoveColumnRight = (columnId: string) => {
-    setColumns(prev => {
+    setColumns((prev) => {
       const newColumns = [...prev];
-      const currentIndex = newColumns.findIndex(col => col.id === columnId);
-      
+      const currentIndex = newColumns.findIndex((col) => col.id === columnId);
+
       if (currentIndex < newColumns.length - 1) {
         // Swap with next column
-        [newColumns[currentIndex], newColumns[currentIndex + 1]] = [newColumns[currentIndex + 1], newColumns[currentIndex]];
-        
+        [newColumns[currentIndex], newColumns[currentIndex + 1]] = [
+          newColumns[currentIndex + 1],
+          newColumns[currentIndex],
+        ];
+
         // Update order values
         newColumns.forEach((col, index) => {
           col.order = index;
         });
       }
-      
+
       return newColumns;
     });
   };
@@ -181,14 +206,17 @@ export const BoardColumns = ({ project, searchQuery, groupBy, onTaskClick, onCre
   const handleDeleteOldItems = (columnId: string) => {
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
-    
-    setTasks(prev => prev.filter(task => {
-      if (task.status === columnId) {
-        const taskDate = new Date(task.dueDate);
-        return taskDate > fourteenDaysAgo;
-      }
-      return true;
-    }));
+
+    setTasks((prev) =>
+      prev.filter((task) => {
+        if (task.status === columnId) {
+          if (!task.dueDate) return false;
+          const taskDate = new Date(task.dueDate);
+          return taskDate > fourteenDaysAgo;
+        }
+        return true;
+      })
+    );
   };
 
   const sortedColumns = columns.sort((a, b) => a.order - b.order);
@@ -197,18 +225,22 @@ export const BoardColumns = ({ project, searchQuery, groupBy, onTaskClick, onCre
     <div className="board-columns">
       <div className="columns-container">
         {sortedColumns.map((column) => {
-          const columnTasks = filteredTasks.filter(task => task.status === column.id);
+          const columnTasks = filteredTasks.filter(
+            (task) => task.status === column.id
+          );
           return (
-            <div 
-              key={column.id} 
-              className={`board-column ${draggedOverColumn === column.id ? 'drag-over' : ''}`}
+            <div
+              key={column.id}
+              className={`board-column ${
+                draggedOverColumn === column.id ? "drag-over" : ""
+              }`}
               onDragOver={(e) => handleDragOver(e, column.id)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, column.id)}
             >
               <div className="column-header">
                 <div className="column-title">
-                  <div 
+                  <div
                     className="column-indicator"
                     style={{ backgroundColor: column.color }}
                   ></div>
@@ -219,14 +251,26 @@ export const BoardColumns = ({ project, searchQuery, groupBy, onTaskClick, onCre
                   <ColumnMenu
                     columnId={column.id}
                     columnTitle={column.title}
-                    isDoneColumn={column.id === 'done' || column.title.includes('HOÀN THÀNH')}
+                    isDoneColumn={
+                      column.id === "done" ||
+                      column.title.includes("HOÀN THÀNH")
+                    }
                     onMoveLeft={() => handleMoveColumnLeft(column.id)}
                     onMoveRight={() => handleMoveColumnRight(column.id)}
                     onDelete={() => handleDeleteColumn(column.id)}
-                    onDeleteOldItems={column.id === 'done' || column.title.includes('HOÀN THÀNH') ? 
-                      () => handleDeleteOldItems(column.id) : undefined}
-                    canMoveLeft={sortedColumns.findIndex(col => col.id === column.id) > 0}
-                    canMoveRight={sortedColumns.findIndex(col => col.id === column.id) < sortedColumns.length - 1}
+                    onDeleteOldItems={
+                      column.id === "done" ||
+                      column.title.includes("HOÀN THÀNH")
+                        ? () => handleDeleteOldItems(column.id)
+                        : undefined
+                    }
+                    canMoveLeft={
+                      sortedColumns.findIndex((col) => col.id === column.id) > 0
+                    }
+                    canMoveRight={
+                      sortedColumns.findIndex((col) => col.id === column.id) <
+                      sortedColumns.length - 1
+                    }
                   />
                 </div>
               </div>
@@ -242,14 +286,26 @@ export const BoardColumns = ({ project, searchQuery, groupBy, onTaskClick, onCre
                     isDragging={draggedTask === task.id}
                   />
                 ))}
-                
-                <button 
+
+                <button
                   className="create-task-btn"
                   onClick={() => handleCreateTaskClick(column.id)}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path
+                      d="M12 5V19"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M5 12H19"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                   Tạo
                 </button>
@@ -257,14 +313,26 @@ export const BoardColumns = ({ project, searchQuery, groupBy, onTaskClick, onCre
             </div>
           );
         })}
-        
-        <button 
+
+        <button
           className="add-column-btn"
           onClick={() => setShowAddColumnModal(true)}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path
+              d="M12 5V19"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M5 12H19"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
           Thêm cột
         </button>
@@ -332,7 +400,6 @@ export const BoardColumns = ({ project, searchQuery, groupBy, onTaskClick, onCre
           align-items: center;
           gap: 8px;
         }
-
 
         .column-title {
           display: flex;

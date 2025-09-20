@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Milestone } from '@/types/milestone';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select } from '@/components/ui/select';
-import '@/app/styles/meeting-modals.scss';
+import { useState } from "react";
+import { Milestone } from "@/types/milestone";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
+import "@/app/styles/meeting-modals.scss";
 
 interface CreateMilestoneModalProps {
   projectId: string;
@@ -14,27 +14,31 @@ interface CreateMilestoneModalProps {
   onSave: (milestoneData: Partial<Milestone>) => void;
 }
 
-export const CreateMilestoneModal = ({ projectId, onClose, onSave }: CreateMilestoneModalProps) => {
+export const CreateMilestoneModal = ({
+  projectId,
+  onClose,
+  onSave,
+}: CreateMilestoneModalProps) => {
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    dueDate: '',
-    status: 'pending'
+    title: "",
+    description: "",
+    dueDate: "",
+    status: "pending",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: ''
+        [field]: "",
       }));
     }
   };
@@ -43,20 +47,20 @@ export const CreateMilestoneModal = ({ projectId, onClose, onSave }: CreateMiles
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Tiêu đề milestone là bắt buộc';
+      newErrors.title = "Tiêu đề milestone là bắt buộc";
     }
 
     if (!formData.dueDate) {
-      newErrors.dueDate = 'Ngày hết hạn là bắt buộc';
+      newErrors.dueDate = "Ngày hết hạn là bắt buộc";
     }
 
     if (formData.dueDate) {
       const dueDate = new Date(formData.dueDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       if (dueDate < today) {
-        newErrors.dueDate = 'Ngày hết hạn phải sau ngày hiện tại';
+        newErrors.dueDate = "Ngày hết hạn phải sau ngày hiện tại";
       }
     }
 
@@ -66,7 +70,7 @@ export const CreateMilestoneModal = ({ projectId, onClose, onSave }: CreateMiles
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -76,8 +80,8 @@ export const CreateMilestoneModal = ({ projectId, onClose, onSave }: CreateMiles
       projectId,
       progress: 0,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    });
+      updatedAt: new Date().toISOString(),
+    } as Partial<Milestone>);
   };
 
   return (
@@ -87,8 +91,20 @@ export const CreateMilestoneModal = ({ projectId, onClose, onSave }: CreateMiles
           <h2>Tạo milestone mới</h2>
           <button className="close-btn" onClick={onClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path
+                d="M18 6L6 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M6 6L18 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </button>
         </div>
@@ -99,9 +115,9 @@ export const CreateMilestoneModal = ({ projectId, onClose, onSave }: CreateMiles
             <Input
               id="title"
               value={formData.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
+              onChange={(e) => handleInputChange("title", e.target.value)}
               placeholder="Nhập tiêu đề milestone"
-              className={errors.title ? 'error' : ''}
+              className={errors.title ? "error" : ""}
             />
             {errors.title && <span className="error-text">{errors.title}</span>}
           </div>
@@ -111,7 +127,7 @@ export const CreateMilestoneModal = ({ projectId, onClose, onSave }: CreateMiles
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={(e) => handleInputChange("description", e.target.value)}
               placeholder="Nhập mô tả milestone"
               rows={3}
             />
@@ -124,17 +140,19 @@ export const CreateMilestoneModal = ({ projectId, onClose, onSave }: CreateMiles
                 id="dueDate"
                 type="date"
                 value={formData.dueDate}
-                onChange={(e) => handleInputChange('dueDate', e.target.value)}
-                className={errors.dueDate ? 'error' : ''}
+                onChange={(e) => handleInputChange("dueDate", e.target.value)}
+                className={errors.dueDate ? "error" : ""}
               />
-              {errors.dueDate && <span className="error-text">{errors.dueDate}</span>}
+              {errors.dueDate && (
+                <span className="error-text">{errors.dueDate}</span>
+              )}
             </div>
 
             <div className="form-group">
               <label htmlFor="status">Trạng thái</label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => handleInputChange('status', value)}
+                onValueChange={(value) => handleInputChange("status", value)}
               >
                 <option value="pending">Chờ xử lý</option>
                 <option value="in-progress">Đang thực hiện</option>
@@ -149,9 +167,7 @@ export const CreateMilestoneModal = ({ projectId, onClose, onSave }: CreateMiles
           <Button variant="outline" onClick={onClose}>
             Hủy
           </Button>
-          <Button onClick={handleSubmit}>
-            Tạo milestone
-          </Button>
+          <Button onClick={handleSubmit}>Tạo milestone</Button>
         </div>
       </div>
     </div>

@@ -1,18 +1,38 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Project } from '@/types/project';
-import { Member } from '@/types/member';
-import { AddMemberModal } from './modals/AddMemberModal';
-import { EditMemberModal } from './modals/EditMemberModal';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { useState } from "react";
+import { Project } from "@/types/project";
+import { Member } from "@/types/member";
+import { AddMemberModal } from "./modals/AddMemberModal";
+import { EditMemberModal } from "./modals/EditMemberModal";
+import { Plus, Edit, Trash2 } from "lucide-react";
 
 interface ProjectSettingsProps {
   project: Project;
 }
 
 export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
-  const [settings, setSettings] = useState({
+  type Settings = {
+    name: string;
+    description: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    manager: string;
+    notifications: {
+      email: boolean;
+      slack: boolean;
+      inApp: boolean;
+    };
+    permissions: {
+      public: boolean;
+      membersOnly: boolean;
+      allowComments: boolean;
+      allowAttachments: boolean;
+    };
+  };
+
+  const [settings, setSettings] = useState<Settings>({
     name: project.name,
     description: project.description,
     status: project.status,
@@ -22,14 +42,14 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
     notifications: {
       email: true,
       slack: false,
-      inApp: true
+      inApp: true,
     },
     permissions: {
       public: false,
       membersOnly: true,
       allowComments: true,
-      allowAttachments: true
-    }
+      allowAttachments: true,
+    },
   });
 
   const [members, setMembers] = useState<Member[]>(project.members);
@@ -37,30 +57,34 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
   const [editingMember, setEditingMember] = useState<Member | null>(null);
 
   const handleInputChange = (field: string, value: any) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
-  const handleNestedChange = (parent: string, field: string, value: any) => {
-    setSettings(prev => ({
+  const handleNestedChange = <T extends keyof Settings>(
+    parent: T,
+    field: keyof Settings[T],
+    value: any
+  ) => {
+    setSettings((prev) => ({
       ...prev,
       [parent]: {
-        ...prev[parent as keyof typeof prev],
-        [field]: value
-      }
+        ...(prev[parent] as object),
+        [field]: value,
+      },
     }));
   };
 
   const handleSave = () => {
     // TODO: Implement save functionality
-    console.log('Saving settings:', settings);
-    console.log('Saving members:', members);
+    console.log("Saving settings:", settings);
+    console.log("Saving members:", members);
   };
 
   const handleAddMember = (member: Member) => {
-    setMembers(prev => [...prev, member]);
+    setMembers((prev) => [...prev, member]);
     setShowAddMemberModal(false);
   };
 
@@ -69,15 +93,15 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
   };
 
   const handleUpdateMember = (updatedMember: Member) => {
-    setMembers(prev => prev.map(m => 
-      m.id === updatedMember.id ? updatedMember : m
-    ));
+    setMembers((prev) =>
+      prev.map((m) => (m.id === updatedMember.id ? updatedMember : m))
+    );
     setEditingMember(null);
   };
 
   const handleDeleteMember = (memberId: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa thành viên này?')) {
-      setMembers(prev => prev.filter(m => m.id !== memberId));
+    if (confirm("Bạn có chắc chắn muốn xóa thành viên này?")) {
+      setMembers((prev) => prev.filter((m) => m.id !== memberId));
     }
   };
 
@@ -96,16 +120,16 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
             <input
               type="text"
               value={settings.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
+              onChange={(e) => handleInputChange("name", e.target.value)}
               className="form-input"
             />
           </div>
-          
+
           <div className="form-group">
             <label>Mô tả</label>
             <textarea
               value={settings.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={(e) => handleInputChange("description", e.target.value)}
               className="form-textarea"
               rows={3}
             />
@@ -116,7 +140,7 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
               <label>Trạng thái</label>
               <select
                 value={settings.status}
-                onChange={(e) => handleInputChange('status', e.target.value)}
+                onChange={(e) => handleInputChange("status", e.target.value)}
                 className="form-select"
               >
                 <option value="planning">Đang lập kế hoạch</option>
@@ -131,7 +155,7 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
               <input
                 type="text"
                 value={settings.manager}
-                onChange={(e) => handleInputChange('manager', e.target.value)}
+                onChange={(e) => handleInputChange("manager", e.target.value)}
                 className="form-input"
               />
             </div>
@@ -143,7 +167,7 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
               <input
                 type="date"
                 value={settings.startDate}
-                onChange={(e) => handleInputChange('startDate', e.target.value)}
+                onChange={(e) => handleInputChange("startDate", e.target.value)}
                 className="form-input"
               />
             </div>
@@ -153,7 +177,7 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
               <input
                 type="date"
                 value={settings.endDate}
-                onChange={(e) => handleInputChange('endDate', e.target.value)}
+                onChange={(e) => handleInputChange("endDate", e.target.value)}
                 className="form-input"
               />
             </div>
@@ -167,25 +191,31 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
               <input
                 type="checkbox"
                 checked={settings.notifications.email}
-                onChange={(e) => handleNestedChange('notifications', 'email', e.target.checked)}
+                onChange={(e) =>
+                  handleNestedChange("notifications", "email", e.target.checked)
+                }
               />
               <span>Email thông báo</span>
             </label>
-            
+
             <label className="checkbox-item">
               <input
                 type="checkbox"
                 checked={settings.notifications.slack}
-                onChange={(e) => handleNestedChange('notifications', 'slack', e.target.checked)}
+                onChange={(e) =>
+                  handleNestedChange("notifications", "slack", e.target.checked)
+                }
               />
               <span>Slack thông báo</span>
             </label>
-            
+
             <label className="checkbox-item">
               <input
                 type="checkbox"
                 checked={settings.notifications.inApp}
-                onChange={(e) => handleNestedChange('notifications', 'inApp', e.target.checked)}
+                onChange={(e) =>
+                  handleNestedChange("notifications", "inApp", e.target.checked)
+                }
               />
               <span>Thông báo trong ứng dụng</span>
             </label>
@@ -199,34 +229,54 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
               <input
                 type="checkbox"
                 checked={settings.permissions.public}
-                onChange={(e) => handleNestedChange('permissions', 'public', e.target.checked)}
+                onChange={(e) =>
+                  handleNestedChange("permissions", "public", e.target.checked)
+                }
               />
               <span>Dự án công khai</span>
             </label>
-            
+
             <label className="checkbox-item">
               <input
                 type="checkbox"
                 checked={settings.permissions.membersOnly}
-                onChange={(e) => handleNestedChange('permissions', 'membersOnly', e.target.checked)}
+                onChange={(e) =>
+                  handleNestedChange(
+                    "permissions",
+                    "membersOnly",
+                    e.target.checked
+                  )
+                }
               />
               <span>Chỉ thành viên</span>
             </label>
-            
+
             <label className="checkbox-item">
               <input
                 type="checkbox"
                 checked={settings.permissions.allowComments}
-                onChange={(e) => handleNestedChange('permissions', 'allowComments', e.target.checked)}
+                onChange={(e) =>
+                  handleNestedChange(
+                    "permissions",
+                    "allowComments",
+                    e.target.checked
+                  )
+                }
               />
               <span>Cho phép bình luận</span>
             </label>
-            
+
             <label className="checkbox-item">
               <input
                 type="checkbox"
                 checked={settings.permissions.allowAttachments}
-                onChange={(e) => handleNestedChange('permissions', 'allowAttachments', e.target.checked)}
+                onChange={(e) =>
+                  handleNestedChange(
+                    "permissions",
+                    "allowAttachments",
+                    e.target.checked
+                  )
+                }
               />
               <span>Cho phép đính kèm</span>
             </label>
@@ -234,15 +284,22 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         </div>
 
         <div className="settings-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "16px",
+            }}
+          >
             <h4>Thành viên dự án ({members.length})</h4>
-            <button 
+            <button
               className="btn btn-primary"
               onClick={() => setShowAddMemberModal(true)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
               <Plus size={16} />
@@ -253,46 +310,46 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
             {members.length === 0 ? (
               <div
                 style={{
-                  textAlign: 'center',
-                  padding: '40px',
-                  color: '#6b7280',
-                  fontStyle: 'italic'
+                  textAlign: "center",
+                  padding: "40px",
+                  color: "#6b7280",
+                  fontStyle: "italic",
                 }}
               >
                 <p style={{ margin: 0 }}>Chưa có thành viên nào</p>
-                <p style={{ margin: '8px 0 0 0' }}>Hãy thêm thành viên đầu tiên!</p>
+                <p style={{ margin: "8px 0 0 0" }}>
+                  Hãy thêm thành viên đầu tiên!
+                </p>
               </div>
             ) : (
               members.map((member) => (
                 <div key={member.id} className="member-item">
-                  <div className="member-avatar">
-                    {member.avatar}
-                  </div>
+                  <div className="member-avatar">{member.avatar}</div>
                   <div className="member-info">
                     <div className="member-name">{member.name}</div>
                     <div className="member-role">{member.role}</div>
                     <div className="member-email">{member.email}</div>
                   </div>
                   <div className="member-actions">
-                    <button 
+                    <button
                       className="btn btn-sm btn-secondary"
                       onClick={() => handleEditMember(member)}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
                       }}
                     >
                       <Edit size={12} />
                       Sửa
                     </button>
-                    <button 
+                    <button
                       className="btn btn-sm btn-danger"
                       onClick={() => handleDeleteMember(member.id)}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
                       }}
                     >
                       <Trash2 size={12} />
@@ -307,7 +364,9 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
 
         <div className="settings-actions">
           <button className="btn btn-secondary">Hủy</button>
-          <button className="btn btn-primary" onClick={handleSave}>Lưu thay đổi</button>
+          <button className="btn btn-primary" onClick={handleSave}>
+            Lưu thay đổi
+          </button>
         </div>
       </div>
 
@@ -494,12 +553,12 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
 
         .btn-primary {
           background: transparent;
-          color: #FF5E13;
-          border: 1px solid #FF5E13;
+          color: #ff5e13;
+          border: 1px solid #ff5e13;
         }
 
         .btn-primary:hover {
-          background: #FF5E13;
+          background: #ff5e13;
           color: white;
         }
 

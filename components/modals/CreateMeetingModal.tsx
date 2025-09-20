@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +40,13 @@ interface MeetingForm {
   participants: string[];
 }
 
-export function CreateMeetingModal({ open, onClose, onSave, availableMembers, milestoneId }: CreateMeetingModalProps) {
+export function CreateMeetingModal({
+  open,
+  onClose,
+  onSave,
+  availableMembers,
+  milestoneId,
+}: CreateMeetingModalProps) {
   const [form, setForm] = useState<MeetingForm>({
     title: "",
     startTime: new Date(),
@@ -52,10 +64,13 @@ export function CreateMeetingModal({ open, onClose, onSave, availableMembers, mi
       id: `m${Date.now()}`,
       title: form.title,
       description: form.description,
-      startTime: form.startTime,
-      endTime: endTime,
-      participants: form.participants,
-      createdBy: '1', // TODO: Replace with actual user ID
+      startTime: form.startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      participants: form.participants.map((id) => {
+        const member = availableMembers.find((m) => m.id === id);
+        return member ? { id: member.id, name: member.name } : { id, name: "" };
+      }),
+      createdBy: "1",
       status: MeetingStatus.SCHEDULED,
     };
 
@@ -92,7 +107,9 @@ export function CreateMeetingModal({ open, onClose, onSave, availableMembers, mi
               <Label>Ngày họp</Label>
               <DatePicker
                 selected={form.startTime}
-                onChange={(date: Date | null) => date && setForm({ ...form, startTime: date })}
+                onChange={(date: Date | null) =>
+                  date && setForm({ ...form, startTime: date })
+                }
                 dateFormat="dd/MM/yyyy"
                 className="w-full rounded-md border border-gray-300 px-3 py-2"
                 required
@@ -102,9 +119,12 @@ export function CreateMeetingModal({ open, onClose, onSave, availableMembers, mi
               <Label>Thời gian</Label>
               <Input
                 type="time"
-                value={form.startTime.toLocaleTimeString('en-GB', { hour: "2-digit", minute: "2-digit" })}
+                value={form.startTime.toLocaleTimeString("en-GB", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
                 onChange={(e) => {
-                  const [hours, minutes] = e.target.value.split(':');
+                  const [hours, minutes] = e.target.value.split(":");
                   const newDate = new Date(form.startTime);
                   newDate.setHours(parseInt(hours), parseInt(minutes));
                   setForm({ ...form, startTime: newDate });
@@ -118,7 +138,9 @@ export function CreateMeetingModal({ open, onClose, onSave, availableMembers, mi
             <Label>Mô tả</Label>
             <Input
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
               placeholder="Nhập mô tả cuộc họp..."
             />
           </div>
@@ -127,9 +149,9 @@ export function CreateMeetingModal({ open, onClose, onSave, availableMembers, mi
             <Label>Người tham gia</Label>
             <Select
               onValueChange={(value) => {
-                setForm(prev => ({
+                setForm((prev) => ({
                   ...prev,
-                  participants: [...prev.participants, value]
+                  participants: [...prev.participants, value],
                 }));
               }}
             >
@@ -138,8 +160,8 @@ export function CreateMeetingModal({ open, onClose, onSave, availableMembers, mi
               </SelectTrigger>
               <SelectContent>
                 {availableMembers
-                  .filter(member => !form.participants.includes(member.id))
-                  .map(member => (
+                  .filter((member) => !form.participants.includes(member.id))
+                  .map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       {member.name} ({member.role})
                     </SelectItem>
@@ -148,8 +170,8 @@ export function CreateMeetingModal({ open, onClose, onSave, availableMembers, mi
             </Select>
             <div className="mt-2 flex flex-wrap gap-2">
               {availableMembers
-                .filter(member => form.participants.includes(member.id))
-                .map(member => (
+                .filter((member) => form.participants.includes(member.id))
+                .map((member) => (
                   <div
                     key={member.id}
                     className="flex items-center gap-2 rounded-md bg-secondary px-2 py-1"
@@ -163,9 +185,11 @@ export function CreateMeetingModal({ open, onClose, onSave, availableMembers, mi
                       size="sm"
                       className="h-auto p-0 text-sm"
                       onClick={() => {
-                        setForm(prev => ({
+                        setForm((prev) => ({
                           ...prev,
-                          participants: prev.participants.filter(id => id !== member.id)
+                          participants: prev.participants.filter(
+                            (id) => id !== member.id
+                          ),
                         }));
                       }}
                     >
@@ -180,9 +204,7 @@ export function CreateMeetingModal({ open, onClose, onSave, availableMembers, mi
             <Button type="button" variant="outline" onClick={onClose}>
               Hủy
             </Button>
-            <Button type="submit">
-              Tạo cuộc họp
-            </Button>
+            <Button type="submit">Tạo cuộc họp</Button>
           </DialogFooter>
         </form>
       </DialogContent>

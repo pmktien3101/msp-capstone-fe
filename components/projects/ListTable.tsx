@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Project } from '@/types/project';
-import { mockTasks } from '@/constants/mockData';
+import { useState } from "react";
+import { Project } from "@/types/project";
+import { mockTasks } from "@/constants/mockData";
 
 interface ListTableProps {
   project: Project;
@@ -10,59 +10,59 @@ interface ListTableProps {
   statusFilter: string;
   assigneeFilter: string;
   sortBy: string;
-  sortOrder: 'asc' | 'desc';
+  sortOrder: "asc" | "desc";
 }
 
-export const ListTable = ({ 
-  project, 
-  searchQuery, 
-  statusFilter, 
-  assigneeFilter, 
-  sortBy, 
-  sortOrder 
+export const ListTable = ({
+  project,
+  searchQuery,
+  statusFilter,
+  assigneeFilter,
+  sortBy,
+  sortOrder,
 }: ListTableProps) => {
   const [tasks, setTasks] = useState(mockTasks);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'todo':
-        return '#6b7280';
-      case 'in-progress':
-        return '#f59e0b';
-      case 'review':
-        return '#3b82f6';
-      case 'done':
-        return '#10b981';
+      case "todo":
+        return "#6b7280";
+      case "in-progress":
+        return "#f59e0b";
+      case "review":
+        return "#3b82f6";
+      case "done":
+        return "#10b981";
       default:
-        return '#6b7280';
+        return "#6b7280";
     }
   };
 
   const getStatusBackgroundColor = (status: string) => {
     switch (status) {
-      case 'todo':
-        return '#f3f4f6';
-      case 'in-progress':
-        return '#fef3c7';
-      case 'review':
-        return '#dbeafe';
-      case 'done':
-        return '#dcfce7';
+      case "todo":
+        return "#f3f4f6";
+      case "in-progress":
+        return "#fef3c7";
+      case "review":
+        return "#dbeafe";
+      case "done":
+        return "#dcfce7";
       default:
-        return '#f3f4f6';
+        return "#f3f4f6";
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'todo':
-        return 'Cần làm';
-      case 'in-progress':
-        return 'Đang làm';
-      case 'review':
-        return 'Đang review';
-      case 'done':
-        return 'Hoàn thành';
+      case "todo":
+        return "Cần làm";
+      case "in-progress":
+        return "Đang làm";
+      case "review":
+        return "Đang review";
+      case "done":
+        return "Hoàn thành";
       default:
         return status;
     }
@@ -70,38 +70,38 @@ export const ListTable = ({
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high':
-        return '#ef4444';
-      case 'medium':
-        return '#f59e0b';
-      case 'low':
-        return '#10b981';
+      case "high":
+        return "#ef4444";
+      case "medium":
+        return "#f59e0b";
+      case "low":
+        return "#10b981";
       default:
-        return '#6b7280';
+        return "#6b7280";
     }
   };
 
   const getPriorityBackgroundColor = (priority: string) => {
     switch (priority) {
-      case 'high':
-        return '#fee2e2';
-      case 'medium':
-        return '#fef3c7';
-      case 'low':
-        return '#dcfce7';
+      case "high":
+        return "#fee2e2";
+      case "medium":
+        return "#fef3c7";
+      case "low":
+        return "#dcfce7";
       default:
-        return '#f3f4f6';
+        return "#f3f4f6";
     }
   };
 
   const getPriorityLabel = (priority: string) => {
     switch (priority) {
-      case 'high':
-        return 'Cao';
-      case 'medium':
-        return 'Trung bình';
-      case 'low':
-        return 'Thấp';
+      case "high":
+        return "Cao";
+      case "medium":
+        return "Trung bình";
+      case "low":
+        return "Thấp";
       default:
         return priority;
     }
@@ -109,32 +109,35 @@ export const ListTable = ({
 
   // Filter and sort tasks
   const filteredAndSortedTasks = tasks
-    .filter(task => {
-      const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           task.epic.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           task.id.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
-      
-      const matchesAssignee = assigneeFilter === 'all' || 
-                             (assigneeFilter === 'unassigned' && !task.assignee) ||
-                             task.assignee === assigneeFilter;
-      
+    .filter((task) => {
+      const matchesSearch =
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.epic.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        task.id.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "all" || task.status === statusFilter;
+
+      const matchesAssignee =
+        assigneeFilter === "all" ||
+        (assigneeFilter === "unassigned" && !task.assignee) ||
+        task.assignee === assigneeFilter;
+
       return matchesSearch && matchesStatus && matchesAssignee;
     })
     .sort((a, b) => {
       let aValue: any = a[sortBy as keyof typeof a];
       let bValue: any = b[sortBy as keyof typeof b];
-      
-      if (sortBy === 'dueDate' || sortBy === 'createdDate') {
+
+      if (sortBy === "dueDate" || sortBy === "createdDate") {
         aValue = new Date(aValue).getTime();
         bValue = new Date(bValue).getTime();
-      } else if (typeof aValue === 'string') {
+      } else if (typeof aValue === "string") {
         aValue = aValue.toLowerCase();
         bValue = bValue.toLowerCase();
       }
-      
-      if (sortOrder === 'asc') {
+
+      if (sortOrder === "asc") {
         return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
       } else {
         return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
@@ -173,12 +176,12 @@ export const ListTable = ({
                   </div>
                 </td>
                 <td className="status-col">
-                  <span 
+                  <span
                     className="status-badge"
-                    style={{ 
+                    style={{
                       color: getStatusColor(task.status),
                       backgroundColor: getStatusBackgroundColor(task.status),
-                      borderColor: getStatusBackgroundColor(task.status)
+                      borderColor: getStatusBackgroundColor(task.status),
                     }}
                   >
                     {getStatusLabel(task.status)}
@@ -187,9 +190,7 @@ export const ListTable = ({
                 <td className="assignee-col">
                   {task.assignee ? (
                     <div className="assignee">
-                      <div className="assignee-avatar">
-                        {task.assignee}
-                      </div>
+                      <div className="assignee-avatar">{task.assignee}</div>
                       <span>{task.assignee}</span>
                     </div>
                   ) : (
@@ -197,12 +198,14 @@ export const ListTable = ({
                   )}
                 </td>
                 <td className="priority-col">
-                  <span 
+                  <span
                     className="priority-badge"
-                    style={{ 
+                    style={{
                       color: getPriorityColor(task.priority),
-                      backgroundColor: getPriorityBackgroundColor(task.priority),
-                      borderColor: getPriorityBackgroundColor(task.priority)
+                      backgroundColor: getPriorityBackgroundColor(
+                        task.priority
+                      ),
+                      borderColor: getPriorityBackgroundColor(task.priority),
                     }}
                   >
                     {getPriorityLabel(task.priority)}
@@ -211,29 +214,87 @@ export const ListTable = ({
                 <td className="due-date-col">
                   <div className="due-date">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path
+                        d="M8 2V6"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M16 2V6"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M3 10H21"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
-                    <span>{new Date(task.dueDate).toLocaleDateString('vi-VN')}</span>
+                    <span>
+                      {task.dueDate
+                        ? new Date(task.dueDate).toLocaleDateString("vi-VN")
+                        : "Chưa có hạn"}
+                    </span>
                   </div>
                 </td>
                 <td className="created-col">
-                  {new Date(task.createdDate).toLocaleDateString('vi-VN')}
+                  {new Date(task.createdDate).toLocaleDateString("vi-VN")}
                 </td>
                 <td className="actions-col">
                   <button className="action-btn" title="Chỉnh sửa">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path
+                        d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   </button>
                   <button className="action-btn" title="Xóa">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M8 6V4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path
+                        d="M3 6H21"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V6"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M8 6V4C8 2.89543 8.89543 2 10 2H14C15.1046 2 16 2.89543 16 4V6"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   </button>
                 </td>
@@ -364,7 +425,7 @@ export const ListTable = ({
         .assignee-avatar {
           width: 24px;
           height: 24px;
-          background: #FF5E13;
+          background: #ff5e13;
           color: white;
           border-radius: 50%;
           display: flex;

@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Project } from '@/types/project';
-import { ListHeader } from './ListHeader';
-import { ListTable } from './ListTable';
-import { mockProject } from '@/constants/mockData';
+import { useState } from "react";
+import { Project } from "@/types/project";
+import { ListHeader } from "./ListHeader";
+import { ListTable } from "./ListTable";
+import { mockProject } from "@/constants/mockData";
 
 interface ProjectListProps {
   project: Project;
 }
 
 export const ProjectList = ({ project }: ProjectListProps) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [assigneeFilter, setAssigneeFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('title');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("title");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   return (
     <div className="project-list">
-      <ListHeader 
+      <ListHeader
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         statusFilter={statusFilter}
@@ -31,15 +31,15 @@ export const ProjectList = ({ project }: ProjectListProps) => {
         sortOrder={sortOrder}
         onSortOrderChange={setSortOrder}
       />
-      <ListTable 
-        project={mockProject}
+      <ListTable
+        project={project || mockProject}
         searchQuery={searchQuery}
         statusFilter={statusFilter}
         assigneeFilter={assigneeFilter}
         sortBy={sortBy}
         sortOrder={sortOrder}
       />
-      
+
       <style jsx>{`
         .project-list {
           width: 100%;

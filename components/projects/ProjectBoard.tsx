@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Project } from '@/types/project';
-import { BoardHeader } from './BoardHeader';
-import { BoardColumns } from './BoardColumns';
-import { mockProject } from '@/constants/mockData';
+import { useState } from "react";
+import { Project } from "@/types/project";
+import { BoardHeader } from "./BoardHeader";
+import { BoardColumns } from "./BoardColumns";
+import { mockProject } from "@/constants/mockData";
 
 interface ProjectBoardProps {
   project: Project;
@@ -12,26 +12,30 @@ interface ProjectBoardProps {
   onCreateTask?: () => void;
 }
 
-export const ProjectBoard = ({ project, onTaskClick, onCreateTask }: ProjectBoardProps) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [groupBy, setGroupBy] = useState('status');
+export const ProjectBoard = ({
+  project,
+  onTaskClick,
+  onCreateTask,
+}: ProjectBoardProps) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [groupBy, setGroupBy] = useState("status");
 
   return (
     <div className="project-board">
-      <BoardHeader 
+      <BoardHeader
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         groupBy={groupBy}
         onGroupByChange={setGroupBy}
       />
-      <BoardColumns 
-        project={mockProject}
+      <BoardColumns
+        project={project || mockProject}
         searchQuery={searchQuery}
         groupBy={groupBy}
         onTaskClick={onTaskClick}
         onCreateTask={onCreateTask}
       />
-      
+
       <style jsx>{`
         .project-board {
           width: 100%;

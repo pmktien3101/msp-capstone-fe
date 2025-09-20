@@ -20,7 +20,7 @@ interface UserState {
 
 export const useUser = create<UserState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       userId: "",
       email: "",
       role: "",
@@ -42,6 +42,7 @@ export const useUser = create<UserState>()(
           userId: "",
           email: "",
           role: "",
+          image: "",
         }));
       },
       logout: async () => {
@@ -53,28 +54,27 @@ export const useUser = create<UserState>()(
             userId: "",
             email: "",
             role: "",
+            image: "",
           }));
         } catch (error) {
           console.error("Logout error:", error);
-          // Still clear user data even if logout service fails
           set((state) => ({
             ...state,
             userId: "",
             email: "",
             role: "",
+            image: "",
           }));
         }
       },
       isAuthenticated: () => {
-        // Check if user data exists in store
-        const state = useUser.getState();
-        const hasUserData = state.userId && state.email && state.role;
+        const state = get();
+        const hasUserData = !!(state.userId && state.email && state.role);
 
-        // Check if access token exists in localStorage
         const hasToken =
-          typeof window !== "undefined" && localStorage.getItem("accessToken");
+          typeof window !== "undefined" &&
+          !!localStorage.getItem("accessToken");
 
-        // Check if access token exists in cookies
         const hasCookieToken =
           typeof document !== "undefined" &&
           document.cookie
@@ -85,7 +85,7 @@ export const useUser = create<UserState>()(
       },
     }),
     {
-      name: "user-storage", // name of the item in localStorage
+      name: "user-storage",
     }
   )
 );

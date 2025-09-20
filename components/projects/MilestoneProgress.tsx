@@ -1,45 +1,49 @@
-'use client';
+"use client";
 
-import { mockMilestones, calculateMilestoneProgress, getMilestoneStatus } from '@/constants/mockData';
+import {
+  mockMilestones,
+  calculateMilestoneProgress,
+  getMilestoneStatus,
+} from "@/constants/mockData";
 
 export const MilestoneProgress = () => {
-  const milestones = mockMilestones.map(milestone => {
+  const milestones = mockMilestones.map((milestone) => {
     const progress = calculateMilestoneProgress(milestone.id);
     const status = getMilestoneStatus(milestone.id);
-    
+
     return {
       ...milestone,
       progress: progress,
       status: status,
-      tasks: milestone.tasks.map(task => ({
+      tasks: milestone.tasks.map((task) => ({
         id: task.id,
         title: task.title,
-        completed: task.status === 'done'
-      }))
+        completed: task.status === "done",
+      })),
     };
   });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
-        return '#10b981';
-      case 'in-progress':
-        return '#3b82f6';
-      case 'pending':
-        return '#6b7280';
+      case "completed":
+        return "#10b981";
+      case "in-progress":
+        return "#3b82f6";
+      case "pending":
+        return "#6b7280";
       default:
-        return '#6b7280';
+        return "#6b7280";
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'Hoàn thành';
-      case 'in-progress':
-        return 'Đang thực hiện';
-      case 'pending':
-        return 'Chờ bắt đầu';
+      case "completed":
+        return "Hoàn thành";
+      case "in-progress":
+        return "Đang thực hiện";
+      case "pending":
+        return "Chờ bắt đầu";
       default:
         return status;
     }
@@ -52,7 +56,9 @@ export const MilestoneProgress = () => {
           <h3>Tiến độ milestone</h3>
           <p>Xem tiến độ các mốc quan trọng trong dự án.</p>
         </div>
-        <a href="#" className="view-all-link">Xem tất cả</a>
+        <a href="#" className="view-all-link">
+          Xem tất cả
+        </a>
       </div>
 
       <div className="milestones-list">
@@ -60,11 +66,11 @@ export const MilestoneProgress = () => {
           <div key={milestone.id} className="milestone-item">
             <div className="milestone-header">
               <div className="milestone-info">
-                <h4 className="milestone-title">{milestone.title}</h4>
+                <h4 className="milestone-title">{milestone.name}</h4>
                 <p className="milestone-description">{milestone.description}</p>
               </div>
               <div className="milestone-status">
-                <span 
+                <span
                   className="status-badge"
                   style={{ backgroundColor: getStatusColor(milestone.status) }}
                 >
@@ -75,7 +81,7 @@ export const MilestoneProgress = () => {
 
             <div className="milestone-progress-bar">
               <div className="progress-container">
-                <div 
+                <div
                   className="progress-fill"
                   style={{ width: `${milestone.progress}%` }}
                 ></div>
@@ -86,29 +92,77 @@ export const MilestoneProgress = () => {
             <div className="milestone-details">
               <div className="milestone-due-date">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path
+                    d="M8 2V6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M16 2V6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M3 10H21"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
-                <span>Hạn: {new Date(milestone.dueDate).toLocaleDateString('vi-VN')}</span>
+                <span>
+                  Hạn: {new Date(milestone.dueDate).toLocaleDateString("vi-VN")}
+                </span>
               </div>
               <div className="milestone-tasks">
-                <span>{milestone.tasks.filter(task => task.completed).length}/{milestone.tasks.length} công việc</span>
+                <span>
+                  {milestone.tasks.filter((task) => task.completed).length}/
+                  {milestone.tasks.length} công việc
+                </span>
               </div>
             </div>
 
             <div className="milestone-tasks-list">
               {milestone.tasks.map((task) => (
                 <div key={task.id} className="task-item">
-                  <div className={`task-checkbox ${task.completed ? 'completed' : ''}`}>
+                  <div
+                    className={`task-checkbox ${
+                      task.completed ? "completed" : ""
+                    }`}
+                  >
                     {task.completed && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                        <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M9 12L11 14L15 10"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     )}
                   </div>
-                  <span className={`task-title ${task.completed ? 'completed' : ''}`}>
+                  <span
+                    className={`task-title ${
+                      task.completed ? "completed" : ""
+                    }`}
+                  >
                     {task.title}
                   </span>
                 </div>

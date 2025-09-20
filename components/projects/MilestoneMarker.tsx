@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Milestone } from '@/types/milestone';
+import { useState } from "react";
+import { Milestone } from "@/types/milestone";
 
 interface MilestoneMarkerProps {
   milestone: Milestone;
@@ -10,26 +10,41 @@ interface MilestoneMarkerProps {
   onDelete?: (milestoneId: string) => void;
 }
 
-export const MilestoneMarker = ({ milestone, position, onEdit, onDelete }: MilestoneMarkerProps) => {
+export const MilestoneMarker = ({
+  milestone,
+  position,
+  onEdit,
+  onDelete,
+}: MilestoneMarkerProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return '#10b981';
-      case 'in-progress': return '#f59e0b';
-      case 'pending': return '#6b7280';
-      case 'delayed': return '#ef4444';
-      default: return '#6b7280';
+      case "completed":
+        return "#10b981";
+      case "in-progress":
+        return "#f59e0b";
+      case "pending":
+        return "#6b7280";
+      case "delayed":
+        return "#ef4444";
+      default:
+        return "#6b7280";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return '🏁';
-      case 'in-progress': return '🚧';
-      case 'pending': return '⏳';
-      case 'delayed': return '⚠️';
-      default: return '🏁';
+      case "completed":
+        return "🏁";
+      case "in-progress":
+        return "🚧";
+      case "pending":
+        return "⏳";
+      case "delayed":
+        return "⚠️";
+      default:
+        return "🏁";
     }
   };
 
@@ -38,18 +53,20 @@ export const MilestoneMarker = ({ milestone, position, onEdit, onDelete }: Miles
       className="milestone-marker"
       style={{
         left: position,
-        top: -10
+        top: -10,
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Milestone Flag */}
-      <div 
+      <div
         className="milestone-flag"
         style={{ backgroundColor: getStatusColor(milestone.status) }}
         onClick={() => onEdit?.(milestone)}
       >
-        <span className="milestone-icon">{getStatusIcon(milestone.status)}</span>
+        <span className="milestone-icon">
+          {getStatusIcon(milestone.status)}
+        </span>
         <div className="milestone-flag-pole"></div>
       </div>
 
@@ -57,8 +74,8 @@ export const MilestoneMarker = ({ milestone, position, onEdit, onDelete }: Miles
       {isHovered && (
         <div className="milestone-tooltip">
           <div className="tooltip-header">
-            <h4>{milestone.name || milestone.title}</h4>
-            <span 
+            <h4>{milestone.name}</h4>
+            <span
               className="status-badge"
               style={{ backgroundColor: getStatusColor(milestone.status) }}
             >
@@ -68,14 +85,12 @@ export const MilestoneMarker = ({ milestone, position, onEdit, onDelete }: Miles
           <p className="tooltip-description">{milestone.description}</p>
           <div className="tooltip-meta">
             <span className="due-date">
-              📅 {new Date(milestone.endDate || milestone.dueDate).toLocaleDateString('vi-VN')}
+              📅 {new Date(milestone.endDate).toLocaleDateString("vi-VN")}
             </span>
-            <span className="progress">
-              📊 {milestone.progress}%
-            </span>
+            <span className="progress">📊 {milestone.progress}%</span>
           </div>
           <div className="tooltip-actions">
-            <button 
+            <button
               className="edit-btn"
               onClick={(e) => {
                 e.stopPropagation();
@@ -84,12 +99,12 @@ export const MilestoneMarker = ({ milestone, position, onEdit, onDelete }: Miles
             >
               ✏️ Chỉnh sửa
             </button>
-            <button 
+            <button
               className="delete-btn"
               onClick={(e) => {
                 e.stopPropagation();
-                if (confirm('Bạn có chắc chắn muốn xóa milestone này?')) {
-                  onDelete?.(milestone.id);
+                if (confirm("Bạn có chắc chắn muốn xóa milestone này?")) {
+                  onDelete?.(milestone.id.toString());
                 }
               }}
             >
@@ -194,7 +209,8 @@ export const MilestoneMarker = ({ milestone, position, onEdit, onDelete }: Miles
           gap: 8px;
         }
 
-        .edit-btn, .delete-btn {
+        .edit-btn,
+        .delete-btn {
           padding: 4px 8px;
           border: 1px solid #e5e7eb;
           border-radius: 4px;

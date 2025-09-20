@@ -2,7 +2,7 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  status: 'planning' | 'active' | 'on-hold' | 'completed';
+  status: "planning" | "active" | "on-hold" | "completed";
   startDate: string;
   endDate: string;
   manager: string;
@@ -13,7 +13,7 @@ export interface Project {
 export interface ProjectMember {
   id: string;
   name: string;
-  role: string;
   email: string;
+  role: string;
   avatar: string;
 }

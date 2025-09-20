@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Task, Comment } from "@/types/milestone";
+import { Task } from "@/types/milestone";
+import { Comment } from "@/types/comment";
 import { Member } from "@/types/member";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -362,7 +363,9 @@ export function TaskDetailModal({
                       width: "8px",
                       height: "8px",
                       borderRadius: "50%",
-                      backgroundColor: getPriorityColor(task.priority),
+                      backgroundColor: getPriorityColor(
+                        task.priority || "medium"
+                      ),
                     }}
                   ></div>
                   <span
@@ -372,7 +375,7 @@ export function TaskDetailModal({
                       color: "#374151",
                     }}
                   >
-                    {getPriorityText(task.priority)}
+                    {getPriorityText(task.priority || "medium")}
                   </span>
                 </div>
               </div>
@@ -449,7 +452,8 @@ export function TaskDetailModal({
                       fontWeight: 500,
                     }}
                   >
-                    {new Date(task.dueDate).toLocaleDateString("vi-VN")}
+                    {task.dueDate &&
+                      new Date(task.dueDate).toLocaleDateString("vi-VN")}
                   </span>
                 </div>
               </div>
