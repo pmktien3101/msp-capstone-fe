@@ -1,153 +1,215 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { 
-  Plus, Search, Filter, X, Check, Edit, Trash2, Eye, 
-  Users, HardDrive, Headphones, Plug, Shield, BarChart3, 
-  Handshake, Video, Palette, Zap, Save, ArrowLeft,
-  CheckCircle,
-  CheckCircle2
-} from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Plus,
+  Search,
+  Filter,
+  X,
+  Edit,
+  Trash2,
+  Eye,
+  Users,
+  HardDrive,
+  Headphones,
+  Plug,
+  Shield,
+  BarChart3,
+  Handshake,
+  Video,
+  Palette,
+  Zap,
+  Save,
+  CheckCircle2,
+} from "lucide-react";
 
 const AdminFeatures = () => {
-  const [activeTab, setActiveTab] = useState('features');
   const [showAddFeatureModal, setShowAddFeatureModal] = useState(false);
   const [showEditFeatureModal, setShowEditFeatureModal] = useState(false);
   const [showViewFeatureModal, setShowViewFeatureModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterGroup, setFilterGroup] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterGroup, setFilterGroup] = useState("all");
 
   // Danh sách các nhóm tính năng
   const featureGroups = [
-    { id: 'users', name: 'Số lượng người dùng', icon: Users, color: '#3B82F6' },
-    { id: 'storage', name: 'Dung lượng lưu trữ', icon: HardDrive, color: '#10B981' },
-    { id: 'support', name: 'Hỗ trợ khách hàng', icon: Headphones, color: '#F59E0B' },
-    { id: 'integrations', name: 'Tích hợp & API', icon: Plug, color: '#8B5CF6' },
-    { id: 'security', name: 'Bảo mật & Sao lưu', icon: Shield, color: '#EF4444' },
-    { id: 'analytics', name: 'Phân tích & Báo cáo', icon: BarChart3, color: '#06B6D4' },
-    { id: 'collaboration', name: 'Cộng tác & Quản lý', icon: Handshake, color: '#84CC16' },
-    { id: 'communication', name: 'Giao tiếp & Họp', icon: Video, color: '#EC4899' },
-    { id: 'customization', name: 'Tùy chỉnh & Giao diện', icon: Palette, color: '#F97316' },
-    { id: 'automation', name: 'Tự động hóa', icon: Zap, color: '#EAB308' }
+    { id: "users", name: "Số lượng người dùng", icon: Users, color: "#3B82F6" },
+    {
+      id: "storage",
+      name: "Dung lượng lưu trữ",
+      icon: HardDrive,
+      color: "#10B981",
+    },
+    {
+      id: "support",
+      name: "Hỗ trợ khách hàng",
+      icon: Headphones,
+      color: "#F59E0B",
+    },
+    {
+      id: "integrations",
+      name: "Tích hợp & API",
+      icon: Plug,
+      color: "#8B5CF6",
+    },
+    {
+      id: "security",
+      name: "Bảo mật & Sao lưu",
+      icon: Shield,
+      color: "#EF4444",
+    },
+    {
+      id: "analytics",
+      name: "Phân tích & Báo cáo",
+      icon: BarChart3,
+      color: "#06B6D4",
+    },
+    {
+      id: "collaboration",
+      name: "Cộng tác & Quản lý",
+      icon: Handshake,
+      color: "#84CC16",
+    },
+    {
+      id: "communication",
+      name: "Giao tiếp & Họp",
+      icon: Video,
+      color: "#EC4899",
+    },
+    {
+      id: "customization",
+      name: "Tùy chỉnh & Giao diện",
+      icon: Palette,
+      color: "#F97316",
+    },
+    { id: "automation", name: "Tự động hóa", icon: Zap, color: "#EAB308" },
   ];
 
   // State cho feature mới
   const [newFeature, setNewFeature] = useState({
-    name: '',
-    description: '',
-    groupId: '',
-    status: 'active',
-    value: '',
-    unit: ''
+    name: "",
+    description: "",
+    groupId: "",
+    status: "active",
+    value: "",
+    unit: "",
   });
 
   // Sample data - trong thực tế sẽ lấy từ API
   const [features, setFeatures] = useState([
     {
       id: 1,
-      name: 'Tối đa 10 người dùng',
-      description: 'Cho phép tối đa 10 thành viên trong team',
-      groupId: 'users',
-      status: 'active',
-      value: '10',
-      unit: 'người dùng',
-      createdAt: '2024-01-15',
-      updatedAt: '2024-01-15'
+      name: "Tối đa 10 người dùng",
+      description: "Cho phép tối đa 10 thành viên trong team",
+      groupId: "users",
+      status: "active",
+      value: "10",
+      unit: "người dùng",
+      createdAt: "2024-01-15",
+      updatedAt: "2024-01-15",
     },
     {
       id: 2,
-      name: 'Tối đa 25 người dùng',
-      description: 'Cho phép tối đa 25 thành viên trong team',
-      groupId: 'users',
-      status: 'active',
-      value: '25',
-      unit: 'người dùng',
-      createdAt: '2024-01-15',
-      updatedAt: '2024-01-15'
+      name: "Tối đa 25 người dùng",
+      description: "Cho phép tối đa 25 thành viên trong team",
+      groupId: "users",
+      status: "active",
+      value: "25",
+      unit: "người dùng",
+      createdAt: "2024-01-15",
+      updatedAt: "2024-01-15",
     },
     {
       id: 3,
-      name: '5GB lưu trữ',
-      description: 'Dung lượng lưu trữ 5GB',
-      groupId: 'storage',
-      status: 'active',
-      value: '5',
-      unit: 'GB',
-      createdAt: '2024-01-15',
-      updatedAt: '2024-01-15'
+      name: "5GB lưu trữ",
+      description: "Dung lượng lưu trữ 5GB",
+      groupId: "storage",
+      status: "active",
+      value: "5",
+      unit: "GB",
+      createdAt: "2024-01-15",
+      updatedAt: "2024-01-15",
     },
     {
       id: 4,
-      name: 'Hỗ trợ email',
-      description: 'Hỗ trợ khách hàng qua email',
-      groupId: 'support',
-      status: 'active',
-      value: '',
-      unit: '',
-      createdAt: '2024-01-15',
-      updatedAt: '2024-01-15'
+      name: "Hỗ trợ email",
+      description: "Hỗ trợ khách hàng qua email",
+      groupId: "support",
+      status: "active",
+      value: "",
+      unit: "",
+      createdAt: "2024-01-15",
+      updatedAt: "2024-01-15",
     },
     {
       id: 5,
-      name: 'API access',
-      description: 'Truy cập API để tích hợp với hệ thống khác',
-      groupId: 'integrations',
-      status: 'active',
-      value: '',
-      unit: '',
-      createdAt: '2024-01-15',
-      updatedAt: '2024-01-15'
-    }
+      name: "API access",
+      description: "Truy cập API để tích hợp với hệ thống khác",
+      groupId: "integrations",
+      status: "active",
+      value: "",
+      unit: "",
+      createdAt: "2024-01-15",
+      updatedAt: "2024-01-15",
+    },
   ]);
 
   // Filter features
-  const filteredFeatures = features.filter(feature => {
-    const matchesSearch = feature.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         feature.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesGroup = filterGroup === 'all' || feature.groupId === filterGroup;
+  const filteredFeatures = features.filter((feature) => {
+    const matchesSearch =
+      feature.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      feature.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesGroup =
+      filterGroup === "all" || feature.groupId === filterGroup;
     return matchesSearch && matchesGroup;
   });
 
   // Handler functions
   const handleInputChange = (field: string, value: string) => {
-    setNewFeature(prev => {
+    setNewFeature((prev) => {
       const updated = {
         ...prev,
-        [field]: value
+        [field]: value,
       };
-      
+
       // Khi thay đổi groupId, tự động set unit mặc định
-      if (field === 'groupId' && hasValue(value)) {
+      if (field === "groupId" && hasValue(value)) {
         updated.unit = getDefaultUnit(value);
       }
-      
+
       return updated;
     });
   };
 
   const handleAddFeature = () => {
     if (!newFeature.name || !newFeature.description || !newFeature.groupId) {
-      alert('Vui lòng điền đầy đủ thông tin');
+      alert("Vui lòng điền đầy đủ thông tin");
       return;
     }
 
     // Validate value cho các nhóm cần có value
     if (hasValue(newFeature.groupId) && !newFeature.value) {
-      alert('Vui lòng nhập giá trị cho tính năng này');
+      alert("Vui lòng nhập giá trị cho tính năng này");
       return;
     }
 
     const feature = {
       id: features.length + 1,
       ...newFeature,
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0]
+      createdAt: new Date().toISOString().split("T")[0],
+      updatedAt: new Date().toISOString().split("T")[0],
     };
 
-    setFeatures(prev => [...prev, feature]);
-    setNewFeature({ name: '', description: '', groupId: '', status: 'active', value: '', unit: '' });
+    setFeatures((prev) => [...prev, feature]);
+    setNewFeature({
+      name: "",
+      description: "",
+      groupId: "",
+      status: "active",
+      value: "",
+      unit: "",
+    });
     setShowAddFeatureModal(false);
   };
 
@@ -158,31 +220,44 @@ const AdminFeatures = () => {
       description: feature.description,
       groupId: feature.groupId,
       status: feature.status,
-      value: feature.value || '',
-      unit: feature.unit || ''
+      value: feature.value || "",
+      unit: feature.unit || "",
     });
     setShowEditFeatureModal(true);
   };
 
   const handleUpdateFeature = () => {
     if (!newFeature.name || !newFeature.description || !newFeature.groupId) {
-      alert('Vui lòng điền đầy đủ thông tin');
+      alert("Vui lòng điền đầy đủ thông tin");
       return;
     }
 
     // Validate value cho các nhóm cần có value
     if (hasValue(newFeature.groupId) && !newFeature.value) {
-      alert('Vui lòng nhập giá trị cho tính năng này');
+      alert("Vui lòng nhập giá trị cho tính năng này");
       return;
     }
 
-    setFeatures(prev => prev.map(feature => 
-      feature.id === selectedFeature?.id 
-        ? { ...feature, ...newFeature, updatedAt: new Date().toISOString().split('T')[0] }
-        : feature
-    ));
+    setFeatures((prev) =>
+      prev.map((feature) =>
+        feature.id === selectedFeature?.id
+          ? {
+              ...feature,
+              ...newFeature,
+              updatedAt: new Date().toISOString().split("T")[0],
+            }
+          : feature
+      )
+    );
 
-    setNewFeature({ name: '', description: '', groupId: '', status: 'active', value: '', unit: '' });
+    setNewFeature({
+      name: "",
+      description: "",
+      groupId: "",
+      status: "active",
+      value: "",
+      unit: "",
+    });
     setSelectedFeature(null);
     setShowEditFeatureModal(false);
   };
@@ -193,7 +268,9 @@ const AdminFeatures = () => {
   };
 
   const confirmDelete = () => {
-    setFeatures(prev => prev.filter(feature => feature.id !== selectedFeature.id));
+    setFeatures((prev) =>
+      prev.filter((feature) => feature.id !== selectedFeature.id)
+    );
     setSelectedFeature(null);
     setShowDeleteConfirm(false);
   };
@@ -205,33 +282,35 @@ const AdminFeatures = () => {
 
   const getStatusBadge = (status: string) => {
     const config: Record<string, { text: string; class: string }> = {
-      active: { text: 'Hoạt động', class: 'status-active' },
-      inactive: { text: 'Không hoạt động', class: 'status-inactive' }
+      active: { text: "Hoạt động", class: "status-active" },
+      inactive: { text: "Không hoạt động", class: "status-inactive" },
     };
     return (
-      <span className={`status-badge ${config[status]?.class || 'status-inactive'}`}>
-        {config[status]?.text || 'Không xác định'}
+      <span
+        className={`status-badge ${config[status]?.class || "status-inactive"}`}
+      >
+        {config[status]?.text || "Không xác định"}
       </span>
     );
   };
 
   const getGroupInfo = (groupId: string) => {
-    return featureGroups.find(group => group.id === groupId);
+    return featureGroups.find((group) => group.id === groupId);
   };
 
   // Các nhóm cần có value
-  const groupsWithValue = ['users', 'storage'];
-  
+  const groupsWithValue = ["users", "storage"];
+
   const hasValue = (groupId: string) => {
     return groupsWithValue.includes(groupId);
   };
 
   const getDefaultUnit = (groupId: string) => {
     const unitMap: Record<string, string> = {
-      'users': 'người dùng',
-      'storage': 'GB'
+      users: "người dùng",
+      storage: "GB",
     };
-    return unitMap[groupId] || '';
+    return unitMap[groupId] || "";
   };
 
   return (
@@ -244,7 +323,7 @@ const AdminFeatures = () => {
               <p>Quản lý các tính năng cho gói dịch vụ</p>
             </div>
           </div>
-          <button 
+          <button
             className="add-btn"
             onClick={() => setShowAddFeatureModal(true)}
           >
@@ -270,7 +349,7 @@ const AdminFeatures = () => {
             <CheckCircle2 size={24} />
           </div>
           <div className="stat-content">
-            <h3>{features.filter(f => f.status === 'active').length}</h3>
+            <h3>{features.filter((f) => f.status === "active").length}</h3>
             <p>Đang hoạt động</p>
           </div>
         </div>
@@ -279,7 +358,7 @@ const AdminFeatures = () => {
             <X size={24} />
           </div>
           <div className="stat-content">
-            <h3>{features.filter(f => f.status === 'inactive').length}</h3>
+            <h3>{features.filter((f) => f.status === "inactive").length}</h3>
             <p>Không hoạt động</p>
           </div>
         </div>
@@ -298,7 +377,9 @@ const AdminFeatures = () => {
       <div className="filters-section">
         <div className="search-box">
           {/* <Search className="search-icon" size={16} /> */}
-          <span className="search-icon"><Search size={16}/></span>
+          <span className="search-icon">
+            <Search size={16} />
+          </span>
 
           <input
             type="text"
@@ -309,17 +390,19 @@ const AdminFeatures = () => {
         </div>
         <div className="filter-buttons">
           <button
-            className={`filter-btn ${filterGroup === 'all' ? 'active' : ''}`}
-            onClick={() => setFilterGroup('all')}
+            className={`filter-btn ${filterGroup === "all" ? "active" : ""}`}
+            onClick={() => setFilterGroup("all")}
           >
             Tất cả
           </button>
-          {featureGroups.map(group => {
+          {featureGroups.map((group) => {
             const IconComponent = group.icon;
             return (
               <button
                 key={group.id}
-                className={`filter-btn ${filterGroup === group.id ? 'active' : ''}`}
+                className={`filter-btn ${
+                  filterGroup === group.id ? "active" : ""
+                }`}
                 onClick={() => setFilterGroup(group.id)}
               >
                 <IconComponent size={16} style={{ color: group.color }} />
@@ -356,11 +439,18 @@ const AdminFeatures = () => {
                 </div>
               </div>
               <div className="table-cell" data-label="Mô tả">
-                <span className="feature-description">{feature.description}</span>
+                <span className="feature-description">
+                  {feature.description}
+                </span>
               </div>
               <div className="table-cell" data-label="Nhóm">
                 <div className="group-badge">
-                  {IconComponent && <IconComponent size={16} style={{ color: groupInfo.color }} />}
+                  {IconComponent && (
+                    <IconComponent
+                      size={16}
+                      style={{ color: groupInfo.color }}
+                    />
+                  )}
                   <span>{groupInfo?.name}</span>
                 </div>
               </div>
@@ -419,7 +509,7 @@ const AdminFeatures = () => {
                 <input
                   type="text"
                   value={newFeature.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
                   placeholder="Nhập tên tính năng"
                 />
               </div>
@@ -427,7 +517,9 @@ const AdminFeatures = () => {
                 <label>Mô tả *</label>
                 <textarea
                   value={newFeature.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
                   placeholder="Nhập mô tả tính năng"
                   rows={3}
                 />
@@ -436,10 +528,10 @@ const AdminFeatures = () => {
                 <label>Nhóm tính năng *</label>
                 <select
                   value={newFeature.groupId}
-                  onChange={(e) => handleInputChange('groupId', e.target.value)}
+                  onChange={(e) => handleInputChange("groupId", e.target.value)}
                 >
                   <option value="">Chọn nhóm tính năng</option>
-                  {featureGroups.map(group => {
+                  {featureGroups.map((group) => {
                     const IconComponent = group.icon;
                     return (
                       <option key={group.id} value={group.id}>
@@ -449,7 +541,7 @@ const AdminFeatures = () => {
                   })}
                 </select>
               </div>
-              
+
               {hasValue(newFeature.groupId) && (
                 <>
                   <div className="form-group">
@@ -457,7 +549,9 @@ const AdminFeatures = () => {
                     <input
                       type="number"
                       value={newFeature.value}
-                      onChange={(e) => handleInputChange('value', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("value", e.target.value)
+                      }
                       placeholder="Nhập giá trị"
                       min="0"
                     />
@@ -467,7 +561,9 @@ const AdminFeatures = () => {
                     <input
                       type="text"
                       value={newFeature.unit}
-                      onChange={(e) => handleInputChange('unit', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("unit", e.target.value)
+                      }
                       placeholder="Nhập đơn vị"
                     />
                   </div>
@@ -477,7 +573,7 @@ const AdminFeatures = () => {
                 <label>Trạng thái</label>
                 <select
                   value={newFeature.status}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  onChange={(e) => handleInputChange("status", e.target.value)}
                 >
                   <option value="active">Hoạt động</option>
                   <option value="inactive">Không hoạt động</option>
@@ -491,10 +587,7 @@ const AdminFeatures = () => {
               >
                 Hủy
               </button>
-              <button
-                className="btn-primary"
-                onClick={handleAddFeature}
-              >
+              <button className="btn-primary" onClick={handleAddFeature}>
                 <Save size={16} />
                 Thêm tính năng
               </button>
@@ -522,7 +615,7 @@ const AdminFeatures = () => {
                 <input
                   type="text"
                   value={newFeature.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
                   placeholder="Nhập tên tính năng"
                 />
               </div>
@@ -530,7 +623,9 @@ const AdminFeatures = () => {
                 <label>Mô tả *</label>
                 <textarea
                   value={newFeature.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
                   placeholder="Nhập mô tả tính năng"
                   rows={3}
                 />
@@ -539,17 +634,17 @@ const AdminFeatures = () => {
                 <label>Nhóm tính năng *</label>
                 <select
                   value={newFeature.groupId}
-                  onChange={(e) => handleInputChange('groupId', e.target.value)}
+                  onChange={(e) => handleInputChange("groupId", e.target.value)}
                 >
                   <option value="">Chọn nhóm tính năng</option>
-                  {featureGroups.map(group => (
+                  {featureGroups.map((group) => (
                     <option key={group.id} value={group.id}>
                       {group.name}
                     </option>
                   ))}
                 </select>
               </div>
-              
+
               {hasValue(newFeature.groupId) && (
                 <>
                   <div className="form-group">
@@ -557,7 +652,9 @@ const AdminFeatures = () => {
                     <input
                       type="number"
                       value={newFeature.value}
-                      onChange={(e) => handleInputChange('value', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("value", e.target.value)
+                      }
                       placeholder="Nhập giá trị"
                       min="0"
                     />
@@ -567,7 +664,9 @@ const AdminFeatures = () => {
                     <input
                       type="text"
                       value={newFeature.unit}
-                      onChange={(e) => handleInputChange('unit', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("unit", e.target.value)
+                      }
                       placeholder="Nhập đơn vị"
                     />
                   </div>
@@ -577,7 +676,7 @@ const AdminFeatures = () => {
                 <label>Trạng thái</label>
                 <select
                   value={newFeature.status}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  onChange={(e) => handleInputChange("status", e.target.value)}
                 >
                   <option value="active">Hoạt động</option>
                   <option value="inactive">Không hoạt động</option>
@@ -591,10 +690,7 @@ const AdminFeatures = () => {
               >
                 Hủy
               </button>
-              <button
-                className="btn-primary"
-                onClick={handleUpdateFeature}
-              >
+              <button className="btn-primary" onClick={handleUpdateFeature}>
                 <Save size={16} />
                 Cập nhật
               </button>
@@ -629,7 +725,9 @@ const AdminFeatures = () => {
                 {selectedFeature.value && (
                   <div className="detail-item">
                     <label>Giá trị:</label>
-                    <span>{selectedFeature.value} {selectedFeature.unit}</span>
+                    <span>
+                      {selectedFeature.value} {selectedFeature.unit}
+                    </span>
                   </div>
                 )}
                 <div className="detail-item">
@@ -640,7 +738,12 @@ const AdminFeatures = () => {
                       const IconComponent = groupInfo?.icon;
                       return (
                         <>
-                          {IconComponent && <IconComponent size={16} style={{ color: groupInfo.color }} />}
+                          {IconComponent && (
+                            <IconComponent
+                              size={16}
+                              style={{ color: groupInfo.color }}
+                            />
+                          )}
                           <span>{groupInfo?.name}</span>
                         </>
                       );
@@ -687,7 +790,10 @@ const AdminFeatures = () => {
               </button>
             </div>
             <div className="modal-body">
-              <p>Bạn có chắc chắn muốn xóa tính năng <strong>"{selectedFeature.name}"</strong>?</p>
+              <p>
+                Bạn có chắc chắn muốn xóa tính năng{" "}
+                <strong>"{selectedFeature.name}"</strong>?
+              </p>
               <p className="warning-text">Hành động này không thể hoàn tác.</p>
             </div>
             <div className="modal-footer">
@@ -697,10 +803,7 @@ const AdminFeatures = () => {
               >
                 Hủy
               </button>
-              <button
-                className="btn-danger"
-                onClick={confirmDelete}
-              >
+              <button className="btn-danger" onClick={confirmDelete}>
                 <Trash2 size={16} />
                 Xóa
               </button>
@@ -712,7 +815,7 @@ const AdminFeatures = () => {
       <style jsx>{`
         .admin-features {
           padding: 24px;
-          background: #F8FAFC;
+          background: #f8fafc;
           min-height: 100vh;
         }
 
@@ -738,29 +841,29 @@ const AdminFeatures = () => {
           justify-content: center;
           width: 40px;
           height: 40px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           border-radius: 8px;
           background: white;
-          color: #6B7280;
+          color: #6b7280;
           cursor: pointer;
           transition: all 0.3s ease;
         }
 
         .back-btn:hover {
-          border-color: #FF5E13;
-          color: #FF5E13;
+          border-color: #ff5e13;
+          color: #ff5e13;
         }
 
         .page-header h1 {
           margin: 0 0 4px 0;
           font-size: 28px;
           font-weight: 700;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .page-header p {
           margin: 0;
-          color: #6B7280;
+          color: #6b7280;
           font-size: 14px;
         }
 
@@ -769,7 +872,7 @@ const AdminFeatures = () => {
           align-items: center;
           gap: 8px;
           padding: 12px 20px;
-          background: #FF5E13;
+          background: #ff5e13;
           color: white;
           border: none;
           border-radius: 8px;
@@ -779,7 +882,7 @@ const AdminFeatures = () => {
         }
 
         .add-btn:hover {
-          background: #E04A0C;
+          background: #e04a0c;
           transform: translateY(-1px);
         }
 
@@ -794,7 +897,7 @@ const AdminFeatures = () => {
           background: white;
           padding: 24px;
           border-radius: 16px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           display: flex;
           align-items: center;
           gap: 20px;
@@ -806,19 +909,19 @@ const AdminFeatures = () => {
 
         /* Card-specific colors */
         .stat-card-total::before {
-          background: linear-gradient(90deg, #3B82F6, #60A5FA);
+          background: linear-gradient(90deg, #3b82f6, #60a5fa);
         }
 
         .stat-card-active::before {
-          background: linear-gradient(90deg, #10B981, #34D399);
+          background: linear-gradient(90deg, #10b981, #34d399);
         }
 
         .stat-card-inactive::before {
-          background: linear-gradient(90deg, #EF4444, #F87171);
+          background: linear-gradient(90deg, #ef4444, #f87171);
         }
 
         .stat-card-groups::before {
-          background: linear-gradient(90deg, #8B5CF6, #A78BFA);
+          background: linear-gradient(90deg, #8b5cf6, #a78bfa);
         }
 
         .stat-card:hover {
@@ -827,19 +930,19 @@ const AdminFeatures = () => {
         }
 
         .stat-card-total:hover {
-          border-color: #3B82F6;
+          border-color: #3b82f6;
         }
 
         .stat-card-active:hover {
-          border-color: #10B981;
+          border-color: #10b981;
         }
 
         .stat-card-inactive:hover {
-          border-color: #EF4444;
+          border-color: #ef4444;
         }
 
         .stat-card-groups:hover {
-          border-color: #8B5CF6;
+          border-color: #8b5cf6;
         }
 
         .stat-icon {
@@ -854,43 +957,43 @@ const AdminFeatures = () => {
         }
 
         .stat-card-total .stat-icon {
-          background: linear-gradient(135deg, #3B82F6, #60A5FA);
+          background: linear-gradient(135deg, #3b82f6, #60a5fa);
           box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
 
         .stat-card-active .stat-icon {
-          background: linear-gradient(135deg, #10B981, #34D399);
+          background: linear-gradient(135deg, #10b981, #34d399);
           box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
 
         .stat-card-inactive .stat-icon {
-          background: linear-gradient(135deg, #EF4444, #F87171);
+          background: linear-gradient(135deg, #ef4444, #f87171);
           box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
 
         .stat-card-groups .stat-icon {
-          background: linear-gradient(135deg, #8B5CF6, #A78BFA);
+          background: linear-gradient(135deg, #8b5cf6, #a78bfa);
           box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
 
         .stat-card-total .stat-icon::after {
-          background: linear-gradient(135deg, #3B82F6, #60A5FA);
+          background: linear-gradient(135deg, #3b82f6, #60a5fa);
         }
 
         .stat-card-active .stat-icon::after {
-          background: linear-gradient(135deg, #10B981, #34D399);
+          background: linear-gradient(135deg, #10b981, #34d399);
         }
 
         .stat-card-inactive .stat-icon::after {
-          background: linear-gradient(135deg, #EF4444, #F87171);
+          background: linear-gradient(135deg, #ef4444, #f87171);
         }
 
         .stat-card-groups .stat-icon::after {
-          background: linear-gradient(135deg, #8B5CF6, #A78BFA);
+          background: linear-gradient(135deg, #8b5cf6, #a78bfa);
         }
 
         .stat-icon::after {
-          content: '';
+          content: "";
           position: absolute;
           top: -2px;
           left: -2px;
@@ -909,13 +1012,13 @@ const AdminFeatures = () => {
           margin: 0 0 8px 0;
           font-size: 28px;
           font-weight: 800;
-          color: #0D062D;
+          color: #0d062d;
           line-height: 1;
         }
 
         .stat-content p {
           margin: 0;
-          color: #6B7280;
+          color: #6b7280;
           font-size: 14px;
           font-weight: 500;
         }
@@ -924,7 +1027,7 @@ const AdminFeatures = () => {
           background: white;
           padding: 20px;
           border-radius: 12px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           margin-bottom: 24px;
         }
 
@@ -938,7 +1041,7 @@ const AdminFeatures = () => {
           left: 12px;
           top: 50%;
           transform: translateY(-50%);
-          color: #6B7280;
+          color: #6b7280;
           pointer-events: none;
           z-index: 1;
         }
@@ -946,7 +1049,7 @@ const AdminFeatures = () => {
         .search-box input {
           width: 100%;
           padding: 12px 12px 12px 40px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           border-radius: 8px;
           font-size: 14px;
           line-height: 1.5;
@@ -954,7 +1057,7 @@ const AdminFeatures = () => {
 
         .search-box input:focus {
           outline: none;
-          border-color: #FF5E13;
+          border-color: #ff5e13;
         }
 
         .filter-buttons {
@@ -968,30 +1071,30 @@ const AdminFeatures = () => {
           align-items: center;
           gap: 8px;
           padding: 8px 16px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           border-radius: 6px;
           background: white;
-          color: #6B7280;
+          color: #6b7280;
           font-size: 14px;
           cursor: pointer;
           transition: all 0.3s ease;
         }
 
         .filter-btn:hover {
-          border-color: #FF5E13;
-          color: #FF5E13;
+          border-color: #ff5e13;
+          color: #ff5e13;
         }
 
         .filter-btn.active {
-          background: #FF5E13;
-          border-color: #FF5E13;
+          background: #ff5e13;
+          border-color: #ff5e13;
           color: white;
         }
 
         .table-container {
           background: white;
           border-radius: 12px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           overflow: hidden;
         }
 
@@ -1000,10 +1103,10 @@ const AdminFeatures = () => {
           grid-template-columns: 2fr 2fr 1.5fr 1fr 1fr 1fr;
           gap: 16px;
           padding: 16px 20px;
-          background: #F9F4EE;
-          border-bottom: 1px solid #E5E7EB;
+          background: #f9f4ee;
+          border-bottom: 1px solid #e5e7eb;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .table-row {
@@ -1011,12 +1114,12 @@ const AdminFeatures = () => {
           grid-template-columns: 2fr 2fr 1.5fr 1fr 1fr 1fr;
           gap: 16px;
           padding: 16px 20px;
-          border-bottom: 1px solid #F3F4F6;
+          border-bottom: 1px solid #f3f4f6;
           transition: background 0.3s ease;
         }
 
         .table-row:hover {
-          background: #F9F4EE;
+          background: #f9f4ee;
         }
 
         .table-row:last-child {
@@ -1027,7 +1130,7 @@ const AdminFeatures = () => {
           display: flex;
           align-items: center;
           font-size: 14px;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .feature-name {
@@ -1039,9 +1142,9 @@ const AdminFeatures = () => {
 
         .feature-value {
           font-size: 12px;
-          color: #FF5E13;
+          color: #ff5e13;
           font-weight: 500;
-          background: #FFF5F0;
+          background: #fff5f0;
           padding: 2px 6px;
           border-radius: 4px;
           display: inline-block;
@@ -1049,7 +1152,7 @@ const AdminFeatures = () => {
         }
 
         .feature-description {
-          color: #6B7280;
+          color: #6b7280;
           line-height: 1.4;
         }
 
@@ -1058,7 +1161,7 @@ const AdminFeatures = () => {
           align-items: center;
           gap: 8px;
           padding: 4px 8px;
-          background: #F3F4F6;
+          background: #f3f4f6;
           border-radius: 6px;
           font-size: 12px;
           font-weight: 500;
@@ -1072,17 +1175,17 @@ const AdminFeatures = () => {
         }
 
         .status-active {
-          background: #D1FAE5;
-          color: #065F46;
+          background: #d1fae5;
+          color: #065f46;
         }
 
         .status-inactive {
-          background: #FEE2E2;
-          color: #991B1B;
+          background: #fee2e2;
+          color: #991b1b;
         }
 
         .date-text {
-          color: #6B7280;
+          color: #6b7280;
           font-size: 13px;
         }
 
@@ -1097,7 +1200,7 @@ const AdminFeatures = () => {
           justify-content: center;
           width: 32px;
           height: 32px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           border-radius: 6px;
           background: white;
           cursor: pointer;
@@ -1105,30 +1208,30 @@ const AdminFeatures = () => {
         }
 
         .action-btn.view {
-          color: #3B82F6;
+          color: #3b82f6;
         }
 
         .action-btn.view:hover {
-          background: #DBEAFE;
-          color: #1D4ED8;
+          background: #dbeafe;
+          color: #1d4ed8;
         }
 
         .action-btn.edit {
-          color: #F59E0B;
+          color: #f59e0b;
         }
 
         .action-btn.edit:hover {
-          background: #FEF3C7;
-          color: #D97706;
+          background: #fef3c7;
+          color: #d97706;
         }
 
         .action-btn.delete {
-          color: #EF4444;
+          color: #ef4444;
         }
 
         .action-btn.delete:hover {
-          background: #FEE2E2;
-          color: #DC2626;
+          background: #fee2e2;
+          color: #dc2626;
         }
 
         .modal-overlay {
@@ -1164,14 +1267,14 @@ const AdminFeatures = () => {
           justify-content: space-between;
           align-items: center;
           padding: 20px 24px;
-          border-bottom: 1px solid #E5E7EB;
+          border-bottom: 1px solid #e5e7eb;
         }
 
         .modal-header h2 {
           margin: 0;
           font-size: 18px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .close-btn {
@@ -1182,15 +1285,15 @@ const AdminFeatures = () => {
           height: 32px;
           border: none;
           background: none;
-          color: #6B7280;
+          color: #6b7280;
           cursor: pointer;
           border-radius: 6px;
           transition: all 0.3s ease;
         }
 
         .close-btn:hover {
-          background: #F3F4F6;
-          color: #0D062D;
+          background: #f3f4f6;
+          color: #0d062d;
         }
 
         .modal-body {
@@ -1205,7 +1308,7 @@ const AdminFeatures = () => {
           display: block;
           margin-bottom: 8px;
           font-weight: 500;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .form-group input,
@@ -1213,7 +1316,7 @@ const AdminFeatures = () => {
         .form-group select {
           width: 100%;
           padding: 12px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           border-radius: 8px;
           font-size: 14px;
           transition: border-color 0.3s ease;
@@ -1223,7 +1326,7 @@ const AdminFeatures = () => {
         .form-group textarea:focus,
         .form-group select:focus {
           outline: none;
-          border-color: #FF5E13;
+          border-color: #ff5e13;
         }
 
         .form-group textarea {
@@ -1236,7 +1339,7 @@ const AdminFeatures = () => {
           justify-content: flex-end;
           gap: 12px;
           padding: 20px 24px;
-          border-top: 1px solid #E5E7EB;
+          border-top: 1px solid #e5e7eb;
         }
 
         .btn-primary {
@@ -1244,7 +1347,7 @@ const AdminFeatures = () => {
           align-items: center;
           gap: 8px;
           padding: 12px 20px;
-          background: #FF5E13;
+          background: #ff5e13;
           color: white;
           border: none;
           border-radius: 8px;
@@ -1254,15 +1357,15 @@ const AdminFeatures = () => {
         }
 
         .btn-primary:hover {
-          background: #E04A0C;
+          background: #e04a0c;
           transform: translateY(-1px);
         }
 
         .btn-secondary {
           padding: 12px 20px;
           background: white;
-          color: #6B7280;
-          border: 1px solid #E5E7EB;
+          color: #6b7280;
+          border: 1px solid #e5e7eb;
           border-radius: 8px;
           font-weight: 500;
           cursor: pointer;
@@ -1270,8 +1373,8 @@ const AdminFeatures = () => {
         }
 
         .btn-secondary:hover {
-          background: #F9FAFB;
-          border-color: #D1D5DB;
+          background: #f9fafb;
+          border-color: #d1d5db;
         }
 
         .btn-danger {
@@ -1279,7 +1382,7 @@ const AdminFeatures = () => {
           align-items: center;
           gap: 8px;
           padding: 12px 20px;
-          background: #EF4444;
+          background: #ef4444;
           color: white;
           border: none;
           border-radius: 8px;
@@ -1289,7 +1392,7 @@ const AdminFeatures = () => {
         }
 
         .btn-danger:hover {
-          background: #DC2626;
+          background: #dc2626;
           transform: translateY(-1px);
         }
 
@@ -1307,17 +1410,17 @@ const AdminFeatures = () => {
 
         .detail-item label {
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
           font-size: 14px;
         }
 
         .detail-item span {
-          color: #6B7280;
+          color: #6b7280;
           font-size: 14px;
         }
 
         .warning-text {
-          color: #EF4444;
+          color: #ef4444;
           font-size: 13px;
           margin-top: 8px;
         }
@@ -1333,7 +1436,7 @@ const AdminFeatures = () => {
             padding: 16px;
             margin-bottom: 12px;
             border-radius: 8px;
-            border: 1px solid #E5E7EB;
+            border: 1px solid #e5e7eb;
           }
 
           .table-cell {
@@ -1341,7 +1444,7 @@ const AdminFeatures = () => {
             justify-content: space-between;
             align-items: center;
             padding: 8px 0;
-            border-bottom: 1px solid #F3F4F6;
+            border-bottom: 1px solid #f3f4f6;
           }
 
           .table-cell:last-child {
@@ -1351,7 +1454,7 @@ const AdminFeatures = () => {
           .table-cell::before {
             content: attr(data-label);
             font-weight: 600;
-            color: #0D062D;
+            color: #0d062d;
             min-width: 120px;
           }
         }

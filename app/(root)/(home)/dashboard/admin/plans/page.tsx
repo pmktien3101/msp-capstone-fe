@@ -1,14 +1,24 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { 
-  Eye, Edit, Trash2, Plus, Search, Filter, X, Check, ChevronDown, ChevronUp,
-  Users, HardDrive, Headphones, Plug, Shield, BarChart3, Handshake, Video,
-  Palette, Zap, Calendar, DollarSign, Clock, FileText, Settings
-} from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Eye,
+  Edit,
+  Trash2,
+  Users,
+  HardDrive,
+  Headphones,
+  Plug,
+  Shield,
+  BarChart3,
+  Handshake,
+  Video,
+  Palette,
+  Zap,
+} from "lucide-react";
 
 const AdminPlans = () => {
-  const [activeTab, setActiveTab] = useState('plans');
+  const [activeTab, setActiveTab] = useState("plans");
   const [showAddPlanModal, setShowAddPlanModal] = useState(false);
   const [showEditPlanModal, setShowEditPlanModal] = useState(false);
   const [showViewPlanModal, setShowViewPlanModal] = useState(false);
@@ -16,204 +26,375 @@ const AdminPlans = () => {
   const [showFeatureSidebar, setShowFeatureSidebar] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [newPlan, setNewPlan] = useState({
-    name: '',
-    price: '',
-    period: 'month',
+    name: "",
+    price: "",
+    period: "month",
     features: [] as string[],
-    status: 'active'
+    status: "active",
   });
 
   // Danh sách các tính năng được phân nhóm
   const featureGroups = [
     {
-      id: 'users',
-      name: 'Số lượng người dùng',
+      id: "users",
+      name: "Số lượng người dùng",
       icon: Users,
-      color: '#3B82F6',
+      color: "#3B82F6",
       features: [
-        { id: 'users_10', name: 'Tối đa 10 người dùng', description: 'Cho phép tối đa 10 thành viên trong team' },
-        { id: 'users_25', name: 'Tối đa 25 người dùng', description: 'Cho phép tối đa 25 thành viên trong team' },
-        { id: 'users_50', name: 'Tối đa 50 người dùng', description: 'Cho phép tối đa 50 thành viên trong team' },
-        { id: 'users_100', name: 'Tối đa 100 người dùng', description: 'Cho phép tối đa 100 thành viên trong team' },
-        { id: 'users_unlimited', name: 'Không giới hạn người dùng', description: 'Không giới hạn số lượng thành viên' }
-      ]
+        {
+          id: "users_10",
+          name: "Tối đa 10 người dùng",
+          description: "Cho phép tối đa 10 thành viên trong team",
+        },
+        {
+          id: "users_25",
+          name: "Tối đa 25 người dùng",
+          description: "Cho phép tối đa 25 thành viên trong team",
+        },
+        {
+          id: "users_50",
+          name: "Tối đa 50 người dùng",
+          description: "Cho phép tối đa 50 thành viên trong team",
+        },
+        {
+          id: "users_100",
+          name: "Tối đa 100 người dùng",
+          description: "Cho phép tối đa 100 thành viên trong team",
+        },
+        {
+          id: "users_unlimited",
+          name: "Không giới hạn người dùng",
+          description: "Không giới hạn số lượng thành viên",
+        },
+      ],
     },
     {
-      id: 'storage',
-      name: 'Dung lượng lưu trữ',
+      id: "storage",
+      name: "Dung lượng lưu trữ",
       icon: HardDrive,
-      color: '#10B981',
+      color: "#10B981",
       features: [
-        { id: 'storage_5gb', name: '5GB lưu trữ', description: 'Dung lượng lưu trữ 5GB' },
-        { id: 'storage_10gb', name: '10GB lưu trữ', description: 'Dung lượng lưu trữ 10GB' },
-        { id: 'storage_25gb', name: '25GB lưu trữ', description: 'Dung lượng lưu trữ 25GB' },
-        { id: 'storage_50gb', name: '50GB lưu trữ', description: 'Dung lượng lưu trữ 50GB' },
-        { id: 'storage_100gb', name: '100GB lưu trữ', description: 'Dung lượng lưu trữ 100GB' },
-        { id: 'storage_500gb', name: '500GB lưu trữ', description: 'Dung lượng lưu trữ 500GB' },
-        { id: 'storage_1tb', name: '1TB lưu trữ', description: 'Dung lượng lưu trữ 1TB' },
-        { id: 'storage_unlimited', name: 'Không giới hạn lưu trữ', description: 'Dung lượng lưu trữ không giới hạn' }
-      ]
+        {
+          id: "storage_5gb",
+          name: "5GB lưu trữ",
+          description: "Dung lượng lưu trữ 5GB",
+        },
+        {
+          id: "storage_10gb",
+          name: "10GB lưu trữ",
+          description: "Dung lượng lưu trữ 10GB",
+        },
+        {
+          id: "storage_25gb",
+          name: "25GB lưu trữ",
+          description: "Dung lượng lưu trữ 25GB",
+        },
+        {
+          id: "storage_50gb",
+          name: "50GB lưu trữ",
+          description: "Dung lượng lưu trữ 50GB",
+        },
+        {
+          id: "storage_100gb",
+          name: "100GB lưu trữ",
+          description: "Dung lượng lưu trữ 100GB",
+        },
+        {
+          id: "storage_500gb",
+          name: "500GB lưu trữ",
+          description: "Dung lượng lưu trữ 500GB",
+        },
+        {
+          id: "storage_1tb",
+          name: "1TB lưu trữ",
+          description: "Dung lượng lưu trữ 1TB",
+        },
+        {
+          id: "storage_unlimited",
+          name: "Không giới hạn lưu trữ",
+          description: "Dung lượng lưu trữ không giới hạn",
+        },
+      ],
     },
     {
-      id: 'support',
-      name: 'Hỗ trợ khách hàng',
+      id: "support",
+      name: "Hỗ trợ khách hàng",
       icon: Headphones,
-      color: '#F59E0B',
+      color: "#F59E0B",
       features: [
-        { id: 'support_email', name: 'Hỗ trợ email', description: 'Hỗ trợ khách hàng qua email' },
-        { id: 'support_chat', name: 'Hỗ trợ chat', description: 'Hỗ trợ khách hàng qua chat trực tuyến' },
-        { id: 'support_24_7', name: 'Hỗ trợ 24/7', description: 'Hỗ trợ khách hàng 24/7' },
-        { id: 'support_phone', name: 'Hỗ trợ phone', description: 'Hỗ trợ khách hàng qua điện thoại' },
-        { id: 'support_priority', name: 'Priority support', description: 'Hỗ trợ ưu tiên cao' }
-      ]
+        {
+          id: "support_email",
+          name: "Hỗ trợ email",
+          description: "Hỗ trợ khách hàng qua email",
+        },
+        {
+          id: "support_chat",
+          name: "Hỗ trợ chat",
+          description: "Hỗ trợ khách hàng qua chat trực tuyến",
+        },
+        {
+          id: "support_24_7",
+          name: "Hỗ trợ 24/7",
+          description: "Hỗ trợ khách hàng 24/7",
+        },
+        {
+          id: "support_phone",
+          name: "Hỗ trợ phone",
+          description: "Hỗ trợ khách hàng qua điện thoại",
+        },
+        {
+          id: "support_priority",
+          name: "Priority support",
+          description: "Hỗ trợ ưu tiên cao",
+        },
+      ],
     },
     {
-      id: 'integrations',
-      name: 'Tích hợp & API',
+      id: "integrations",
+      name: "Tích hợp & API",
       icon: Plug,
-      color: '#8B5CF6',
+      color: "#8B5CF6",
       features: [
-        { id: 'api_access', name: 'API access', description: 'Truy cập API để tích hợp với hệ thống khác' },
-        { id: 'custom_integrations', name: 'Custom integrations', description: 'Tích hợp tùy chỉnh với các công cụ khác' },
-        { id: 'sso_integration', name: 'SSO integration', description: 'Tích hợp Single Sign-On' },
-        { id: 'webhook_support', name: 'Webhook support', description: 'Hỗ trợ webhook' }
-      ]
+        {
+          id: "api_access",
+          name: "API access",
+          description: "Truy cập API để tích hợp với hệ thống khác",
+        },
+        {
+          id: "custom_integrations",
+          name: "Custom integrations",
+          description: "Tích hợp tùy chỉnh với các công cụ khác",
+        },
+        {
+          id: "sso_integration",
+          name: "SSO integration",
+          description: "Tích hợp Single Sign-On",
+        },
+        {
+          id: "webhook_support",
+          name: "Webhook support",
+          description: "Hỗ trợ webhook",
+        },
+      ],
     },
     {
-      id: 'security',
-      name: 'Bảo mật & Sao lưu',
+      id: "security",
+      name: "Bảo mật & Sao lưu",
       icon: Shield,
-      color: '#EF4444',
+      color: "#EF4444",
       features: [
-        { id: 'advanced_security', name: 'Advanced security', description: 'Bảo mật nâng cao' },
-        { id: 'backup_recovery', name: 'Backup & recovery', description: 'Sao lưu và khôi phục dữ liệu' },
-        { id: 'white_label', name: 'White-label solution', description: 'Giải pháp white-label' }
-      ]
+        {
+          id: "advanced_security",
+          name: "Advanced security",
+          description: "Bảo mật nâng cao",
+        },
+        {
+          id: "backup_recovery",
+          name: "Backup & recovery",
+          description: "Sao lưu và khôi phục dữ liệu",
+        },
+        {
+          id: "white_label",
+          name: "White-label solution",
+          description: "Giải pháp white-label",
+        },
+      ],
     },
     {
-      id: 'analytics',
-      name: 'Phân tích & Báo cáo',
+      id: "analytics",
+      name: "Phân tích & Báo cáo",
       icon: BarChart3,
-      color: '#06B6D4',
+      color: "#06B6D4",
       features: [
-        { id: 'advanced_analytics', name: 'Advanced analytics', description: 'Phân tích dữ liệu nâng cao' },
-        { id: 'custom_reports', name: 'Custom reports', description: 'Báo cáo tùy chỉnh' }
-      ]
+        {
+          id: "advanced_analytics",
+          name: "Advanced analytics",
+          description: "Phân tích dữ liệu nâng cao",
+        },
+        {
+          id: "custom_reports",
+          name: "Custom reports",
+          description: "Báo cáo tùy chỉnh",
+        },
+      ],
     },
     {
-      id: 'collaboration',
-      name: 'Cộng tác & Quản lý',
+      id: "collaboration",
+      name: "Cộng tác & Quản lý",
       icon: Handshake,
-      color: '#84CC16',
+      color: "#84CC16",
       features: [
-        { id: 'team_collaboration', name: 'Team collaboration tools', description: 'Công cụ cộng tác nhóm' },
-        { id: 'project_management', name: 'Project management', description: 'Quản lý dự án' },
-        { id: 'time_tracking', name: 'Time tracking', description: 'Theo dõi thời gian' },
-        { id: 'file_sharing', name: 'File sharing', description: 'Chia sẻ tệp tin' },
-        { id: 'document_collaboration', name: 'Document collaboration', description: 'Cộng tác tài liệu' },
-        { id: 'version_control', name: 'Version control', description: 'Kiểm soát phiên bản' }
-      ]
+        {
+          id: "team_collaboration",
+          name: "Team collaboration tools",
+          description: "Công cụ cộng tác nhóm",
+        },
+        {
+          id: "project_management",
+          name: "Project management",
+          description: "Quản lý dự án",
+        },
+        {
+          id: "time_tracking",
+          name: "Time tracking",
+          description: "Theo dõi thời gian",
+        },
+        {
+          id: "file_sharing",
+          name: "File sharing",
+          description: "Chia sẻ tệp tin",
+        },
+        {
+          id: "document_collaboration",
+          name: "Document collaboration",
+          description: "Cộng tác tài liệu",
+        },
+        {
+          id: "version_control",
+          name: "Version control",
+          description: "Kiểm soát phiên bản",
+        },
+      ],
     },
     {
-      id: 'communication',
-      name: 'Giao tiếp & Họp',
+      id: "communication",
+      name: "Giao tiếp & Họp",
       icon: Video,
-      color: '#EC4899',
+      color: "#EC4899",
       features: [
-        { id: 'video_conferencing', name: 'Video conferencing', description: 'Họp video trực tuyến' },
-        { id: 'screen_sharing', name: 'Screen sharing', description: 'Chia sẻ màn hình' }
-      ]
+        {
+          id: "video_conferencing",
+          name: "Video conferencing",
+          description: "Họp video trực tuyến",
+        },
+        {
+          id: "screen_sharing",
+          name: "Screen sharing",
+          description: "Chia sẻ màn hình",
+        },
+      ],
     },
     {
-      id: 'customization',
-      name: 'Tùy chỉnh & Giao diện',
+      id: "customization",
+      name: "Tùy chỉnh & Giao diện",
       icon: Palette,
-      color: '#F97316',
+      color: "#F97316",
       features: [
-        { id: 'custom_branding', name: 'Custom branding', description: 'Tùy chỉnh thương hiệu' },
-        { id: 'multi_language', name: 'Multi-language support', description: 'Hỗ trợ đa ngôn ngữ' },
-        { id: 'mobile_app', name: 'Mobile app access', description: 'Truy cập ứng dụng di động' },
-        { id: 'desktop_app', name: 'Desktop app access', description: 'Truy cập ứng dụng desktop' }
-      ]
+        {
+          id: "custom_branding",
+          name: "Custom branding",
+          description: "Tùy chỉnh thương hiệu",
+        },
+        {
+          id: "multi_language",
+          name: "Multi-language support",
+          description: "Hỗ trợ đa ngôn ngữ",
+        },
+        {
+          id: "mobile_app",
+          name: "Mobile app access",
+          description: "Truy cập ứng dụng di động",
+        },
+        {
+          id: "desktop_app",
+          name: "Desktop app access",
+          description: "Truy cập ứng dụng desktop",
+        },
+      ],
     },
     {
-      id: 'automation',
-      name: 'Tự động hóa',
+      id: "automation",
+      name: "Tự động hóa",
       icon: Zap,
-      color: '#EAB308',
+      color: "#EAB308",
       features: [
-        { id: 'automated_workflows', name: 'Automated workflows', description: 'Quy trình tự động' }
-      ]
-    }
+        {
+          id: "automated_workflows",
+          name: "Automated workflows",
+          description: "Quy trình tự động",
+        },
+      ],
+    },
   ];
 
   const [plans, setPlans] = useState([
     {
       id: 1,
-      name: 'Basic',
+      name: "Basic",
       price: 29,
-      period: 'month',
-      features: ['Tối đa 10 người dùng', '5GB lưu trữ', 'Hỗ trợ email'],
+      period: "month",
+      features: ["Tối đa 10 người dùng", "5GB lưu trữ", "Hỗ trợ email"],
       activeSubscriptions: 1250,
-      revenue: '$36,250',
-      status: 'active'
+      revenue: "$36,250",
+      status: "active",
     },
     {
       id: 2,
-      name: 'Premium',
+      name: "Premium",
       price: 79,
-      period: 'month',
-      features: ['Tối đa 50 người dùng', '50GB lưu trữ', 'Hỗ trợ 24/7', 'API access'],
+      period: "month",
+      features: [
+        "Tối đa 50 người dùng",
+        "50GB lưu trữ",
+        "Hỗ trợ 24/7",
+        "API access",
+      ],
       activeSubscriptions: 890,
-      revenue: '$70,310',
-      status: 'active'
+      revenue: "$70,310",
+      status: "active",
     },
     {
       id: 3,
-      name: 'Enterprise',
+      name: "Enterprise",
       price: 199,
-      period: 'month',
-      features: ['Không giới hạn người dùng', '500GB lưu trữ', 'Hỗ trợ 24/7', 'API access', 'Custom integrations'],
+      period: "month",
+      features: [
+        "Không giới hạn người dùng",
+        "500GB lưu trữ",
+        "Hỗ trợ 24/7",
+        "API access",
+        "Custom integrations",
+      ],
       activeSubscriptions: 156,
-      revenue: '$31,044',
-      status: 'active'
-    }
+      revenue: "$31,044",
+      status: "active",
+    },
   ]);
 
   const subscriptions = [
     {
       id: 1,
-      companyName: 'Công ty ABC',
-      planName: 'Premium',
-      status: 'active',
-      startDate: '2024-01-15',
-      endDate: '2024-02-15',
-      amount: '$79',
-      paymentMethod: 'Credit Card',
-      nextBilling: '2024-02-15'
+      companyName: "Công ty ABC",
+      planName: "Premium",
+      status: "active",
+      startDate: "2024-01-15",
+      endDate: "2024-02-15",
+      amount: "$79",
+      paymentMethod: "Credit Card",
+      nextBilling: "2024-02-15",
     },
     {
       id: 2,
-      companyName: 'Công ty XYZ',
-      planName: 'Basic',
-      status: 'active',
-      startDate: '2024-01-20',
-      endDate: '2024-02-20',
-      amount: '$29',
-      paymentMethod: 'Bank Transfer',
-      nextBilling: '2024-02-20'
+      companyName: "Công ty XYZ",
+      planName: "Basic",
+      status: "active",
+      startDate: "2024-01-20",
+      endDate: "2024-02-20",
+      amount: "$29",
+      paymentMethod: "Bank Transfer",
+      nextBilling: "2024-02-20",
     },
     {
       id: 3,
-      companyName: 'Công ty DEF',
-      planName: 'Enterprise',
-      status: 'trial',
-      startDate: '2024-02-01',
-      endDate: '2024-02-15',
-      amount: '$0',
-      paymentMethod: 'Trial',
-      nextBilling: '2024-02-15'
-    }
+      companyName: "Công ty DEF",
+      planName: "Enterprise",
+      status: "trial",
+      startDate: "2024-02-01",
+      endDate: "2024-02-15",
+      amount: "$0",
+      paymentMethod: "Trial",
+      nextBilling: "2024-02-15",
+    },
   ];
 
   // Handler functions for adding new plan
@@ -226,56 +407,58 @@ const AdminPlans = () => {
         period: newPlan.period,
         features: newPlan.features,
         activeSubscriptions: 0,
-        revenue: '$0',
-        status: newPlan.status
+        revenue: "$0",
+        status: newPlan.status,
       };
-      
-      setPlans(prev => [...prev, planToAdd]);
+
+      setPlans((prev) => [...prev, planToAdd]);
       setNewPlan({
-        name: '',
-        price: '',
-        period: 'month',
+        name: "",
+        price: "",
+        period: "month",
         features: [],
-        status: 'active'
+        status: "active",
       });
       setShowAddPlanModal(false);
     }
   };
 
   const handleNewPlanChange = (field: string, value: any) => {
-    setNewPlan(prev => ({
+    setNewPlan((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleFeatureToggle = (featureId: string, groupId: string) => {
-    setNewPlan(prev => {
+    setNewPlan((prev) => {
       const currentFeatures = prev.features;
-      
+
       // Tìm nhóm hiện tại
-      const currentGroup = featureGroups.find(g => g.id === groupId);
+      const currentGroup = featureGroups.find((g) => g.id === groupId);
       if (!currentGroup) return prev;
-      
+
       // Lấy tên feature từ ID
-      const feature = currentGroup.features.find(f => f.id === featureId);
+      const feature = currentGroup.features.find((f) => f.id === featureId);
       if (!feature) return prev;
-      
+
       // Xóa tất cả features trong nhóm này
-      const otherGroupFeatures = currentGroup.features.map(f => f.name);
-      const featuresWithoutCurrentGroup = currentFeatures.filter(f => !otherGroupFeatures.includes(f));
-      
+      const otherGroupFeatures = currentGroup.features.map((f) => f.name);
+      const featuresWithoutCurrentGroup = currentFeatures.filter(
+        (f) => !otherGroupFeatures.includes(f)
+      );
+
       // Nếu feature đã được chọn, bỏ chọn nó
       if (currentFeatures.includes(feature.name)) {
         return {
           ...prev,
-          features: featuresWithoutCurrentGroup
+          features: featuresWithoutCurrentGroup,
         };
       } else {
         // Nếu chưa chọn, thêm feature mới
         return {
           ...prev,
-          features: [...featuresWithoutCurrentGroup, feature.name]
+          features: [...featuresWithoutCurrentGroup, feature.name],
         };
       }
     });
@@ -283,17 +466,17 @@ const AdminPlans = () => {
 
   const handleSelectAllFeatures = () => {
     // Chọn feature đầu tiên của mỗi nhóm
-    const firstFeatures = featureGroups.map(group => group.features[0].name);
-    setNewPlan(prev => ({
+    const firstFeatures = featureGroups.map((group) => group.features[0].name);
+    setNewPlan((prev) => ({
       ...prev,
-      features: firstFeatures
+      features: firstFeatures,
     }));
   };
 
   const handleClearAllFeatures = () => {
-    setNewPlan(prev => ({
+    setNewPlan((prev) => ({
       ...prev,
-      features: []
+      features: [],
     }));
   };
 
@@ -310,7 +493,7 @@ const AdminPlans = () => {
       price: plan.price.toString(),
       period: plan.period,
       features: plan.features || [],
-      status: plan.status
+      status: plan.status,
     });
     setShowEditPlanModal(true);
   };
@@ -322,33 +505,38 @@ const AdminPlans = () => {
 
   const confirmDeletePlan = () => {
     if (selectedPlan) {
-      setPlans(prev => prev.filter(plan => plan.id !== selectedPlan.id));
+      setPlans((prev) => prev.filter((plan) => plan.id !== selectedPlan.id));
       setShowDeleteConfirm(false);
       setSelectedPlan(null);
     }
   };
 
   const handleUpdatePlan = () => {
-    if (selectedPlan && newPlan.name && newPlan.price && newPlan.features.length > 0) {
+    if (
+      selectedPlan &&
+      newPlan.name &&
+      newPlan.price &&
+      newPlan.features.length > 0
+    ) {
       const updatedPlan = {
         ...selectedPlan,
         name: newPlan.name,
         price: parseInt(newPlan.price),
         period: newPlan.period,
         features: newPlan.features,
-        status: newPlan.status
+        status: newPlan.status,
       };
-      
-      setPlans(prev => prev.map(plan => 
-        plan.id === selectedPlan.id ? updatedPlan : plan
-      ));
-      
+
+      setPlans((prev) =>
+        prev.map((plan) => (plan.id === selectedPlan.id ? updatedPlan : plan))
+      );
+
       setNewPlan({
-        name: '',
-        price: '',
-        period: 'month',
+        name: "",
+        price: "",
+        period: "month",
         features: [],
-        status: 'active'
+        status: "active",
       });
       setShowEditPlanModal(false);
       setSelectedPlan(null);
@@ -357,26 +545,25 @@ const AdminPlans = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { color: '#D1FAE5', textColor: '#065F46', text: 'Hoạt động' },
-      trial: { color: '#FEF3C7', textColor: '#92400E', text: 'Dùng thử' },
-      cancelled: { color: '#FEE2E2', textColor: '#991B1B', text: 'Đã hủy' },
-      expired: { color: '#F3F4F6', textColor: '#6B7280', text: 'Hết hạn' }
+      active: { color: "#D1FAE5", textColor: "#065F46", text: "Hoạt động" },
+      trial: { color: "#FEF3C7", textColor: "#92400E", text: "Dùng thử" },
+      cancelled: { color: "#FEE2E2", textColor: "#991B1B", text: "Đã hủy" },
+      expired: { color: "#F3F4F6", textColor: "#6B7280", text: "Hết hạn" },
     };
-    
+
     const config = statusConfig[status as keyof typeof statusConfig];
     return (
-      <span 
+      <span
         className="status-badge"
-        style={{ 
-          backgroundColor: config.color, 
-          color: config.textColor 
+        style={{
+          backgroundColor: config.color,
+          color: config.textColor,
         }}
       >
         {config.text}
       </span>
     );
   };
-
 
   return (
     <div className="admin-plans">
@@ -387,26 +574,26 @@ const AdminPlans = () => {
 
       {/* Tabs */}
       <div className="tabs-section">
-        <button 
-          className={`tab-btn ${activeTab === 'plans' ? 'active' : ''}`}
-          onClick={() => setActiveTab('plans')}
+        <button
+          className={`tab-btn ${activeTab === "plans" ? "active" : ""}`}
+          onClick={() => setActiveTab("plans")}
         >
           Gói Dịch Vụ
         </button>
-        <button 
-          className={`tab-btn ${activeTab === 'subscriptions' ? 'active' : ''}`}
-          onClick={() => setActiveTab('subscriptions')}
+        <button
+          className={`tab-btn ${activeTab === "subscriptions" ? "active" : ""}`}
+          onClick={() => setActiveTab("subscriptions")}
         >
           Đăng Ký
         </button>
       </div>
 
       {/* Plans Tab */}
-      {activeTab === 'plans' && (
+      {activeTab === "plans" && (
         <div className="plans-content">
           <div className="plans-header">
             <h2>Danh Sách Gói Dịch Vụ</h2>
-            <button 
+            <button
               className="add-plan-btn"
               onClick={() => setShowAddPlanModal(true)}
             >
@@ -437,7 +624,9 @@ const AdminPlans = () => {
                 <div className="plan-stats">
                   <div className="stat">
                     <span className="stat-label">Đăng ký hoạt động</span>
-                    <span className="stat-value">{plan.activeSubscriptions}</span>
+                    <span className="stat-value">
+                      {plan.activeSubscriptions}
+                    </span>
                   </div>
                   <div className="stat">
                     <span className="stat-label">Doanh thu tháng</span>
@@ -445,32 +634,32 @@ const AdminPlans = () => {
                   </div>
                 </div>
 
-                 <div className="plan-actions">
-                   <button 
-                     className="action-btn edit"
-                     onClick={() => handleEditPlan(plan)}
-                     title="Chỉnh sửa gói"
-                   >
-                     <Edit size={16} />
-                     <span>Chỉnh sửa</span>
-                   </button>
-                   <button 
-                     className="action-btn view"
-                     onClick={() => handleViewPlan(plan)}
-                     title="Xem chi tiết gói"
-                   >
-                     <Eye size={16} />
-                     <span>Chi tiết</span>
-                   </button>
-                   <button 
-                     className="action-btn delete"
-                     onClick={() => handleDeletePlan(plan)}
-                     title="Xóa gói"
-                   >
-                     <Trash2 size={16} />
-                     <span>Xóa</span>
-                   </button>
-                 </div>
+                <div className="plan-actions">
+                  <button
+                    className="action-btn edit"
+                    onClick={() => handleEditPlan(plan)}
+                    title="Chỉnh sửa gói"
+                  >
+                    <Edit size={16} />
+                    <span>Chỉnh sửa</span>
+                  </button>
+                  <button
+                    className="action-btn view"
+                    onClick={() => handleViewPlan(plan)}
+                    title="Xem chi tiết gói"
+                  >
+                    <Eye size={16} />
+                    <span>Chi tiết</span>
+                  </button>
+                  <button
+                    className="action-btn delete"
+                    onClick={() => handleDeletePlan(plan)}
+                    title="Xóa gói"
+                  >
+                    <Trash2 size={16} />
+                    <span>Xóa</span>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -478,7 +667,7 @@ const AdminPlans = () => {
       )}
 
       {/* Subscriptions Tab */}
-      {activeTab === 'subscriptions' && (
+      {activeTab === "subscriptions" && (
         <div className="subscriptions-content">
           <div className="subscriptions-header">
             <h2>Danh Sách Đăng Ký</h2>
@@ -518,7 +707,9 @@ const AdminPlans = () => {
                 <div className="table-cell">
                   <span className="plan-badge">{subscription.planName}</span>
                 </div>
-                <div className="table-cell">{getStatusBadge(subscription.status)}</div>
+                <div className="table-cell">
+                  {getStatusBadge(subscription.status)}
+                </div>
                 <div className="table-cell">{subscription.startDate}</div>
                 <div className="table-cell">{subscription.endDate}</div>
                 <div className="table-cell">{subscription.amount}</div>
@@ -539,11 +730,14 @@ const AdminPlans = () => {
 
       {/* Add Plan Modal */}
       {showAddPlanModal && (
-        <div className="modal-overlay" onClick={() => setShowAddPlanModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowAddPlanModal(false)}
+        >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Thêm Gói Dịch Vụ Mới</h3>
-              <button 
+              <button
                 className="modal-close"
                 onClick={() => setShowAddPlanModal(false)}
               >
@@ -556,19 +750,21 @@ const AdminPlans = () => {
                 <input
                   type="text"
                   value={newPlan.name}
-                  onChange={(e) => handleNewPlanChange('name', e.target.value)}
+                  onChange={(e) => handleNewPlanChange("name", e.target.value)}
                   placeholder="Nhập tên gói (ví dụ: Pro, Advanced...)"
                   className="form-input"
                 />
               </div>
-              
+
               <div className="form-row">
                 <div className="form-group">
                   <label>Giá:</label>
                   <input
                     type="number"
                     value={newPlan.price}
-                    onChange={(e) => handleNewPlanChange('price', e.target.value)}
+                    onChange={(e) =>
+                      handleNewPlanChange("price", e.target.value)
+                    }
                     placeholder="Nhập giá (ví dụ: 99)"
                     className="form-input"
                   />
@@ -577,7 +773,9 @@ const AdminPlans = () => {
                   <label>Chu kỳ:</label>
                   <select
                     value={newPlan.period}
-                    onChange={(e) => handleNewPlanChange('period', e.target.value)}
+                    onChange={(e) =>
+                      handleNewPlanChange("period", e.target.value)
+                    }
                     className="form-select"
                   >
                     <option value="month">Tháng</option>
@@ -591,7 +789,9 @@ const AdminPlans = () => {
                 <label>Trạng thái:</label>
                 <select
                   value={newPlan.status}
-                  onChange={(e) => handleNewPlanChange('status', e.target.value)}
+                  onChange={(e) =>
+                    handleNewPlanChange("status", e.target.value)
+                  }
                   className="form-select"
                 >
                   <option value="active">Hoạt động</option>
@@ -627,358 +827,413 @@ const AdminPlans = () => {
                     className="select-features-btn"
                     onClick={() => setShowFeatureSidebar(true)}
                   >
-                    {newPlan.features.length === 0 ? 'Chọn tính năng' : 'Chỉnh sửa tính năng'}
+                    {newPlan.features.length === 0
+                      ? "Chọn tính năng"
+                      : "Chỉnh sửa tính năng"}
                   </button>
                 </div>
               </div>
             </div>
             <div className="modal-footer">
-              <button 
+              <button
                 className="btn-cancel"
                 onClick={() => setShowAddPlanModal(false)}
               >
                 Hủy
               </button>
-              <button 
+              <button
                 className="btn-save"
                 onClick={handleAddPlan}
-                disabled={!newPlan.name || !newPlan.price || newPlan.features.length === 0}
+                disabled={
+                  !newPlan.name ||
+                  !newPlan.price ||
+                  newPlan.features.length === 0
+                }
               >
                 Thêm gói
               </button>
             </div>
           </div>
-         </div>
-       )}
+        </div>
+      )}
 
-       {/* View Plan Modal */}
-       {showViewPlanModal && selectedPlan && (
-         <div className="modal-overlay" onClick={() => setShowViewPlanModal(false)}>
-           <div className="modal-content view-modal" onClick={(e) => e.stopPropagation()}>
-             <div className="modal-header">
-               <h3>Chi Tiết Gói Dịch Vụ</h3>
-               <button 
-                 className="modal-close"
-                 onClick={() => setShowViewPlanModal(false)}
-               >
-                 ×
-               </button>
-             </div>
-             <div className="modal-body">
-               <div className="view-plan-info">
-                 <div className="view-plan-header">
-                   <h2>{selectedPlan.name}</h2>
-                   <div className="view-plan-price">
-                     <span className="price">${selectedPlan.price}</span>
-                     <span className="period">/{selectedPlan.period}</span>
-                   </div>
-                 </div>
-                 
-                 <div className="view-plan-status">
-                   <span className="status-label">Trạng thái:</span>
-                   {getStatusBadge(selectedPlan.status)}
-                 </div>
+      {/* View Plan Modal */}
+      {showViewPlanModal && selectedPlan && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowViewPlanModal(false)}
+        >
+          <div
+            className="modal-content view-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3>Chi Tiết Gói Dịch Vụ</h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowViewPlanModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="view-plan-info">
+                <div className="view-plan-header">
+                  <h2>{selectedPlan.name}</h2>
+                  <div className="view-plan-price">
+                    <span className="price">${selectedPlan.price}</span>
+                    <span className="period">/{selectedPlan.period}</span>
+                  </div>
+                </div>
 
-                 <div className="view-plan-features">
-                   <h4>Tính năng:</h4>
-                   <ul className="features-list">
-                     {selectedPlan.features.map((feature: string, index: number) => (
-                       <li key={index} className="feature-item">
-                         <span className="feature-icon">✓</span>
-                         <span>{feature}</span>
-                       </li>
-                     ))}
-                   </ul>
-                 </div>
+                <div className="view-plan-status">
+                  <span className="status-label">Trạng thái:</span>
+                  {getStatusBadge(selectedPlan.status)}
+                </div>
 
-                 <div className="view-plan-stats">
-                   <div className="stat-item">
-                     <span className="stat-label">Đăng ký hoạt động:</span>
-                     <span className="stat-value">{selectedPlan.activeSubscriptions}</span>
-                   </div>
-                   <div className="stat-item">
-                     <span className="stat-label">Doanh thu tháng:</span>
-                     <span className="stat-value">{selectedPlan.revenue}</span>
-                   </div>
-                 </div>
-               </div>
-             </div>
-             <div className="modal-footer">
-               <button 
-                 className="btn-cancel"
-                 onClick={() => setShowViewPlanModal(false)}
-               >
-                 Đóng
-               </button>
-               <button 
-                 className="btn-edit"
-                 onClick={() => {
-                   setShowViewPlanModal(false);
-                   handleEditPlan(selectedPlan);
-                 }}
-               >
-                 Chỉnh sửa
-               </button>
-             </div>
-           </div>
-         </div>
-       )}
+                <div className="view-plan-features">
+                  <h4>Tính năng:</h4>
+                  <ul className="features-list">
+                    {selectedPlan.features.map(
+                      (feature: string, index: number) => (
+                        <li key={index} className="feature-item">
+                          <span className="feature-icon">✓</span>
+                          <span>{feature}</span>
+                        </li>
+                      )
+                    )}
+                  </ul>
+                </div>
 
-       {/* Edit Plan Modal */}
-       {showEditPlanModal && selectedPlan && (
-         <div className="modal-overlay" onClick={() => setShowEditPlanModal(false)}>
-           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-             <div className="modal-header">
-               <h3>Chỉnh Sửa Gói Dịch Vụ</h3>
-               <button 
-                 className="modal-close"
-                 onClick={() => setShowEditPlanModal(false)}
-               >
-                 ×
-               </button>
-             </div>
-             <div className="modal-body">
-               <div className="form-group">
-                 <label>Tên gói:</label>
-                 <input
-                   type="text"
-                   value={newPlan.name}
-                   onChange={(e) => handleNewPlanChange('name', e.target.value)}
-                   placeholder="Nhập tên gói (ví dụ: Pro, Advanced...)"
-                   className="form-input"
-                 />
-               </div>
-               
-               <div className="form-row">
-                 <div className="form-group">
-                   <label>Giá:</label>
-                   <input
-                     type="number"
-                     value={newPlan.price}
-                     onChange={(e) => handleNewPlanChange('price', e.target.value)}
-                     placeholder="Nhập giá (ví dụ: 99)"
-                     className="form-input"
-                   />
-                 </div>
-                 <div className="form-group">
-                   <label>Chu kỳ:</label>
-                   <select
-                     value={newPlan.period}
-                     onChange={(e) => handleNewPlanChange('period', e.target.value)}
-                     className="form-select"
-                   >
-                     <option value="month">Tháng</option>
-                     <option value="year">Năm</option>
-                     <option value="quarter">Quý</option>
-                   </select>
-                 </div>
-               </div>
+                <div className="view-plan-stats">
+                  <div className="stat-item">
+                    <span className="stat-label">Đăng ký hoạt động:</span>
+                    <span className="stat-value">
+                      {selectedPlan.activeSubscriptions}
+                    </span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Doanh thu tháng:</span>
+                    <span className="stat-value">{selectedPlan.revenue}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn-cancel"
+                onClick={() => setShowViewPlanModal(false)}
+              >
+                Đóng
+              </button>
+              <button
+                className="btn-edit"
+                onClick={() => {
+                  setShowViewPlanModal(false);
+                  handleEditPlan(selectedPlan);
+                }}
+              >
+                Chỉnh sửa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-               <div className="form-group">
-                 <label>Trạng thái:</label>
-                 <select
-                   value={newPlan.status}
-                   onChange={(e) => handleNewPlanChange('status', e.target.value)}
-                   className="form-select"
-                 >
-                   <option value="active">Hoạt động</option>
-                   <option value="trial">Dùng thử</option>
-                   <option value="inactive">Không hoạt động</option>
-                 </select>
-               </div>
+      {/* Edit Plan Modal */}
+      {showEditPlanModal && selectedPlan && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowEditPlanModal(false)}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Chỉnh Sửa Gói Dịch Vụ</h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowEditPlanModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Tên gói:</label>
+                <input
+                  type="text"
+                  value={newPlan.name}
+                  onChange={(e) => handleNewPlanChange("name", e.target.value)}
+                  placeholder="Nhập tên gói (ví dụ: Pro, Advanced...)"
+                  className="form-input"
+                />
+              </div>
 
-               <div className="form-group">
-                 <label>Tính năng:</label>
-                 <div className="feature-selector">
-                   <div className="selected-features-preview">
-                     <span className="selected-count">
-                       Đã chọn: {newPlan.features.length} tính năng
-                     </span>
-                     {newPlan.features.length > 0 && (
-                       <div className="selected-features-list">
-                         {newPlan.features.slice(0, 3).map((feature, index) => (
-                           <span key={index} className="feature-tag">
-                             {feature}
-                           </span>
-                         ))}
-                         {newPlan.features.length > 3 && (
-                           <span className="more-features">
-                             +{newPlan.features.length - 3} khác
-                           </span>
-                         )}
-                       </div>
-                     )}
-                   </div>
-                   <button
-                     type="button"
-                     className="select-features-btn"
-                     onClick={() => setShowFeatureSidebar(true)}
-                   >
-                     {newPlan.features.length === 0 ? 'Chọn tính năng' : 'Chỉnh sửa tính năng'}
-                   </button>
-                 </div>
-               </div>
-             </div>
-             <div className="modal-footer">
-               <button 
-                 className="btn-cancel"
-                 onClick={() => setShowEditPlanModal(false)}
-               >
-                 Hủy
-               </button>
-               <button 
-                 className="btn-save"
-                 onClick={handleUpdatePlan}
-                 disabled={!newPlan.name || !newPlan.price || newPlan.features.length === 0}
-               >
-                 Cập nhật
-               </button>
-             </div>
-           </div>
-         </div>
-       )}
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Giá:</label>
+                  <input
+                    type="number"
+                    value={newPlan.price}
+                    onChange={(e) =>
+                      handleNewPlanChange("price", e.target.value)
+                    }
+                    placeholder="Nhập giá (ví dụ: 99)"
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Chu kỳ:</label>
+                  <select
+                    value={newPlan.period}
+                    onChange={(e) =>
+                      handleNewPlanChange("period", e.target.value)
+                    }
+                    className="form-select"
+                  >
+                    <option value="month">Tháng</option>
+                    <option value="year">Năm</option>
+                    <option value="quarter">Quý</option>
+                  </select>
+                </div>
+              </div>
 
-       {/* Delete Confirmation Modal */}
-       {showDeleteConfirm && selectedPlan && (
-         <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
-           <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
-             <div className="modal-header">
-               <h3>Xác nhận xóa gói</h3>
-               <button 
-                 className="modal-close"
-                 onClick={() => setShowDeleteConfirm(false)}
-               >
-                 ×
-               </button>
-             </div>
-             <div className="modal-body">
-               <div className="delete-confirmation">
-                 <div className="warning-icon">⚠️</div>
-                 <h4>Bạn có chắc chắn muốn xóa gói "{selectedPlan.name}"?</h4>
-                 <p>Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan đến gói này sẽ bị xóa vĩnh viễn.</p>
-                 
-                 <div className="plan-summary">
-                   <div className="summary-item">
-                     <span className="label">Tên gói:</span>
-                     <span className="value">{selectedPlan.name}</span>
-                   </div>
-                   <div className="summary-item">
-                     <span className="label">Giá:</span>
-                     <span className="value">${selectedPlan.price}/{selectedPlan.period}</span>
-                   </div>
-                   <div className="summary-item">
-                     <span className="label">Đăng ký hoạt động:</span>
-                     <span className="value">{selectedPlan.activeSubscriptions}</span>
-                   </div>
-                 </div>
-               </div>
-             </div>
-             <div className="modal-footer">
-               <button 
-                 className="btn-cancel"
-                 onClick={() => setShowDeleteConfirm(false)}
-               >
-                 Hủy
-               </button>
-               <button 
-                 className="btn-delete"
-                 onClick={confirmDeletePlan}
-               >
-                 Xóa gói
-               </button>
-             </div>
-           </div>
-         </div>
-       )}
+              <div className="form-group">
+                <label>Trạng thái:</label>
+                <select
+                  value={newPlan.status}
+                  onChange={(e) =>
+                    handleNewPlanChange("status", e.target.value)
+                  }
+                  className="form-select"
+                >
+                  <option value="active">Hoạt động</option>
+                  <option value="trial">Dùng thử</option>
+                  <option value="inactive">Không hoạt động</option>
+                </select>
+              </div>
 
-       {/* Feature Selection Sidebar */}
-       {showFeatureSidebar && (
-         <div className="sidebar-overlay" onClick={() => setShowFeatureSidebar(false)}>
-           <div className="feature-sidebar" onClick={(e) => e.stopPropagation()}>
-             <div className="sidebar-header">
-               <h3>Chọn Tính Năng</h3>
-               <button 
-                 className="sidebar-close"
-                 onClick={() => setShowFeatureSidebar(false)}
-               >
-                 ×
-               </button>
-             </div>
-             
-             <div className="sidebar-actions">
-               <button
-                 className="action-btn select-all"
-                 onClick={handleSelectAllFeatures}
-               >
-                 Chọn tất cả
-               </button>
-               <button
-                 className="action-btn clear-all"
-                 onClick={handleClearAllFeatures}
-               >
-                 Xóa tất cả
-               </button>
-             </div>
+              <div className="form-group">
+                <label>Tính năng:</label>
+                <div className="feature-selector">
+                  <div className="selected-features-preview">
+                    <span className="selected-count">
+                      Đã chọn: {newPlan.features.length} tính năng
+                    </span>
+                    {newPlan.features.length > 0 && (
+                      <div className="selected-features-list">
+                        {newPlan.features.slice(0, 3).map((feature, index) => (
+                          <span key={index} className="feature-tag">
+                            {feature}
+                          </span>
+                        ))}
+                        {newPlan.features.length > 3 && (
+                          <span className="more-features">
+                            +{newPlan.features.length - 3} khác
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="select-features-btn"
+                    onClick={() => setShowFeatureSidebar(true)}
+                  >
+                    {newPlan.features.length === 0
+                      ? "Chọn tính năng"
+                      : "Chỉnh sửa tính năng"}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn-cancel"
+                onClick={() => setShowEditPlanModal(false)}
+              >
+                Hủy
+              </button>
+              <button
+                className="btn-save"
+                onClick={handleUpdatePlan}
+                disabled={
+                  !newPlan.name ||
+                  !newPlan.price ||
+                  newPlan.features.length === 0
+                }
+              >
+                Cập nhật
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-             <div className="sidebar-content">
-               {featureGroups.map((group) => {
-                 const IconComponent = group.icon;
-                 return (
-                   <div key={group.id} className="feature-group">
-                     <div className="group-header">
-                       <div className="group-icon" style={{ color: group.color }}>
-                         <IconComponent size={20} />
-                       </div>
-                       <h4 className="group-title">{group.name}</h4>
-                     </div>
-                   <div className="features-grid">
-                     {group.features.map((feature) => (
-                       <div
-                         key={feature.id}
-                         className={`feature-card ${newPlan.features.includes(feature.name) ? 'selected' : ''}`}
-                         onClick={() => handleFeatureToggle(feature.id, group.id)}
-                       >
-                         <div className="feature-card-header">
-                           <input
-                             type="radio"
-                             name={group.id}
-                             checked={newPlan.features.includes(feature.name)}
-                             onChange={(e) => {
-                               e.stopPropagation();
-                               handleFeatureToggle(feature.id, group.id);
-                             }}
-                             onClick={(e) => e.stopPropagation()}
-                             className="feature-radio"
-                           />
-                         </div>
-                         <div className="feature-card-body">
-                           <h5 className="feature-title">{feature.name}</h5>
-                           <p className="feature-description">{feature.description}</p>
-                         </div>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-                 );
-               })}
-             </div>
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && selectedPlan && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            className="modal-content delete-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3>Xác nhận xóa gói</h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="delete-confirmation">
+                <div className="warning-icon">⚠️</div>
+                <h4>Bạn có chắc chắn muốn xóa gói "{selectedPlan.name}"?</h4>
+                <p>
+                  Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan đến
+                  gói này sẽ bị xóa vĩnh viễn.
+                </p>
 
-             <div className="sidebar-footer">
-               <div className="selected-summary">
-                 <span>Đã chọn: {newPlan.features.length} tính năng</span>
-               </div>
-               <button
-                 className="confirm-btn"
-                 onClick={() => setShowFeatureSidebar(false)}
-               >
-                 Xác nhận
-               </button>
-             </div>
-           </div>
-         </div>
-       )}
+                <div className="plan-summary">
+                  <div className="summary-item">
+                    <span className="label">Tên gói:</span>
+                    <span className="value">{selectedPlan.name}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span className="label">Giá:</span>
+                    <span className="value">
+                      ${selectedPlan.price}/{selectedPlan.period}
+                    </span>
+                  </div>
+                  <div className="summary-item">
+                    <span className="label">Đăng ký hoạt động:</span>
+                    <span className="value">
+                      {selectedPlan.activeSubscriptions}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn-cancel"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Hủy
+              </button>
+              <button className="btn-delete" onClick={confirmDeletePlan}>
+                Xóa gói
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-       <style jsx>{`
+      {/* Feature Selection Sidebar */}
+      {showFeatureSidebar && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setShowFeatureSidebar(false)}
+        >
+          <div className="feature-sidebar" onClick={(e) => e.stopPropagation()}>
+            <div className="sidebar-header">
+              <h3>Chọn Tính Năng</h3>
+              <button
+                className="sidebar-close"
+                onClick={() => setShowFeatureSidebar(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="sidebar-actions">
+              <button
+                className="action-btn select-all"
+                onClick={handleSelectAllFeatures}
+              >
+                Chọn tất cả
+              </button>
+              <button
+                className="action-btn clear-all"
+                onClick={handleClearAllFeatures}
+              >
+                Xóa tất cả
+              </button>
+            </div>
+
+            <div className="sidebar-content">
+              {featureGroups.map((group) => {
+                const IconComponent = group.icon;
+                return (
+                  <div key={group.id} className="feature-group">
+                    <div className="group-header">
+                      <div
+                        className="group-icon"
+                        style={{ color: group.color }}
+                      >
+                        <IconComponent size={20} />
+                      </div>
+                      <h4 className="group-title">{group.name}</h4>
+                    </div>
+                    <div className="features-grid">
+                      {group.features.map((feature) => (
+                        <div
+                          key={feature.id}
+                          className={`feature-card ${
+                            newPlan.features.includes(feature.name)
+                              ? "selected"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            handleFeatureToggle(feature.id, group.id)
+                          }
+                        >
+                          <div className="feature-card-header">
+                            <input
+                              type="radio"
+                              name={group.id}
+                              checked={newPlan.features.includes(feature.name)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleFeatureToggle(feature.id, group.id);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="feature-radio"
+                            />
+                          </div>
+                          <div className="feature-card-body">
+                            <h5 className="feature-title">{feature.name}</h5>
+                            <p className="feature-description">
+                              {feature.description}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="sidebar-footer">
+              <div className="selected-summary">
+                <span>Đã chọn: {newPlan.features.length} tính năng</span>
+              </div>
+              <button
+                className="confirm-btn"
+                onClick={() => setShowFeatureSidebar(false)}
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
         .admin-plans {
           max-width: 1400px;
           margin: 0 auto;
@@ -992,7 +1247,7 @@ const AdminPlans = () => {
         .page-header h1 {
           font-size: 32px;
           font-weight: 700;
-          color: #0D062D;
+          color: #0d062d;
           margin: 0 0 8px 0;
         }
 
@@ -1006,7 +1261,7 @@ const AdminPlans = () => {
           display: flex;
           gap: 8px;
           margin-bottom: 32px;
-          border-bottom: 2px solid #F3F4F6;
+          border-bottom: 2px solid #f3f4f6;
         }
 
         .tab-btn {
@@ -1022,39 +1277,48 @@ const AdminPlans = () => {
         }
 
         .tab-btn:hover {
-          color: #FF5E13;
+          color: #ff5e13;
         }
 
         .tab-btn.active {
-          color: #FF5E13;
-          border-bottom-color: #FF5E13;
+          color: #ff5e13;
+          border-bottom-color: #ff5e13;
         }
 
-        .plans-content, .subscriptions-content {
+        .plans-content,
+        .subscriptions-content {
           animation: fadeIn 0.3s ease;
         }
 
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
-        .plans-header, .subscriptions-header {
+        .plans-header,
+        .subscriptions-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 24px;
         }
 
-        .plans-header h2, .subscriptions-header h2 {
+        .plans-header h2,
+        .subscriptions-header h2 {
           font-size: 24px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
           margin: 0;
         }
 
         .add-plan-btn {
-          background: linear-gradient(135deg, #FFA463 0%, #FF5E13 100%);
+          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
           color: white;
           border: none;
           padding: 12px 24px;
@@ -1099,7 +1363,7 @@ const AdminPlans = () => {
         .plan-header h3 {
           font-size: 20px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
           margin: 0;
         }
 
@@ -1110,7 +1374,7 @@ const AdminPlans = () => {
         .price {
           font-size: 24px;
           font-weight: 700;
-          color: #FF5E13;
+          color: #ff5e13;
         }
 
         .period {
@@ -1128,11 +1392,11 @@ const AdminPlans = () => {
           gap: 8px;
           margin-bottom: 8px;
           font-size: 14px;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .feature-icon {
-          color: #10B981;
+          color: #10b981;
           font-weight: bold;
         }
 
@@ -1142,7 +1406,7 @@ const AdminPlans = () => {
           gap: 16px;
           margin-bottom: 20px;
           padding: 16px;
-          background: #F9F4EE;
+          background: #f9f4ee;
           border-radius: 10px;
           flex-grow: 1;
         }
@@ -1161,7 +1425,7 @@ const AdminPlans = () => {
         .stat-value {
           font-size: 16px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .plan-actions {
@@ -1169,7 +1433,7 @@ const AdminPlans = () => {
           gap: 8px;
           margin-top: auto;
           padding-top: 20px;
-          border-top: 1px solid #F3F4F6;
+          border-top: 1px solid #f3f4f6;
         }
 
         .action-btn {
@@ -1179,7 +1443,7 @@ const AdminPlans = () => {
           justify-content: center;
           gap: 6px;
           padding: 14px 10px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           background: white;
           border-radius: 12px;
           font-size: 12px;
@@ -1194,13 +1458,18 @@ const AdminPlans = () => {
         }
 
         .action-btn::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+          );
           transition: left 0.5s;
         }
 
@@ -1209,45 +1478,45 @@ const AdminPlans = () => {
         }
 
         .action-btn.edit {
-          color: #FF5E13;
-          border-color: #FF5E13;
-          background: linear-gradient(135deg, #FFF5F0 0%, #FFE4D6 100%);
+          color: #ff5e13;
+          border-color: #ff5e13;
+          background: linear-gradient(135deg, #fff5f0 0%, #ffe4d6 100%);
         }
 
         .action-btn.edit:hover {
-          background: linear-gradient(135deg, #FF5E13 0%, #E04A0C 100%);
+          background: linear-gradient(135deg, #ff5e13 0%, #e04a0c 100%);
           color: white;
           transform: translateY(-3px);
           box-shadow: 0 10px 30px rgba(255, 94, 19, 0.4);
-          border-color: #E04A0C;
+          border-color: #e04a0c;
         }
 
         .action-btn.view {
-          color: #3B82F6;
-          border-color: #3B82F6;
-          background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+          color: #3b82f6;
+          border-color: #3b82f6;
+          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
         }
 
         .action-btn.view:hover {
-          background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
           color: white;
           transform: translateY(-3px);
           box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
-          border-color: #1D4ED8;
+          border-color: #1d4ed8;
         }
 
         .action-btn.delete {
-          color: #DC2626;
-          border-color: #DC2626;
-          background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+          color: #dc2626;
+          border-color: #dc2626;
+          background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
         }
 
         .action-btn.delete:hover {
-          background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
           color: white;
           transform: translateY(-3px);
           box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);
-          border-color: #B91C1C;
+          border-color: #b91c1c;
         }
 
         .action-btn:active {
@@ -1271,7 +1540,7 @@ const AdminPlans = () => {
 
         .filter-select {
           padding: 8px 12px;
-          border: 2px solid #E5E7EB;
+          border: 2px solid #e5e7eb;
           border-radius: 8px;
           background: white;
           font-size: 14px;
@@ -1288,10 +1557,10 @@ const AdminPlans = () => {
         .table-header {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-          background: #F9F4EE;
+          background: #f9f4ee;
           padding: 16px 20px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
           font-size: 14px;
         }
 
@@ -1299,18 +1568,18 @@ const AdminPlans = () => {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
           padding: 16px 20px;
-          border-bottom: 1px solid #F3F4F6;
+          border-bottom: 1px solid #f3f4f6;
           align-items: center;
           transition: background 0.3s ease;
         }
 
         .table-row:hover {
-          background: #F9F4EE;
+          background: #f9f4ee;
         }
 
         .table-cell {
           font-size: 14px;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .company-info {
@@ -1322,7 +1591,7 @@ const AdminPlans = () => {
         .company-avatar {
           width: 32px;
           height: 32px;
-          background: linear-gradient(135deg, #FFA463 0%, #FF5E13 100%);
+          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
           border-radius: 8px;
           display: flex;
           align-items: center;
@@ -1334,8 +1603,8 @@ const AdminPlans = () => {
 
         .plan-badge {
           padding: 4px 8px;
-          background: #DBEAFE;
-          color: #1E40AF;
+          background: #dbeafe;
+          color: #1e40af;
           border-radius: 6px;
           font-size: 12px;
           font-weight: 500;
@@ -1357,7 +1626,7 @@ const AdminPlans = () => {
           width: 32px;
           height: 32px;
           border: none;
-          background: #F3F4F6;
+          background: #f3f4f6;
           border-radius: 6px;
           cursor: pointer;
           display: flex;
@@ -1367,7 +1636,7 @@ const AdminPlans = () => {
         }
 
         .action-btn:hover {
-          background: #E5E7EB;
+          background: #e5e7eb;
           transform: scale(1.1);
         }
 
@@ -1406,7 +1675,7 @@ const AdminPlans = () => {
           justify-content: space-between;
           align-items: center;
           padding: 24px 24px 0 24px;
-          border-bottom: 1px solid #E5E7EB;
+          border-bottom: 1px solid #e5e7eb;
           margin-bottom: 24px;
         }
 
@@ -1414,14 +1683,14 @@ const AdminPlans = () => {
           margin: 0;
           font-size: 20px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .modal-close {
           background: none;
           border: none;
           font-size: 28px;
-          color: #6B7280;
+          color: #6b7280;
           cursor: pointer;
           padding: 0;
           width: 36px;
@@ -1434,7 +1703,7 @@ const AdminPlans = () => {
         }
 
         .modal-close:hover {
-          background: #F3F4F6;
+          background: #f3f4f6;
         }
 
         .modal-body {
@@ -1456,23 +1725,25 @@ const AdminPlans = () => {
           margin-bottom: 8px;
           font-size: 14px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
         }
 
-        .form-input, .form-select {
+        .form-input,
+        .form-select {
           width: 100%;
           padding: 12px 16px;
-          border: 2px solid #E5E7EB;
+          border: 2px solid #e5e7eb;
           border-radius: 8px;
           font-size: 14px;
-          color: #0D062D;
+          color: #0d062d;
           background: white;
           transition: border-color 0.2s ease;
         }
 
-        .form-input:focus, .form-select:focus {
+        .form-input:focus,
+        .form-select:focus {
           outline: none;
-          border-color: #FF5E13;
+          border-color: #ff5e13;
           box-shadow: 0 0 0 3px rgba(255, 94, 19, 0.1);
         }
 
@@ -1491,8 +1762,8 @@ const AdminPlans = () => {
           width: 32px;
           height: 32px;
           border: none;
-          background: #FEE2E2;
-          color: #DC2626;
+          background: #fee2e2;
+          color: #dc2626;
           border-radius: 6px;
           cursor: pointer;
           display: flex;
@@ -1504,14 +1775,14 @@ const AdminPlans = () => {
         }
 
         .remove-feature-btn:hover {
-          background: #FECACA;
+          background: #fecaca;
         }
 
         .add-feature-btn {
           padding: 8px 16px;
-          border: 2px dashed #FF5E13;
+          border: 2px dashed #ff5e13;
           background: white;
-          color: #FF5E13;
+          color: #ff5e13;
           border-radius: 8px;
           font-size: 14px;
           font-weight: 500;
@@ -1520,7 +1791,7 @@ const AdminPlans = () => {
         }
 
         .add-feature-btn:hover {
-          background: #FFF5F0;
+          background: #fff5f0;
           border-style: solid;
         }
 
@@ -1531,14 +1802,14 @@ const AdminPlans = () => {
           align-items: center;
           margin-bottom: 16px;
           padding: 12px;
-          background: #F9F4EE;
+          background: #f9f4ee;
           border-radius: 8px;
         }
 
         .selected-count {
           font-size: 14px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .feature-actions {
@@ -1546,9 +1817,10 @@ const AdminPlans = () => {
           gap: 8px;
         }
 
-        .select-all-btn, .clear-all-btn {
+        .select-all-btn,
+        .clear-all-btn {
           padding: 6px 12px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           background: white;
           border-radius: 6px;
           font-size: 12px;
@@ -1563,16 +1835,16 @@ const AdminPlans = () => {
         }
 
         .select-all-btn:hover {
-          background: #ECFDF5;
+          background: #ecfdf5;
         }
 
         .clear-all-btn {
-          color: #DC2626;
-          border-color: #DC2626;
+          color: #dc2626;
+          border-color: #dc2626;
         }
 
         .clear-all-btn:hover {
-          background: #FEF2F2;
+          background: #fef2f2;
         }
 
         .feature-selection-grid {
@@ -1582,9 +1854,9 @@ const AdminPlans = () => {
           max-height: 300px;
           overflow-y: auto;
           padding: 8px;
-          border: 2px solid #E5E7EB;
+          border: 2px solid #e5e7eb;
           border-radius: 8px;
-          background: #FAFAFA;
+          background: #fafafa;
         }
 
         .feature-option {
@@ -1593,20 +1865,20 @@ const AdminPlans = () => {
           gap: 8px;
           padding: 8px 12px;
           background: white;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           border-radius: 6px;
           cursor: pointer;
           transition: all 0.2s ease;
         }
 
         .feature-option:hover {
-          border-color: #FF5E13;
-          background: #FFF5F0;
+          border-color: #ff5e13;
+          background: #fff5f0;
         }
 
         .feature-option.selected {
-          border-color: #FF5E13;
-          background: #FFF5F0;
+          border-color: #ff5e13;
+          background: #fff5f0;
         }
 
         .feature-checkbox {
@@ -1616,16 +1888,16 @@ const AdminPlans = () => {
 
         .feature-text {
           font-size: 13px;
-          color: #0D062D;
+          color: #0d062d;
           flex: 1;
         }
 
         /* Feature Selector Styles */
         .feature-selector {
-          border: 2px solid #E5E7EB;
+          border: 2px solid #e5e7eb;
           border-radius: 8px;
           padding: 16px;
-          background: #FAFAFA;
+          background: #fafafa;
         }
 
         .selected-features-preview {
@@ -1636,7 +1908,7 @@ const AdminPlans = () => {
           display: block;
           font-size: 14px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
           margin-bottom: 8px;
         }
 
@@ -1647,7 +1919,7 @@ const AdminPlans = () => {
         }
 
         .feature-tag {
-          background: #FF5E13;
+          background: #ff5e13;
           color: white;
           padding: 4px 8px;
           border-radius: 4px;
@@ -1656,7 +1928,7 @@ const AdminPlans = () => {
         }
 
         .more-features {
-          background: #6B7280;
+          background: #6b7280;
           color: white;
           padding: 4px 8px;
           border-radius: 4px;
@@ -1667,7 +1939,7 @@ const AdminPlans = () => {
         .select-features-btn {
           width: 100%;
           padding: 12px 16px;
-          background: linear-gradient(135deg, #FFA463 0%, #FF5E13 100%);
+          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
           color: white;
           border: none;
           border-radius: 8px;
@@ -1711,22 +1983,22 @@ const AdminPlans = () => {
           justify-content: space-between;
           align-items: center;
           padding: 20px 24px;
-          border-bottom: 1px solid #E5E7EB;
-          background: #F9F4EE;
+          border-bottom: 1px solid #e5e7eb;
+          background: #f9f4ee;
         }
 
         .sidebar-header h3 {
           margin: 0;
           font-size: 18px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .sidebar-close {
           background: none;
           border: none;
           font-size: 24px;
-          color: #6B7280;
+          color: #6b7280;
           cursor: pointer;
           padding: 4px;
           border-radius: 4px;
@@ -1734,20 +2006,20 @@ const AdminPlans = () => {
         }
 
         .sidebar-close:hover {
-          background: #F3F4F6;
+          background: #f3f4f6;
         }
 
         .sidebar-actions {
           display: flex;
           gap: 12px;
           padding: 16px 24px;
-          border-bottom: 1px solid #E5E7EB;
+          border-bottom: 1px solid #e5e7eb;
         }
 
         .sidebar-actions .action-btn {
           flex: 1;
           padding: 8px 16px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
           background: white;
           border-radius: 6px;
           font-size: 13px;
@@ -1762,16 +2034,16 @@ const AdminPlans = () => {
         }
 
         .sidebar-actions .action-btn.select-all:hover {
-          background: #ECFDF5;
+          background: #ecfdf5;
         }
 
         .sidebar-actions .action-btn.clear-all {
-          color: #DC2626;
-          border-color: #DC2626;
+          color: #dc2626;
+          border-color: #dc2626;
         }
 
         .sidebar-actions .action-btn.clear-all:hover {
-          background: #FEF2F2;
+          background: #fef2f2;
         }
 
         .sidebar-content {
@@ -1797,9 +2069,9 @@ const AdminPlans = () => {
           gap: 12px;
           margin-bottom: 16px;
           padding: 12px 16px;
-          background: #F9F4EE;
+          background: #f9f4ee;
           border-radius: 8px;
-          border-left: 4px solid #FF5E13;
+          border-left: 4px solid #ff5e13;
         }
 
         .group-icon {
@@ -1817,7 +2089,7 @@ const AdminPlans = () => {
           margin: 0;
           font-size: 16px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .features-grid {
@@ -1827,7 +2099,7 @@ const AdminPlans = () => {
         }
 
         .feature-card {
-          border: 2px solid #E5E7EB;
+          border: 2px solid #e5e7eb;
           border-radius: 12px;
           padding: 16px;
           background: white;
@@ -1837,24 +2109,24 @@ const AdminPlans = () => {
         }
 
         .feature-card:hover {
-          border-color: #FF5E13;
+          border-color: #ff5e13;
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(255, 94, 19, 0.1);
         }
 
         .feature-card.selected {
-          border-color: #FF5E13;
-          background: #FFF5F0;
+          border-color: #ff5e13;
+          background: #fff5f0;
         }
 
         .feature-card.selected::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 8px;
           right: 8px;
           width: 8px;
           height: 8px;
-          background: #FF5E13;
+          background: #ff5e13;
           border-radius: 50%;
         }
 
@@ -1868,7 +2140,7 @@ const AdminPlans = () => {
           width: 18px;
           height: 18px;
           cursor: pointer;
-          accent-color: #FF5E13;
+          accent-color: #ff5e13;
           position: relative;
           z-index: 10;
         }
@@ -1881,21 +2153,21 @@ const AdminPlans = () => {
           margin: 0 0 8px 0;
           font-size: 13px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
           line-height: 1.3;
         }
 
         .feature-description {
           margin: 0;
           font-size: 11px;
-          color: #6B7280;
+          color: #6b7280;
           line-height: 1.4;
         }
 
         .sidebar-footer {
           padding: 20px 24px;
-          border-top: 1px solid #E5E7EB;
-          background: #F9F4EE;
+          border-top: 1px solid #e5e7eb;
+          background: #f9f4ee;
         }
 
         .selected-summary {
@@ -1906,13 +2178,13 @@ const AdminPlans = () => {
         .selected-summary span {
           font-size: 14px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
         }
 
         .confirm-btn {
           width: 100%;
           padding: 12px 16px;
-          background: linear-gradient(135deg, #FFA463 0%, #FF5E13 100%);
+          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
           color: white;
           border: none;
           border-radius: 8px;
@@ -1978,11 +2250,12 @@ const AdminPlans = () => {
           justify-content: flex-end;
           gap: 12px;
           padding: 24px;
-          border-top: 1px solid #E5E7EB;
+          border-top: 1px solid #e5e7eb;
           margin-top: 24px;
         }
 
-        .btn-cancel, .btn-save {
+        .btn-cancel,
+        .btn-save {
           padding: 12px 24px;
           border-radius: 8px;
           font-size: 14px;
@@ -1993,17 +2266,17 @@ const AdminPlans = () => {
 
         .btn-cancel {
           background: white;
-          color: #6B7280;
-          border: 2px solid #E5E7EB;
+          color: #6b7280;
+          border: 2px solid #e5e7eb;
         }
 
         .btn-cancel:hover {
-          background: #F9FAFB;
-          border-color: #D1D5DB;
+          background: #f9fafb;
+          border-color: #d1d5db;
         }
 
         .btn-save {
-          background: linear-gradient(135deg, #FFA463 0%, #FF5E13 100%);
+          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
           color: white;
           border: 2px solid transparent;
         }
@@ -2013,214 +2286,215 @@ const AdminPlans = () => {
           box-shadow: 0 4px 12px rgba(255, 94, 19, 0.3);
         }
 
-         .btn-save:disabled {
-           background: #D1D5DB;
-           color: #9CA3AF;
-           cursor: not-allowed;
-           transform: none;
-           box-shadow: none;
-         }
+        .btn-save:disabled {
+          background: #d1d5db;
+          color: #9ca3af;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
 
-         .btn-edit {
-           background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-           color: white;
-           border: 2px solid transparent;
-         }
+        .btn-edit {
+          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+          color: white;
+          border: 2px solid transparent;
+        }
 
-         .btn-edit:hover {
-           transform: translateY(-1px);
-           box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-         }
+        .btn-edit:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
 
-         .btn-delete {
-           background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
-           color: white;
-           border: 2px solid transparent;
-         }
+        .btn-delete {
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+          color: white;
+          border: 2px solid transparent;
+        }
 
-         .btn-delete:hover {
-           transform: translateY(-1px);
-           box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-         }
+        .btn-delete:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
 
-         .btn-edit, .btn-delete {
-           padding: 12px 24px;
-           border-radius: 8px;
-           font-size: 14px;
-           font-weight: 600;
-           cursor: pointer;
-           transition: all 0.2s ease;
-         }
+        .btn-edit,
+        .btn-delete {
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
 
-         /* View Modal Styles */
-         .view-modal {
-           max-width: 500px;
-         }
+        /* View Modal Styles */
+        .view-modal {
+          max-width: 500px;
+        }
 
-         .view-plan-info {
-           padding: 0;
-         }
+        .view-plan-info {
+          padding: 0;
+        }
 
-         .view-plan-header {
-           display: flex;
-           justify-content: space-between;
-           align-items: center;
-           margin-bottom: 20px;
-           padding-bottom: 16px;
-           border-bottom: 1px solid #E5E7EB;
-         }
+        .view-plan-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          padding-bottom: 16px;
+          border-bottom: 1px solid #e5e7eb;
+        }
 
-         .view-plan-header h2 {
-           margin: 0;
-           font-size: 24px;
-           font-weight: 600;
-           color: #0D062D;
-         }
+        .view-plan-header h2 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+          color: #0d062d;
+        }
 
-         .view-plan-price {
-           text-align: right;
-         }
+        .view-plan-price {
+          text-align: right;
+        }
 
-         .view-plan-price .price {
-           font-size: 28px;
-           font-weight: 700;
-           color: #FF5E13;
-         }
+        .view-plan-price .price {
+          font-size: 28px;
+          font-weight: 700;
+          color: #ff5e13;
+        }
 
-         .view-plan-price .period {
-           font-size: 16px;
-           color: #787486;
-         }
+        .view-plan-price .period {
+          font-size: 16px;
+          color: #787486;
+        }
 
-         .view-plan-status {
-           display: flex;
-           align-items: center;
-           gap: 12px;
-           margin-bottom: 20px;
-         }
+        .view-plan-status {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 20px;
+        }
 
-         .status-label {
-           font-size: 14px;
-           font-weight: 600;
-           color: #0D062D;
-         }
+        .status-label {
+          font-size: 14px;
+          font-weight: 600;
+          color: #0d062d;
+        }
 
-         .view-plan-features {
-           margin-bottom: 20px;
-         }
+        .view-plan-features {
+          margin-bottom: 20px;
+        }
 
-         .view-plan-features h4 {
-           margin: 0 0 12px 0;
-           font-size: 16px;
-           font-weight: 600;
-           color: #0D062D;
-         }
+        .view-plan-features h4 {
+          margin: 0 0 12px 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: #0d062d;
+        }
 
-         .features-list {
-           list-style: none;
-           padding: 0;
-           margin: 0;
-         }
+        .features-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
 
-         .features-list .feature-item {
-           display: flex;
-           align-items: center;
-           gap: 8px;
-           margin-bottom: 8px;
-           font-size: 14px;
-           color: #0D062D;
-         }
+        .features-list .feature-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 8px;
+          font-size: 14px;
+          color: #0d062d;
+        }
 
-         .features-list .feature-icon {
-           color: #10B981;
-           font-weight: bold;
-         }
+        .features-list .feature-icon {
+          color: #10b981;
+          font-weight: bold;
+        }
 
-         .view-plan-stats {
-           background: #F9F4EE;
-           border-radius: 10px;
-           padding: 16px;
-         }
+        .view-plan-stats {
+          background: #f9f4ee;
+          border-radius: 10px;
+          padding: 16px;
+        }
 
-         .stat-item {
-           display: flex;
-           justify-content: space-between;
-           align-items: center;
-           margin-bottom: 8px;
-         }
+        .stat-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
 
-         .stat-item:last-child {
-           margin-bottom: 0;
-         }
+        .stat-item:last-child {
+          margin-bottom: 0;
+        }
 
-         .stat-item .stat-label {
-           font-size: 14px;
-           color: #787486;
-         }
+        .stat-item .stat-label {
+          font-size: 14px;
+          color: #787486;
+        }
 
-         .stat-item .stat-value {
-           font-size: 16px;
-           font-weight: 600;
-           color: #0D062D;
-         }
+        .stat-item .stat-value {
+          font-size: 16px;
+          font-weight: 600;
+          color: #0d062d;
+        }
 
-         /* Delete Modal Styles */
-         .delete-modal {
-           max-width: 450px;
-         }
+        /* Delete Modal Styles */
+        .delete-modal {
+          max-width: 450px;
+        }
 
-         .delete-confirmation {
-           text-align: center;
-           padding: 20px 0;
-         }
+        .delete-confirmation {
+          text-align: center;
+          padding: 20px 0;
+        }
 
-         .warning-icon {
-           font-size: 48px;
-           margin-bottom: 16px;
-         }
+        .warning-icon {
+          font-size: 48px;
+          margin-bottom: 16px;
+        }
 
-         .delete-confirmation h4 {
-           margin: 0 0 12px 0;
-           font-size: 18px;
-           font-weight: 600;
-           color: #0D062D;
-         }
+        .delete-confirmation h4 {
+          margin: 0 0 12px 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: #0d062d;
+        }
 
-         .delete-confirmation p {
-           margin: 0 0 24px 0;
-           font-size: 14px;
-           color: #787486;
-           line-height: 1.5;
-         }
+        .delete-confirmation p {
+          margin: 0 0 24px 0;
+          font-size: 14px;
+          color: #787486;
+          line-height: 1.5;
+        }
 
-         .plan-summary {
-           background: #F9F4EE;
-           border-radius: 10px;
-           padding: 16px;
-           text-align: left;
-         }
+        .plan-summary {
+          background: #f9f4ee;
+          border-radius: 10px;
+          padding: 16px;
+          text-align: left;
+        }
 
-         .summary-item {
-           display: flex;
-           justify-content: space-between;
-           align-items: center;
-           margin-bottom: 8px;
-         }
+        .summary-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
 
-         .summary-item:last-child {
-           margin-bottom: 0;
-         }
+        .summary-item:last-child {
+          margin-bottom: 0;
+        }
 
-         .summary-item .label {
-           font-size: 14px;
-           color: #787486;
-         }
+        .summary-item .label {
+          font-size: 14px;
+          color: #787486;
+        }
 
-         .summary-item .value {
-           font-size: 14px;
-           font-weight: 600;
-           color: #0D062D;
-         }
+        .summary-item .value {
+          font-size: 14px;
+          font-weight: 600;
+          color: #0d062d;
+        }
 
         @media (max-width: 768px) {
           .admin-plans {
@@ -2231,7 +2505,8 @@ const AdminPlans = () => {
             grid-template-columns: 1fr;
           }
 
-          .plans-header, .subscriptions-header {
+          .plans-header,
+          .subscriptions-header {
             flex-direction: column;
             gap: 16px;
             align-items: stretch;

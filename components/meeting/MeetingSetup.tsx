@@ -23,7 +23,8 @@ const MeetingSetup = ({
   call: callProp,
 }: MeetingSetupProps) => {
   const [isMicCamToggledOn, setIsMicCamToggledOn] = useState(false);
-  const call = callProp || useCall();
+  const hookCall = useCall();
+  const call = callProp ?? hookCall;
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
 
   if (!call) throw new Error("Call not found in MeetingSetup");

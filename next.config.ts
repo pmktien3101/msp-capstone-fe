@@ -4,10 +4,10 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
+        protocol: "https",
+        hostname: "placehold.co",
+        port: "",
+        pathname: "/**",
       },
     ],
   },
@@ -19,8 +19,6 @@ const nextConfig: NextConfig = {
   compress: true,
   // Enable static optimization
   trailingSlash: false,
-  // Optimize fonts
-  optimizeFonts: true,
 };
 
 export default nextConfig;

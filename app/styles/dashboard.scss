@@ -366,7 +366,7 @@ $off-white: #F9F4EE;
       transition: all 0.2s ease;
 
       &:hover {
-        background: darken($primary-orange, 10%);
+        background: color.scale($primary-orange, $lightness: -10%);
         transform: scale(1.05);
       }
     }

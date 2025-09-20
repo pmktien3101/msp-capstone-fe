@@ -1,16 +1,24 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Chart, registerables } from 'chart.js';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import React, { useState, useEffect, useRef } from "react";
+import { Chart, registerables } from "chart.js";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 const BusinessDashboard = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [hoveredStat, setHoveredStat] = useState<string | null>(null);
   const [showAllMeetings, setShowAllMeetings] = useState(false);
   const [customDateRange, setCustomDateRange] = useState({
-    startDate: '',
-    endDate: ''
+    startDate: "",
+    endDate: "",
   });
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
@@ -19,15 +27,15 @@ const BusinessDashboard = () => {
 
   // Project data for Recharts
   const projectData = [
-    { month: 'T1', projects: 8 },
-    { month: 'T2', projects: 12 },
-    { month: 'T3', projects: 10 },
-    { month: 'T4', projects: 15 },
-    { month: 'T5', projects: 13 },
-    { month: 'T6', projects: 18 },
-    { month: 'T7', projects: 20 },
-    { month: 'T8', projects: 17 },
-    { month: 'T9', projects: 22 },
+    { month: "T1", projects: 8 },
+    { month: "T2", projects: 12 },
+    { month: "T3", projects: 10 },
+    { month: "T4", projects: 15 },
+    { month: "T5", projects: 13 },
+    { month: "T6", projects: 18 },
+    { month: "T7", projects: 20 },
+    { month: "T8", projects: 17 },
+    { month: "T9", projects: 22 },
   ];
 
   useEffect(() => {
@@ -40,27 +48,25 @@ const BusinessDashboard = () => {
         chartInstance.current.destroy();
       }
 
-      const ctx = chartRef.current.getContext('2d');
+      const ctx = chartRef.current.getContext("2d");
       if (ctx) {
         chartInstance.current = new Chart(ctx, {
-          type: 'doughnut',
+          type: "doughnut",
           data: {
-            labels: ['Hoàn thành', 'Đang thực hiện', 'Chờ xử lý'],
-            datasets: [{
-              data: [18, 6, 3],
-              backgroundColor: [
-                '#10b981', // Green for completed
-                '#f59e0b', // Orange for in-progress
-                '#6b7280'  // Gray for pending
-              ],
-              borderColor: [
-                '#059669',
-                '#d97706',
-                '#4b5563'
-              ],
-              borderWidth: 2,
-              hoverOffset: 4
-            }]
+            labels: ["Hoàn thành", "Đang thực hiện", "Chờ xử lý"],
+            datasets: [
+              {
+                data: [18, 6, 3],
+                backgroundColor: [
+                  "#10b981", // Green for completed
+                  "#f59e0b", // Orange for in-progress
+                  "#6b7280", // Gray for pending
+                ],
+                borderColor: ["#059669", "#d97706", "#4b5563"],
+                borderWidth: 2,
+                hoverOffset: 4,
+              },
+            ],
           },
           options: {
             responsive: true,
@@ -70,42 +76,45 @@ const BusinessDashboard = () => {
                 top: 10,
                 bottom: 10,
                 left: 10,
-                right: 10
-              }
+                right: 10,
+              },
             },
             plugins: {
               legend: {
-                position: 'bottom',
+                position: "bottom",
                 labels: {
                   padding: 15,
                   usePointStyle: true,
                   font: {
                     size: 11,
-                    family: 'Inter, sans-serif'
-                  }
-                }
+                    family: "Inter, sans-serif",
+                  },
+                },
               },
               tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                titleColor: 'white',
-                bodyColor: 'white',
-                borderColor: '#FF5E13',
+                backgroundColor: "rgba(0, 0, 0, 0.8)",
+                titleColor: "white",
+                bodyColor: "white",
+                borderColor: "#FF5E13",
                 borderWidth: 1,
                 cornerRadius: 8,
                 displayColors: true,
                 callbacks: {
                   label: function (context) {
-                    const label = context.label || '';
+                    const label = context.label || "";
                     const value = context.parsed;
-                    const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+                    const total = context.dataset.data.reduce(
+                      (a: number, b: number) => a + b,
+                      0
+                    );
                     const percentage = ((value / total) * 100).toFixed(1);
                     return `${label}: ${value} dự án (${percentage}%)`;
-                  }
-                }
-              }
+                  },
+                },
+              },
             },
-            cutout: '60%'
-          }
+            cutout: "60%",
+          },
         });
       }
     }
@@ -127,31 +136,23 @@ const BusinessDashboard = () => {
         meetingChartInstance.current.destroy();
       }
 
-      const ctx = meetingChartRef.current.getContext('2d');
+      const ctx = meetingChartRef.current.getContext("2d");
       if (ctx) {
         meetingChartInstance.current = new Chart(ctx, {
-          type: 'bar',
+          type: "bar",
           data: {
-            labels: ['9:00-12:00', '13:00-17:00', '18:00-20:00', 'Khác'],
-            datasets: [{
-              label: 'Số cuộc họp',
-              data: [55, 44, 34, 23],
-              backgroundColor: [
-                '#FF6B6B',
-                '#4ECDC4',
-                '#45B7D1',
-                '#96CEB4'
-              ],
-              borderColor: [
-                '#FF5252',
-                '#26A69A',
-                '#2196F3',
-                '#66BB6A'
-              ],
-              borderWidth: 2,
-              borderRadius: 4,
-              borderSkipped: false,
-            }]
+            labels: ["9:00-12:00", "13:00-17:00", "18:00-20:00", "Khác"],
+            datasets: [
+              {
+                label: "Số cuộc họp",
+                data: [55, 44, 34, 23],
+                backgroundColor: ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"],
+                borderColor: ["#FF5252", "#26A69A", "#2196F3", "#66BB6A"],
+                borderWidth: 2,
+                borderRadius: 4,
+                borderSkipped: false,
+              },
+            ],
           },
           options: {
             responsive: true,
@@ -161,54 +162,54 @@ const BusinessDashboard = () => {
                 top: 10,
                 bottom: 10,
                 left: 10,
-                right: 10
-              }
+                right: 10,
+              },
             },
             plugins: {
               legend: {
-                display: false
+                display: false,
               },
               tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                titleColor: 'white',
-                bodyColor: 'white',
-                borderColor: '#FF5E13',
+                backgroundColor: "rgba(0, 0, 0, 0.8)",
+                titleColor: "white",
+                bodyColor: "white",
+                borderColor: "#FF5E13",
                 borderWidth: 1,
                 cornerRadius: 8,
                 displayColors: true,
                 callbacks: {
                   label: function (context) {
                     return `${context.label}: ${context.parsed.y} cuộc họp`;
-                  }
-                }
-              }
+                  },
+                },
+              },
             },
             scales: {
               y: {
                 beginAtZero: true,
                 grid: {
-                  color: '#F3F4F6'
+                  color: "#F3F4F6",
                 },
                 ticks: {
-                  color: '#6b7280',
+                  color: "#6b7280",
                   font: {
-                    size: 10
-                  }
-                }
+                    size: 10,
+                  },
+                },
               },
               x: {
                 grid: {
-                  display: false
+                  display: false,
                 },
                 ticks: {
-                  color: '#6b7280',
+                  color: "#6b7280",
                   font: {
-                    size: 10
-                  }
-                }
-              }
-            }
-          }
+                    size: 10,
+                  },
+                },
+              },
+            },
+          },
         });
       }
     }
@@ -220,133 +221,181 @@ const BusinessDashboard = () => {
     };
   }, []);
 
-
   const stats = [
     {
-      id: 'revenue',
-      title: 'Tổng Doanh Thu',
-      value: '$125,430',
-      change: '+12.5%',
-      changeType: 'positive',
+      id: "revenue",
+      title: "Tổng Doanh Thu",
+      value: "$125,430",
+      change: "+12.5%",
+      changeType: "positive",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2V22M17 5H9.5C8.57174 5 7.6815 5.36875 7.02513 6.02513C6.36875 6.6815 6 7.57174 6 8.5C6 9.42826 6.36875 10.3185 7.02513 10.9749C7.6815 11.6312 8.57174 12 9.5 12H14.5C15.4283 12 16.3185 12.3687 16.9749 13.0251C17.6312 13.6815 18 14.5717 18 15.5C18 16.4283 17.6312 17.3185 16.9749 17.9749C16.3185 18.6312 15.4283 19 14.5 19H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M12 2V22M17 5H9.5C8.57174 5 7.6815 5.36875 7.02513 6.02513C6.36875 6.6815 6 7.57174 6 8.5C6 9.42826 6.36875 10.3185 7.02513 10.9749C7.6815 11.6312 8.57174 12 9.5 12H14.5C15.4283 12 16.3185 12.3687 16.9749 13.0251C17.6312 13.6815 18 14.5717 18 15.5C18 16.4283 17.6312 17.3185 16.9749 17.9749C16.3185 18.6312 15.4283 19 14.5 19H6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ),
-      color: 'blue'
+      color: "blue",
     },
     {
-      id: 'projects',
-      title: 'Dự Án Hoạt Động',
-      value: '8',
-      change: '+2',
-      changeType: 'positive',
+      id: "projects",
+      title: "Dự Án Hoạt Động",
+      value: "8",
+      change: "+2",
+      changeType: "positive",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ),
-      color: 'purple'
+      color: "purple",
     },
     {
-      id: 'members',
-      title: 'Nhân Viên',
-      value: '45',
-      change: '+5',
-      changeType: 'positive',
+      id: "members",
+      title: "Nhân Viên",
+      value: "45",
+      change: "+5",
+      changeType: "positive",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle
+            cx="12"
+            cy="7"
+            r="4"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ),
-      color: 'blue'
+      color: "blue",
     },
     {
-      id: 'meetings',
-      title: 'Cuộc Họp Tháng',
-      value: '156',
-      change: '+23',
-      changeType: 'positive',
+      id: "meetings",
+      title: "Cuộc Họp Tháng",
+      value: "156",
+      change: "+23",
+      changeType: "positive",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M8 7V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M16 7V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M3 9H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V7C3 6.46957 3.21071 5.96086 3.58579 5.58579C3.96086 5.21071 4.46957 5 5 5H19C19.5304 5 20.0391 5.21071 20.4142 5.58579C20.7893 5.96086 21 6.46957 21 7V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M8 7V3"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M16 7V3"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M3 9H21"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V7C3 6.46957 3.21071 5.96086 3.58579 5.58579C3.96086 5.21071 4.46957 5 5 5H19C19.5304 5 20.0391 5.21071 20.4142 5.58579C20.7893 5.96086 21 6.46957 21 7V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ),
-      color: 'purple'
-    }
+      color: "purple",
+    },
   ];
-
 
   const upcomingMeetings = [
     {
       id: 1,
-      title: 'Họp Đánh Giá Tháng',
-      time: '14:00 - 15:30',
-      date: 'Hôm nay',
-      participants: 8
+      title: "Họp Đánh Giá Tháng",
+      time: "14:00 - 15:30",
+      date: "Hôm nay",
+      participants: 8,
     },
     {
       id: 2,
-      title: 'Review Dự Án Website',
-      time: '10:00 - 11:00',
-      date: 'Ngày mai',
-      participants: 5
+      title: "Review Dự Án Website",
+      time: "10:00 - 11:00",
+      date: "Ngày mai",
+      participants: 5,
     },
     {
       id: 3,
-      title: 'Họp Kế Hoạch Q3',
-      time: '09:00 - 10:30',
-      date: 'Thứ 6',
-      participants: 12
+      title: "Họp Kế Hoạch Q3",
+      time: "09:00 - 10:30",
+      date: "Thứ 6",
+      participants: 12,
     },
     {
       id: 4,
-      title: 'Họp Báo Cáo Tài Chính',
-      time: '15:00 - 16:00',
-      date: 'Thứ 2',
-      participants: 6
+      title: "Họp Báo Cáo Tài Chính",
+      time: "15:00 - 16:00",
+      date: "Thứ 2",
+      participants: 6,
     },
     {
       id: 5,
-      title: 'Họp Đánh Giá Nhân Viên',
-      time: '11:00 - 12:00',
-      date: 'Thứ 3',
-      participants: 4
+      title: "Họp Đánh Giá Nhân Viên",
+      time: "11:00 - 12:00",
+      date: "Thứ 3",
+      participants: 4,
     },
     {
       id: 6,
-      title: 'Họp Chiến Lược Marketing',
-      time: '13:30 - 14:30',
-      date: 'Thứ 4',
-      participants: 7
+      title: "Họp Chiến Lược Marketing",
+      time: "13:30 - 14:30",
+      date: "Thứ 4",
+      participants: 7,
     },
     {
       id: 7,
-      title: 'Họp Đánh Giá Dự Án',
-      time: '16:00 - 17:00',
-      date: 'Thứ 5',
-      participants: 9
-    }
+      title: "Họp Đánh Giá Dự Án",
+      time: "16:00 - 17:00",
+      date: "Thứ 5",
+      participants: 9,
+    },
   ];
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { color: '#D1FAE5', textColor: '#065F46', text: 'Hoạt động' },
-      completed: { color: '#DBEAFE', textColor: '#1E40AF', text: 'Hoàn thành' },
-      pending: { color: '#FEF3C7', textColor: '#92400E', text: 'Chờ xử lý' }
+      active: { color: "#D1FAE5", textColor: "#065F46", text: "Hoạt động" },
+      completed: { color: "#DBEAFE", textColor: "#1E40AF", text: "Hoàn thành" },
+      pending: { color: "#FEF3C7", textColor: "#92400E", text: "Chờ xử lý" },
     };
-    
+
     const config = statusConfig[status as keyof typeof statusConfig];
     return (
-      <span 
+      <span
         className="status-badge"
-        style={{ 
-          backgroundColor: config.color, 
-          color: config.textColor 
+        style={{
+          backgroundColor: config.color,
+          color: config.textColor,
         }}
       >
         {config.text}
@@ -362,7 +411,7 @@ const BusinessDashboard = () => {
           <h3>Bộ lọc thời gian</h3>
         </div>
         <div className="time-filter-select">
-          <select 
+          <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
             className="time-filter-dropdown"
@@ -377,15 +426,20 @@ const BusinessDashboard = () => {
             <option value="last-year">Năm trước</option>
             <option value="custom">Tùy chỉnh</option>
           </select>
-          
-          {selectedPeriod === 'custom' && (
+
+          {selectedPeriod === "custom" && (
             <div className="custom-date-range">
               <div className="date-input-group">
                 <label>Từ ngày:</label>
                 <input
                   type="date"
                   value={customDateRange.startDate}
-                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                  onChange={(e) =>
+                    setCustomDateRange((prev) => ({
+                      ...prev,
+                      startDate: e.target.value,
+                    }))
+                  }
                   className="date-input"
                 />
               </div>
@@ -394,20 +448,27 @@ const BusinessDashboard = () => {
                 <input
                   type="date"
                   value={customDateRange.endDate}
-                  onChange={(e) => setCustomDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                  onChange={(e) =>
+                    setCustomDateRange((prev) => ({
+                      ...prev,
+                      endDate: e.target.value,
+                    }))
+                  }
                   className="date-input"
                   min={customDateRange.startDate}
                 />
               </div>
-              <button 
+              <button
                 className="apply-date-btn"
                 onClick={() => {
                   if (customDateRange.startDate && customDateRange.endDate) {
-                    console.log('Áp dụng khoảng thời gian:', customDateRange);
+                    console.log("Áp dụng khoảng thời gian:", customDateRange);
                     // Ở đây bạn có thể thêm logic để filter dữ liệu theo khoảng thời gian
                   }
                 }}
-                disabled={!customDateRange.startDate || !customDateRange.endDate}
+                disabled={
+                  !customDateRange.startDate || !customDateRange.endDate
+                }
               >
                 Áp dụng
               </button>
@@ -433,13 +494,19 @@ const BusinessDashboard = () => {
               <div className="stat-change">
                 <span className="change-text positive">{stat.change}</span>
                 <div className="change-icon up">↗</div>
-            </div>
+              </div>
             </div>
             {hoveredStat === stat.id && (
               <div className="tooltip">
                 <div className="tooltip-content">
-                  <strong>{stat.title}</strong><br />
-                  Tăng {stat.change} so với {selectedPeriod === 'week' ? 'tuần trước' : selectedPeriod === 'month' ? 'tháng trước' : 'quý trước'}
+                  <strong>{stat.title}</strong>
+                  <br />
+                  Tăng {stat.change} so với{" "}
+                  {selectedPeriod === "week"
+                    ? "tuần trước"
+                    : selectedPeriod === "month"
+                    ? "tháng trước"
+                    : "quý trước"}
                 </div>
               </div>
             )}
@@ -453,14 +520,26 @@ const BusinessDashboard = () => {
         <div className="main-chart-container">
           <div className="chart-header">
             <h3>Thống Kê Dự Án</h3>
-            </div>
+          </div>
           <div className="chart-content">
             <div className="project-stats">
               <div className="status-item completed">
                 <div className="status-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M9 12L11 14L15 10"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </div>
                 <div className="status-info">
@@ -471,8 +550,20 @@ const BusinessDashboard = () => {
               <div className="status-item in-progress">
                 <div className="status-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 8V12L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M12 8V12L15 15"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </div>
                 <div className="status-info">
@@ -483,14 +574,62 @@ const BusinessDashboard = () => {
               <div className="status-item pending">
                 <div className="status-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M12 18V22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M4.93 4.93L7.76 7.76" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M16.24 16.24L19.07 19.07" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M2 12H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M18 12H22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M4.93 19.07L7.76 16.24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M16.24 7.76L19.07 4.93" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M12 2V6"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M12 18V22"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M4.93 4.93L7.76 7.76"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M16.24 16.24L19.07 19.07"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M2 12H6"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M18 12H22"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M4.93 19.07L7.76 16.24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M16.24 7.76L19.07 4.93"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </div>
                 <div className="status-info">
@@ -502,9 +641,9 @@ const BusinessDashboard = () => {
             <div className="chart-wrapper">
               <canvas ref={chartRef} width="400" height="200"></canvas>
             </div>
-                    </div>
-                  </div>
-                  
+          </div>
+        </div>
+
         {/* Project Trend Chart */}
         <div className="revenue-trend-section">
           <div className="section-header">
@@ -513,23 +652,19 @@ const BusinessDashboard = () => {
               <div className="revenue-stat">
                 <span className="stat-label">Tháng này</span>
                 <span className="stat-value">27</span>
-                    </div>
+              </div>
               <div className="revenue-stat">
                 <span className="stat-label">Tăng trưởng</span>
                 <span className="stat-value positive">+17.4%</span>
-                  </div>
-                </div>
+              </div>
+            </div>
           </div>
 
           <div className="revenue-chart-wrapper">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={projectData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                <XAxis
-                  dataKey="month"
-                  stroke="#6b7280"
-                  fontSize={10}
-                />
+                <XAxis dataKey="month" stroke="#6b7280" fontSize={10} />
                 <YAxis
                   stroke="#6b7280"
                   fontSize={10}
@@ -538,84 +673,116 @@ const BusinessDashboard = () => {
                   tickFormatter={(value) => `${value}`}
                   interval={0}
                   allowDecimals={false}
-                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                  tick={{ fontSize: 10, fill: "#6b7280" }}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    color: 'white',
-                    border: '1px solid #FF5E13',
-                    borderRadius: '8px'
+                    backgroundColor: "rgba(0, 0, 0, 0.8)",
+                    color: "white",
+                    border: "1px solid #FF5E13",
+                    borderRadius: "8px",
                   }}
-                  formatter={(value: any) => [`${value} dự án`, 'Số dự án']}
+                  formatter={(value: any) => [`${value} dự án`, "Số dự án"]}
                 />
                 <Line
                   type="monotone"
                   dataKey="projects"
                   stroke="#FF5E13"
                   strokeWidth={3}
-                  dot={{ fill: '#FF5E13', stroke: '#FFFFFF', strokeWidth: 2, r: 6 }}
+                  dot={{
+                    fill: "#FF5E13",
+                    stroke: "#FFFFFF",
+                    strokeWidth: 2,
+                    r: 6,
+                  }}
                   activeDot={{ r: 8 }}
                   fill="rgba(255, 94, 19, 0.1)"
                 />
               </LineChart>
             </ResponsiveContainer>
-            </div>
           </div>
         </div>
+      </div>
 
       {/* Charts Row 2 */}
       <div className="charts-row">
-          {/* Upcoming Meetings */}
+        {/* Upcoming Meetings */}
         <div className="upcoming-meetings">
-            <div className="section-header">
-              <h3>Cuộc Họp Sắp Tới</h3>
+          <div className="section-header">
+            <h3>Cuộc Họp Sắp Tới</h3>
             <button
               className="create-btn"
               onClick={() => setShowAllMeetings(!showAllMeetings)}
             >
-              {showAllMeetings ? 'Thu gọn' : 'Xem tất cả'}
+              {showAllMeetings ? "Thu gọn" : "Xem tất cả"}
             </button>
-            </div>
-            
-            <div className="meetings-list">
-            {(showAllMeetings ? upcomingMeetings : upcomingMeetings.slice(0, 4)).map((meeting) => (
-                <div key={meeting.id} className="meeting-item">
-                  <div className="meeting-time">
-                    <span className="time">{meeting.time}</span>
-                    <span className="date">{meeting.date}</span>
-                  </div>
-                  
-                  <div className="meeting-info">
-                    <h4>{meeting.title}</h4>
-                    <span className="participants">
-                      {meeting.participants} người tham gia
-                    </span>
-                  </div>
-                  
-                  <button className="join-btn">Tham gia</button>
-                </div>
-              ))}
-            </div>
           </div>
+
+          <div className="meetings-list">
+            {(showAllMeetings
+              ? upcomingMeetings
+              : upcomingMeetings.slice(0, 4)
+            ).map((meeting) => (
+              <div key={meeting.id} className="meeting-item">
+                <div className="meeting-time">
+                  <span className="time">{meeting.time}</span>
+                  <span className="date">{meeting.date}</span>
+                </div>
+
+                <div className="meeting-info">
+                  <h4>{meeting.title}</h4>
+                  <span className="participants">
+                    {meeting.participants} người tham gia
+                  </span>
+                </div>
+
+                <button className="join-btn">Tham gia</button>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Meeting Statistics Chart */}
         <div className="meeting-stats-section">
-            <div className="section-header">
+          <div className="section-header">
             <h3>Thống Kê Cuộc Họp</h3>
-            </div>
-            
+          </div>
+
           <div className="meeting-stats-content">
             <div className="meeting-stats-overview">
               <div className="meeting-stat-item">
                 <div className="stat-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M8 7V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M16 7V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M3 9H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V7C3 6.46957 3.21071 5.96086 3.58579 5.58579C3.96086 5.21071 4.46957 5 5 5H19C19.5304 5 20.0391 5.21071 20.4142 5.58579C20.7893 5.96086 21 6.46957 21 7V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M8 7V3"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M16 7V3"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M3 9H21"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V7C3 6.46957 3.21071 5.96086 3.58579 5.58579C3.96086 5.21071 4.46957 5 5 5H19C19.5304 5 20.0391 5.21071 20.4142 5.58579C20.7893 5.96086 21 6.46957 21 7V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
-            </div>
+                </div>
                 <div className="stat-info">
                   <span className="stat-label">Tổng cuộc họp</span>
                   <span className="stat-value">156</span>
@@ -624,8 +791,20 @@ const BusinessDashboard = () => {
               <div className="meeting-stat-item">
                 <div className="stat-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M9 12L11 14L15 10"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </div>
                 <div className="stat-info">
@@ -636,16 +815,28 @@ const BusinessDashboard = () => {
               <div className="meeting-stat-item">
                 <div className="stat-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 8V12L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M12 8V12L15 15"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </div>
                 <div className="stat-info">
                   <span className="stat-label">Sắp diễn ra</span>
                   <span className="stat-value">14</span>
-          </div>
-        </div>
-      </div>
+                </div>
+              </div>
+            </div>
 
             <div className="meeting-chart-wrapper">
               <canvas ref={meetingChartRef} width="400" height="200"></canvas>
@@ -653,7 +844,6 @@ const BusinessDashboard = () => {
           </div>
         </div>
       </div>
-
 
       <style jsx>{`
         .business-dashboard {
@@ -663,7 +853,7 @@ const BusinessDashboard = () => {
           flex-direction: column;
           gap: 28px;
           padding: 24px;
-          background: #F7F9FB;
+          background: #f7f9fb;
           box-sizing: border-box;
           margin-y: -24px;
         }
@@ -684,7 +874,7 @@ const BusinessDashboard = () => {
           margin: 0;
           font-size: 18px;
           font-weight: 600;
-          color: #1C1C1C;
+          color: #1c1c1c;
         }
 
         .time-filter-select {
@@ -696,10 +886,10 @@ const BusinessDashboard = () => {
         .time-filter-dropdown {
           width: 200px;
           padding: 12px 16px;
-          border: 2px solid #E5E7EB;
+          border: 2px solid #e5e7eb;
           border-radius: 8px;
           background: white;
-          color: #1C1C1C;
+          color: #1c1c1c;
           font-size: 14px;
           font-weight: 500;
           cursor: pointer;
@@ -713,12 +903,12 @@ const BusinessDashboard = () => {
         }
 
         .time-filter-dropdown:hover {
-          border-color: #FF8C42;
+          border-color: #ff8c42;
         }
 
         .time-filter-dropdown:focus {
           outline: none;
-          border-color: #FF8C42;
+          border-color: #ff8c42;
           box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
         }
 
@@ -727,9 +917,9 @@ const BusinessDashboard = () => {
           align-items: end;
           gap: 16px;
           padding: 16px;
-          background: #F9FAFB;
+          background: #f9fafb;
           border-radius: 8px;
-          border: 1px solid #E5E7EB;
+          border: 1px solid #e5e7eb;
         }
 
         .date-input-group {
@@ -741,28 +931,28 @@ const BusinessDashboard = () => {
         .date-input-group label {
           font-size: 12px;
           font-weight: 500;
-          color: #6B7280;
+          color: #6b7280;
         }
 
         .date-input {
           padding: 8px 12px;
-          border: 1px solid #D1D5DB;
+          border: 1px solid #d1d5db;
           border-radius: 6px;
           background: white;
-          color: #1C1C1C;
+          color: #1c1c1c;
           font-size: 14px;
           transition: all 0.2s ease;
         }
 
         .date-input:focus {
           outline: none;
-          border-color: #FF8C42;
+          border-color: #ff8c42;
           box-shadow: 0 0 0 2px rgba(255, 140, 66, 0.1);
         }
 
         .apply-date-btn {
           padding: 8px 16px;
-          background: #FF8C42;
+          background: #ff8c42;
           color: white;
           border: none;
           border-radius: 6px;
@@ -774,13 +964,13 @@ const BusinessDashboard = () => {
         }
 
         .apply-date-btn:hover:not(:disabled) {
-          background: #FF7A2E;
+          background: #ff7a2e;
           transform: translateY(-1px);
         }
 
         .apply-date-btn:disabled {
-          background: #D1D5DB;
-          color: #9CA3AF;
+          background: #d1d5db;
+          color: #9ca3af;
           cursor: not-allowed;
           transform: none;
         }
@@ -804,11 +994,11 @@ const BusinessDashboard = () => {
         }
 
         .stat-card.blue {
-          background: #E3F5FF;
+          background: #e3f5ff;
         }
 
         .stat-card.purple {
-          background: #E5ECF6;
+          background: #e5ecf6;
         }
 
         .stat-card.interactive {
@@ -831,9 +1021,9 @@ const BusinessDashboard = () => {
         }
 
         .stat-label {
-          color: #1C1C1C;
+          color: #1c1c1c;
           font-size: 14px;
-          font-family: 'Inter', sans-serif;
+          font-family: "Inter", sans-serif;
           font-weight: 600;
           line-height: 20px;
         }
@@ -847,9 +1037,9 @@ const BusinessDashboard = () => {
         }
 
         .stat-value {
-          color: #1C1C1C;
+          color: #1c1c1c;
           font-size: 24px;
-          font-family: 'Inter', sans-serif;
+          font-family: "Inter", sans-serif;
           font-weight: 600;
           line-height: 36px;
         }
@@ -862,13 +1052,13 @@ const BusinessDashboard = () => {
 
         .change-text {
           font-size: 12px;
-          font-family: 'Inter', sans-serif;
+          font-family: "Inter", sans-serif;
           font-weight: 400;
           line-height: 18px;
         }
 
         .change-text.positive {
-          color: #1C1C1C;
+          color: #1c1c1c;
         }
 
         .change-icon {
@@ -893,7 +1083,7 @@ const BusinessDashboard = () => {
           height: 450px;
           min-width: 500px;
           padding: 24px;
-          background: linear-gradient(135deg, #F7F9FB 0%, #E8F2FF 100%);
+          background: linear-gradient(135deg, #f7f9fb 0%, #e8f2ff 100%);
           border-radius: 16px;
           display: flex;
           flex-direction: column;
@@ -903,9 +1093,9 @@ const BusinessDashboard = () => {
         }
 
         .chart-header h3 {
-          color: #1C1C1C;
+          color: #1c1c1c;
           font-size: 14px;
-          font-family: 'Inter', sans-serif;
+          font-family: "Inter", sans-serif;
           font-weight: 600;
           line-height: 20px;
           margin: 0;
@@ -933,21 +1123,21 @@ const BusinessDashboard = () => {
           padding: 12px;
           background: white;
           border-radius: 8px;
-          border: 1px solid #F3F4F6;
+          border: 1px solid #f3f4f6;
         }
 
         .status-item.completed .status-icon {
-          background: #DCFCE7;
+          background: #dcfce7;
           color: #16a34a;
         }
 
         .status-item.in-progress .status-icon {
-          background: #FEF3C7;
+          background: #fef3c7;
           color: #d97706;
         }
 
         .status-item.pending .status-icon {
-          background: #FEE2E2;
+          background: #fee2e2;
           color: #dc2626;
         }
 
@@ -969,7 +1159,7 @@ const BusinessDashboard = () => {
         .status-count {
           font-size: 18px;
           font-weight: 700;
-          color: #1C1C1C;
+          color: #1c1c1c;
         }
 
         .status-label {
@@ -988,12 +1178,12 @@ const BusinessDashboard = () => {
         .project-stat-item .stat-icon {
           width: 40px;
           height: 40px;
-          background: #F9F4EE;
+          background: #f9f4ee;
           border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #FF5E13;
+          color: #ff5e13;
         }
 
         .stat-info {
@@ -1011,7 +1201,7 @@ const BusinessDashboard = () => {
         .stat-info .stat-value {
           font-size: 20px;
           font-weight: 700;
-          color: #1C1C1C;
+          color: #1c1c1c;
         }
 
         .chart-wrapper {
@@ -1019,7 +1209,7 @@ const BusinessDashboard = () => {
           background: white;
           border-radius: 8px;
           padding: 20px;
-          border: 1px solid #F3F4F6;
+          border: 1px solid #f3f4f6;
           position: relative;
           height: 280px;
           overflow: hidden;
@@ -1039,9 +1229,9 @@ const BusinessDashboard = () => {
         }
 
         .section-header h3 {
-          color: #1C1C1C;
+          color: #1c1c1c;
           font-size: 14px;
-          font-family: 'Inter', sans-serif;
+          font-family: "Inter", sans-serif;
           font-weight: 600;
           line-height: 20px;
           margin: 0;
@@ -1050,7 +1240,7 @@ const BusinessDashboard = () => {
         .create-btn {
           background: none;
           border: none;
-          color: #FF5E13;
+          color: #ff5e13;
           font-size: 12px;
           font-weight: 500;
           cursor: pointer;
@@ -1058,7 +1248,7 @@ const BusinessDashboard = () => {
         }
 
         .create-btn:hover {
-          color: #FFA463;
+          color: #ffa463;
         }
 
         /* Upcoming Meetings */
@@ -1067,7 +1257,7 @@ const BusinessDashboard = () => {
           height: 450px;
           min-width: 500px;
           padding: 24px;
-          background: linear-gradient(135deg, #F7F9FB 0%, #F0F8FF 100%);
+          background: linear-gradient(135deg, #f7f9fb 0%, #f0f8ff 100%);
           border-radius: 16px;
           display: flex;
           flex-direction: column;
@@ -1089,15 +1279,15 @@ const BusinessDashboard = () => {
           align-items: center;
           gap: 12px;
           padding: 12px;
-          border: 1px solid #F3F4F6;
+          border: 1px solid #f3f4f6;
           border-radius: 8px;
           transition: all 0.3s ease;
           background: white;
         }
 
         .meeting-item:hover {
-          border-color: #FFDBBD;
-          background: #F9F4EE;
+          border-color: #ffdbbd;
+          background: #f9f4ee;
         }
 
         .meeting-time {
@@ -1110,7 +1300,7 @@ const BusinessDashboard = () => {
         .meeting-time .time {
           font-size: 12px;
           font-weight: 600;
-          color: #1C1C1C;
+          color: #1c1c1c;
         }
 
         .meeting-time .date {
@@ -1125,7 +1315,7 @@ const BusinessDashboard = () => {
         .meeting-info h4 {
           font-size: 12px;
           font-weight: 600;
-          color: #1C1C1C;
+          color: #1c1c1c;
           margin: 0 0 2px 0;
         }
 
@@ -1135,7 +1325,7 @@ const BusinessDashboard = () => {
         }
 
         .join-btn {
-          background: #FF5E13;
+          background: #ff5e13;
           color: white;
           border: none;
           padding: 6px 12px;
@@ -1147,7 +1337,7 @@ const BusinessDashboard = () => {
         }
 
         .join-btn:hover {
-          background: #FFA463;
+          background: #ffa463;
           transform: translateY(-1px);
         }
 
@@ -1157,7 +1347,7 @@ const BusinessDashboard = () => {
           height: 450px;
           min-width: 400px;
           padding: 24px;
-          background: linear-gradient(135deg, #F7F9FB 0%, #F5F0FF 100%);
+          background: linear-gradient(135deg, #f7f9fb 0%, #f5f0ff 100%);
           border-radius: 16px;
           display: flex;
           flex-direction: column;
@@ -1188,19 +1378,19 @@ const BusinessDashboard = () => {
           padding: 6px;
           background: white;
           border-radius: 6px;
-          border: 1px solid #F3F4F6;
+          border: 1px solid #f3f4f6;
           min-width: 0;
         }
 
         .meeting-stat-item .stat-icon {
           width: 24px;
           height: 24px;
-          background: #F9F4EE;
+          background: #f9f4ee;
           border-radius: 4px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #FF5E13;
+          color: #ff5e13;
           flex-shrink: 0;
         }
 
@@ -1224,7 +1414,7 @@ const BusinessDashboard = () => {
         .meeting-stat-item .stat-value {
           font-size: 14px;
           font-weight: 700;
-          color: #1C1C1C;
+          color: #1c1c1c;
         }
 
         .meeting-chart {
@@ -1269,7 +1459,7 @@ const BusinessDashboard = () => {
           background: white;
           border-radius: 8px;
           padding: 20px;
-          border: 1px solid #F3F4F6;
+          border: 1px solid #f3f4f6;
           position: relative;
           height: 250px;
           overflow: hidden;
@@ -1303,11 +1493,11 @@ const BusinessDashboard = () => {
         .revenue-stat .stat-value {
           font-size: 16px;
           font-weight: 700;
-          color: #1C1C1C;
+          color: #1c1c1c;
         }
 
         .revenue-stat .stat-value.positive {
-          color: #10B981;
+          color: #10b981;
         }
 
         .revenue-chart-wrapper {
@@ -1315,7 +1505,7 @@ const BusinessDashboard = () => {
           background: white;
           border-radius: 8px;
           padding: 20px;
-          border: 1px solid #F3F4F6;
+          border: 1px solid #f3f4f6;
           position: relative;
           height: 450px;
           overflow: hidden;
@@ -1327,7 +1517,7 @@ const BusinessDashboard = () => {
           height: 450px;
           min-width: 500px;
           padding: 24px;
-          background: linear-gradient(135deg, #F7F9FB 0%, #E8F2FF 100%);
+          background: linear-gradient(135deg, #f7f9fb 0%, #e8f2ff 100%);
           border-radius: 16px;
           display: flex;
           flex-direction: column;
@@ -1335,8 +1525,6 @@ const BusinessDashboard = () => {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.8);
         }
-
-
 
         /* Tooltips */
         .tooltip {
@@ -1363,11 +1551,11 @@ const BusinessDashboard = () => {
           .stats-container {
             flex-direction: column;
           }
-          
+
           .charts-row {
             flex-direction: column;
           }
-          
+
           .main-chart-container,
           .upcoming-meetings,
           .meeting-stats-section,
@@ -1507,7 +1695,6 @@ const BusinessDashboard = () => {
             font-size: 8px;
             min-width: 15px;
           }
-
         }
       `}</style>
     </div>
@@ -1515,4 +1702,3 @@ const BusinessDashboard = () => {
 };
 
 export default BusinessDashboard;
-
