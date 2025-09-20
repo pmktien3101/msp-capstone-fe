@@ -176,8 +176,9 @@ export function TaskDetailModal({
       <div 
         style={{
           position: 'relative',
-          width: '25%',
-          minWidth: '300px',
+          width: '40%',
+          minWidth: '450px',
+          maxWidth: '600px',
           height: '100vh',
           background: 'white',
           borderRadius: '8px 0 0 8px',
@@ -254,15 +255,19 @@ export function TaskDetailModal({
             <div 
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '16px'
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '20px'
               }}
             >
               <div 
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '6px'
+                  gap: '8px',
+                  padding: '16px',
+                  background: '#f8fafc',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0'
                 }}
               >
                 <span 
@@ -276,28 +281,42 @@ export function TaskDetailModal({
                 >
                   Trạng thái
                 </span>
-                <span 
+                <div 
                   style={{
-                    display: 'inline-block',
-                    padding: '6px 12px',
-                    borderRadius: '20px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'white',
-                    textAlign: 'center',
-                    width: 'fit-content',
-                    backgroundColor: getStatusColor(task.status)
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                   }}
                 >
-                  {getStatusText(task.status)}
-                </span>
+                  <div 
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: getStatusColor(task.status)
+                    }}
+                  ></div>
+                  <span 
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: '#374151'
+                    }}
+                  >
+                    {getStatusText(task.status)}
+                  </span>
+                </div>
               </div>
               
               <div 
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '6px'
+                  gap: '8px',
+                  padding: '16px',
+                  background: '#f8fafc',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0'
                 }}
               >
                 <span 
@@ -311,28 +330,42 @@ export function TaskDetailModal({
                 >
                   Ưu tiên
                 </span>
-                <span 
+                <div 
                   style={{
-                    display: 'inline-block',
-                    padding: '6px 12px',
-                    borderRadius: '20px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'white',
-                    textAlign: 'center',
-                    width: 'fit-content',
-                    backgroundColor: getPriorityColor(task.priority)
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                   }}
                 >
-                  {getPriorityText(task.priority)}
-                </span>
+                  <div 
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: getPriorityColor(task.priority)
+                    }}
+                  ></div>
+                  <span 
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: '#374151'
+                    }}
+                  >
+                    {getPriorityText(task.priority)}
+                  </span>
+                </div>
               </div>
 
               <div 
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '6px'
+                  gap: '8px',
+                  padding: '16px',
+                  background: '#f8fafc',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0'
                 }}
               >
                 <span 
@@ -346,15 +379,29 @@ export function TaskDetailModal({
                 >
                   Hạn chót
                 </span>
-                <span 
+                <div 
                   style={{
-                    fontSize: '14px',
-                    color: '#374151',
-                    fontWeight: 500
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                   }}
                 >
-                  {new Date(task.dueDate).toLocaleDateString('vi-VN')}
-                </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ color: '#6b7280' }}>
+                    <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span 
+                    style={{
+                      fontSize: '14px',
+                      color: '#374151',
+                      fontWeight: 500
+                    }}
+                  >
+                    {new Date(task.dueDate).toLocaleDateString('vi-VN')}
+                  </span>
+                </div>
               </div>
 
               {task.assignedTo && (
@@ -362,7 +409,11 @@ export function TaskDetailModal({
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '6px'
+                    gap: '8px',
+                    padding: '16px',
+                    background: '#f8fafc',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0'
                   }}
                 >
                   <span 
@@ -380,7 +431,7 @@ export function TaskDetailModal({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px'
+                      gap: '12px'
                     }}
                   >
                     <Avatar 
@@ -406,7 +457,11 @@ export function TaskDetailModal({
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '6px'
+                    gap: '8px',
+                    padding: '16px',
+                    background: '#f8fafc',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0'
                   }}
                 >
                   <span 
@@ -420,19 +475,35 @@ export function TaskDetailModal({
                   >
                     Epic
                   </span>
-                  <span 
+                  <div 
                     style={{
-                      background: '#f3f4f6',
-                      color: '#374151',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      width: 'fit-content'
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}
                   >
-                    {task.epic}
-                  </span>
+                    <div 
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: '#8b5cf6'
+                      }}
+                    ></div>
+                    <span 
+                      style={{
+                        background: '#e0e7ff',
+                        color: '#3730a3',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        width: 'fit-content'
+                      }}
+                    >
+                      {task.epic}
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -441,7 +512,11 @@ export function TaskDetailModal({
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '6px',
+                    gap: '8px',
+                    padding: '16px',
+                    background: '#f8fafc',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
                     gridColumn: '1 / -1'
                   }}
                 >
@@ -460,7 +535,7 @@ export function TaskDetailModal({
                     style={{
                       display: 'flex',
                       flexWrap: 'wrap',
-                      gap: '6px'
+                      gap: '8px'
                     }}
                   >
                     {task.tags.map((tag, index) => (
@@ -469,9 +544,9 @@ export function TaskDetailModal({
                         style={{
                           background: '#e0e7ff',
                           color: '#3730a3',
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          fontSize: '11px',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '12px',
                           fontWeight: 500
                         }}
                       >
@@ -486,14 +561,14 @@ export function TaskDetailModal({
             <div 
               style={{
                 background: '#f8fafc',
-                padding: '20px',
+                padding: '24px',
                 borderRadius: '12px',
                 border: '1px solid #e2e8f0'
               }}
             >
               <h4 
                 style={{
-                  margin: '0 0 12px 0',
+                  margin: '0 0 16px 0',
                   fontSize: '16px',
                   fontWeight: 600,
                   color: '#1f2937'
@@ -520,14 +595,14 @@ export function TaskDetailModal({
           <div 
             style={{
               background: '#f8fafc',
-              padding: '20px',
+              padding: '24px',
               borderRadius: '12px',
               border: '1px solid #e2e8f0'
             }}
           >
             <h4 
               style={{
-                margin: '0 0 20px 0',
+                margin: '0 0 24px 0',
                 fontSize: '16px',
                 fontWeight: 600,
                 color: '#1f2937'
@@ -540,9 +615,9 @@ export function TaskDetailModal({
             <div 
               style={{
                 marginBottom: '24px',
-                padding: '16px',
+                padding: '20px',
                 background: 'white',
-                borderRadius: '8px',
+                borderRadius: '12px',
                 border: '1px solid #e2e8f0'
               }}
             >
@@ -615,22 +690,22 @@ export function TaskDetailModal({
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '16px'
+                gap: '20px'
               }}
             >
               {comments.length === 0 ? (
                 <div 
                   style={{
                     textAlign: 'center',
-                    padding: '32px',
+                    padding: '40px',
                     color: '#6b7280',
                     fontStyle: 'italic',
                     background: 'white',
-                    borderRadius: '8px',
+                    borderRadius: '12px',
                     border: '1px solid #e2e8f0'
                   }}
                 >
-                  <p style={{ margin: 0 }}>Chưa có bình luận nào. Hãy là người đầu tiên bình luận!</p>
+                  <p style={{ margin: 0, fontSize: '14px' }}>Chưa có bình luận nào. Hãy là người đầu tiên bình luận!</p>
                 </div>
               ) : (
                 comments.map((comment) => (
