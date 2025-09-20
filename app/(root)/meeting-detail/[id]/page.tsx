@@ -70,9 +70,9 @@ export default function MeetingDetailPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Scheduled":
-        return "#BDE3C3";
+        return "#47D69D";
       case "Finished":
-        return "#F5D2D2";
+        return "#A41F39";
       default:
         return "#6b7280";
     }

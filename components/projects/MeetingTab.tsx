@@ -64,10 +64,10 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
     const endedAt = call.state?.endedAt ? new Date(call.state.endedAt) : null;
 
     if (startsAt && startsAt > now) {
-      return { label: "Lên lịch", color: "#BDE3C3" };
+      return { label: "Lên lịch", color: "#47D69D" };
     }
 
-    return { label: "Hoàn thành", color: "#F5D2D2" };
+    return { label: "Hoàn thành", color: "#A41F39" };
   };
 
   const handleJoin = (call: Call) => {
@@ -108,26 +108,26 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
             setShowCreateModal(true);
           }}
           style={{
-            background: 'transparent',
-            color: '#FF5E13',
-            border: '1px solid #FF5E13',
-            borderRadius: '8px',
-            padding: '10px 20px',
-            cursor: 'pointer',
-            fontSize: '14px',
+            background: "transparent",
+            color: "#FF5E13",
+            border: "1px solid #FF5E13",
+            borderRadius: "8px",
+            padding: "10px 20px",
+            cursor: "pointer",
+            fontSize: "14px",
             fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s ease'
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            transition: "all 0.2s ease",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#FF5E13';
-            e.currentTarget.style.color = 'white';
+            e.currentTarget.style.background = "#FF5E13";
+            e.currentTarget.style.color = "white";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = '#FF5E13';
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "#FF5E13";
           }}
         >
           <Plus size={16} />
@@ -153,26 +153,26 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
         <Button
           onClick={() => setViewType("all")}
           style={{
-            background: viewType === "all" ? '#FF5E13' : 'transparent',
-            color: viewType === "all" ? 'white' : '#FF5E13',
-            border: '1px solid #FF5E13',
-            borderRadius: '8px',
-            padding: '8px 16px',
-            cursor: 'pointer',
-            fontSize: '14px',
+            background: viewType === "all" ? "#FF5E13" : "transparent",
+            color: viewType === "all" ? "white" : "#FF5E13",
+            border: "1px solid #FF5E13",
+            borderRadius: "8px",
+            padding: "8px 16px",
+            cursor: "pointer",
+            fontSize: "14px",
             fontWeight: 500,
-            transition: 'all 0.2s ease'
+            transition: "all 0.2s ease",
           }}
           onMouseEnter={(e) => {
             if (viewType !== "all") {
-              e.currentTarget.style.background = '#FF5E13';
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.background = "#FF5E13";
+              e.currentTarget.style.color = "white";
             }
           }}
           onMouseLeave={(e) => {
             if (viewType !== "all") {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = '#FF5E13';
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#FF5E13";
             }
           }}
         >
@@ -181,26 +181,26 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
         <Button
           onClick={() => setViewType("upcoming")}
           style={{
-            background: viewType === "upcoming" ? '#FF5E13' : 'transparent',
-            color: viewType === "upcoming" ? 'white' : '#FF5E13',
-            border: '1px solid #FF5E13',
-            borderRadius: '8px',
-            padding: '8px 16px',
-            cursor: 'pointer',
-            fontSize: '14px',
+            background: viewType === "upcoming" ? "#FF5E13" : "transparent",
+            color: viewType === "upcoming" ? "white" : "#FF5E13",
+            border: "1px solid #FF5E13",
+            borderRadius: "8px",
+            padding: "8px 16px",
+            cursor: "pointer",
+            fontSize: "14px",
             fontWeight: 500,
-            transition: 'all 0.2s ease'
+            transition: "all 0.2s ease",
           }}
           onMouseEnter={(e) => {
             if (viewType !== "upcoming") {
-              e.currentTarget.style.background = '#FF5E13';
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.background = "#FF5E13";
+              e.currentTarget.style.color = "white";
             }
           }}
           onMouseLeave={(e) => {
             if (viewType !== "upcoming") {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = '#FF5E13';
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#FF5E13";
             }
           }}
         >
@@ -209,26 +209,26 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
         <Button
           onClick={() => setViewType("ended")}
           style={{
-            background: viewType === "ended" ? '#FF5E13' : 'transparent',
-            color: viewType === "ended" ? 'white' : '#FF5E13',
-            border: '1px solid #FF5E13',
-            borderRadius: '8px',
-            padding: '8px 16px',
-            cursor: 'pointer',
-            fontSize: '14px',
+            background: viewType === "ended" ? "#FF5E13" : "transparent",
+            color: viewType === "ended" ? "white" : "#FF5E13",
+            border: "1px solid #FF5E13",
+            borderRadius: "8px",
+            padding: "8px 16px",
+            cursor: "pointer",
+            fontSize: "14px",
             fontWeight: 500,
-            transition: 'all 0.2s ease'
+            transition: "all 0.2s ease",
           }}
           onMouseEnter={(e) => {
             if (viewType !== "ended") {
-              e.currentTarget.style.background = '#FF5E13';
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.background = "#FF5E13";
+              e.currentTarget.style.color = "white";
             }
           }}
           onMouseLeave={(e) => {
             if (viewType !== "ended") {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = '#FF5E13';
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#FF5E13";
             }
           }}
         >
@@ -330,15 +330,6 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     >
                       <Eye className="w-5 h-5" />
                     </button>
-                    {!(viewType === "ended") && (
-                      <button
-                        className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
-                        title="Tham gia"
-                        onClick={() => handleJoin(call)}
-                      >
-                        <LogIn className="w-5 h-5" />
-                      </button>
-                    )}
                     {!(viewType === "ended") && (
                       <button
                         className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
