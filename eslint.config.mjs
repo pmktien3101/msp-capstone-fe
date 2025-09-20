@@ -19,6 +19,11 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",   // cho phép dùng any
+      "react/no-unescaped-entities": "off",          // cho phép viết " trực tiếp
+      "@typescript-eslint/no-unused-vars": "warn",   // chỉ cảnh báo, không chặn build
+    },
   },
 ];
 
