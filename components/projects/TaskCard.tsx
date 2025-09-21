@@ -122,7 +122,7 @@ export const TaskCard = ({
         {task.epic && (
           <span className="epic-tag">{task.epic}</span>
         )}
-        {getAllMilestoneInfo(task.milestoneIds || [task.milestoneId]).map((milestone, index) => (
+        {getAllMilestoneInfo(task.milestoneIds || []).map((milestone, index) => (
           <span 
             key={index}
             className="milestone-tag" 
