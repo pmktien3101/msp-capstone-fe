@@ -8,7 +8,7 @@ import { CreateMilestoneModal } from '@/components/milestones/CreateMilestoneMod
 import { Project } from '@/types/project';
 import { Task } from '@/types/milestone';
 import { Member } from '@/types/member';
-import { mockProject, mockMembers, addMilestone } from '@/constants/mockData';
+import { mockProject, mockMembers, mockTasks, addMilestone } from '@/constants/mockData';
 import { Plus, Calendar, Users, Target } from 'lucide-react';
 import '@/app/styles/project-detail.scss';
 
@@ -90,6 +90,13 @@ const ProjectDetailPage = () => {
   };
 
 
+  // Calculate project progress based on tasks
+  const calculateProjectProgress = () => {
+    const completedTasks = mockTasks.filter(task => task.status === 'done').length;
+    const totalTasks = mockTasks.length;
+    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  };
+
   // Load project data from mockData
   useEffect(() => {
     // Simulate API call delay
@@ -107,7 +114,7 @@ const ProjectDetailPage = () => {
             role: member.role,
             avatar: member.avatar
           })),
-          progress: 75 // Mock progress
+          progress: calculateProjectProgress() // Calculate real progress
         };
         setProject(projectWithMembers);
       } else {
