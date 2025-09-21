@@ -453,6 +453,105 @@ export const ItemModal: React.FC<ItemModalProps> = ({
           </div>
         </form>
       </DialogContent>
+
+      <style jsx>{`
+        /* Responsive Design for ItemModal */
+        
+        /* Tablet (768px - 1023px) */
+        @media (max-width: 1023px) and (min-width: 769px) {
+          .sm\\:max-w-\\[600px\\] {
+            max-width: 90vw !important;
+            margin: 20px !important;
+          }
+        }
+
+        /* Mobile Large (481px - 768px) */
+        @media (max-width: 768px) and (min-width: 481px) {
+          .sm\\:max-w-\\[600px\\] {
+            max-width: 95vw !important;
+            margin: 10px !important;
+          }
+
+          .space-y-4 > * + * {
+            margin-top: 12px !important;
+          }
+
+          .px-2 {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+
+          .text-xl {
+            font-size: 18px !important;
+          }
+
+          .text-sm {
+            font-size: 12px !important;
+          }
+        }
+
+        /* Mobile Small (320px - 480px) */
+        @media (max-width: 480px) {
+          .sm\\:max-w-\\[600px\\] {
+            max-width: 100vw !important;
+            margin: 0 !important;
+            height: 100vh !important;
+            border-radius: 0 !important;
+          }
+
+          .space-y-4 > * + * {
+            margin-top: 10px !important;
+          }
+
+          .px-2 {
+            padding-left: 8px !important;
+            padding-right: 8px !important;
+          }
+
+          .text-xl {
+            font-size: 16px !important;
+          }
+
+          .text-sm {
+            font-size: 11px !important;
+          }
+
+          .w-8.h-8 {
+            width: 24px !important;
+            height: 24px !important;
+          }
+
+          .w-4.h-4 {
+            width: 14px !important;
+            height: 14px !important;
+          }
+
+          .gap-3 {
+            gap: 8px !important;
+          }
+
+          .mt-8 {
+            margin-top: 16px !important;
+          }
+
+          .pt-4 {
+            padding-top: 12px !important;
+          }
+
+          .pb-4 {
+            padding-bottom: 12px !important;
+          }
+
+          .flex.justify-end.gap-3 {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+
+          .flex.justify-end.gap-3 button {
+            width: 100% !important;
+          }
+        }
+      `}</style>
     </Dialog>
   );
 };

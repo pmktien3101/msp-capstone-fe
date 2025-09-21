@@ -117,7 +117,7 @@ export function CreateTaskModal({
           background: 'white',
           borderRadius: '12px',
           width: '100%',
-          maxWidth: '600px',
+          maxWidth: '800px',
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
@@ -237,11 +237,12 @@ export function CreateTaskModal({
               />
             </div>
 
-            {/* Priority and Status */}
+            {/* Priority, Status and Assignee */}
             <div
+              className="priority-status-grid"
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
+                gridTemplateColumns: '1fr 1fr 1fr',
                 gap: '16px'
               }}
             >
@@ -306,44 +307,43 @@ export function CreateTaskModal({
                   <option value="done">Done</option>
                 </select>
               </div>
-            </div>
-
-            {/* Assignee */}
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}
-              >
-                Người thực hiện
-              </label>
-              <select
-                value={formData.assigneeId}
-                onChange={(e) => setFormData(prev => ({ ...prev, assigneeId: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  background: 'white'
-                }}
-              >
-                <option value="">Chọn người thực hiện</option>
-                {projectMembers.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                  </option>
-                ))}
-              </select>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#374151',
+                    marginBottom: '8px'
+                  }}
+                >
+                  Người thực hiện
+                </label>
+                <select
+                  value={formData.assigneeId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, assigneeId: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    background: 'white'
+                  }}
+                >
+                  <option value="">Chọn người thực hiện</option>
+                  {projectMembers.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Start Date and End Date */}
             <div
+              className="dates-grid"
               style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
@@ -543,6 +543,43 @@ export function CreateTaskModal({
           </div>
         </form>
       </div>
+
+      <style jsx>{`
+        /* Responsive Design for CreateTaskModal */
+        
+        /* Tablet (768px - 1023px) */
+        @media (max-width: 1023px) and (min-width: 769px) {
+          .priority-status-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 12px !important;
+          }
+          .dates-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+        }
+
+        /* Mobile Large (481px - 768px) */
+        @media (max-width: 768px) and (min-width: 481px) {
+          .priority-status-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 10px !important;
+          }
+          .dates-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+        }
+
+        /* Mobile Small (320px - 480px) */
+        @media (max-width: 480px) {
+          .priority-status-grid,
+          .dates-grid {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

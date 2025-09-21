@@ -1,6 +1,6 @@
 'use client';
 
-import { mockTasks } from '@/constants/mockData';
+import { mockTasks, mockMembers } from '@/constants/mockData';
 
 export const TeamWorkload = () => {
   const assigneeCounts = mockTasks.reduce((acc, task) => {
@@ -11,19 +11,23 @@ export const TeamWorkload = () => {
 
   const totalTasks = mockTasks.length;
   
-  const workloadData = Object.entries(assigneeCounts).map(([assignee, count]) => ({
-    assignee: assignee === 'unassigned' ? 'Chưa giao' : assignee,
-    percentage: Math.round((count / totalTasks) * 100),
-    color: assignee === 'unassigned' ? '#6b7280' : '#3b82f6',
-    avatar: assignee === 'unassigned' ? null : assignee
-  }));
+  const workloadData = Object.entries(assigneeCounts).map(([assigneeId, count]) => {
+    const member = mockMembers.find(m => m.id === assigneeId);
+    return {
+      assignee: assigneeId === 'unassigned' ? 'Chưa giao' : (member?.name || assigneeId),
+      percentage: Math.round((count / totalTasks) * 100),
+      color: assigneeId === 'unassigned' ? '#6b7280' : '#fb923c',
+      avatar: assigneeId === 'unassigned' ? null : (member?.avatar || assigneeId),
+      taskCount: count
+    };
+  });
 
   return (
     <div className="team-workload">
       <div className="section-header">
         <div className="section-title">
-          <h3>Khối lượng công việc nhóm</h3>
-          <p>Phân bổ công việc theo thành viên.</p>
+          <h3>Các thành viên trong nhóm</h3>
+          <p>Danh sách thành viên và công việc được giao.</p>
         </div>
       </div>
 
@@ -45,7 +49,10 @@ export const TeamWorkload = () => {
                       </svg>
                     </div>
                   )}
-                  <span className="assignee-name">{item.assignee}</span>
+                  <div className="assignee-details">
+                    <span className="assignee-name">{item.assignee}</span>
+                    <span className="assignee-tasks">{item.taskCount} công việc</span>
+                  </div>
                 </div>
                 <span className="workload-percentage">{item.percentage}%</span>
               </div>
@@ -88,7 +95,7 @@ export const TeamWorkload = () => {
         }
 
         .section-title h3 {
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 600;
           color: #1f2937;
           margin: 0 0 4px 0;
@@ -153,10 +160,21 @@ export const TeamWorkload = () => {
           justify-content: center;
         }
 
+        .assignee-details {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
         .assignee-name {
           font-size: 14px;
           font-weight: 500;
           color: #374151;
+        }
+
+        .assignee-tasks {
+          font-size: 11px;
+          color: #6b7280;
         }
 
         .workload-percentage {

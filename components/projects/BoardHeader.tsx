@@ -1,5 +1,7 @@
 'use client';
 
+import { mockMembers, mockTasks } from "@/constants/mockData";
+
 interface BoardHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -13,6 +15,14 @@ export const BoardHeader = ({
   groupBy, 
   onGroupByChange 
 }: BoardHeaderProps) => {
+  // Get members who have tasks
+  const getMembersWithTasks = () => {
+    const memberIdsWithTasks = new Set(mockTasks.map(task => task.assignee).filter(Boolean));
+    return mockMembers.filter(member => memberIdsWithTasks.has(member.id));
+  };
+
+  const membersWithTasks = getMembersWithTasks();
+
   return (
     <div className="board-header">
       <div className="header-left">
@@ -29,19 +39,14 @@ export const BoardHeader = ({
             className="search-input"
           />
         </div>
-      </div>
-
-      <div className="header-center">
-        <div className="user-avatar">
-          <div className="avatar">QL</div>
+        
+        <div className="members-avatars">
+          {membersWithTasks.map((member) => (
+            <div key={member.id} className="member-avatar" title={member.name}>
+              {member.avatar}
+            </div>
+          ))}
         </div>
-
-        <button className="filter-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          Bộ lọc
-        </button>
       </div>
 
       <div className="header-right">
@@ -53,7 +58,7 @@ export const BoardHeader = ({
           >
             <option value="status">Nhóm theo trạng thái</option>
             <option value="assignee">Nhóm theo người thực hiện</option>
-            <option value="priority">Nhóm theo độ ưu tiên</option>
+            <option value="milestone">Nhóm theo cột mốc</option>
           </select>
         </div>
 
@@ -88,7 +93,7 @@ export const BoardHeader = ({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 24px;
+          padding: 16px 0;
           background: white;
           border-bottom: 1px solid #e5e7eb;
           gap: 16px;
@@ -96,12 +101,15 @@ export const BoardHeader = ({
 
         .header-left {
           flex: 1;
-          max-width: 300px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
         }
 
         .search-container {
           position: relative;
-          width: 100%;
+          width: 300px;
+          flex-shrink: 0;
         }
 
         .search-icon {
@@ -129,48 +137,33 @@ export const BoardHeader = ({
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .header-center {
+        .members-avatars {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 8px;
         }
 
-        .user-avatar {
-          display: flex;
-          align-items: center;
-        }
-
-        .avatar {
-          width: 32px;
-          height: 32px;
+        .member-avatar {
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
-          background: #3b82f6;
+          background: linear-gradient(135deg, #fb923c, #fbbf24);
           color: white;
-        }
-
-        .filter-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          background: white;
-          color: #374151;
-          font-size: 14px;
           cursor: pointer;
           transition: all 0.2s ease;
+          box-shadow: 0 2px 4px rgba(251, 146, 60, 0.3);
         }
 
-        .filter-btn:hover {
-          background: #f9fafb;
-          border-color: #9ca3af;
+        .member-avatar:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 8px rgba(251, 146, 60, 0.4);
         }
+
 
         .header-right {
           display: flex;
@@ -227,11 +220,17 @@ export const BoardHeader = ({
           }
 
           .header-left {
-            max-width: none;
+            flex-direction: column;
+            gap: 12px;
           }
 
-          .header-center {
-            justify-content: space-between;
+          .search-container {
+            width: 100%;
+          }
+
+          .members-avatars {
+            justify-content: center;
+            flex-wrap: wrap;
           }
 
           .header-right {

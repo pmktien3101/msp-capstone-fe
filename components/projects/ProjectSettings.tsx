@@ -506,7 +506,7 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         .member-avatar {
           width: 32px;
           height: 32px;
-          background: #3b82f6;
+          background: linear-gradient(135deg, #fb923c, #fbbf24);
           color: white;
           border-radius: 50%;
           display: flex;
@@ -514,6 +514,7 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
           justify-content: center;
           font-size: 14px;
           font-weight: 600;
+          box-shadow: 0 2px 4px rgba(251, 146, 60, 0.3);
         }
 
         .member-info {

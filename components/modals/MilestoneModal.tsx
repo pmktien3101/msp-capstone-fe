@@ -169,6 +169,123 @@ const MilestoneModal: React.FC<MilestoneModalProps> = ({
           </div>
         </form>
       </DialogContent>
+
+      <style jsx>{`
+        /* Responsive Design for MilestoneModal */
+        
+        /* Tablet (768px - 1023px) */
+        @media (max-width: 1023px) and (min-width: 769px) {
+          .milestone-modal {
+            max-width: 90vw !important;
+            margin: 20px !important;
+          }
+
+          .milestone-form {
+            padding: 20px !important;
+          }
+
+          .form-row {
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+
+          .member-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+          }
+        }
+
+        /* Mobile Large (481px - 768px) */
+        @media (max-width: 768px) and (min-width: 481px) {
+          .milestone-modal {
+            max-width: 95vw !important;
+            margin: 10px !important;
+          }
+
+          .milestone-form {
+            padding: 16px !important;
+          }
+
+          .form-row {
+            flex-direction: column !important;
+            gap: 10px !important;
+          }
+
+          .member-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+
+          .member-label {
+            padding: 12px !important;
+          }
+
+          .member-avatar {
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 14px !important;
+          }
+
+          .member-name {
+            font-size: 14px !important;
+          }
+
+          .member-role {
+            font-size: 12px !important;
+          }
+        }
+
+        /* Mobile Small (320px - 480px) */
+        @media (max-width: 480px) {
+          .milestone-modal {
+            max-width: 100vw !important;
+            margin: 0 !important;
+            height: 100vh !important;
+            border-radius: 0 !important;
+          }
+
+          .milestone-form {
+            padding: 12px !important;
+          }
+
+          .form-row {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+
+          .member-grid {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+          }
+
+          .member-label {
+            padding: 10px !important;
+          }
+
+          .member-avatar {
+            width: 28px !important;
+            height: 28px !important;
+            font-size: 12px !important;
+          }
+
+          .member-name {
+            font-size: 13px !important;
+          }
+
+          .member-role {
+            font-size: 11px !important;
+          }
+
+          .form-actions {
+            flex-direction: column !important;
+            gap: 8px !important;
+          }
+
+          .form-actions button {
+            width: 100% !important;
+          }
+        }
+      `}</style>
     </Dialog>
   );
 };

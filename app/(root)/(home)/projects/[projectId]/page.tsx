@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { ProjectTabs } from '@/components/projects/ProjectTabs';
-import { TaskDetailModal } from '@/components/projects/TaskDetailModal';
+import { DetailTaskModal } from '@/components/tasks/DetailTaskModal';
+import { CreateMilestoneModal } from '@/components/milestones/CreateMilestoneModal';
 import { Project } from '@/types/project';
 import { Task } from '@/types/milestone';
 import { Member } from '@/types/member';
+import { mockProject, mockMembers, mockTasks, addMilestone } from '@/constants/mockData';
+import { Plus, Calendar, Users, Target } from 'lucide-react';
 import '@/app/styles/project-detail.scss';
 
 const ProjectDetailPage = () => {
@@ -16,15 +19,10 @@ const ProjectDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [activeTab, setActiveTab] = useState("summary");
 
-  // Mock current user - replace with actual auth
-  const currentUser: Member = {
-    id: '1',
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    role: 'Project Manager',
-    avatar: '/avatars/john.svg'
-  };
 
   // Handlers
   const handleTaskClick = (task: Task) => {
@@ -37,21 +35,6 @@ const ProjectDetailPage = () => {
     setSelectedTask(null);
   };
 
-  const handleAddComment = (taskId: string, content: string) => {
-    // Mock comment addition - replace with actual API call
-    console.log('Adding comment to task:', taskId, 'Content:', content);
-    // In real implementation, this would call an API to add the comment
-  };
-
-  const handleEditComment = (commentId: string, content: string) => {
-    // Mock comment edit - replace with actual API call
-    console.log('Editing comment:', commentId, 'New content:', content);
-  };
-
-  const handleDeleteComment = (commentId: string) => {
-    // Mock comment deletion - replace with actual API call
-    console.log('Deleting comment:', commentId);
-  };
 
   const handleCreateTask = () => {
     // Mock task creation - replace with actual API call
@@ -60,58 +43,70 @@ const ProjectDetailPage = () => {
     alert('Tính năng tạo task sẽ được triển khai!');
   };
 
+  const handleCreateMilestone = () => {
+    setIsMilestoneModalOpen(true);
+  };
 
-  // Mock data - replace with actual API call
+  const handleCloseMilestoneModal = () => {
+    setIsMilestoneModalOpen(false);
+  };
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+  };
+
+  const handleSubmitMilestone = (milestoneData: any) => {
+    try {
+      // Add milestone to mockData
+      const newMilestone = addMilestone(milestoneData);
+      console.log('Created new milestone:', newMilestone);
+      
+      // Trigger UI refresh by updating refreshKey
+      setRefreshKey(prev => prev + 1);
+      
+      // Milestone created successfully - UI will automatically refresh
+      // No need for alert since user can see the new milestone in the list
+    } catch (error) {
+      console.error('Error creating milestone:', error);
+      alert('Có lỗi xảy ra khi tạo cột mốc. Vui lòng thử lại!');
+    }
+  };
+
+
+  // Calculate project progress based on tasks
+  const calculateProjectProgress = () => {
+    const completedTasks = mockTasks.filter(task => task.status === 'done').length;
+    const totalTasks = mockTasks.length;
+    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  };
+
+  // Load project data from mockData
   useEffect(() => {
-    const mockProjects: Project[] = [
-      {
-        id: '1',
-        name: 'Project Management System',
-        description: 'A system to manage company projects and resources',
-        status: 'active' as const,
-        startDate: '2025-09-01',
-        endDate: '2025-12-31',
-        manager: 'John Doe',
-        members: [
-          { id: '1', name: 'John Doe', role: 'Project Manager', email: 'john.doe@example.com', avatar: '/avatars/john.svg' },
-          { id: '2', name: 'Jane Smith', role: 'Developer', email: 'jane.smith@example.com', avatar: '/avatars/jane.svg' }
-        ],
-        progress: 75
-      },
-      {
-        id: '2',
-        name: 'Marketing Campaign',
-        description: 'Q4 Digital Marketing Campaign',
-        status: 'planning' as const,
-        startDate: '2025-10-01',
-        endDate: '2025-12-15',
-        manager: 'Jane Smith',
-        members: [
-          { id: '3', name: 'Mike Johnson', role: 'Marketing Lead', email: 'mike.johnson@example.com', avatar: '/avatars/mike.png' },
-          { id: '4', name: 'Sarah Wilson', role: 'Content Creator', email: 'sarah.wilson@example.com', avatar: '/avatars/sarah.png' }
-        ],
-        progress: 25
-      },
-      {
-        id: '3',
-        name: 'Mobile App Development',
-        description: 'Customer service mobile application',
-        status: 'completed' as const,
-        startDate: '2025-06-01',
-        endDate: '2025-09-30',
-        manager: 'Tom Brown',
-        members: [
-          { id: '5', name: 'Tom Brown', role: 'Tech Lead', email: 'tom.brown@example.com', avatar: '/avatars/tom.png' },
-          { id: '6', name: 'Emma Davis', role: 'Developer', email: 'emma.davis@example.com', avatar: '/avatars/emma.png' }
-        ],
-        progress: 100
+    // Simulate API call delay
+    const timer = setTimeout(() => {
+      if (projectId === mockProject.id) {
+        // Convert mockProject to Project type with members data
+        const projectWithMembers: Project = {
+          ...mockProject,
+          status: mockProject.status as "active" | "planning" | "on-hold" | "completed",
+          manager: mockMembers[0].name, // Quang Long as manager
+          members: mockMembers.map(member => ({
+            id: member.id,
+            name: member.name,
+            email: member.email,
+            role: member.role,
+            avatar: member.avatar
+          })),
+          progress: calculateProjectProgress() // Calculate real progress
+        };
+        setProject(projectWithMembers);
+      } else {
+        setProject(null);
       }
-    ];
+      setLoading(false);
+    }, 500);
 
-    const foundProject = mockProjects.find(p => p.id === projectId);
-    setProject(foundProject || null);
-    
-    setLoading(false);
+    return () => clearTimeout(timer);
   }, [projectId]);
 
   if (loading) {
@@ -136,9 +131,8 @@ const ProjectDetailPage = () => {
     <div className="project-detail-page">
       <div className="project-header">
         <div className="project-info">
-          <h1 className="project-title">{project.name}</h1>
-          <p className="project-description">{project.description}</p>
-          <div className="project-meta">
+          <div className="project-title-section">
+            <h1 className="project-title">{project.name}</h1>
             <span className={`status-badge status-${project.status}`}>
               {project.status === 'active' && 'Đang hoạt động'}
               {project.status === 'planning' && 'Đang lập kế hoạch'}
@@ -146,24 +140,69 @@ const ProjectDetailPage = () => {
               {project.status === 'completed' && 'Hoàn thành'}
             </span>
           </div>
+          <p className="project-description">{project.description}</p>
+          <div className="project-meta">
+            <div className="meta-item">
+              <Calendar size={16} />
+              <span>{new Date(project.startDate).toLocaleDateString('vi-VN')} - {new Date(project.endDate).toLocaleDateString('vi-VN')}</span>
+            </div>
+            <div className="meta-item">
+              <Users size={16} />
+              <span>{project.members.length} thành viên</span>
+            </div>
+            <div className="meta-item">
+              <Target size={16} />
+              <span>Tiến độ: {project.progress}%</span>
+            </div>
+          </div>
+        </div>
+        <div className="project-actions">
+          {(activeTab === "board" || activeTab === "list") && (
+            <button 
+              className="create-milestone-btn"
+              onClick={handleCreateMilestone}
+              title="Tạo cột mốc mới"
+            >
+              <Plus size={16} />
+              Tạo cột mốc
+            </button>
+          )}
         </div>
       </div>
 
-      <ProjectTabs project={project} onTaskClick={handleTaskClick} onCreateTask={handleCreateTask} />
+      <ProjectTabs 
+        key={refreshKey}
+        project={project} 
+        onTaskClick={handleTaskClick} 
+        onCreateTask={handleCreateTask}
+        onTabChange={handleTabChange}
+        initialActiveTab={activeTab}
+      />
       
       {/* Task Detail Modal */}
-      {selectedTask && project && (
-        <TaskDetailModal
+      {selectedTask && (
+        <DetailTaskModal
           isOpen={isTaskModalOpen}
           onClose={handleCloseTaskModal}
+          onEdit={(task) => {
+            console.log('Editing task:', task);
+            // Handle task edit - you can implement actual edit logic here
+          }}
+          onDelete={(taskId, taskTitle) => {
+            console.log('Deleting task:', taskId, taskTitle);
+            // Handle task delete - you can implement actual delete logic here
+          }}
           task={selectedTask}
-          projectMembers={project.members}
-          currentUser={currentUser}
-          onAddComment={handleAddComment}
-          onEditComment={handleEditComment}
-          onDeleteComment={handleDeleteComment}
         />
       )}
+
+      {/* Create Milestone Modal */}
+      <CreateMilestoneModal
+        isOpen={isMilestoneModalOpen}
+        onClose={handleCloseMilestoneModal}
+        onCreateMilestone={handleSubmitMilestone}
+        projectId={projectId}
+      />
     </div>
   );
 };

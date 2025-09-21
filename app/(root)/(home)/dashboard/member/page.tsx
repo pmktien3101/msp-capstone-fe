@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import { Project } from "@/types/project";
-import { mockTasks, additionalMockTasks } from "@/constants/mockData";
+import { mockTasks } from "@/constants/mockData";
 import { MemberProjectCard } from "@/components/projects/MemberProjectCard";
 import { MemberTaskCard } from "@/components/tasks/MemberTaskCard";
 import "@/app/styles/dashboard.scss";
@@ -76,7 +76,7 @@ export default function MemberDashboardPage() {
 
   // Get tasks assigned to current member
   const getMyTasks = () => {
-    const allTasks = [...mockTasks, ...additionalMockTasks];
+    const allTasks = [...mockTasks];
     // Filter tasks that are assigned to current member (mock logic)
     return allTasks.filter(
       (task) =>
