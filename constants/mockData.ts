@@ -1,5 +1,7 @@
 // Mock data tập trung cho tất cả tabs trong dự án
 
+import { Participant } from "@/types";
+
 // Mock Members data
 export const mockMembers = [
   {
@@ -483,6 +485,28 @@ export const mockMeetings = [
     status: "Scheduled",
     roomUrl: "https://meet.google.com/testing-session",
     participates: ["member-1", "member-4", "member-5"]
+  },
+];
+
+// Mock participants
+export const mockParticipants: Participant[] = [
+  {
+    id: "4",
+    email: "member1@example.com",
+    image: "/avatar-3.png",
+    role: "Member",
+  },
+  {
+    id: "5",
+    email: "member2@example.com",
+    image: "/avatar-1.png",
+    role: "Member",
+  },
+  {
+    id: "6",
+    email: "member3@example.com",
+    image: "/avatar-4.png",
+    role: "Member",
   },
 ];
 
