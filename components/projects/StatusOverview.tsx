@@ -7,9 +7,9 @@ export const StatusOverview = () => {
   
   const statusData = [
     { status: 'Hoàn thành', count: stats.completed, color: '#10b981', percentage: Math.round((stats.completed / stats.total) * 100) },
-    { status: 'Đang làm', count: stats.inProgress, color: '#3b82f6', percentage: Math.round((stats.inProgress / stats.total) * 100) },
-    { status: 'Cần làm', count: stats.todo, color: '#8b5cf6', percentage: Math.round((stats.todo / stats.total) * 100) },
-    { status: 'Đang review', count: stats.review, color: '#f59e0b', percentage: Math.round((stats.review / stats.total) * 100) }
+    { status: 'Đang làm', count: stats.inProgress, color: '#fb923c', percentage: Math.round((stats.inProgress / stats.total) * 100) },
+    { status: 'Cần làm', count: stats.todo, color: '#6b7280', percentage: Math.round((stats.todo / stats.total) * 100) },
+    { status: 'Đang review', count: stats.review, color: '#fbbf24', percentage: Math.round((stats.review / stats.total) * 100) }
   ];
 
   const totalItems = stats.total;
@@ -101,7 +101,7 @@ export const StatusOverview = () => {
         }
 
         .section-title h3 {
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 600;
           color: #1f2937;
           margin: 0 0 4px 0;
@@ -191,6 +191,7 @@ export const StatusOverview = () => {
           height: 12px;
           border-radius: 50%;
           flex-shrink: 0;
+          border: 2px solid rgba(255, 255, 255, 0.8);
         }
 
         .legend-info {

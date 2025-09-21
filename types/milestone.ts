@@ -45,5 +45,6 @@ export interface Task {
   tags?: string[];
   projectId?: string;
   milestoneId?: string;
+  milestoneIds?: string[];
   comments?: any[];
 }

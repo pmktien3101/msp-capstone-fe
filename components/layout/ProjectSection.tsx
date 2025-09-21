@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Project } from '@/types/project';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
-import { mockTasks } from '@/constants/mockData';
+import { mockTasks, mockProject, mockMembers } from '@/constants/mockData';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -21,120 +21,37 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
   // Calculate progress based on tasks for each project
   const calculateProjectProgress = (projectId: string) => {
-    // Map projectId to tasks - in real app this would come from API
-    const projectTaskMapping: { [key: string]: string[] } = {
-      '1': ['MWA-1', 'MWA-2', 'MWA-3', 'MWA-4', 'MWA-5'], // Project Management System
-      '2': ['MKT-1', 'MKT-2', 'MKT-3'], // Marketing Campaign
-      '3': ['MOB-1', 'MOB-2', 'MOB-3', 'MOB-4'], // Mobile App Development
-      '4': ['E-1', 'E-2', 'E-3'], // E-commerce Platform
-      '5': ['DA-1', 'DA-2'], // Data Analytics Dashboard
-      '6': ['CS-1', 'CS-2', 'CS-3'] // Customer Support System
-    };
-
-    const taskIds = projectTaskMapping[projectId] || [];
-    const allTasks = [...mockTasks];
-    const tasks = allTasks.filter(task => taskIds.includes(task.id));
-    const completedTasks = tasks.filter(task => task.status === 'done' || task.status === 'completed').length;
-    const totalTasks = tasks.length;
-    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    if (projectId === '1') {
+      // Main project from mockData.ts
+      const completedTasks = mockTasks.filter(task => task.status === 'done').length;
+      const totalTasks = mockTasks.length;
+      return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    }
+    return 0;
   };
 
-  // Mock data - replace with actual API call
+  // Mock data - using data from constants/mockData.ts
   useEffect(() => {
-    const mockProjects: Project[] = [
-      {
-        id: '1',
-        name: 'Project Management System',
-        description: 'A system to manage company projects and resources',
-        status: 'active' as const,
-        startDate: '2025-09-01',
-        endDate: '2025-12-31',
-        manager: 'John Doe',
-        members: [
-          { id: '1', name: 'John Doe', role: 'Project Manager', email: 'john.doe@example.com', avatar: '/avatars/john.svg' },
-          { id: '2', name: 'Jane Smith', role: 'Developer', email: 'jane.smith@example.com', avatar: '/avatars/jane.svg' }
-        ],
-        progress: 75
-      },
-      {
-        id: '2',
-        name: 'Marketing Campaign',
-        description: 'Q4 Digital Marketing Campaign',
-        status: 'planning' as const,
-        startDate: '2025-10-01',
-        endDate: '2025-12-15',
-        manager: 'Jane Smith',
-        members: [
-          { id: '3', name: 'Mike Johnson', role: 'Marketing Lead', email: 'mike.johnson@example.com', avatar: '/avatars/mike.png' },
-          { id: '4', name: 'Sarah Wilson', role: 'Content Creator', email: 'sarah.wilson@example.com', avatar: '/avatars/sarah.png' }
-        ],
-        progress: 25
-      },
-      {
-        id: '3',
-        name: 'Mobile App Development',
-        description: 'Customer service mobile application',
-        status: 'completed' as const,
-        startDate: '2025-06-01',
-        endDate: '2025-09-30',
-        manager: 'Tom Brown',
-        members: [
-          { id: '5', name: 'Tom Brown', role: 'Tech Lead', email: 'tom.brown@example.com', avatar: '/avatars/tom.png' },
-          { id: '6', name: 'Emma Davis', role: 'Developer', email: 'emma.davis@example.com', avatar: '/avatars/emma.png' }
-        ],
-        progress: 100
-      },
-      {
-        id: '4',
-        name: 'E-commerce Platform',
-        description: 'Online shopping platform with payment integration',
-        status: 'active' as const,
-        startDate: '2025-08-01',
-        endDate: '2026-02-28',
-        manager: 'Alice Johnson',
-        members: [
-          { id: '7', name: 'Alice Johnson', role: 'Product Manager', email: 'alice.johnson@example.com', avatar: '/avatars/alice.png' },
-          { id: '8', name: 'Bob Wilson', role: 'Full Stack Developer', email: 'bob.wilson@example.com', avatar: '/avatars/bob.png' }
-        ],
-        progress: 45
-      },
-      {
-        id: '5',
-        name: 'Data Analytics Dashboard',
-        description: 'Business intelligence and reporting dashboard',
-        status: 'planning' as const,
-        startDate: '2025-11-01',
-        endDate: '2026-01-31',
-        manager: 'David Lee',
-        members: [
-          { id: '9', name: 'David Lee', role: 'Data Analyst', email: 'david.lee@example.com', avatar: '/avatars/david.png' },
-          { id: '10', name: 'Lisa Chen', role: 'UI/UX Designer', email: 'lisa.chen@example.com', avatar: '/avatars/lisa.png' }
-        ],
-        progress: 15
-      },
-      {
-        id: '6',
-        name: 'Customer Support System',
-        description: 'AI-powered customer support and ticketing system',
-        status: 'on-hold' as const,
-        startDate: '2025-07-01',
-        endDate: '2025-12-31',
-        manager: 'Maria Garcia',
-        members: [
-          { id: '11', name: 'Maria Garcia', role: 'AI Engineer', email: 'maria.garcia@example.com', avatar: '/avatars/maria.png' },
-          { id: '12', name: 'James Taylor', role: 'Backend Developer', email: 'james.taylor@example.com', avatar: '/avatars/james.png' }
-        ],
-        progress: 30
-      }
-    ];
+    // Convert mockProject to Project format
+    const mainProject: Project = {
+      id: mockProject.id,
+      name: mockProject.name,
+      description: mockProject.description,
+      status: mockProject.status as 'active' | 'planning' | 'completed' | 'on-hold',
+      startDate: mockProject.startDate,
+      endDate: mockProject.endDate,
+      manager: 'Quang Long', // From mockMembers
+      members: mockMembers.map(member => ({
+        id: member.id,
+        name: member.name,
+        role: member.role,
+        email: member.email,
+        avatar: `/avatars/${member.avatar.toLowerCase()}.png`
+      })),
+      progress: calculateProjectProgress(mockProject.id)
+    };
 
-    // Update projects with calculated progress
-    const updatedProjects = mockProjects.map(project => ({
-      ...project,
-      progress: calculateProjectProgress(project.id)
-    }));
-    
-    setProjects(updatedProjects);
+    setProjects([mainProject]);
     setLoading(false);
   }, []);
 

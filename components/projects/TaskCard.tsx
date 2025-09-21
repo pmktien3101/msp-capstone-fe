@@ -1,6 +1,7 @@
 "use client";
 
 import { Task } from "@/types/milestone";
+import { mockMilestones } from "@/constants/mockData";
 
 interface TaskCardProps {
   task: Task;
@@ -43,6 +44,26 @@ export const TaskCard = ({
     }
   };
 
+  const getMilestoneInfo = (milestoneId: string) => {
+    const milestone = mockMilestones.find(m => m.id === milestoneId);
+    if (!milestone) return { name: "Không xác định", color: "#6b7280" };
+    
+    // Màu sắc dựa trên milestone
+    const colors = {
+      "milestone-1": "#3b82f6", // Xanh dương cho milestone đầu tiên
+      "milestone-2": "#10b981", // Xanh lá cho milestone thứ hai
+    };
+    
+    return {
+      name: milestone.name,
+      color: colors[milestoneId as keyof typeof colors] || "#6b7280"
+    };
+  };
+
+  const getAllMilestoneInfo = (milestoneIds: string[]) => {
+    return milestoneIds.map(milestoneId => getMilestoneInfo(milestoneId));
+  };
+
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't open modal if clicking on interactive elements
     if (
@@ -65,7 +86,7 @@ export const TaskCard = ({
       <div className="task-header">
         <h4 className="task-title">{task.title}</h4>
         <button className="task-menu-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <circle
               cx="12"
               cy="12"
@@ -97,13 +118,25 @@ export const TaskCard = ({
         </button>
       </div>
 
-      <div className="task-epic">
-        <span className="epic-tag">{task.epic}</span>
+      <div className="task-tags">
+        {task.epic && (
+          <span className="epic-tag">{task.epic}</span>
+        )}
+        {getAllMilestoneInfo(task.milestoneIds || [task.milestoneId]).map((milestone, index) => (
+          <span 
+            key={index}
+            className="milestone-tag" 
+            style={{ backgroundColor: milestone.color }}
+            title={milestone.name}
+          >
+            {milestone.name}
+          </span>
+        ))}
       </div>
 
       <div className="task-meta">
         <div className="task-due-date">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
             <path
               d="M8 2V6"
               stroke="currentColor"
@@ -146,11 +179,23 @@ export const TaskCard = ({
 
       <div className="task-footer">
         <div className="task-assignee">
-          {task.assignee ? (
-            <div className="assignee-avatar">{task.assignee}</div>
+          {task.assignedTo ? (
+            <div className="assignee-info">
+              <div className="assignee-avatar" title={task.assignedTo.name}>
+                {task.assignedTo.avatar}
+              </div>
+              <span className="assignee-name">{task.assignedTo.name}</span>
+            </div>
+          ) : task.assignee ? (
+            <div className="assignee-info">
+              <div className="assignee-avatar" title={task.assignee}>
+                {task.assignee.charAt(0).toUpperCase()}
+              </div>
+              <span className="assignee-name">{task.assignee}</span>
+            </div>
           ) : (
             <div className="assignee-placeholder">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                 <path
                   d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
                   stroke="currentColor"
@@ -172,7 +217,7 @@ export const TaskCard = ({
 
         <div className="task-links">
           <button className="link-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
               <path
                 d="M10 13C10.4295 13.5741 10.9774 14.0491 11.6066 14.3929C12.2357 14.7367 12.9319 14.9411 13.6467 14.9923C14.3614 15.0435 15.0796 14.9403 15.7513 14.6897C16.4231 14.4392 17.0331 14.047 17.54 13.54L20.54 10.54C21.4508 9.59695 21.9548 8.33394 21.9434 7.02296C21.932 5.71198 21.4061 4.45791 20.4791 3.53087C19.5521 2.60383 18.298 2.07799 16.987 2.0666C15.676 2.0552 14.413 2.55918 13.47 3.47L11.75 5.18"
                 stroke="currentColor"
@@ -196,16 +241,16 @@ export const TaskCard = ({
         .task-card {
           background: white;
           border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 16px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          border-radius: 6px;
+          padding: 12px;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
           cursor: pointer;
           transition: all 0.2s ease;
           position: relative;
         }
 
         .task-card:hover {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
           transform: translateY(-1px);
         }
 
@@ -222,21 +267,24 @@ export const TaskCard = ({
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .task-title {
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 600;
           color: #1f2937;
           margin: 0;
           flex: 1;
-          line-height: 1.4;
+          line-height: 1.3;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .task-menu-btn {
-          width: 24px;
-          height: 24px;
+          width: 20px;
+          height: 20px;
           border: none;
           background: transparent;
           color: #9ca3af;
@@ -244,7 +292,7 @@ export const TaskCard = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 4px;
+          border-radius: 3px;
           transition: all 0.2s ease;
         }
 
@@ -253,40 +301,58 @@ export const TaskCard = ({
           color: #374151;
         }
 
-        .task-epic {
-          margin-bottom: 12px;
+        .task-tags {
+          margin-bottom: 8px;
+          display: flex;
+          gap: 4px;
+          flex-wrap: wrap;
         }
 
         .epic-tag {
           display: inline-block;
           background: #8b5cf6;
           color: white;
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 500;
-          padding: 4px 8px;
-          border-radius: 4px;
+          padding: 2px 6px;
+          border-radius: 3px;
           text-transform: uppercase;
+        }
+
+        .milestone-tag {
+          display: inline-block;
+          color: white;
+          font-size: 9px;
+          font-weight: 500;
+          padding: 2px 5px;
+          border-radius: 3px;
+          text-transform: uppercase;
+          max-width: 80px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          margin-right: 3px;
         }
 
         .task-meta {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
-          font-size: 12px;
+          margin-bottom: 8px;
+          font-size: 11px;
           color: #6b7280;
         }
 
         .task-due-date {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 3px;
         }
 
         .task-id {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 4px;
         }
 
         .task-id input[type="checkbox"] {
@@ -309,22 +375,34 @@ export const TaskCard = ({
           align-items: center;
         }
 
+        .assignee-info {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
         .assignee-avatar {
-          width: 24px;
-          height: 24px;
+          width: 20px;
+          height: 20px;
           background: #3b82f6;
           color: white;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 600;
         }
 
+        .assignee-name {
+          font-size: 11px;
+          color: #6b7280;
+          font-weight: 500;
+        }
+
         .assignee-placeholder {
-          width: 24px;
-          height: 24px;
+          width: 20px;
+          height: 20px;
           background: #f3f4f6;
           color: #9ca3af;
           border-radius: 50%;
@@ -336,12 +414,12 @@ export const TaskCard = ({
         .task-links {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 3px;
         }
 
         .link-btn {
-          width: 20px;
-          height: 20px;
+          width: 18px;
+          height: 18px;
           border: none;
           background: transparent;
           color: #9ca3af;
@@ -349,7 +427,7 @@ export const TaskCard = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 4px;
+          border-radius: 3px;
           transition: all 0.2s ease;
         }
 
