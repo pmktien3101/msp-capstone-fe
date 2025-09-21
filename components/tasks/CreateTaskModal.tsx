@@ -114,29 +114,30 @@ export const CreateTaskModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
+    <div className="modal-overlay" onClick={handleClose}>
+      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Tạo Task mới</h2>
+          <h2 className="modal-title">Tạo công việc mới</h2>
           <button className="close-btn" onClick={handleClose}>
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-form">
-          <div className="form-grid">
+        <div className="modal-body">
+          <form id="task-form" onSubmit={handleSubmit} className="modal-form">
+            <div className="form-grid">
             {/* Task Title */}
             <div className="form-group full-width">
               <label className="form-label">
                 <FileText size={16} />
-                Tiêu đề Task *
+                Tiêu đề công việc *
               </label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => handleInputChange("title", e.target.value)}
                 className={`form-input ${errors.title ? "error" : ""}`}
-                placeholder="Nhập tiêu đề task"
+                placeholder="Nhập tiêu đề công việc"
               />
               {errors.title && <span className="error-message">{errors.title}</span>}
             </div>
@@ -151,7 +152,7 @@ export const CreateTaskModal = ({
                 value={formData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
                 className={`form-textarea ${errors.description ? "error" : ""}`}
-                placeholder="Mô tả chi tiết về task"
+                placeholder="Mô tả chi tiết về công việc"
                 rows={3}
               />
               {errors.description && <span className="error-message">{errors.description}</span>}
@@ -161,7 +162,7 @@ export const CreateTaskModal = ({
             <div className="form-group full-width">
               <label className="form-label">
                 <Layers size={16} />
-                Milestones
+                Cột mốc liên quan
               </label>
               <div className="milestone-selection">
                 {mockMilestones.map((milestone) => (
@@ -261,16 +262,19 @@ export const CreateTaskModal = ({
               </div>
             </div>
           </div>
+          </form>
+        </div>
 
+        <div className="modal-footer">
           <div className="modal-actions">
             <button type="button" className="btn-cancel" onClick={handleClose}>
               Hủy
             </button>
-            <button type="submit" className="btn-submit">
-              Tạo Task
+            <button type="submit" className="btn-submit" form="task-form">
+              Tạo công việc
             </button>
           </div>
-        </form>
+        </div>
       </div>
 
       <style jsx>{`
@@ -293,9 +297,10 @@ export const CreateTaskModal = ({
           border-radius: 16px;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
           width: 90%;
-          max-width: 600px;
+          max-width: 800px;
           max-height: 90vh;
-          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
         }
 
         /* Hide scrollbar only for modal container */
@@ -312,9 +317,21 @@ export const CreateTaskModal = ({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 24px 24px 0 24px;
+          padding: 24px;
           border-bottom: 1px solid #e5e7eb;
-          margin-bottom: 24px;
+          flex-shrink: 0;
+        }
+
+        .modal-body {
+          flex: 1;
+          overflow-y: auto;
+          padding: 0;
+        }
+
+        .modal-footer {
+          flex-shrink: 0;
+          border-top: 1px solid #e5e7eb;
+          padding: 20px 24px;
         }
 
         .modal-title {
@@ -344,12 +361,12 @@ export const CreateTaskModal = ({
         }
 
         .modal-form {
-          padding: 0 24px 24px 24px;
+          padding: 24px;
         }
 
         .form-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1fr 1fr 1fr;
           gap: 20px;
           margin-bottom: 24px;
         }
@@ -489,8 +506,6 @@ export const CreateTaskModal = ({
           display: flex;
           gap: 12px;
           justify-content: flex-end;
-          padding-top: 20px;
-          border-top: 1px solid #e5e7eb;
         }
 
         .btn-cancel {
@@ -528,6 +543,13 @@ export const CreateTaskModal = ({
           background: #ff8c42;
           color: white;
           box-shadow: 0 4px 16px rgba(255, 140, 66, 0.3);
+        }
+
+        @media (max-width: 1024px) {
+          .form-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+          }
         }
 
         @media (max-width: 768px) {

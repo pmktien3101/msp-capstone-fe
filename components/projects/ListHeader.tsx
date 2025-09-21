@@ -126,7 +126,7 @@ export const ListHeader = ({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 24px;
+          padding: 16px 0;
           background: white;
           border-bottom: 1px solid #e5e7eb;
           gap: 16px;
@@ -264,15 +264,57 @@ export const ListHeader = ({
           color: #374151;
         }
 
-        @media (max-width: 768px) {
+        /* Responsive Design */
+        
+        /* Tablet (768px - 1023px) */
+        @media (max-width: 1023px) and (min-width: 769px) {
+          .list-header {
+            padding: 14px 0;
+            gap: 14px;
+          }
+
+          .search-input {
+            padding: 7px 11px 7px 38px;
+            font-size: 13px;
+          }
+
+          .search-icon {
+            left: 11px;
+          }
+
+          .filter-select {
+            padding: 7px 11px;
+            font-size: 13px;
+          }
+
+          .sort-select {
+            padding: 7px 11px;
+            font-size: 13px;
+          }
+
+          .sort-order-btn,
+          .header-btn {
+            width: 34px;
+            height: 34px;
+          }
+        }
+
+        /* Mobile Large (481px - 768px) */
+        @media (max-width: 768px) and (min-width: 481px) {
           .list-header {
             flex-direction: column;
             align-items: stretch;
             gap: 12px;
+            padding: 12px 0;
           }
 
           .header-left {
             max-width: none;
+          }
+
+          .search-input {
+            padding: 8px 12px 8px 40px;
+            font-size: 14px;
           }
 
           .header-center {
@@ -281,14 +323,101 @@ export const ListHeader = ({
 
           .filters {
             flex: 1;
+            gap: 10px;
           }
 
           .filter-select {
             flex: 1;
+            padding: 8px 12px;
+            font-size: 14px;
           }
 
           .header-right {
             justify-content: space-between;
+            gap: 6px;
+          }
+
+          .sort-controls {
+            gap: 6px;
+            margin-right: 6px;
+          }
+
+          .sort-select {
+            padding: 8px 12px;
+            font-size: 14px;
+          }
+
+          .sort-order-btn,
+          .header-btn {
+            width: 36px;
+            height: 36px;
+          }
+        }
+
+        /* Mobile Small (320px - 480px) */
+        @media (max-width: 480px) {
+          .list-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            padding: 10px 0;
+          }
+
+          .header-left {
+            max-width: none;
+          }
+
+          .search-input {
+            padding: 6px 10px 6px 36px;
+            font-size: 13px;
+          }
+
+          .search-icon {
+            left: 10px;
+            width: 14px;
+            height: 14px;
+          }
+
+          .header-center {
+            justify-content: space-between;
+          }
+
+          .filters {
+            flex: 1;
+            gap: 8px;
+          }
+
+          .filter-select {
+            flex: 1;
+            padding: 6px 10px;
+            font-size: 13px;
+          }
+
+          .header-right {
+            justify-content: space-between;
+            gap: 4px;
+          }
+
+          .sort-controls {
+            gap: 4px;
+            margin-right: 4px;
+          }
+
+          .sort-select {
+            padding: 6px 10px;
+            font-size: 13px;
+          }
+
+          .sort-order-btn,
+          .header-btn {
+            width: 32px;
+            height: 32px;
+          }
+
+          .sort-order-btn svg,
+          .header-btn svg {
+            width: 14px;
+            height: 14px;
           }
         }
       `}</style>

@@ -5,7 +5,7 @@ import { Project } from "@/types/project";
 import { TaskCard } from "./TaskCard";
 import { AddColumnModal } from "./AddColumnModal";
 import { ColumnMenu } from "./ColumnMenu";
-import { CreateTaskModal } from "./modals/CreateTaskModal";
+import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { mockTasks, mockMembers, mockMilestones } from "@/constants/mockData";
 import { Task } from "@/types/milestone";
 
@@ -856,8 +856,7 @@ export const BoardColumns = ({
           isOpen={showCreateTaskModal}
           onClose={() => setShowCreateTaskModal(false)}
           onCreateTask={handleCreateTask}
-          projectMembers={mockMembers}
-          defaultStatus={createTaskColumn}
+          milestoneId={createTaskColumn}
         />
       )}
 
@@ -908,11 +907,12 @@ export const BoardColumns = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
-          background: #3b82f6;
+          background: linear-gradient(135deg, #fb923c, #fbbf24);
           color: white;
           flex-shrink: 0;
+          box-shadow: 0 2px 4px rgba(251, 146, 60, 0.3);
         }
 
         .swimlane-title {
@@ -1100,15 +1100,259 @@ export const BoardColumns = ({
           background: #f9fafb;
         }
 
-        @media (max-width: 768px) {
+        /* Responsive Design */
+        
+        /* Large Desktop (1200px+) */
+        @media (min-width: 1200px) {
           .columns-container {
-            padding: 12px;
-            gap: 12px;
+            padding: 20px;
+            gap: 20px;
           }
 
           .board-column {
-            min-width: 250px;
-            max-width: 250px;
+            min-width: 280px;
+            max-width: 280px;
+          }
+
+          .add-column-btn {
+            min-width: 150px;
+          }
+        }
+
+        /* Desktop (1024px - 1199px) */
+        @media (max-width: 1199px) and (min-width: 1024px) {
+          .columns-container {
+            padding: 18px;
+            gap: 18px;
+          }
+
+          .board-column {
+            min-width: 260px;
+            max-width: 260px;
+          }
+
+          .add-column-btn {
+            min-width: 140px;
+          }
+        }
+
+        /* Tablet (768px - 1023px) */
+        @media (max-width: 1023px) and (min-width: 769px) {
+          .columns-container {
+            padding: 16px;
+            gap: 16px;
+          }
+
+          .board-column {
+            min-width: 240px;
+            max-width: 240px;
+          }
+
+          .add-column-btn {
+            min-width: 130px;
+          }
+
+          .column-header {
+            padding: 12px 14px;
+          }
+
+          .column-title {
+            font-size: 13px;
+          }
+
+          .task-count {
+            font-size: 11px;
+            padding: 2px 6px;
+          }
+
+          .column-menu-btn {
+            width: 24px;
+            height: 24px;
+          }
+
+          .create-btn {
+            padding: 8px 12px;
+            font-size: 12px;
+          }
+
+          .swimlane-header {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+          }
+
+          .swimlane-title {
+            font-size: 12px;
+          }
+
+          .swimlane-count {
+            font-size: 10px;
+            padding: 1px 5px;
+          }
+
+          .member-avatar {
+            width: 22px;
+            height: 22px;
+            font-size: 10px;
+          }
+
+          .collapse-btn {
+            width: 20px;
+            height: 20px;
+          }
+
+          .tasks-container {
+            padding: 8px;
+            gap: 8px;
+          }
+        }
+
+        /* Mobile Large (481px - 768px) */
+        @media (max-width: 768px) and (min-width: 481px) {
+          .columns-container {
+            padding: 12px;
+            gap: 12px;
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .board-column {
+            min-width: 100%;
+            max-width: 100%;
+            margin-bottom: 12px;
+          }
+
+          .add-column-btn {
+            min-width: 100%;
+            margin-bottom: 12px;
+          }
+
+          .column-header {
+            padding: 10px 12px;
+          }
+
+          .column-title {
+            font-size: 12px;
+          }
+
+          .task-count {
+            font-size: 10px;
+            padding: 1px 5px;
+          }
+
+          .column-menu-btn {
+            width: 22px;
+            height: 22px;
+          }
+
+          .create-btn {
+            padding: 6px 10px;
+            font-size: 11px;
+          }
+
+          .swimlane-header {
+            padding: 6px 10px;
+            margin-bottom: 6px;
+          }
+
+          .swimlane-title {
+            font-size: 11px;
+          }
+
+          .swimlane-count {
+            font-size: 9px;
+            padding: 1px 4px;
+          }
+
+          .member-avatar {
+            width: 20px;
+            height: 20px;
+            font-size: 9px;
+          }
+
+          .collapse-btn {
+            width: 18px;
+            height: 18px;
+          }
+
+          .tasks-container {
+            padding: 6px;
+            gap: 6px;
+          }
+        }
+
+        /* Mobile Small (320px - 480px) */
+        @media (max-width: 480px) {
+          .columns-container {
+            padding: 8px;
+            gap: 8px;
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .board-column {
+            min-width: 100%;
+            max-width: 100%;
+            margin-bottom: 8px;
+          }
+
+          .add-column-btn {
+            min-width: 100%;
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+          }
+
+          .column-header {
+            padding: 8px 10px;
+          }
+
+          .column-title {
+            font-size: 11px;
+          }
+
+          .task-count {
+            font-size: 9px;
+            padding: 1px 4px;
+          }
+
+          .column-menu-btn {
+            width: 20px;
+            height: 20px;
+          }
+
+          .create-btn {
+            padding: 5px 8px;
+            font-size: 10px;
+          }
+
+          .swimlane-header {
+            padding: 5px 8px;
+            margin-bottom: 5px;
+          }
+
+          .swimlane-title {
+            font-size: 10px;
+          }
+
+          .swimlane-count {
+            font-size: 8px;
+            padding: 1px 3px;
+          }
+
+          .member-avatar {
+            width: 18px;
+            height: 18px;
+            font-size: 8px;
+          }
+
+          .collapse-btn {
+            width: 16px;
+            height: 16px;
+          }
+
+          .tasks-container {
+            padding: 4px;
+            gap: 4px;
           }
         }
       `}</style>

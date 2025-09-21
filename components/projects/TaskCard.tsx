@@ -2,6 +2,7 @@
 
 import { Task } from "@/types/milestone";
 import { mockMilestones } from "@/constants/mockData";
+import { Calendar } from "lucide-react";
 
 interface TaskCardProps {
   task: Task;
@@ -136,36 +137,7 @@ export const TaskCard = ({
 
       <div className="task-meta">
         <div className="task-due-date">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M8 2V6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M16 2V6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M3 10H21"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <Calendar size={12} />
           <span>
             {task.dueDate && new Date(task.dueDate).toLocaleDateString("vi-VN")}
           </span>
@@ -211,6 +183,7 @@ export const TaskCard = ({
                   strokeLinejoin="round"
                 />
               </svg>
+              <span className="unassigned-text">Chưa giao</span>
             </div>
           )}
         </div>
@@ -384,7 +357,7 @@ export const TaskCard = ({
         .assignee-avatar {
           width: 20px;
           height: 20px;
-          background: #3b82f6;
+          background: linear-gradient(135deg, #fb923c, #fbbf24);
           color: white;
           border-radius: 50%;
           display: flex;
@@ -392,6 +365,7 @@ export const TaskCard = ({
           justify-content: center;
           font-size: 9px;
           font-weight: 600;
+          box-shadow: 0 1px 3px rgba(251, 146, 60, 0.3);
         }
 
         .assignee-name {
@@ -401,14 +375,25 @@ export const TaskCard = ({
         }
 
         .assignee-placeholder {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .assignee-placeholder svg {
           width: 20px;
           height: 20px;
           background: #f3f4f6;
           color: #9ca3af;
           border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          padding: 3px;
+        }
+
+        .unassigned-text {
+          font-size: 11px;
+          color: #9ca3af;
+          font-weight: 500;
+          font-style: italic;
         }
 
         .task-links {
@@ -434,6 +419,223 @@ export const TaskCard = ({
         .link-btn:hover {
           background: #f3f4f6;
           color: #374151;
+        }
+
+        /* Responsive Design */
+        
+        /* Tablet (768px - 1023px) */
+        @media (max-width: 1023px) and (min-width: 769px) {
+          .task-card {
+            padding: 10px;
+            border-radius: 5px;
+          }
+
+          .task-title {
+            font-size: 13px;
+          }
+
+          .task-menu-btn {
+            width: 18px;
+            height: 18px;
+          }
+
+          .epic-tag {
+            font-size: 9px;
+            padding: 1px 5px;
+          }
+
+          .milestone-tag {
+            font-size: 8px;
+            padding: 1px 4px;
+            max-width: 70px;
+          }
+
+          .task-meta {
+            font-size: 10px;
+            margin-bottom: 6px;
+          }
+
+          .assignee-avatar {
+            width: 18px;
+            height: 18px;
+            font-size: 8px;
+          }
+
+          .assignee-name {
+            font-size: 10px;
+          }
+
+          .assignee-placeholder svg {
+            width: 18px;
+            height: 18px;
+          }
+
+          .unassigned-text {
+            font-size: 10px;
+          }
+
+          .link-btn {
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        /* Mobile Large (481px - 768px) */
+        @media (max-width: 768px) and (min-width: 481px) {
+          .task-card {
+            padding: 8px;
+            border-radius: 4px;
+          }
+
+          .task-header {
+            margin-bottom: 4px;
+          }
+
+          .task-title {
+            font-size: 12px;
+            line-height: 1.2;
+          }
+
+          .task-menu-btn {
+            width: 16px;
+            height: 16px;
+          }
+
+          .task-tags {
+            margin-bottom: 6px;
+            gap: 3px;
+          }
+
+          .epic-tag {
+            font-size: 8px;
+            padding: 1px 4px;
+          }
+
+          .milestone-tag {
+            font-size: 7px;
+            padding: 1px 3px;
+            max-width: 60px;
+          }
+
+          .task-meta {
+            font-size: 9px;
+            margin-bottom: 5px;
+          }
+
+          .task-footer {
+            gap: 4px;
+          }
+
+          .assignee-info {
+            gap: 3px;
+          }
+
+          .assignee-avatar {
+            width: 16px;
+            height: 16px;
+            font-size: 7px;
+          }
+
+          .assignee-name {
+            font-size: 9px;
+          }
+
+          .assignee-placeholder svg {
+            width: 16px;
+            height: 16px;
+          }
+
+          .unassigned-text {
+            font-size: 9px;
+          }
+
+          .task-links {
+            gap: 2px;
+          }
+
+          .link-btn {
+            width: 14px;
+            height: 14px;
+          }
+        }
+
+        /* Mobile Small (320px - 480px) */
+        @media (max-width: 480px) {
+          .task-card {
+            padding: 6px;
+            border-radius: 3px;
+          }
+
+          .task-header {
+            margin-bottom: 3px;
+          }
+
+          .task-title {
+            font-size: 11px;
+            line-height: 1.1;
+          }
+
+          .task-menu-btn {
+            width: 14px;
+            height: 14px;
+          }
+
+          .task-tags {
+            margin-bottom: 4px;
+            gap: 2px;
+          }
+
+          .epic-tag {
+            font-size: 7px;
+            padding: 1px 3px;
+          }
+
+          .milestone-tag {
+            font-size: 6px;
+            padding: 1px 2px;
+            max-width: 50px;
+          }
+
+          .task-meta {
+            font-size: 8px;
+            margin-bottom: 4px;
+          }
+
+          .task-footer {
+            gap: 3px;
+          }
+
+          .assignee-info {
+            gap: 2px;
+          }
+
+          .assignee-avatar {
+            width: 14px;
+            height: 14px;
+            font-size: 6px;
+          }
+
+          .assignee-name {
+            font-size: 8px;
+          }
+
+          .assignee-placeholder svg {
+            width: 14px;
+            height: 14px;
+          }
+
+          .unassigned-text {
+            font-size: 8px;
+          }
+
+          .task-links {
+            gap: 1px;
+          }
+
+          .link-btn {
+            width: 12px;
+            height: 12px;
+          }
         }
       `}</style>
     </div>

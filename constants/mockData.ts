@@ -136,6 +136,34 @@ export const mockTasks = [
   }
 ];
 
+// Mock Comments data
+export const mockComments = [
+  {
+    id: "comment-1",
+    taskId: "MWA-3",
+    authorId: "member-1",
+    content: "Đã hoàn thành thiết kế database schema cho bảng users và authentication",
+    timestamp: "2025-09-05T10:30:00Z",
+    isEdited: false
+  },
+  {
+    id: "comment-2", 
+    taskId: "MWA-3",
+    authorId: "member-2",
+    content: "Cần thêm index cho các trường thường xuyên query",
+    timestamp: "2025-09-06T14:20:00Z",
+    isEdited: false
+  },
+  {
+    id: "comment-3",
+    taskId: "MWA-1", 
+    authorId: "member-3",
+    content: "API authentication đã được test và hoạt động tốt",
+    timestamp: "2025-09-07T09:15:00Z",
+    isEdited: false
+  }
+];
+
 export const mockActivities = [
   {
     id: "act-1",

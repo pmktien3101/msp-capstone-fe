@@ -106,7 +106,18 @@ export const TasksList = () => {
         <div className="section-title">
           <h3>Danh sách công việc</h3>
         </div>
-        <a href="#" className="view-all-link">Xem tất cả</a>
+        <a 
+          href="#" 
+          className="view-all-link"
+          onClick={(e) => {
+            e.preventDefault();
+            // Navigate to board tab
+            const event = new CustomEvent('navigateToTab', { detail: { tab: 'board' } });
+            window.dispatchEvent(event);
+          }}
+        >
+          Xem tất cả
+        </a>
       </div>
 
       <div className="tasks-content">
@@ -196,15 +207,15 @@ export const TasksList = () => {
         }
 
         .view-all-link {
-          font-size: 14px;
-          color: #3b82f6;
+          font-size: 13px;
+          color: #fb923c;
           text-decoration: none;
           font-weight: 500;
           transition: color 0.2s ease;
         }
 
         .view-all-link:hover {
-          color: #2563eb;
+          color: #f97316;
         }
 
         .tasks-content {
@@ -324,8 +335,8 @@ export const TasksList = () => {
         .task-status {
           font-size: 9px;
           font-weight: 600;
-          padding: 4px 8px;
-          border-radius: 10px;
+          padding: 2px 6px;
+          border-radius: 8px;
           text-transform: uppercase;
           letter-spacing: 0.3px;
           text-align: center;
@@ -356,25 +367,180 @@ export const TasksList = () => {
           background: #f97316;
         }
 
-        @media (max-width: 768px) {
+        /* Tablet (768px - 1023px) */
+        @media (max-width: 1023px) and (min-width: 769px) {
+          .tasks-list {
+            padding: 20px;
+          }
+
+          .task-item {
+            grid-template-columns: 1fr 120px 100px 80px;
+            gap: 12px;
+            padding: 14px;
+          }
+
+          .task-title {
+            font-size: 14px;
+          }
+
+          .assignee-avatar {
+            width: 24px;
+            height: 24px;
+            font-size: 10px;
+          }
+
+          .assignee-name {
+            font-size: 12px;
+          }
+
+          .task-deadline {
+            width: 100px;
+            font-size: 11px;
+            padding: 5px 8px;
+          }
+
+          .task-status {
+            width: 80px;
+            font-size: 8px;
+            padding: 2px 5px;
+          }
+        }
+
+        /* Mobile Large (481px - 768px) */
+        @media (max-width: 768px) and (min-width: 481px) {
+          .tasks-list {
+            padding: 16px;
+          }
+
+          .section-header {
+            margin-bottom: 20px;
+          }
+
+          .section-title h3 {
+            font-size: 15px;
+          }
+
+          .section-title p {
+            font-size: 13px;
+          }
+
           .task-item {
             grid-template-columns: 1fr;
             gap: 12px;
             align-items: flex-start;
+            padding: 12px;
+          }
+
+          .task-content {
+            order: 1;
+          }
+
+          .task-title {
+            font-size: 14px;
+            margin-bottom: 8px;
           }
 
           .task-assignee {
             width: auto;
+            order: 2;
+            justify-content: flex-start;
+          }
+
+          .assignee-info {
+            gap: 6px;
+          }
+
+          .assignee-avatar {
+            width: 24px;
+            height: 24px;
+            font-size: 10px;
+          }
+
+          .assignee-name {
+            font-size: 12px;
           }
 
           .task-deadline {
             width: auto;
             justify-content: flex-start;
+            order: 3;
+            font-size: 11px;
+            padding: 5px 8px;
           }
 
           .task-status {
             width: auto;
             align-self: flex-start;
+            order: 4;
+            font-size: 8px;
+            padding: 2px 5px;
+          }
+        }
+
+        /* Mobile Small (320px - 480px) */
+        @media (max-width: 480px) {
+          .tasks-list {
+            padding: 12px;
+          }
+
+          .section-header {
+            margin-bottom: 16px;
+          }
+
+          .section-title h3 {
+            font-size: 14px;
+          }
+
+          .section-title p {
+            font-size: 12px;
+          }
+
+          .view-all-link {
+            font-size: 12px;
+          }
+
+          .task-item {
+            grid-template-columns: 1fr;
+            gap: 10px;
+            padding: 10px;
+          }
+
+          .task-title {
+            font-size: 13px;
+            margin-bottom: 6px;
+          }
+
+          .task-assignee {
+            width: auto;
+            order: 2;
+          }
+
+          .assignee-info {
+            gap: 5px;
+          }
+
+          .assignee-avatar {
+            width: 22px;
+            height: 22px;
+            font-size: 9px;
+          }
+
+          .assignee-name {
+            font-size: 11px;
+          }
+
+          .task-deadline {
+            width: auto;
+            order: 3;
+            font-size: 10px;
+            padding: 4px 6px;
+          }
+
+          .task-status {
+            width: auto;
+            order: 4;
+            font-size: 7px;
+            padding: 1px 4px;
           }
         }
       `}</style>

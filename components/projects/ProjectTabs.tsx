@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Project } from "@/types/project";
 import {
   LayoutDashboard,
@@ -36,6 +36,23 @@ export const ProjectTabs = ({
   initialActiveTab = "summary",
 }: ProjectTabsProps) => {
   const [activeTab, setActiveTab] = useState(initialActiveTab);
+
+  // Listen for navigation events from "Xem tất cả" buttons
+  useEffect(() => {
+    const handleNavigateToTab = (event: CustomEvent) => {
+      const { tab } = event.detail;
+      setActiveTab(tab);
+      if (onTabChange) {
+        onTabChange(tab);
+      }
+    };
+
+    window.addEventListener('navigateToTab', handleNavigateToTab as EventListener);
+    
+    return () => {
+      window.removeEventListener('navigateToTab', handleNavigateToTab as EventListener);
+    };
+  }, [onTabChange]);
 
   const tabs = [
     {
@@ -189,6 +206,170 @@ export const ProjectTabs = ({
         .tabs-content {
           padding: 24px;
           min-height: 400px;
+        }
+
+        /* Responsive Design */
+        
+        /* Large Desktop (1200px+) */
+        @media (min-width: 1200px) {
+          .tabs-header {
+            padding: 0 32px;
+          }
+
+          .tab-button {
+            padding: 18px 24px;
+            font-size: 15px;
+          }
+
+          .tabs-content {
+            padding: 32px;
+          }
+        }
+
+        /* Desktop (1024px - 1199px) */
+        @media (max-width: 1199px) and (min-width: 1024px) {
+          .tabs-header {
+            padding: 0 28px;
+          }
+
+          .tab-button {
+            padding: 16px 20px;
+            font-size: 14px;
+          }
+
+          .tabs-content {
+            padding: 28px;
+          }
+        }
+
+        /* Tablet (768px - 1023px) */
+        @media (max-width: 1023px) and (min-width: 769px) {
+          .tabs-header {
+            padding: 0 20px;
+          }
+
+          .tab-button {
+            padding: 14px 16px;
+            font-size: 13px;
+            gap: 6px;
+          }
+
+          .tab-icon {
+            transform: scale(0.9);
+          }
+
+          .tabs-content {
+            padding: 20px;
+            min-height: 350px;
+          }
+        }
+
+        /* Mobile Large (481px - 768px) */
+        @media (max-width: 768px) and (min-width: 481px) {
+          .project-tabs {
+            border-radius: 6px;
+          }
+
+          .tabs-header {
+            padding: 0 16px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
+
+          .tabs-header::-webkit-scrollbar {
+            display: none;
+          }
+
+          .tabs-list {
+            min-width: max-content;
+            gap: 0;
+          }
+
+          .tab-button {
+            padding: 12px 14px;
+            font-size: 12px;
+            gap: 5px;
+            flex-shrink: 0;
+          }
+
+          .tab-icon {
+            transform: scale(0.8);
+          }
+
+          .tabs-content {
+            padding: 16px;
+            min-height: 300px;
+          }
+        }
+
+        /* Mobile Small (320px - 480px) */
+        @media (max-width: 480px) {
+          .project-tabs {
+            border-radius: 4px;
+          }
+
+          .tabs-header {
+            padding: 0 12px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
+
+          .tabs-header::-webkit-scrollbar {
+            display: none;
+          }
+
+          .tabs-list {
+            min-width: max-content;
+            gap: 0;
+          }
+
+          .tab-button {
+            padding: 10px 12px;
+            font-size: 11px;
+            gap: 4px;
+            flex-shrink: 0;
+          }
+
+          .tab-icon {
+            transform: scale(0.7);
+          }
+
+          .tab-label {
+            font-size: 11px;
+          }
+
+          .tabs-content {
+            padding: 12px;
+            min-height: 250px;
+          }
+        }
+
+        /* Extra Small Mobile (max-width: 320px) */
+        @media (max-width: 320px) {
+          .tabs-header {
+            padding: 0 8px;
+          }
+
+          .tab-button {
+            padding: 8px 10px;
+            font-size: 10px;
+            gap: 3px;
+          }
+
+          .tab-icon {
+            transform: scale(0.6);
+          }
+
+          .tab-label {
+            font-size: 10px;
+          }
+
+          .tabs-content {
+            padding: 8px;
+            min-height: 200px;
+          }
         }
       `}</style>
     </div>
