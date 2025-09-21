@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Project } from "@/types/project";
 import {
   LayoutDashboard,
-  Layers,
   Kanban,
   List,
   FileText,
@@ -61,11 +60,6 @@ export const ProjectTabs = ({
       icon: <LayoutDashboard size={20} />,
     },
     {
-      id: "timeline",
-      label: "Timeline",
-      icon: <Layers size={20} />,
-    },
-    {
       id: "board",
       label: "Bảng",
       icon: <Kanban size={20} />,
@@ -101,8 +95,6 @@ export const ProjectTabs = ({
     switch (activeTab) {
       case "summary":
         return <ProjectSummary projects={[project]} />;
-      case "timeline":
-        return "";
       case "board":
         return (
           <ProjectBoard

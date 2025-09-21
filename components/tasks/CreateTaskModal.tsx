@@ -8,6 +8,7 @@ interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   milestoneId?: string;
+  defaultStatus?: string;
   onCreateTask: (taskData: any) => void;
 }
 
@@ -15,13 +16,14 @@ export const CreateTaskModal = ({
   isOpen, 
   onClose, 
   milestoneId, 
+  defaultStatus = "todo",
   onCreateTask 
 }: CreateTaskModalProps) => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     milestoneIds: milestoneId ? [milestoneId] : [],
-    status: "todo",
+    status: defaultStatus,
     priority: "medium",
     assignee: "",
     startDate: "",
@@ -29,6 +31,21 @@ export const CreateTaskModal = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "todo":
+        return "Cần làm";
+      case "in-progress":
+        return "Đang làm";
+      case "review":
+        return "Đang review";
+      case "done":
+        return "Hoàn thành";
+      default:
+        return "Cần làm";
+    }
+  };
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -101,7 +118,7 @@ export const CreateTaskModal = ({
       title: "",
       description: "",
       milestoneIds: milestoneId ? [milestoneId] : [],
-      status: "todo",
+      status: defaultStatus,
       priority: "medium",
       assignee: "",
       startDate: "",
@@ -146,7 +163,7 @@ export const CreateTaskModal = ({
             <div className="form-group full-width">
               <label className="form-label">
                 <FileText size={16} />
-                Mô tả *
+                Mô tả * 
               </label>
               <textarea
                 value={formData.description}
@@ -191,7 +208,7 @@ export const CreateTaskModal = ({
                 Trạng thái
               </label>
               <div className="status-display">
-                <span className="status-badge">Cần làm</span>
+                <span className={`status-badge status-${formData.status}`}>{getStatusLabel(formData.status)}</span>
               </div>
             </div>
 
@@ -471,12 +488,27 @@ export const CreateTaskModal = ({
         }
 
         .status-badge {
-          background: #6b7280;
           color: white;
           padding: 4px 12px;
           border-radius: 12px;
           font-size: 12px;
           font-weight: 600;
+        }
+
+        .status-todo {
+          background: #6b7280;
+        }
+
+        .status-in-progress {
+          background: #f59e0b;
+        }
+
+        .status-review {
+          background: #3b82f6;
+        }
+
+        .status-done {
+          background: #10b981;
         }
 
         .date-range-group {

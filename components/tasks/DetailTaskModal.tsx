@@ -310,7 +310,7 @@ export const DetailTaskModal = ({
               </div>
               <div className="assignee-info">
                 <select
-                  value={editedValues.assignee !== undefined ? editedValues.assignee : (task.assignee || '')}
+                  value={editedValues.assignee !== undefined ? editedValues.assignee : (task.assignedTo?.id || task.assignee || '')}
                   onChange={(e) => handleFieldChange('assignee', e.target.value)}
                   onKeyPress={(e) => handleKeyPress(e, 'assignee')}
                   onBlur={() => handleFieldSave('assignee')}

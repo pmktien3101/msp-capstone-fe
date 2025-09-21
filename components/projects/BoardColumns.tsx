@@ -857,6 +857,7 @@ export const BoardColumns = ({
           onClose={() => setShowCreateTaskModal(false)}
           onCreateTask={handleCreateTask}
           milestoneId={createTaskColumn}
+          defaultStatus={createTaskColumn}
         />
       )}
 
@@ -955,8 +956,8 @@ export const BoardColumns = ({
         }
 
         .board-column {
-          min-width: 240px;
-          max-width: 240px;
+          min-width: 200px;
+          max-width: 200px;
           background: #f1f3f4;
           border-radius: 4px;
           display: flex;
@@ -1110,8 +1111,8 @@ export const BoardColumns = ({
           }
 
           .board-column {
-            min-width: 280px;
-            max-width: 280px;
+            min-width: 220px;
+            max-width: 220px;
           }
 
           .add-column-btn {
@@ -1127,8 +1128,8 @@ export const BoardColumns = ({
           }
 
           .board-column {
-            min-width: 260px;
-            max-width: 260px;
+            min-width: 210px;
+            max-width: 210px;
           }
 
           .add-column-btn {
@@ -1144,8 +1145,8 @@ export const BoardColumns = ({
           }
 
           .board-column {
-            min-width: 240px;
-            max-width: 240px;
+            min-width: 200px;
+            max-width: 200px;
           }
 
           .add-column-btn {
