@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Project } from '@/types/project';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
-import { mockTasks, additionalMockTasks } from '@/constants/mockData';
+import { mockTasks } from '@/constants/mockData';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -32,7 +32,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
     };
 
     const taskIds = projectTaskMapping[projectId] || [];
-    const allTasks = [...mockTasks, ...additionalMockTasks];
+    const allTasks = [...mockTasks];
     const tasks = allTasks.filter(task => taskIds.includes(task.id));
     const completedTasks = tasks.filter(task => task.status === 'done' || task.status === 'completed').length;
     const totalTasks = tasks.length;

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
 import { PMDashboardHeader } from '@/components/dashboard/PMDashboardHeader';
 import { PMProjectsOverview } from '@/components/dashboard/PMProjectsOverview';
-import { mockTasks, additionalMockTasks } from '@/constants/mockData';
+import { mockTasks } from '@/constants/mockData';
 import '@/app/styles/dashboard.scss';
 
 export default function DashboardPage() {
@@ -25,7 +25,7 @@ export default function DashboardPage() {
     };
 
     const taskIds = projectTaskMapping[projectId] || [];
-    const allTasks = [...mockTasks, ...additionalMockTasks];
+    const allTasks = [...mockTasks];
     const tasks = allTasks.filter(task => taskIds.includes(task.id));
     const completedTasks = tasks.filter(task => task.status === 'done' || task.status === 'completed').length;
     const totalTasks = tasks.length;
