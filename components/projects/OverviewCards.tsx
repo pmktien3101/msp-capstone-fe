@@ -12,7 +12,7 @@ export const OverviewCards = () => {
   
   const totalMilestones = mockMilestones.length;
   const completedMilestones = mockMilestones.filter(milestone => 
-    mockTasks.filter(task => task.milestoneIds?.includes(milestone.id) || task.milestoneId === milestone.id)
+    mockTasks.filter(task => task.milestoneIds?.includes(milestone.id))
       .every(task => task.status === 'done')
   ).length;
   
