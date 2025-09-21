@@ -42,7 +42,6 @@ export const UpcomingMeetings = () => {
           <h3>Các cuộc họp sắp tới</h3>
           <p>Danh sách cuộc họp được lên lịch.</p>
         </div>
-        <a href="#" className="view-all-link">Xem tất cả</a>
       </div>
 
       <div className="meetings-content">

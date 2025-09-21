@@ -664,86 +664,14 @@ export function TaskDetailModal({
               Bình luận ({comments.length})
             </h4>
 
-            {/* Add Comment Form */}
-            <div
-              style={{
-                marginBottom: "24px",
-                padding: "20px",
-                background: "white",
-                borderRadius: "12px",
-                border: "1px solid #e2e8f0",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  gap: "12px",
-                  marginBottom: "12px",
-                }}
-              >
-                <Avatar
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  size="sm"
-                />
-                <Textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Viết bình luận..."
-                  style={{
-                    flex: 1,
-                    minHeight: "80px",
-                    resize: "vertical",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "8px",
-                    padding: "12px",
-                    fontSize: "14px",
-                    fontFamily: "inherit",
-                  }}
-                />
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <Button
-                  variant="outline"
-                  onClick={() => setNewComment("")}
-                  disabled={!newComment.trim()}
-                  style={{
-                    fontSize: "14px",
-                    padding: "8px 16px",
-                  }}
-                >
-                  Hủy
-                </Button>
-                <Button
-                  onClick={handleAddComment}
-                  disabled={!newComment.trim()}
-                  style={{
-                    fontSize: "14px",
-                    padding: "8px 16px",
-                    background: "#3b82f6",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Bình luận
-                </Button>
-              </div>
-            </div>
-
             {/* Comments List */}
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
                 gap: "20px",
+                maxHeight: "300px",
+                overflowY: "auto",
               }}
             >
               {comments.length === 0 ? (
@@ -775,6 +703,79 @@ export function TaskDetailModal({
                 ))
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Fixed Comment Form Footer */}
+        <div
+          style={{
+            padding: "20px 24px",
+            borderTop: "1px solid #e5e7eb",
+            background: "white",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              marginBottom: "12px",
+            }}
+          >
+            <Avatar
+              src={currentUser.avatar}
+              alt={currentUser.name}
+              size="sm"
+            />
+            <Textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Viết bình luận..."
+              style={{
+                flex: 1,
+                minHeight: "80px",
+                resize: "vertical",
+                border: "1px solid #d1d5db",
+                borderRadius: "8px",
+                padding: "12px",
+                fontSize: "14px",
+                fontFamily: "inherit",
+              }}
+            />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: "8px",
+              justifyContent: "flex-end",
+            }}
+          >
+            <Button
+              variant="outline"
+              onClick={() => setNewComment("")}
+              disabled={!newComment.trim()}
+              style={{
+                fontSize: "14px",
+                padding: "8px 16px",
+              }}
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleAddComment}
+              disabled={!newComment.trim()}
+              style={{
+                fontSize: "14px",
+                padding: "8px 16px",
+                background: "#3b82f6",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+              }}
+            >
+              Bình luận
+            </Button>
           </div>
         </div>
       </div>

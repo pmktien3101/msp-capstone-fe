@@ -20,8 +20,8 @@ export const DeleteMilestoneModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="modal-title">
             <AlertTriangle size={24} />

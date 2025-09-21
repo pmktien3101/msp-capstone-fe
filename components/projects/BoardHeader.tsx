@@ -144,25 +144,24 @@ export const BoardHeader = ({
         }
 
         .member-avatar {
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
-          background: #3b82f6;
+          background: linear-gradient(135deg, #fb923c, #fbbf24);
           color: white;
           cursor: pointer;
           transition: all 0.2s ease;
-          border: 2px solid transparent;
+          box-shadow: 0 2px 4px rgba(251, 146, 60, 0.3);
         }
 
         .member-avatar:hover {
-          transform: scale(1.1);
-          border-color: #1d4ed8;
-          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+          transform: scale(1.05);
+          box-shadow: 0 4px 8px rgba(251, 146, 60, 0.4);
         }
 
 

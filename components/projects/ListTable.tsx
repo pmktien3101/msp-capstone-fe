@@ -7,7 +7,6 @@ import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { DeleteMilestoneModal } from "@/components/milestones/DeleteMilestoneModal";
 import { UpdateMilestoneModal } from "@/components/milestones/UpdateMilestoneModal";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
-import { UpdateTaskModal } from "@/components/tasks/UpdateTaskModal";
 import { DetailTaskModal } from "@/components/tasks/DetailTaskModal";
 import {
   ChevronRight,
@@ -82,13 +81,6 @@ export const ListTable = ({
     taskTitle: undefined
   });
 
-  const [updateTaskModal, setUpdateTaskModal] = useState<{
-    isOpen: boolean;
-    task: any;
-  }>({
-    isOpen: false,
-    task: null
-  });
 
   const [detailTaskModal, setDetailTaskModal] = useState<{
     isOpen: boolean;
@@ -353,22 +345,6 @@ export const ListTable = ({
     }
   };
 
-  // Helper function to open update task modal
-  const openUpdateTaskModal = (task: any) => {
-    setUpdateTaskModal({
-      isOpen: true,
-      task
-    });
-  };
-
-  // Helper function to close update task modal
-  const closeUpdateTaskModal = () => {
-    setUpdateTaskModal({
-      isOpen: false,
-      task: null
-    });
-  };
-
   // Helper function to handle task update
   const handleUpdateTask = (taskData: any) => {
     try {
@@ -380,8 +356,6 @@ export const ListTable = ({
           task.id === taskData.id ? { ...task, ...taskData } : task
         )
       );
-      
-      closeUpdateTaskModal();
     } catch (error) {
       console.error('Error updating task:', error);
       alert('Có lỗi xảy ra khi cập nhật công việc. Vui lòng thử lại!');
@@ -558,7 +532,7 @@ export const ListTable = ({
           onClick={() => openCreateTaskModal()}
           title="Tạo công việc mới"
         >
-          <Plus size={16} />
+          <Plus size={14} />
           Tạo công việc mới
         </button>
       </div>
@@ -569,7 +543,7 @@ export const ListTable = ({
             <div className="task-card-full" onClick={() => openDetailTaskModal(task)}>
               <div className="task-header-full">
                 <div className="task-icon">
-                  <CheckCircle size={20} />
+                  <CheckCircle size={16} />
                 </div>
                 <div className="task-info-full">
                   <div className="task-id-modern">{task.id}</div>
@@ -586,7 +560,6 @@ export const ListTable = ({
                         borderColor: getStatusColor(task.status),
                       }}
                     >
-                      <div className="status-dot" style={{ backgroundColor: getStatusColor(task.status) }}></div>
                       {getStatusLabel(task.status)}
                     </span>
                   </div>
@@ -596,68 +569,53 @@ export const ListTable = ({
                         <div className="assignee-avatar-modern">
                           <span>{getMemberName(task.assignee).charAt(0)}</span>
                         </div>
-                        <div className="assignee-info">
-                          <span className="assignee-name">{getMemberName(task.assignee)}</span>
-                          <span className="assignee-role">{mockMembers.find(m => m.id === task.assignee)?.role}</span>
-                        </div>
+                        <span className="assignee-name">{getMemberName(task.assignee)}</span>
                       </div>
                     ) : (
                       <div className="unassigned-modern">
                         <div className="unassigned-icon">
                           <User size={16} />
                         </div>
-                        <span>Chưa giao</span>
+                        <span className="unassigned-text">Chưa giao</span>
                       </div>
                     )}
-                  </div>
-                  <div className="priority-badge-full">
-                    <span
-                      className="priority-badge-modern"
-                      style={{
-                        background: `linear-gradient(135deg, ${getPriorityColor(task.priority)}20, ${getPriorityColor(task.priority)}10)`,
-                        color: getPriorityColor(task.priority),
-                        borderColor: getPriorityColor(task.priority),
-                      }}
-                    >
-                      <div className="priority-dot" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
-                      {getPriorityLabel(task.priority)}
-                    </span>
-                  </div>
-                  <div className="task-progress-modern">
-                    <div className="progress-circle">
-                      <svg width="40" height="40" viewBox="0 0 40 40">
-                        <circle
-                          cx="20"
-                          cy="20"
-                          r="16"
-                          fill="none"
-                          stroke="#e5e7eb"
-                          strokeWidth="3"
-                        />
-                        <circle
-                          cx="20"
-                          cy="20"
-                          r="16"
-                          fill="none"
-                          stroke={task.status === "done" ? "#10b981" : task.status === "in-progress" ? "#f59e0b" : "#6b7280"}
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                          strokeDasharray={`${task.status === "done" ? 100 : task.status === "in-progress" ? 50 : 0} 100`}
-                          transform="rotate(-90 20 20)"
-                        />
-                      </svg>
-                      <div className="progress-text-circle">
-                        {task.status === "done" ? "100%" : task.status === "in-progress" ? "50%" : "0%"}
-                      </div>
-                    </div>
                   </div>
                   <div className="task-dates">
                     <div className="date-info-modern">
                       <div className="date-icon">
-                        <Calendar size={16} />
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M8 2V6"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M16 2V6"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M3 10H21"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
                       </div>
                       <div className="date-text">
-                        <span className="date-label">Start</span>
+                        <span className="date-label">Bắt đầu</span>
                         <span className="date-value">
                           {task.startDate
                             ? new Date(task.startDate).toLocaleDateString("vi-VN")
@@ -667,10 +625,39 @@ export const ListTable = ({
                     </div>
                     <div className="date-info-modern">
                       <div className="date-icon">
-                        <Calendar size={16} />
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M8 2V6"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M16 2V6"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M3 10H21"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
                       </div>
                       <div className="date-text">
-                        <span className="date-label">End</span>
+                        <span className="date-label">Kết thúc</span>
                         <span className="date-value">
                           {task.endDate
                             ? new Date(task.endDate).toLocaleDateString("vi-VN")
@@ -683,14 +670,20 @@ export const ListTable = ({
                     <button 
                       className="action-btn-modern edit-btn" 
                       title="Chỉnh sửa"
-                      onClick={() => openUpdateTaskModal(task)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDetailTaskModal(task);
+                      }}
                     >
                       <Edit size={16} />
                     </button>
                     <button 
                       className="action-btn-modern delete-btn" 
                       title="Xóa"
-                      onClick={() => openDeleteTaskModal(task.id, task.title)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDeleteTaskModal(task.id, task.title);
+                      }}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -729,7 +722,10 @@ export const ListTable = ({
                   <div className="milestone-description">{milestone.description}</div>
                   <div className="milestone-meta">
                     <span className="task-count">{milestone.tasks.length} tasks</span>
-                    <span className="milestone-due">Due: {new Date(milestone.dueDate).toLocaleDateString("vi-VN")}</span>
+                    <div className="milestone-due">
+                      <Calendar size={12} />
+                      <span>{new Date(milestone.dueDate).toLocaleDateString("vi-VN")}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="milestone-stats">
@@ -742,13 +738,12 @@ export const ListTable = ({
                         borderColor: getStatusColor(milestone.status),
                       }}
                     >
-                      <div className="status-dot" style={{ backgroundColor: getStatusColor(milestone.status) }}></div>
                       {getStatusLabel(milestone.status)}
                     </span>
                   </div>
                   <div className="progress-container-full">
                     <div className="progress-header">
-                      <span className="progress-label">Progress</span>
+                      <span className="progress-label">Tiến độ</span>
                       <span className="progress-percentage">{milestone.progress}%</span>
                     </div>
                     <div className="progress-bar-modern">
@@ -766,14 +761,20 @@ export const ListTable = ({
                     <button 
                       className="action-btn-modern edit-btn" 
                       title="Chỉnh sửa Milestone"
-                      onClick={() => openUpdateMilestoneModal(milestone)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openUpdateMilestoneModal(milestone);
+                      }}
                     >
                       <Edit size={16} />
                     </button>
                     <button
                       className="action-btn-modern delete-btn"
                       title="Xóa Milestone"
-                      onClick={() => openDeleteMilestoneModal(milestone.id, milestone.name, milestone.tasks.length)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDeleteMilestoneModal(milestone.id, milestone.name, milestone.tasks.length);
+                      }}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -790,7 +791,7 @@ export const ListTable = ({
                     <div className="task-card-full" onClick={() => openDetailTaskModal(task)}>
                       <div className="task-header-full">
                         <div className="task-icon">
-                          <CheckCircle size={20} />
+                          <CheckCircle size={16} />
                         </div>
                         <div className="task-info-full">
                           <div className="task-id-modern">{task.id}</div>
@@ -807,7 +808,6 @@ export const ListTable = ({
                                 borderColor: getStatusColor(task.status),
                               }}
                             >
-                              <div className="status-dot" style={{ backgroundColor: getStatusColor(task.status) }}></div>
                               {getStatusLabel(task.status)}
                             </span>
                           </div>
@@ -817,68 +817,24 @@ export const ListTable = ({
                                 <div className="assignee-avatar-modern">
                                   <span>{getMemberName(task.assignee).charAt(0)}</span>
                                 </div>
-                                <div className="assignee-info">
-                                  <span className="assignee-name">{getMemberName(task.assignee)}</span>
-                                  <span className="assignee-role">{mockMembers.find(m => m.id === task.assignee)?.role}</span>
-                                </div>
+                                <span className="assignee-name">{getMemberName(task.assignee)}</span>
                               </div>
                             ) : (
                               <div className="unassigned-modern">
                                 <div className="unassigned-icon">
                                   <User size={16} />
                                 </div>
-                                <span>Chưa giao</span>
+                                <span className="unassigned-text">Chưa giao</span>
                               </div>
                             )}
-                          </div>
-                          <div className="priority-badge-full">
-                            <span
-                              className="priority-badge-modern"
-                              style={{
-                                background: `linear-gradient(135deg, ${getPriorityColor(task.priority)}20, ${getPriorityColor(task.priority)}10)`,
-                                color: getPriorityColor(task.priority),
-                                borderColor: getPriorityColor(task.priority),
-                              }}
-                            >
-                              <div className="priority-dot" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
-                              {getPriorityLabel(task.priority)}
-                            </span>
-                          </div>
-                          <div className="task-progress-modern">
-                            <div className="progress-circle">
-                              <svg width="40" height="40" viewBox="0 0 40 40">
-                                <circle
-                                  cx="20"
-                                  cy="20"
-                                  r="16"
-                                  fill="none"
-                                  stroke="#e5e7eb"
-                                  strokeWidth="3"
-                                />
-                                <circle
-                                  cx="20"
-                                  cy="20"
-                                  r="16"
-                                  fill="none"
-                                  stroke={task.status === "done" ? "#10b981" : task.status === "in-progress" ? "#f59e0b" : "#6b7280"}
-                                  strokeWidth="3"
-                                  strokeLinecap="round"
-                                  strokeDasharray={`${task.status === "done" ? 100 : task.status === "in-progress" ? 50 : 0} 100`}
-                                  transform="rotate(-90 20 20)"
-                                />
-                              </svg>
-                              <div className="progress-text-circle">
-                                {task.status === "done" ? "100%" : task.status === "in-progress" ? "50%" : "0%"}
-                              </div>
-                            </div>
                           </div>
                           <div className="task-dates">
                             <div className="date-info-modern">
                               <div className="date-icon">
-                                <Calendar size={16} />
+                                <Calendar size={12} />
                               </div>
                               <div className="date-text">
-                                <span className="date-label">Start</span>
+                                <span className="date-label">Bắt đầu</span>
                                 <span className="date-value">
                                   {task.startDate
                                     ? new Date(task.startDate).toLocaleDateString("vi-VN")
@@ -888,10 +844,10 @@ export const ListTable = ({
                             </div>
                             <div className="date-info-modern">
                               <div className="date-icon">
-                                <Calendar size={16} />
+                                <Calendar size={12} />
                               </div>
                               <div className="date-text">
-                                <span className="date-label">End</span>
+                                <span className="date-label">Kết thúc</span>
                                 <span className="date-value">
                                   {task.endDate
                                     ? new Date(task.endDate).toLocaleDateString("vi-VN")
@@ -904,14 +860,20 @@ export const ListTable = ({
                             <button 
                               className="action-btn-modern edit-btn" 
                               title="Chỉnh sửa"
-                              onClick={() => openUpdateTaskModal(task)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openDetailTaskModal(task);
+                              }}
                             >
                               <Edit size={16} />
                             </button>
                             <button 
                               className="action-btn-modern delete-btn" 
                               title="Xóa"
-                              onClick={() => openDeleteTaskModal(task.id, task.title)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openDeleteTaskModal(task.id, task.title);
+                              }}
                             >
                               <Trash2 size={16} />
                             </button>
@@ -961,19 +923,12 @@ export const ListTable = ({
         taskId={deleteTaskModal.taskId || ""}
       />
 
-      {/* Update Task Modal */}
-      <UpdateTaskModal
-        isOpen={updateTaskModal.isOpen}
-        onClose={closeUpdateTaskModal}
-        onUpdateTask={handleUpdateTask}
-        task={updateTaskModal.task}
-      />
 
       {/* Detail Task Modal */}
       <DetailTaskModal
         isOpen={detailTaskModal.isOpen}
         onClose={closeDetailTaskModal}
-        onEdit={openUpdateTaskModal}
+        onEdit={handleUpdateTask}
         onDelete={openDeleteTaskModal}
         task={detailTaskModal.task}
       />
@@ -996,16 +951,16 @@ export const ListTable = ({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 20px 24px;
+          padding: 12px 16px;
           background: white;
           border-bottom: 1px solid #e5e7eb;
-          border-radius: 16px 16px 0 0;
+          border-radius: 12px 12px 0 0;
           min-width: 0; /* Allow header to shrink */
         }
 
         .header-title h2 {
           margin: 0;
-          font-size: 20px;
+          font-size: 16px;
           font-weight: 700;
           color: #1e293b;
           overflow: hidden;
@@ -1014,8 +969,8 @@ export const ListTable = ({
         }
 
         .header-title p {
-          margin: 4px 0 0 0;
-          font-size: 14px;
+          margin: 2px 0 0 0;
+          font-size: 12px;
           color: #64748b;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -1025,13 +980,13 @@ export const ListTable = ({
         .create-task-header-btn {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 12px 20px;
+          gap: 6px;
+          padding: 8px 14px;
           background: white;
           color: #ff8c42;
           border: 2px solid #ff8c42;
-          border-radius: 8px;
-          font-size: 14px;
+          border-radius: 6px;
+          font-size: 12px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
@@ -1102,9 +1057,9 @@ export const ListTable = ({
 
         .milestone-card-full {
           background: linear-gradient(135deg, #fff8f0 0%, #ffede0 100%);
-          border-left: 4px solid #ff8c42;
-          padding: 20px;
-          border-radius: 16px;
+          border-left: 3px solid #ff8c42;
+          padding: 16px;
+          border-radius: 12px;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
           overflow: visible; /* Allow content to be visible */
           transition: all 0.3s ease;
@@ -1113,7 +1068,7 @@ export const ListTable = ({
         .milestone-header-full {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 12px;
           overflow: visible; /* Allow content to be visible */
         }
 
@@ -1199,8 +1154,8 @@ export const ListTable = ({
 
         .task-card-full {
           background: white;
-          border-radius: 12px;
-          padding: 16px;
+          border-radius: 8px;
+          padding: 12px;
           border: 1px solid #e2e8f0;
           transition: all 0.3s ease;
           overflow: visible; /* Allow task card to be visible */
@@ -1218,7 +1173,7 @@ export const ListTable = ({
         .task-header-full {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 12px;
           overflow: visible; /* Allow content to be visible */
         }
 
@@ -1232,15 +1187,14 @@ export const ListTable = ({
 
         .task-stats {
           display: grid;
-          grid-template-columns: 120px 150px 120px 80px 140px 100px;
+          grid-template-columns: 120px 150px 140px 100px;
           gap: 16px;
           align-items: center;
-          min-width: 720px;
+          min-width: 520px;
           overflow: visible; /* Allow content to be visible */
         }
 
-        .status-badge-full,
-        .priority-badge-full {
+        .status-badge-full {
           display: flex;
           justify-content: center;
           align-items: center;
@@ -1388,6 +1342,9 @@ export const ListTable = ({
         }
 
         .milestone-due {
+          display: flex;
+          align-items: center;
+          gap: 3px;
           font-size: 11px;
           color: #64748b;
           font-weight: 500;
@@ -1410,8 +1367,8 @@ export const ListTable = ({
           gap: 6px;
           font-size: 12px;
           font-weight: 600;
-          padding: 8px 12px;
-          border-radius: 20px;
+          padding: 4px 8px;
+          border-radius: 12px;
           border: 1px solid;
           backdrop-filter: blur(10px);
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -1451,22 +1408,22 @@ export const ListTable = ({
         .assignee-avatar-modern {
           width: 32px;
           height: 32px;
-          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+          background: linear-gradient(135deg, #fb923c, #fbbf24);
           color: white;
-          border-radius: 8px;
+          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 12px;
           font-weight: 700;
-          box-shadow: 0 2px 8px rgba(255, 140, 66, 0.3);
+          box-shadow: 0 1px 3px rgba(251, 146, 60, 0.3);
           flex-shrink: 0; /* Prevent assignee avatar from shrinking */
         }
 
         .assignee-info {
           display: flex;
-          flex-direction: column;
-          gap: 2px;
+          align-items: center;
+          gap: 4px;
           min-width: 0; /* Allow text to shrink */
         }
 
@@ -1491,21 +1448,26 @@ export const ListTable = ({
           display: flex;
           align-items: center;
           gap: 8px;
-          color: #94a3b8;
-          font-style: italic;
           overflow: hidden; /* Prevent unassigned modern from overflowing */
         }
 
         .unassigned-icon {
           width: 24px;
           height: 24px;
-          background: #f1f5f9;
-          border-radius: 6px;
+          background: #f3f4f6;
+          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #94a3b8;
+          color: #9ca3af;
           flex-shrink: 0; /* Prevent unassigned icon from shrinking */
+        }
+
+        .unassigned-text {
+          font-size: 13px;
+          color: #9ca3af;
+          font-weight: 500;
+          font-style: italic;
         }
 
         /* Priority Modern */
@@ -1705,10 +1667,10 @@ export const ListTable = ({
         }
 
         .task-icon {
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          border-radius: 8px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1726,7 +1688,7 @@ export const ListTable = ({
         }
 
         .task-id-modern {
-          font-size: 11px;
+          font-size: 10px;
           color: #ff8c42;
           font-weight: 700;
           letter-spacing: 0.5px;
@@ -1738,7 +1700,7 @@ export const ListTable = ({
         .task-name-modern {
           font-weight: 700;
           color: #1e293b;
-          font-size: 14px;
+          font-size: 13px;
           line-height: 1.3;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -1828,7 +1790,7 @@ export const ListTable = ({
           }
 
           .task-stats {
-            grid-template-columns: 140px 170px 140px 100px 160px 120px;
+            grid-template-columns: 140px 170px 160px 120px;
             gap: 20px;
           }
         }
@@ -1841,7 +1803,7 @@ export const ListTable = ({
           }
 
           .task-stats {
-            grid-template-columns: 120px 150px 120px 80px 140px 100px;
+            grid-template-columns: 120px 150px 140px 100px;
             gap: 16px;
           }
         }
@@ -1865,7 +1827,7 @@ export const ListTable = ({
           }
 
           .task-stats {
-            grid-template-columns: 100px 120px 100px 60px 120px 80px;
+            grid-template-columns: 100px 120px 120px 80px;
             gap: 12px;
             min-width: auto;
           }
@@ -2166,6 +2128,7 @@ export const ListTable = ({
 
           .milestone-due {
             font-size: 9px;
+            gap: 2px;
           }
         }
 

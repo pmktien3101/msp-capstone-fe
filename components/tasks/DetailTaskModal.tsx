@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { 
   X, 
   Calendar, 
@@ -14,9 +14,12 @@ import {
   Edit,
   Trash2,
   Eye,
-  EyeOff
+  EyeOff,
+  MessageCircle,
+  Send,
+  MoreVertical
 } from "lucide-react";
-import { mockMembers, mockMilestones } from "@/constants/mockData";
+import { mockMembers, mockMilestones, mockComments } from "@/constants/mockData";
 
 interface DetailTaskModalProps {
   isOpen: boolean;
@@ -34,6 +37,17 @@ export const DetailTaskModal = ({
   task
 }: DetailTaskModalProps) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [editedValues, setEditedValues] = useState<{[key: string]: any}>({});
+  const [newComment, setNewComment] = useState("");
+  const [comments, setComments] = useState<any[]>([]);
+
+  // Update comments when task changes
+  React.useEffect(() => {
+    if (task) {
+      setComments(mockComments.filter(comment => comment.taskId === task.id));
+      setNewComment(""); // Reset comment input when switching tasks
+    }
+  }, [task?.id]);
 
   if (!isOpen || !task) return null;
 
@@ -134,20 +148,6 @@ export const DetailTaskModal = ({
     });
   };
 
-  const getProgressPercentage = (status: string) => {
-    switch (status) {
-      case "todo":
-        return 0;
-      case "in-progress":
-        return 50;
-      case "review":
-        return 75;
-      case "done":
-        return 100;
-      default:
-        return 0;
-    }
-  };
 
   const isOverdue = () => {
     if (!task.endDate) return false;
@@ -156,38 +156,84 @@ export const DetailTaskModal = ({
     return endDate < today && task.status !== "done";
   };
 
+  const handleFieldChange = (field: string, value: any) => {
+    setEditedValues(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleFieldSave = (field: string) => {
+    if (onEdit && editedValues[field] !== undefined) {
+      const updatedTask = {
+        ...task,
+        [field]: editedValues[field]
+      };
+      onEdit(updatedTask);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent, field: string) => {
+    if (e.key === 'Enter') {
+      handleFieldSave(field);
+    }
+  };
+
+  const handleAddComment = () => {
+    if (newComment.trim()) {
+      const comment = {
+        id: `comment-${Date.now()}`,
+        taskId: task.id,
+        authorId: "member-1", // Current user - có thể lấy từ context
+        content: newComment.trim(),
+        timestamp: new Date().toISOString(),
+        isEdited: false
+      };
+      setComments(prev => [...prev, comment]);
+      setNewComment("");
+    }
+  };
+
+  const handleKeyPressComment = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleAddComment();
+    }
+  };
+
+  const formatCommentTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleString("vi-VN", {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="header-left">
-            <div className="task-icon" style={{ background: 'linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%)' }}>
-              <CheckCircle size={24} />
-            </div>
             <div className="header-info">
-              <h2 className="modal-title">{task.title}</h2>
+              <div className="task-title-section">
+                <label className="field-label">Tên công việc</label>
+                <input
+                  type="text"
+                  value={editedValues.title !== undefined ? editedValues.title : task.title}
+                  onChange={(e) => handleFieldChange('title', e.target.value)}
+                  onKeyPress={(e) => handleKeyPress(e, 'title')}
+                  onBlur={() => handleFieldSave('title')}
+                  className="edit-title-input"
+                  placeholder="Nhập tên công việc..."
+                />
+              </div>
               <div className="task-id">ID: {task.id}</div>
             </div>
           </div>
           <div className="header-actions">
-            {onEdit && (
-              <button 
-                className="action-btn edit-btn" 
-                onClick={() => onEdit(task)}
-                title="Chỉnh sửa"
-              >
-                <Edit size={16} />
-              </button>
-            )}
-            {onDelete && (
-              <button 
-                className="action-btn delete-btn" 
-                onClick={() => onDelete(task.id, task.title)}
-                title="Xóa"
-              >
-                <Trash2 size={16} />
-              </button>
-            )}
             <button className="close-btn" onClick={onClose}>
               <X size={20} />
             </button>
@@ -202,53 +248,39 @@ export const DetailTaskModal = ({
                 <Flag size={16} />
                 Trạng thái
               </div>
-              <div 
-                className="status-badge-modern" 
-                style={{ 
-                  background: `linear-gradient(135deg, ${getStatusColor(task.status)}20, ${getStatusColor(task.status)}10)`,
-                  color: getStatusColor(task.status),
-                  borderColor: getStatusColor(task.status),
-                }}
+              <select
+                value={editedValues.status !== undefined ? editedValues.status : task.status}
+                onChange={(e) => handleFieldChange('status', e.target.value)}
+                onKeyPress={(e) => handleKeyPress(e, 'status')}
+                onBlur={() => handleFieldSave('status')}
+                className="edit-select"
               >
-                <div className="status-dot" style={{ backgroundColor: getStatusColor(task.status) }}></div>
-                {getStatusLabel(task.status)}
-              </div>
+                <option value="todo">Cần làm</option>
+                <option value="in-progress">Đang làm</option>
+                <option value="review">Đang review</option>
+                <option value="done">Hoàn thành</option>
+              </select>
             </div>
             <div className="info-item">
               <div className="info-label">
                 <AlertCircle size={16} />
                 Độ ưu tiên
               </div>
-              <div 
-                className="priority-badge-modern" 
-                style={{ 
-                  background: `linear-gradient(135deg, ${getPriorityColor(task.priority)}20, ${getPriorityColor(task.priority)}10)`,
-                  color: getPriorityColor(task.priority),
-                  borderColor: getPriorityColor(task.priority),
-                }}
+              <select
+                value={editedValues.priority !== undefined ? editedValues.priority : task.priority}
+                onChange={(e) => handleFieldChange('priority', e.target.value)}
+                onKeyPress={(e) => handleKeyPress(e, 'priority')}
+                onBlur={() => handleFieldSave('priority')}
+                className="edit-select"
               >
-                <div className="priority-dot" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
-                {getPriorityLabel(task.priority)}
-              </div>
+                <option value="low">Thấp</option>
+                <option value="medium">Trung bình</option>
+                <option value="high">Cao</option>
+                <option value="urgent">Khẩn cấp</option>
+              </select>
             </div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="progress-section">
-            <div className="progress-header">
-              <span className="progress-label">Tiến độ</span>
-              <span className="progress-percentage">{getProgressPercentage(task.status)}%</span>
-            </div>
-            <div className="progress-bar">
-              <div 
-                className="progress-fill" 
-                style={{ 
-                  width: `${getProgressPercentage(task.status)}%`,
-                  background: `linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%)`
-                }}
-              />
-            </div>
-          </div>
 
           {/* Description */}
           <div className="description-section">
@@ -257,27 +289,15 @@ export const DetailTaskModal = ({
               <span>Mô tả</span>
             </div>
             <div className="description-content">
-              <p className={`description-text ${showFullDescription ? 'expanded' : ''}`}>
-                {task.description}
-              </p>
-              {task.description && task.description.length > 200 && (
-                <button 
-                  className="toggle-description-btn"
-                  onClick={() => setShowFullDescription(!showFullDescription)}
-                >
-                  {showFullDescription ? (
-                    <>
-                      <EyeOff size={14} />
-                      Thu gọn
-                    </>
-                  ) : (
-                    <>
-                      <Eye size={14} />
-                      Xem thêm
-                    </>
-                  )}
-                </button>
-              )}
+              <textarea
+                value={editedValues.description !== undefined ? editedValues.description : task.description}
+                onChange={(e) => handleFieldChange('description', e.target.value)}
+                onKeyPress={(e) => handleKeyPress(e, 'description')}
+                onBlur={() => handleFieldSave('description')}
+                className="edit-textarea"
+                rows={4}
+                placeholder="Nhập mô tả công việc..."
+              />
             </div>
           </div>
 
@@ -289,47 +309,60 @@ export const DetailTaskModal = ({
                 Người thực hiện
               </div>
               <div className="assignee-info">
-                {task.assignee ? (
-                  <div className="assignee-card">
-                    <div className="assignee-avatar" style={{ background: 'linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%)' }}>
-                      {getMemberName(task.assignee).charAt(0)}
-                    </div>
-                    <div className="assignee-details">
-                      <div className="assignee-name">{getMemberName(task.assignee)}</div>
-                      <div className="assignee-role">{getMemberRole(task.assignee)}</div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="unassigned">
-                    <User size={16} />
-                    <span>Chưa được giao</span>
-                  </div>
-                )}
+                <select
+                  value={editedValues.assignee !== undefined ? editedValues.assignee : (task.assignedTo?.id || task.assignee || '')}
+                  onChange={(e) => handleFieldChange('assignee', e.target.value)}
+                  onKeyPress={(e) => handleKeyPress(e, 'assignee')}
+                  onBlur={() => handleFieldSave('assignee')}
+                  className="edit-select"
+                >
+                  <option value="">Chưa được giao</option>
+                  {mockMembers.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
 
           {/* Milestones */}
-          <div className="milestones-section">
-            <div className="section-header">
-              <Layers size={16} />
-              <span>Cột mốc</span>
-            </div>
-            <div className="milestones-content">
-              {task.milestoneIds && task.milestoneIds.length > 0 ? (
-                <div className="milestones-list">
-                  {getMilestoneNames(task.milestoneIds).map((milestoneName, index) => (
-                    <div key={index} className="milestone-tag">
-                      {milestoneName}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="no-milestones">
-                  <Layers size={16} />
-                  <span>Chưa thuộc cột mốc nào</span>
-                </div>
-              )}
+          <div className="info-row">
+            <div className="info-item full-width">
+              <div className="info-label">
+                <Layers size={16} />
+                Cột mốc liên quan
+              </div>
+              <div className="milestones-checkbox-container">
+                {mockMilestones.map((milestone) => {
+                  const currentMilestoneIds = editedValues.milestoneIds !== undefined ? editedValues.milestoneIds : (task.milestoneIds || []);
+                  const isChecked = currentMilestoneIds.includes(milestone.id);
+                  
+                  
+                  return (
+                    <label key={milestone.id} className="milestone-checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          const currentIds = editedValues.milestoneIds !== undefined ? editedValues.milestoneIds : (task.milestoneIds || []);
+                          let newIds;
+                          if (e.target.checked) {
+                            newIds = [...currentIds, milestone.id];
+                          } else {
+                            newIds = currentIds.filter((id: string) => id !== milestone.id);
+                          }
+                          handleFieldChange('milestoneIds', newIds);
+                        }}
+                        onBlur={() => handleFieldSave('milestoneIds')}
+                        className="milestone-checkbox"
+                      />
+                      <span className="milestone-checkbox-label">{milestone.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -339,50 +372,95 @@ export const DetailTaskModal = ({
               <Calendar size={16} />
               <span>Thời gian</span>
             </div>
-            <div className="dates-grid">
-              <div className="date-item">
-                <div className="date-label">
-                  <Clock size={14} />
-                  Ngày bắt đầu
+             <div className="dates-grid">
+               <div className="date-item">
+                 <div className="date-label">
+                   <Clock size={14} />
+                   Ngày bắt đầu
+                 </div>
+                 <input
+                   type="date"
+                   value={editedValues.startDate !== undefined ? (editedValues.startDate ? editedValues.startDate.split('T')[0] : '') : (task.startDate ? task.startDate.split('T')[0] : '')}
+                   onChange={(e) => handleFieldChange('startDate', e.target.value)}
+                   onKeyPress={(e) => handleKeyPress(e, 'startDate')}
+                   onBlur={() => handleFieldSave('startDate')}
+                   className="edit-date-input"
+                 />
+               </div>
+               <div className="date-item">
+                 <div className="date-label">
+                   <CheckCircle size={14} />
+                   Ngày kết thúc
+                 </div>
+                 <input
+                   type="date"
+                   value={editedValues.endDate !== undefined ? (editedValues.endDate ? editedValues.endDate.split('T')[0] : '') : (task.endDate ? task.endDate.split('T')[0] : '')}
+                   onChange={(e) => handleFieldChange('endDate', e.target.value)}
+                   onKeyPress={(e) => handleKeyPress(e, 'endDate')}
+                   onBlur={() => handleFieldSave('endDate')}
+                   className="edit-date-input"
+                 />
+               </div>
+             </div>
+          </div>
+
+          {/* Comments Section */}
+          <div className="comments-section">
+            <div className="section-header">
+              <MessageCircle size={16} />
+              <span>Bình luận ({comments.length})</span>
+            </div>
+            
+            {/* Comments List */}
+            <div className="comments-list">
+              {comments.length > 0 ? (
+                comments.map((comment) => {
+                  const author = mockMembers.find(m => m.id === comment.authorId);
+                  return (
+                    <div key={comment.id} className="comment-item">
+                      <div className="comment-avatar">
+                        {author ? author.name.charAt(0) : 'U'}
+                      </div>
+                      <div className="comment-content">
+                        <div className="comment-header">
+                          <span className="comment-author">{author ? author.name : 'Unknown'}</span>
+                          <span className="comment-time">{formatCommentTime(comment.timestamp)}</span>
+                        </div>
+                        <div className="comment-text">{comment.content}</div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="no-comments">
+                  <MessageCircle size={24} />
+                  <span>Chưa có bình luận nào</span>
                 </div>
-                <div className="date-value">{formatDate(task.startDate)}</div>
-              </div>
-              <div className="date-item">
-                <div className="date-label">
-                  <CheckCircle size={14} />
-                  Ngày kết thúc
-                </div>
-                <div className={`date-value ${isOverdue() ? 'overdue' : ''}`}>
-                  {formatDate(task.endDate)}
-                  {isOverdue() && <span className="overdue-indicator">Quá hạn</span>}
-                </div>
+              )}
+            </div>
+
+            {/* Add Comment */}
+            <div className="add-comment">
+              <div className="comment-input-container">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyPress={handleKeyPressComment}
+                  placeholder="Thêm bình luận..."
+                  className="comment-textarea"
+                  rows={3}
+                />
+                <button
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim()}
+                  className="comment-send-btn"
+                >
+                  <Send size={16} />
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Additional Info */}
-          <div className="additional-info">
-            <div className="info-grid">
-              <div className="info-card">
-                <div className="info-card-header">
-                  <Clock size={16} />
-                  <span>Thời gian tạo</span>
-                </div>
-                <div className="info-card-value">
-                  {new Date().toLocaleDateString("vi-VN")}
-                </div>
-              </div>
-              <div className="info-card">
-                <div className="info-card-header">
-                  <User size={16} />
-                  <span>Người tạo</span>
-                </div>
-                <div className="info-card-value">
-                  {task.assignee ? getMemberName(task.assignee) : "Hệ thống"}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="modal-footer">
@@ -412,10 +490,11 @@ export const DetailTaskModal = ({
           background: white;
           border-radius: 16px;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-          width: 100%;
-          max-width: 700px;
+          width: 90%;
+          max-width: 800px;
           max-height: 90vh;
-          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
           animation: modalSlideIn 0.3s ease-out;
         }
 
@@ -434,9 +513,9 @@ export const DetailTaskModal = ({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 24px 24px 0 24px;
+          padding: 24px;
           border-bottom: 1px solid #e5e7eb;
-          margin-bottom: 24px;
+          flex-shrink: 0;
         }
 
         .header-left {
@@ -446,17 +525,6 @@ export const DetailTaskModal = ({
           flex: 1;
         }
 
-        .task-icon {
-          width: 48px;
-          height: 48px;
-          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
-        }
 
         .header-info {
           flex: 1;
@@ -534,7 +602,9 @@ export const DetailTaskModal = ({
         }
 
         .modal-content {
-          padding: 0 24px 24px 24px;
+          flex: 1;
+          overflow-y: auto;
+          padding: 24px;
         }
 
         .info-row {
@@ -546,7 +616,8 @@ export const DetailTaskModal = ({
 
         .info-item {
           display: flex;
-          flex-direction: column;
+          flex-direction: row;
+          align-items: center;
           gap: 8px;
         }
 
@@ -570,58 +641,15 @@ export const DetailTaskModal = ({
           gap: 6px;
           font-size: 12px;
           font-weight: 600;
-          padding: 8px 12px;
-          border-radius: 20px;
+          padding: 4px 8px;
+          border-radius: 12px;
           border: 1px solid;
           backdrop-filter: blur(10px);
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
           width: fit-content;
         }
 
-        .status-dot,
-        .priority-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
 
-        .progress-section {
-          margin-bottom: 24px;
-        }
-
-        .progress-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-        }
-
-        .progress-label {
-          font-size: 14px;
-          font-weight: 600;
-          color: #374151;
-        }
-
-        .progress-percentage {
-          font-size: 14px;
-          font-weight: 700;
-          color: #ff8c42;
-        }
-
-        .progress-bar {
-          width: 100%;
-          height: 8px;
-          background: #e5e7eb;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .progress-fill {
-          height: 100%;
-          border-radius: 4px;
-          transition: width 0.3s ease;
-        }
 
         .description-section,
         .milestones-section,
@@ -810,47 +838,326 @@ export const DetailTaskModal = ({
           font-weight: 600;
         }
 
-        .additional-info {
-          margin-top: 24px;
-          padding-top: 24px;
-          border-top: 1px solid #e5e7eb;
-        }
-
-        .info-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-
-        .info-card {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          padding: 16px;
-        }
-
-        .info-card-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 12px;
-          font-weight: 600;
-          color: #6b7280;
-          margin-bottom: 8px;
-        }
-
-        .info-card-value {
-          font-size: 14px;
-          font-weight: 600;
-          color: #1e293b;
-        }
 
         .modal-footer {
-          padding: 20px 24px 24px 24px;
+          padding: 20px 24px;
           border-top: 1px solid #e5e7eb;
           display: flex;
           justify-content: flex-end;
+          flex-shrink: 0;
         }
+
+         .task-title-section {
+           margin-bottom: 8px;
+         }
+
+         .field-label {
+           display: block;
+           font-size: 12px;
+           font-weight: 600;
+           color: #6b7280;
+           margin-bottom: 4px;
+           text-transform: uppercase;
+           letter-spacing: 0.5px;
+         }
+
+         .edit-title-input {
+           font-size: 18px;
+           font-weight: 600;
+           color: #1f2937;
+           border: 1px solid #d1d5db;
+           border-radius: 8px;
+           padding: 10px 12px;
+           width: 100%;
+           background: white;
+           outline: none;
+           transition: border-color 0.2s ease;
+         }
+
+         .edit-title-input:focus {
+           border-color: #3b82f6;
+           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+         }
+
+         .edit-select {
+           font-size: 12px;
+           font-weight: 600;
+           padding: 4px 8px;
+           border-radius: 12px;
+           border: 1px solid #d1d5db;
+           background: white;
+           color: #374151;
+           min-width: 120px;
+           outline: none;
+           transition: border-color 0.2s ease;
+         }
+
+         .edit-select:focus {
+           border-color: #3b82f6;
+           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+         }
+
+         .edit-textarea {
+           width: 100%;
+           min-height: 100px;
+           padding: 12px;
+           border: 1px solid #d1d5db;
+           border-radius: 8px;
+           font-size: 14px;
+           line-height: 1.6;
+           color: #374151;
+           background: white;
+           resize: vertical;
+           outline: none;
+           transition: border-color 0.2s ease;
+         }
+
+         .edit-textarea:focus {
+           border-color: #3b82f6;
+           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+         }
+
+         .edit-date-input {
+           font-size: 14px;
+           color: #374151;
+           border: 1px solid #d1d5db;
+           border-radius: 6px;
+           padding: 6px 8px;
+           background: white;
+           outline: none;
+           transition: border-color 0.2s ease;
+         }
+
+         .edit-date-input:focus {
+           border-color: #3b82f6;
+           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+         }
+
+         .milestones-checkbox-container {
+           display: flex;
+           flex-direction: column;
+           gap: 8px;
+           padding: 12px;
+           background: #f8fafc;
+           border: 1px solid #e2e8f0;
+           border-radius: 8px;
+           max-height: 200px;
+           overflow-y: auto;
+         }
+
+         .milestones-checkbox-container::-webkit-scrollbar {
+           width: 6px;
+         }
+
+         .milestones-checkbox-container::-webkit-scrollbar-track {
+           background: #f1f5f9;
+           border-radius: 3px;
+         }
+
+         .milestones-checkbox-container::-webkit-scrollbar-thumb {
+           background: #cbd5e1;
+           border-radius: 3px;
+         }
+
+         .milestones-checkbox-container::-webkit-scrollbar-thumb:hover {
+           background: #94a3b8;
+         }
+
+         .comments-section {
+           margin-bottom: 24px;
+         }
+
+         .comments-list {
+           max-height: 300px;
+           overflow-y: auto;
+           margin-bottom: 16px;
+         }
+
+         .comments-list::-webkit-scrollbar {
+           width: 6px;
+         }
+
+         .comments-list::-webkit-scrollbar-track {
+           background: #f1f5f9;
+           border-radius: 3px;
+         }
+
+         .comments-list::-webkit-scrollbar-thumb {
+           background: #cbd5e1;
+           border-radius: 3px;
+         }
+
+         .comments-list::-webkit-scrollbar-thumb:hover {
+           background: #94a3b8;
+         }
+
+         .comment-item {
+           display: flex;
+           gap: 12px;
+           padding: 12px 0;
+           border-bottom: 1px solid #f1f5f9;
+         }
+
+         .comment-item:last-child {
+           border-bottom: none;
+         }
+
+         .comment-avatar {
+           width: 32px;
+           height: 32px;
+           background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+           border-radius: 50%;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           color: white;
+           font-weight: 600;
+           font-size: 14px;
+           flex-shrink: 0;
+         }
+
+         .comment-content {
+           flex: 1;
+         }
+
+         .comment-header {
+           display: flex;
+           align-items: center;
+           gap: 8px;
+           margin-bottom: 4px;
+         }
+
+         .comment-author {
+           font-size: 14px;
+           font-weight: 600;
+           color: #1e293b;
+         }
+
+         .comment-time {
+           font-size: 12px;
+           color: #64748b;
+         }
+
+         .comment-text {
+           font-size: 14px;
+           color: #374151;
+           line-height: 1.5;
+         }
+
+         .no-comments {
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           gap: 8px;
+           padding: 24px;
+           color: #9ca3af;
+           font-size: 14px;
+         }
+
+         .add-comment {
+           border-top: 1px solid #e5e7eb;
+           padding-top: 16px;
+         }
+
+         .comment-input-container {
+           display: flex;
+           gap: 8px;
+           align-items: flex-end;
+         }
+
+         .comment-textarea {
+           flex: 1;
+           padding: 12px;
+           border: 1px solid #d1d5db;
+           border-radius: 8px;
+           font-size: 14px;
+           line-height: 1.5;
+           color: #374151;
+           background: white;
+           resize: vertical;
+           outline: none;
+           transition: border-color 0.2s ease;
+           min-height: 60px;
+         }
+
+         .comment-textarea:focus {
+           border-color: #3b82f6;
+           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+         }
+
+         .comment-send-btn {
+           width: 40px;
+           height: 40px;
+           background: #3b82f6;
+           color: white;
+           border: none;
+           border-radius: 8px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           cursor: pointer;
+           transition: all 0.2s ease;
+           flex-shrink: 0;
+         }
+
+         .comment-send-btn:hover:not(:disabled) {
+           background: #2563eb;
+           transform: scale(1.05);
+         }
+
+         .comment-send-btn:disabled {
+           background: #9ca3af;
+           cursor: not-allowed;
+           transform: none;
+         }
+
+         .milestone-checkbox-item {
+           display: flex;
+           align-items: center;
+           gap: 8px;
+           cursor: pointer;
+           padding: 6px 10px;
+           background: white;
+           border: 1px solid #e5e7eb;
+           border-radius: 6px;
+           transition: all 0.2s ease;
+           min-height: 32px;
+         }
+
+         .milestone-checkbox-item:hover {
+           background: #f9fafb;
+           border-color: #d1d5db;
+         }
+
+         .milestone-checkbox {
+           width: 14px;
+           height: 14px;
+           accent-color: #3b82f6;
+           cursor: pointer;
+           flex-shrink: 0;
+         }
+
+         .milestone-checkbox-label {
+           font-size: 13px;
+           font-weight: 500;
+           color: #374151;
+           cursor: pointer;
+           user-select: none;
+           line-height: 1.4;
+           overflow: hidden;
+           text-overflow: ellipsis;
+           white-space: nowrap;
+         }
+
+         .milestone-checkbox-item:has(.milestone-checkbox:checked) {
+           background: #eff6ff;
+           border-color: #3b82f6;
+         }
+
+         .milestone-checkbox-item:has(.milestone-checkbox:checked) .milestone-checkbox-label {
+           color: #1e40af;
+           font-weight: 600;
+         }
 
         .btn-close {
           padding: 12px 24px;

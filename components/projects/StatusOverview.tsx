@@ -21,7 +21,18 @@ export const StatusOverview = () => {
           <h3>Tổng quan trạng thái</h3>
           <p>Xem tổng quan trạng thái các công việc của bạn.</p>
         </div>
-        <a href="#" className="view-all-link">Xem tất cả công việc</a>
+        <a 
+          href="#" 
+          className="view-all-link"
+          onClick={(e) => {
+            e.preventDefault();
+            // Navigate to board tab
+            const event = new CustomEvent('navigateToTab', { detail: { tab: 'board' } });
+            window.dispatchEvent(event);
+          }}
+        >
+          Xem tất cả công việc
+        </a>
       </div>
 
       <div className="status-content">
@@ -114,15 +125,15 @@ export const StatusOverview = () => {
         }
 
         .view-all-link {
-          font-size: 14px;
-          color: #3b82f6;
+          font-size: 13px;
+          color: #fb923c;
           text-decoration: none;
           font-weight: 500;
           transition: color 0.2s ease;
         }
 
         .view-all-link:hover {
-          color: #2563eb;
+          color: #f97316;
         }
 
         .status-content {

@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { ProjectTabs } from '@/components/projects/ProjectTabs';
-import { TaskDetailModal } from '@/components/projects/TaskDetailModal';
+import { DetailTaskModal } from '@/components/tasks/DetailTaskModal';
 import { CreateMilestoneModal } from '@/components/milestones/CreateMilestoneModal';
 import { Project } from '@/types/project';
 import { Task } from '@/types/milestone';
 import { Member } from '@/types/member';
-import { mockProject, mockMembers, addMilestone } from '@/constants/mockData';
+import { mockProject, mockMembers, mockTasks, addMilestone } from '@/constants/mockData';
 import { Plus, Calendar, Users, Target } from 'lucide-react';
 import '@/app/styles/project-detail.scss';
 
@@ -23,8 +23,6 @@ const ProjectDetailPage = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState("summary");
 
-  // Mock current user - replace with actual auth
-  const currentUser: Member = mockMembers[0]; // Quang Long as current user
 
   // Handlers
   const handleTaskClick = (task: Task) => {
@@ -37,21 +35,6 @@ const ProjectDetailPage = () => {
     setSelectedTask(null);
   };
 
-  const handleAddComment = (taskId: string, content: string) => {
-    // Mock comment addition - replace with actual API call
-    console.log('Adding comment to task:', taskId, 'Content:', content);
-    // In real implementation, this would call an API to add the comment
-  };
-
-  const handleEditComment = (commentId: string, content: string) => {
-    // Mock comment edit - replace with actual API call
-    console.log('Editing comment:', commentId, 'New content:', content);
-  };
-
-  const handleDeleteComment = (commentId: string) => {
-    // Mock comment deletion - replace with actual API call
-    console.log('Deleting comment:', commentId);
-  };
 
   const handleCreateTask = () => {
     // Mock task creation - replace with actual API call
@@ -90,6 +73,13 @@ const ProjectDetailPage = () => {
   };
 
 
+  // Calculate project progress based on tasks
+  const calculateProjectProgress = () => {
+    const completedTasks = mockTasks.filter(task => task.status === 'done').length;
+    const totalTasks = mockTasks.length;
+    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  };
+
   // Load project data from mockData
   useEffect(() => {
     // Simulate API call delay
@@ -107,7 +97,7 @@ const ProjectDetailPage = () => {
             role: member.role,
             avatar: member.avatar
           })),
-          progress: 75 // Mock progress
+          progress: calculateProjectProgress() // Calculate real progress
         };
         setProject(projectWithMembers);
       } else {
@@ -190,16 +180,19 @@ const ProjectDetailPage = () => {
       />
       
       {/* Task Detail Modal */}
-      {selectedTask && project && (
-        <TaskDetailModal
+      {selectedTask && (
+        <DetailTaskModal
           isOpen={isTaskModalOpen}
           onClose={handleCloseTaskModal}
+          onEdit={(task) => {
+            console.log('Editing task:', task);
+            // Handle task edit - you can implement actual edit logic here
+          }}
+          onDelete={(taskId, taskTitle) => {
+            console.log('Deleting task:', taskId, taskTitle);
+            // Handle task delete - you can implement actual delete logic here
+          }}
           task={selectedTask}
-          projectMembers={project.members}
-          currentUser={currentUser}
-          onAddComment={handleAddComment}
-          onEditComment={handleEditComment}
-          onDeleteComment={handleDeleteComment}
         />
       )}
 

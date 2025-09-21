@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { Project } from '@/types/project';
 
 interface RecentProjectsProps {
@@ -7,8 +8,14 @@ interface RecentProjectsProps {
 }
 
 export const RecentProjects = ({ projects }: RecentProjectsProps) => {
+  const router = useRouter();
+  
   // Lấy 4 dự án gần đây nhất (có thể sắp xếp theo startDate hoặc id)
   const recentProjects = projects.slice(0, 4);
+
+  const handleProjectClick = (projectId: string) => {
+    router.push(`/projects/${projectId}`);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -62,14 +69,25 @@ export const RecentProjects = ({ projects }: RecentProjectsProps) => {
           <h3>Dự án gần đây</h3>
           <p>Xem các dự án đang được quản lý.</p>
         </div>
-        <a href="#" className="view-all-link">
+        <a 
+          href="#" 
+          className="view-all-link"
+          onClick={(e) => {
+            e.preventDefault();
+            router.push('/projects');
+          }}
+        >
           Xem tất cả
         </a>
       </div>
 
       <div className="projects-list">
         {recentProjects.map((project) => (
-          <div key={project.id} className="project-item">
+          <div 
+            key={project.id} 
+            className="project-item"
+            onClick={() => handleProjectClick(project.id)}
+          >
             <div className="project-header">
               <div className="project-info">
                 <h4 className="project-title">{project.name}</h4>
@@ -169,6 +187,7 @@ export const RecentProjects = ({ projects }: RecentProjectsProps) => {
           transition: all 0.2s ease;
           position: relative;
           overflow: hidden;
+          cursor: pointer;
         }
 
         .project-item::before {

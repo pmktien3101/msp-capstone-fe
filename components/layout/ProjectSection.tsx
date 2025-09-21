@@ -164,16 +164,9 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
                   className={`project-item ${isProjectActive(project.id) ? 'active' : ''}`}
                   onClick={() => handleProjectClick(project.id)}
                 >
-                  <div className="project-indicator">
-                    <div 
-                      className="status-dot"
-                      style={{ backgroundColor: getStatusColor(project.status) }}
-                    ></div>
-                  </div>
                   <div className="project-content">
                     <div className="project-name">{project.name}</div>
                     <div className="project-meta">
-                      <span className="project-key">PMS-{project.id}</span>
                       <span className="project-progress">{project.progress}%</span>
                     </div>
                   </div>
@@ -308,36 +301,30 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 6px 8px;
-          margin-bottom: 2px;
-          border-radius: 4px;
+          padding: 8px 10px;
+          margin-bottom: 3px;
+          border-radius: 6px;
           cursor: pointer;
           transition: all 0.2s ease;
           position: relative;
+          border: 1px solid transparent;
+          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         }
 
         .project-item:hover {
-          background: #f9fafb;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border-color: #e2e8f0;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         .project-item.active {
-          background: #fdf0d2;
-          color: #ff5e13;
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+          border-color: #fbbf24;
+          color: #92400e;
+          box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
         }
 
-        .project-indicator {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 16px;
-          height: 16px;
-        }
-
-        .status-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-        }
 
         .project-content {
           flex: 1;
@@ -346,43 +333,49 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
         .project-name {
           font-size: 13px;
-          font-weight: 500;
-          color: #374151;
+          font-weight: 600;
+          color: #1f2937;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          line-height: 1.2;
         }
 
         .project-item.active .project-name {
-          color: #ff5e13;
-          font-weight: 600;
+          color: #92400e;
+          font-weight: 700;
         }
 
         .project-meta {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 11px;
-          color: #9ca3af;
+          font-size: 10px;
+          color: #6b7280;
           margin-top: 2px;
+          gap: 6px;
         }
 
-        .project-key {
-          font-family: 'Monaco', 'Menlo', monospace;
-          font-weight: 500;
-        }
 
         .project-progress {
-          font-weight: 500;
+          font-weight: 600;
+          color: #fb923c;
+          background: rgba(251, 146, 60, 0.1);
+          padding: 1px 4px;
+          border-radius: 3px;
+          font-size: 9px;
         }
 
         .active-indicator {
           width: 3px;
           height: 16px;
-          background: #ff5e13;
+          background: linear-gradient(180deg, #fbbf24, #f59e0b);
           border-radius: 2px;
           position: absolute;
           right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          box-shadow: 0 1px 3px rgba(251, 191, 36, 0.3);
         }
 
         .loading-state {
