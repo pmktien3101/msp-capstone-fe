@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Project } from '@/types/project';
-import { mockTasks, additionalMockTasks } from '@/constants/mockData';
+import { mockTasks } from '@/constants/mockData';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -76,7 +76,7 @@ export default function ProjectOverview({
       };
 
       const taskIds = projectTaskMapping[selectedProject.id] || [];
-      const allTasks = [...mockTasks, ...additionalMockTasks];
+      const allTasks = [...mockTasks];
       const tasks = allTasks.filter(task => taskIds.includes(task.id));
       
       return {
@@ -89,7 +89,7 @@ export default function ProjectOverview({
       };
     } else {
       // Stats tổng hợp cho tất cả projects
-      const allTasks = [...mockTasks, ...additionalMockTasks];
+      const allTasks = [...mockTasks];
       return {
         totalTasks: allTasks.length,
         completedTasks: allTasks.filter(task => task.status === 'done' || task.status === 'completed').length,
