@@ -211,6 +211,45 @@ export const addMilestone = (milestoneData: any) => {
 // Function to get milestones
 export const getMilestones = () => mockMilestones;
 
+// Function to update milestone
+export const updateMilestone = (milestoneId: string, milestoneData: any) => {
+  const milestoneIndex = mockMilestones.findIndex(m => m.id === milestoneId);
+  if (milestoneIndex === -1) {
+    throw new Error(`Milestone with id ${milestoneId} not found`);
+  }
+  
+  const oldMilestone = mockMilestones[milestoneIndex];
+  const oldTaskIds = oldMilestone.tasks || [];
+  const newTaskIds = milestoneData.tasks || [];
+  
+  // Update milestone with new data while preserving existing fields
+  mockMilestones[milestoneIndex] = {
+    ...mockMilestones[milestoneIndex],
+    ...milestoneData,
+    id: milestoneId, // Ensure ID doesn't change
+  };
+  
+  // Update task.milestoneIds for tasks that were removed from milestone
+  const removedTaskIds = oldTaskIds.filter(id => !newTaskIds.includes(id));
+  removedTaskIds.forEach(taskId => {
+    const task = mockTasks.find(t => t.id === taskId);
+    if (task) {
+      task.milestoneIds = task.milestoneIds.filter(id => id !== milestoneId);
+    }
+  });
+  
+  // Update task.milestoneIds for tasks that were added to milestone
+  const addedTaskIds = newTaskIds.filter((id: string) => !oldTaskIds.includes(id));
+  addedTaskIds.forEach((taskId: string) => {
+    const task = mockTasks.find(t => t.id === taskId);
+    if (task && !task.milestoneIds.includes(milestoneId)) {
+      task.milestoneIds.push(milestoneId);
+    }
+  });
+  
+  return mockMilestones[milestoneIndex];
+};
+
 // Function to delete milestone
 export const deleteMilestone = (milestoneId: string) => {
   const milestoneIndex = mockMilestones.findIndex(m => m.id === milestoneId);
@@ -433,6 +472,93 @@ export const getTasksByAssignee = (assignee: string) => {
 
 export const getTasksByMilestone = (milestoneId: string) => {
   return mockTasks.filter((task) => task.milestoneIds.includes(milestoneId));
+};
+
+// Function to delete task
+export const deleteTask = (taskId: string) => {
+  const taskIndex = mockTasks.findIndex(t => t.id === taskId);
+  if (taskIndex === -1) {
+    throw new Error(`Task with id ${taskId} not found`);
+  }
+  
+  const deletedTask = mockTasks[taskIndex];
+  
+  // Remove task from array
+  mockTasks.splice(taskIndex, 1);
+  
+  // Remove task from all milestones that reference it
+  mockMilestones.forEach(milestone => {
+    if (milestone.tasks.includes(taskId)) {
+      milestone.tasks = milestone.tasks.filter(id => id !== taskId);
+    }
+  });
+  
+  // Remove task from member's tasks
+  mockMembers.forEach(member => {
+    if (member.tasks.includes(taskId)) {
+      member.tasks = member.tasks.filter(id => id !== taskId);
+    }
+  });
+  
+  return deletedTask;
+};
+
+// Function to update task
+export const updateTask = (taskId: string, taskData: any) => {
+  const taskIndex = mockTasks.findIndex(t => t.id === taskId);
+  if (taskIndex === -1) {
+    throw new Error(`Task with id ${taskId} not found`);
+  }
+  
+  const oldTask = mockTasks[taskIndex];
+  const oldMilestoneIds = oldTask.milestoneIds || [];
+  const newMilestoneIds = taskData.milestoneIds || [];
+  
+  // Update task with new data while preserving existing fields
+  mockTasks[taskIndex] = {
+    ...mockTasks[taskIndex],
+    ...taskData,
+    id: taskId, // Ensure ID doesn't change
+  };
+  
+  // Update milestone.tasks for milestones that were removed from task
+  const removedMilestoneIds = oldMilestoneIds.filter(id => !newMilestoneIds.includes(id));
+  removedMilestoneIds.forEach(milestoneId => {
+    const milestone = mockMilestones.find(m => m.id === milestoneId);
+    if (milestone) {
+      milestone.tasks = milestone.tasks.filter(id => id !== taskId);
+    }
+  });
+  
+  // Update milestone.tasks for milestones that were added to task
+  const addedMilestoneIds = newMilestoneIds.filter((id: string) => !oldMilestoneIds.includes(id));
+  addedMilestoneIds.forEach((milestoneId: string) => {
+    const milestone = mockMilestones.find(m => m.id === milestoneId);
+    if (milestone && !milestone.tasks.includes(taskId)) {
+      milestone.tasks.push(taskId);
+    }
+  });
+  
+  // Update member's tasks if assignee changed
+  if (oldTask.assignee !== taskData.assignee) {
+    // Remove from old assignee
+    if (oldTask.assignee) {
+      const oldMember = mockMembers.find(m => m.id === oldTask.assignee);
+      if (oldMember) {
+        oldMember.tasks = oldMember.tasks.filter(id => id !== taskId);
+      }
+    }
+    
+    // Add to new assignee
+    if (taskData.assignee) {
+      const newMember = mockMembers.find(m => m.id === taskData.assignee);
+      if (newMember && !newMember.tasks.includes(taskId)) {
+        newMember.tasks.push(taskId);
+      }
+    }
+  }
+  
+  return mockTasks[taskIndex];
 };
 
 export const getProjectStats = () => {

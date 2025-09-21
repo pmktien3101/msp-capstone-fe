@@ -2,17 +2,21 @@
 
 import { useState } from "react";
 import { Project } from "@/types/project";
-import { mockTasks, mockMembers, mockMilestones, deleteMilestone } from "@/constants/mockData";
+import { mockTasks, mockMembers, mockMilestones, deleteMilestone, updateMilestone, deleteTask, updateTask } from "@/constants/mockData";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { DeleteMilestoneModal } from "@/components/milestones/DeleteMilestoneModal";
-import { 
-  ChevronRight, 
-  Layers, 
-  CheckCircle, 
-  User, 
-  Star, 
-  Calendar, 
-  Edit, 
+import { UpdateMilestoneModal } from "@/components/milestones/UpdateMilestoneModal";
+import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
+import { UpdateTaskModal } from "@/components/tasks/UpdateTaskModal";
+import { DetailTaskModal } from "@/components/tasks/DetailTaskModal";
+import {
+  ChevronRight,
+  Layers,
+  CheckCircle,
+  User,
+  Star,
+  Calendar,
+  Edit,
   Trash2,
   Users,
   Plus,
@@ -58,6 +62,40 @@ export const ListTable = ({
     milestoneId: undefined,
     milestoneName: undefined,
     taskCount: 0
+  });
+
+  const [updateMilestoneModal, setUpdateMilestoneModal] = useState<{
+    isOpen: boolean;
+    milestone: any;
+  }>({
+    isOpen: false,
+    milestone: null
+  });
+
+  const [deleteTaskModal, setDeleteTaskModal] = useState<{
+    isOpen: boolean;
+    taskId?: string;
+    taskTitle?: string;
+  }>({
+    isOpen: false,
+    taskId: undefined,
+    taskTitle: undefined
+  });
+
+  const [updateTaskModal, setUpdateTaskModal] = useState<{
+    isOpen: boolean;
+    task: any;
+  }>({
+    isOpen: false,
+    task: null
+  });
+
+  const [detailTaskModal, setDetailTaskModal] = useState<{
+    isOpen: boolean;
+    task: any;
+  }>({
+    isOpen: false,
+    task: null
   });
 
   const getStatusColor = (status: string) => {
@@ -205,6 +243,22 @@ export const ListTable = ({
     });
   };
 
+  // Helper function to open update milestone modal
+  const openUpdateMilestoneModal = (milestone: any) => {
+    setUpdateMilestoneModal({
+      isOpen: true,
+      milestone
+    });
+  };
+
+  // Helper function to close update milestone modal
+  const closeUpdateMilestoneModal = () => {
+    setUpdateMilestoneModal({
+      isOpen: false,
+      milestone: null
+    });
+  };
+
   // Helper function to handle milestone deletion
   const handleDeleteMilestone = () => {
     if (!deleteMilestoneModal.milestoneId) return;
@@ -224,6 +278,17 @@ export const ListTable = ({
     }
   };
 
+  // Helper function to handle milestone update
+  const handleUpdateMilestone = (milestoneData: any) => {
+    try {
+      updateMilestone(milestoneData.id, milestoneData);
+      closeUpdateMilestoneModal();
+    } catch (error) {
+      console.error('Error updating milestone:', error);
+      alert('Có lỗi xảy ra khi cập nhật cột mốc. Vui lòng thử lại!');
+    }
+  };
+
   // Helper function to handle task creation
   const handleCreateTask = (taskData: any) => {
     // Generate unique ID
@@ -239,9 +304,9 @@ export const ListTable = ({
       ...taskData,
       id: newId
     };
-    
+
     setTasks(prevTasks => [...prevTasks, newTask]);
-    
+
     // Update milestone tasks for all selected milestones
     if (taskData.milestoneIds && taskData.milestoneIds.length > 0) {
       taskData.milestoneIds.forEach((milestoneId: string) => {
@@ -253,13 +318,99 @@ export const ListTable = ({
     }
   };
 
+  // Helper function to open delete task modal
+  const openDeleteTaskModal = (taskId: string, taskTitle: string) => {
+    setDeleteTaskModal({
+      isOpen: true,
+      taskId,
+      taskTitle
+    });
+  };
+
+  // Helper function to close delete task modal
+  const closeDeleteTaskModal = () => {
+    setDeleteTaskModal({
+      isOpen: false,
+      taskId: undefined,
+      taskTitle: undefined
+    });
+  };
+
+  // Helper function to handle task deletion
+  const handleDeleteTask = () => {
+    if (!deleteTaskModal.taskId) return;
+
+    try {
+      deleteTask(deleteTaskModal.taskId);
+      
+      // Update local tasks state
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== deleteTaskModal.taskId));
+      
+      closeDeleteTaskModal();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('Có lỗi xảy ra khi xóa công việc. Vui lòng thử lại!');
+    }
+  };
+
+  // Helper function to open update task modal
+  const openUpdateTaskModal = (task: any) => {
+    setUpdateTaskModal({
+      isOpen: true,
+      task
+    });
+  };
+
+  // Helper function to close update task modal
+  const closeUpdateTaskModal = () => {
+    setUpdateTaskModal({
+      isOpen: false,
+      task: null
+    });
+  };
+
+  // Helper function to handle task update
+  const handleUpdateTask = (taskData: any) => {
+    try {
+      updateTask(taskData.id, taskData);
+      
+      // Update local tasks state
+      setTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === taskData.id ? { ...task, ...taskData } : task
+        )
+      );
+      
+      closeUpdateTaskModal();
+    } catch (error) {
+      console.error('Error updating task:', error);
+      alert('Có lỗi xảy ra khi cập nhật công việc. Vui lòng thử lại!');
+    }
+  };
+
+  // Helper function to open detail task modal
+  const openDetailTaskModal = (task: any) => {
+    setDetailTaskModal({
+      isOpen: true,
+      task
+    });
+  };
+
+  // Helper function to close detail task modal
+  const closeDetailTaskModal = () => {
+    setDetailTaskModal({
+      isOpen: false,
+      task: null
+    });
+  };
+
   // Helper function to get milestone progress
   const getMilestoneProgress = (milestoneId: string) => {
-    const milestoneTasks = tasks.filter(task => 
+    const milestoneTasks = tasks.filter(task =>
       task.milestoneIds.includes(milestoneId)
     );
     if (milestoneTasks.length === 0) return 0;
-    
+
     const completedTasks = milestoneTasks.filter(task => task.status === "done").length;
     return Math.round((completedTasks / milestoneTasks.length) * 100);
   };
@@ -268,11 +419,11 @@ export const ListTable = ({
   const getMilestoneStatus = (milestoneId: string) => {
     const milestone = mockMilestones.find(m => m.id === milestoneId);
     if (!milestone) return "pending";
-    
+
     const progress = getMilestoneProgress(milestoneId);
     const dueDate = new Date(milestone.dueDate);
     const today = new Date();
-    
+
     if (progress === 100) return "completed";
     if (progress > 0) return "in-progress";
     if (today > dueDate) return "overdue";
@@ -282,51 +433,51 @@ export const ListTable = ({
   // Create hierarchical data structure
   const createHierarchicalData = () => {
     const filteredMilestones = mockMilestones.map(milestone => {
-      const milestoneTasks = tasks.filter(task => 
+      const milestoneTasks = tasks.filter(task =>
         task.milestoneIds.includes(milestone.id)
       );
-      
+
       // Filter tasks within milestone
       const filteredTasks = milestoneTasks.filter((task) => {
-      const matchesSearch =
-        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const matchesSearch =
+          task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           task.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
           task.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
           milestone.name.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesStatus =
-        statusFilter === "all" || task.status === statusFilter;
+        const matchesStatus =
+          statusFilter === "all" || task.status === statusFilter;
 
-      const matchesAssignee =
-        assigneeFilter === "all" ||
-        (assigneeFilter === "unassigned" && !task.assignee) ||
-        task.assignee === assigneeFilter;
+        const matchesAssignee =
+          assigneeFilter === "all" ||
+          (assigneeFilter === "unassigned" && !task.assignee) ||
+          task.assignee === assigneeFilter;
 
-      return matchesSearch && matchesStatus && matchesAssignee;
+        return matchesSearch && matchesStatus && matchesAssignee;
       });
 
       // Sort tasks
       const sortedTasks = filteredTasks.sort((a, b) => {
-      let aValue: any = a[sortBy as keyof typeof a];
-      let bValue: any = b[sortBy as keyof typeof b];
+        let aValue: any = a[sortBy as keyof typeof a];
+        let bValue: any = b[sortBy as keyof typeof b];
 
         if (sortBy === "endDate" || sortBy === "startDate") {
-        aValue = new Date(aValue).getTime();
-        bValue = new Date(bValue).getTime();
+          aValue = new Date(aValue).getTime();
+          bValue = new Date(bValue).getTime();
         } else if (sortBy === "assignee") {
           aValue = getMemberName(aValue || "").toLowerCase();
           bValue = getMemberName(bValue || "").toLowerCase();
-      } else if (typeof aValue === "string") {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
-      }
+        } else if (typeof aValue === "string") {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
+        }
 
-      if (sortOrder === "asc") {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-      } else {
-        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-      }
-    });
+        if (sortOrder === "asc") {
+          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        } else {
+          return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+        }
+      });
 
       return {
         ...milestone,
@@ -337,7 +488,7 @@ export const ListTable = ({
     });
 
     // Get tasks without milestones
-    const tasksWithoutMilestones = tasks.filter(task => 
+    const tasksWithoutMilestones = tasks.filter(task =>
       !task.milestoneIds || task.milestoneIds.length === 0
     );
 
@@ -384,9 +535,9 @@ export const ListTable = ({
 
     // Return milestones and unassigned tasks separately
     return {
-      milestones: filteredMilestones.filter(milestone => 
+      milestones: filteredMilestones.filter(milestone =>
         // Only show milestones that have matching tasks or match search
-        milestone.tasks.length > 0 || 
+        milestone.tasks.length > 0 ||
         milestone.name.toLowerCase().includes(searchQuery.toLowerCase())
       ),
       unassignedTasks: sortedTasksWithoutMilestones
@@ -401,8 +552,8 @@ export const ListTable = ({
         <div className="header-title">
           <h2>Danh sách các cột mốc và công việc</h2>
           <p>Tổng cộng {tasks.length} công việc</p>
-                  </div>
-        <button 
+        </div>
+        <button
           className="create-task-header-btn"
           onClick={() => openCreateTaskModal()}
           title="Tạo công việc mới"
@@ -415,7 +566,7 @@ export const ListTable = ({
         {/* Unassigned Tasks - Same level as milestones */}
         {hierarchicalData.unassignedTasks.map((task) => (
           <div key={task.id} className="task-item">
-            <div className="task-card-full">
+            <div className="task-card-full" onClick={() => openDetailTaskModal(task)}>
               <div className="task-header-full">
                 <div className="task-icon">
                   <CheckCircle size={20} />
@@ -427,20 +578,20 @@ export const ListTable = ({
                 </div>
                 <div className="task-stats">
                   <div className="status-badge-full">
-                  <span
+                    <span
                       className="status-badge-modern"
-                    style={{
+                      style={{
                         background: `linear-gradient(135deg, ${getStatusColor(task.status)}20, ${getStatusColor(task.status)}10)`,
-                      color: getStatusColor(task.status),
+                        color: getStatusColor(task.status),
                         borderColor: getStatusColor(task.status),
-                    }}
-                  >
+                      }}
+                    >
                       <div className="status-dot" style={{ backgroundColor: getStatusColor(task.status) }}></div>
-                    {getStatusLabel(task.status)}
-                  </span>
+                      {getStatusLabel(task.status)}
+                    </span>
                   </div>
                   <div className="assignee-info-full">
-                  {task.assignee ? (
+                    {task.assignee ? (
                       <div className="assignee-modern">
                         <div className="assignee-avatar-modern">
                           <span>{getMemberName(task.assignee).charAt(0)}</span>
@@ -449,8 +600,8 @@ export const ListTable = ({
                           <span className="assignee-name">{getMemberName(task.assignee)}</span>
                           <span className="assignee-role">{mockMembers.find(m => m.id === task.assignee)?.role}</span>
                         </div>
-                    </div>
-                  ) : (
+                      </div>
+                    ) : (
                       <div className="unassigned-modern">
                         <div className="unassigned-icon">
                           <User size={16} />
@@ -460,17 +611,17 @@ export const ListTable = ({
                     )}
                   </div>
                   <div className="priority-badge-full">
-                  <span
+                    <span
                       className="priority-badge-modern"
-                    style={{
+                      style={{
                         background: `linear-gradient(135deg, ${getPriorityColor(task.priority)}20, ${getPriorityColor(task.priority)}10)`,
-                      color: getPriorityColor(task.priority),
+                        color: getPriorityColor(task.priority),
                         borderColor: getPriorityColor(task.priority),
-                    }}
-                  >
+                      }}
+                    >
                       <div className="priority-dot" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
-                    {getPriorityLabel(task.priority)}
-                  </span>
+                      {getPriorityLabel(task.priority)}
+                    </span>
                   </div>
                   <div className="task-progress-modern">
                     <div className="progress-circle">
@@ -490,11 +641,11 @@ export const ListTable = ({
                           fill="none"
                           stroke={task.status === "done" ? "#10b981" : task.status === "in-progress" ? "#f59e0b" : "#6b7280"}
                           strokeWidth="3"
-                        strokeLinecap="round"
+                          strokeLinecap="round"
                           strokeDasharray={`${task.status === "done" ? 100 : task.status === "in-progress" ? 50 : 0} 100`}
                           transform="rotate(-90 20 20)"
-                      />
-                    </svg>
+                        />
+                      </svg>
                       <div className="progress-text-circle">
                         {task.status === "done" ? "100%" : task.status === "in-progress" ? "50%" : "0%"}
                       </div>
@@ -511,8 +662,8 @@ export const ListTable = ({
                           {task.startDate
                             ? new Date(task.startDate).toLocaleDateString("vi-VN")
                             : "Chưa có"}
-                    </span>
-                  </div>
+                        </span>
+                      </div>
                     </div>
                     <div className="date-info-modern">
                       <div className="date-icon">
@@ -529,10 +680,18 @@ export const ListTable = ({
                     </div>
                   </div>
                   <div className="action-buttons-modern">
-                    <button className="action-btn-modern edit-btn" title="Chỉnh sửa">
+                    <button 
+                      className="action-btn-modern edit-btn" 
+                      title="Chỉnh sửa"
+                      onClick={() => openUpdateTaskModal(task)}
+                    >
                       <Edit size={16} />
                     </button>
-                    <button className="action-btn-modern delete-btn" title="Xóa">
+                    <button 
+                      className="action-btn-modern delete-btn" 
+                      title="Xóa"
+                      onClick={() => openDeleteTaskModal(task.id, task.title)}
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -548,12 +707,12 @@ export const ListTable = ({
             {/* Milestone Card */}
             <div className="milestone-card-full">
               <div className="milestone-header-full">
-                <button 
+                <button
                   className="expand-btn-modern"
                   onClick={() => toggleMilestone(milestone.id)}
                 >
                   <div className="expand-icon">
-                    <ChevronRight 
+                    <ChevronRight
                       size={20}
                       style={{
                         transform: expandedMilestones.has(milestone.id) ? 'rotate(90deg)' : 'rotate(0deg)',
@@ -561,7 +720,7 @@ export const ListTable = ({
                       }}
                     />
                   </div>
-                  </button>
+                </button>
                 <div className="milestone-icon">
                   <Layers size={24} />
                 </div>
@@ -593,9 +752,9 @@ export const ListTable = ({
                       <span className="progress-percentage">{milestone.progress}%</span>
                     </div>
                     <div className="progress-bar-modern">
-                      <div 
+                      <div
                         className="progress-fill-modern"
-                        style={{ 
+                        style={{
                           width: `${milestone.progress}%`,
                           background: `linear-gradient(90deg, #ff8c42 0%, #ff6b1a 100%)`
                         }}
@@ -604,15 +763,19 @@ export const ListTable = ({
                     </div>
                   </div>
                   <div className="milestone-actions">
-                    <button className="action-btn-modern edit-btn" title="Chỉnh sửa Milestone">
+                    <button 
+                      className="action-btn-modern edit-btn" 
+                      title="Chỉnh sửa Milestone"
+                      onClick={() => openUpdateMilestoneModal(milestone)}
+                    >
                       <Edit size={16} />
                     </button>
-                    <button 
-                      className="action-btn-modern delete-btn" 
+                    <button
+                      className="action-btn-modern delete-btn"
                       title="Xóa Milestone"
                       onClick={() => openDeleteMilestoneModal(milestone.id, milestone.name, milestone.tasks.length)}
                     >
-                      <X size={16} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
@@ -624,7 +787,7 @@ export const ListTable = ({
               <div className="task-list">
                 {milestone.tasks.map((task) => (
                   <div key={task.id} className="task-item">
-                    <div className="task-card-full">
+                    <div className="task-card-full" onClick={() => openDetailTaskModal(task)}>
                       <div className="task-header-full">
                         <div className="task-icon">
                           <CheckCircle size={20} />
@@ -633,23 +796,23 @@ export const ListTable = ({
                           <div className="task-id-modern">{task.id}</div>
                           <div className="task-name-modern">{task.title}</div>
                           <div className="task-description-modern">{task.description}</div>
-                  </div>
+                        </div>
                         <div className="task-stats">
                           <div className="status-badge-full">
-                  <span
+                            <span
                               className="status-badge-modern"
-                    style={{
+                              style={{
                                 background: `linear-gradient(135deg, ${getStatusColor(task.status)}20, ${getStatusColor(task.status)}10)`,
-                      color: getStatusColor(task.status),
+                                color: getStatusColor(task.status),
                                 borderColor: getStatusColor(task.status),
-                    }}
-                  >
+                              }}
+                            >
                               <div className="status-dot" style={{ backgroundColor: getStatusColor(task.status) }}></div>
-                    {getStatusLabel(task.status)}
-                  </span>
+                              {getStatusLabel(task.status)}
+                            </span>
                           </div>
                           <div className="assignee-info-full">
-                  {task.assignee ? (
+                            {task.assignee ? (
                               <div className="assignee-modern">
                                 <div className="assignee-avatar-modern">
                                   <span>{getMemberName(task.assignee).charAt(0)}</span>
@@ -658,8 +821,8 @@ export const ListTable = ({
                                   <span className="assignee-name">{getMemberName(task.assignee)}</span>
                                   <span className="assignee-role">{mockMembers.find(m => m.id === task.assignee)?.role}</span>
                                 </div>
-                    </div>
-                  ) : (
+                              </div>
+                            ) : (
                               <div className="unassigned-modern">
                                 <div className="unassigned-icon">
                                   <User size={16} />
@@ -669,17 +832,17 @@ export const ListTable = ({
                             )}
                           </div>
                           <div className="priority-badge-full">
-                  <span
+                            <span
                               className="priority-badge-modern"
-                    style={{
+                              style={{
                                 background: `linear-gradient(135deg, ${getPriorityColor(task.priority)}20, ${getPriorityColor(task.priority)}10)`,
-                      color: getPriorityColor(task.priority),
+                                color: getPriorityColor(task.priority),
                                 borderColor: getPriorityColor(task.priority),
-                    }}
-                  >
+                              }}
+                            >
                               <div className="priority-dot" style={{ backgroundColor: getPriorityColor(task.priority) }}></div>
-                    {getPriorityLabel(task.priority)}
-                  </span>
+                              {getPriorityLabel(task.priority)}
+                            </span>
                           </div>
                           <div className="task-progress-modern">
                             <div className="progress-circle">
@@ -699,11 +862,11 @@ export const ListTable = ({
                                   fill="none"
                                   stroke={task.status === "done" ? "#10b981" : task.status === "in-progress" ? "#f59e0b" : "#6b7280"}
                                   strokeWidth="3"
-                        strokeLinecap="round"
+                                  strokeLinecap="round"
                                   strokeDasharray={`${task.status === "done" ? 100 : task.status === "in-progress" ? 50 : 0} 100`}
                                   transform="rotate(-90 20 20)"
-                      />
-                    </svg>
+                                />
+                              </svg>
                               <div className="progress-text-circle">
                                 {task.status === "done" ? "100%" : task.status === "in-progress" ? "50%" : "0%"}
                               </div>
@@ -733,17 +896,25 @@ export const ListTable = ({
                                   {task.endDate
                                     ? new Date(task.endDate).toLocaleDateString("vi-VN")
                                     : "Chưa có"}
-                    </span>
-                  </div>
+                                </span>
+                              </div>
                             </div>
                           </div>
                           <div className="action-buttons-modern">
-                            <button className="action-btn-modern edit-btn" title="Chỉnh sửa">
+                            <button 
+                              className="action-btn-modern edit-btn" 
+                              title="Chỉnh sửa"
+                              onClick={() => openUpdateTaskModal(task)}
+                            >
                               <Edit size={16} />
-                  </button>
-                            <button className="action-btn-modern delete-btn" title="Xóa">
+                            </button>
+                            <button 
+                              className="action-btn-modern delete-btn" 
+                              title="Xóa"
+                              onClick={() => openDeleteTaskModal(task.id, task.title)}
+                            >
                               <Trash2 size={16} />
-                  </button>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -771,6 +942,40 @@ export const ListTable = ({
         onConfirm={handleDeleteMilestone}
         milestoneName={deleteMilestoneModal.milestoneName || ""}
         taskCount={deleteMilestoneModal.taskCount || 0}
+      />
+
+      {/* Update Milestone Modal */}
+      <UpdateMilestoneModal
+        isOpen={updateMilestoneModal.isOpen}
+        onClose={closeUpdateMilestoneModal}
+        onUpdateMilestone={handleUpdateMilestone}
+        milestone={updateMilestoneModal.milestone}
+      />
+
+      {/* Delete Task Modal */}
+      <DeleteTaskModal
+        isOpen={deleteTaskModal.isOpen}
+        onClose={closeDeleteTaskModal}
+        onConfirm={handleDeleteTask}
+        taskTitle={deleteTaskModal.taskTitle || ""}
+        taskId={deleteTaskModal.taskId || ""}
+      />
+
+      {/* Update Task Modal */}
+      <UpdateTaskModal
+        isOpen={updateTaskModal.isOpen}
+        onClose={closeUpdateTaskModal}
+        onUpdateTask={handleUpdateTask}
+        task={updateTaskModal.task}
+      />
+
+      {/* Detail Task Modal */}
+      <DetailTaskModal
+        isOpen={detailTaskModal.isOpen}
+        onClose={closeDetailTaskModal}
+        onEdit={openUpdateTaskModal}
+        onDelete={openDeleteTaskModal}
+        task={detailTaskModal.task}
       />
 
       <style jsx>{`
@@ -1000,6 +1205,7 @@ export const ListTable = ({
           transition: all 0.3s ease;
           overflow: visible; /* Allow task card to be visible */
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          cursor: pointer;
         }
 
         .task-card-full:hover {
