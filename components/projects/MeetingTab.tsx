@@ -334,7 +334,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     >
                       <Eye className="w-5 h-5" />
                     </button>
-                    {!(viewType === "ended") && (
+                    {!(viewType === "ended") && !isMember && (
                       <button
                         className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
                         title="Cập nhật"
@@ -343,13 +343,15 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                         <Pencil className="w-5 h-5" />
                       </button>
                     )}
-                    <button
-                      className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
-                      title="Xóa"
-                      onClick={() => handleDelete(call)}
-                    >
-                      <Trash className="w-5 h-5 text-red-500" />
-                    </button>
+                    {!isMember && (
+                      <button
+                        className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                        title="Xóa"
+                        onClick={() => handleDelete(call)}
+                      >
+                        <Trash className="w-5 h-5 text-red-500" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
