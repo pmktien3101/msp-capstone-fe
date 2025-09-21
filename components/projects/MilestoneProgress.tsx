@@ -12,47 +12,33 @@ export const MilestoneProgress = () => {
     const progress = calculateMilestoneProgress(milestone.id);
     const status = getMilestoneStatus(milestone.id);
 
+    // Map task IDs to actual task objects
+    const taskObjects = milestone.tasks
+      .map(taskId => mockTasks.find(task => task.id === taskId))
+      .filter(task => task !== undefined); // Remove undefined tasks
+
     return {
       ...milestone,
       progress: progress,
       status: status,
-      tasks: milestone.tasks.map((taskId) => {
-        const task = mockTasks.find(t => t.id === taskId);
-        return {
-          id: taskId,
-          title: task?.title || `Task ${taskId}`,
-          completed: task?.status === "done",
-        };
-      }),
+      tasks: taskObjects.map((task) => ({
+        id: task.id,
+        title: task.title,
+        completed: task.status === "done",
+      })),
     };
   });
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return {
-          background: 'rgba(16, 185, 129, 0.1)',
-          color: '#10b981',
-          border: 'rgba(16, 185, 129, 0.2)'
-        };
+        return "#10b981";
       case "in-progress":
-        return {
-          background: 'rgba(251, 146, 60, 0.1)',
-          color: '#fb923c',
-          border: 'rgba(251, 146, 60, 0.2)'
-        };
+        return "#3b82f6";
       case "pending":
-        return {
-          background: 'rgba(107, 114, 128, 0.1)',
-          color: '#6b7280',
-          border: 'rgba(107, 114, 128, 0.2)'
-        };
+        return "#6b7280";
       default:
-        return {
-          background: 'rgba(107, 114, 128, 0.1)',
-          color: '#6b7280',
-          border: 'rgba(107, 114, 128, 0.2)'
-        };
+        return "#6b7280";
     }
   };
 
@@ -73,7 +59,7 @@ export const MilestoneProgress = () => {
     <div className="milestone-progress">
       <div className="section-header">
         <div className="section-title">
-          <h3>Tiến độ cột mốc</h3>
+          <h3>Tiến độ milestone</h3>
           <p>Xem tiến độ các mốc quan trọng trong dự án.</p>
         </div>
         <a href="#" className="view-all-link">
@@ -92,11 +78,7 @@ export const MilestoneProgress = () => {
               <div className="milestone-status">
                 <span
                   className="status-badge"
-                  style={{ 
-                    backgroundColor: getStatusColor(milestone.status).background,
-                    color: getStatusColor(milestone.status).color,
-                    borderColor: getStatusColor(milestone.status).border
-                  }}
+                  style={{ backgroundColor: getStatusColor(milestone.status) }}
                 >
                   {getStatusLabel(milestone.status)}
                 </span>
@@ -213,7 +195,7 @@ export const MilestoneProgress = () => {
         }
 
         .section-title h3 {
-          font-size: 16px;
+          font-size: 18px;
           font-weight: 600;
           color: #1f2937;
           margin: 0 0 4px 0;
@@ -244,37 +226,17 @@ export const MilestoneProgress = () => {
         }
 
         .milestone-item {
-          padding: 16px;
-          border: 1px solid #e5e7eb;
+          padding: 20px;
+          border: 1px solid #f3f4f6;
           border-radius: 8px;
-          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-          transition: all 0.2s ease;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .milestone-item::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: linear-gradient(90deg, #fb923c, #fbbf24);
-        }
-
-        .milestone-item:hover {
-          border-color: #d1d5db;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-          transform: translateY(-1px);
+          background: #fafafa;
         }
 
         .milestone-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 12px;
+          margin-bottom: 16px;
         }
 
         .milestone-info {
@@ -282,18 +244,16 @@ export const MilestoneProgress = () => {
         }
 
         .milestone-title {
-          font-size: 13px;
+          font-size: 16px;
           font-weight: 600;
           color: #1f2937;
           margin: 0 0 4px 0;
-          line-height: 1.3;
         }
 
         .milestone-description {
-          font-size: 12px;
+          font-size: 14px;
           color: #6b7280;
           margin: 0;
-          line-height: 1.4;
         }
 
         .milestone-status {
@@ -302,46 +262,40 @@ export const MilestoneProgress = () => {
 
         .status-badge {
           display: inline-block;
-          font-size: 10px;
+          color: white;
+          font-size: 12px;
           font-weight: 500;
           padding: 4px 8px;
           border-radius: 12px;
-          background: rgba(251, 146, 60, 0.1);
-          color: #fb923c;
-          border: 1px solid rgba(251, 146, 60, 0.2);
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
         }
 
         .milestone-progress-bar {
           display: flex;
           align-items: center;
-          gap: 10px;
-          margin-bottom: 12px;
+          gap: 12px;
+          margin-bottom: 16px;
         }
 
         .progress-container {
           flex: 1;
-          height: 6px;
-          background: #f1f5f9;
-          border-radius: 6px;
+          height: 8px;
+          background: #e5e7eb;
+          border-radius: 4px;
           overflow: hidden;
-          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
         .progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, #fb923c, #fbbf24);
-          border-radius: 6px;
+          background: #3b82f6;
+          border-radius: 4px;
           transition: width 0.3s ease;
-          box-shadow: 0 1px 2px rgba(251, 146, 60, 0.3);
         }
 
         .progress-text {
-          font-size: 11px;
+          font-size: 12px;
           font-weight: 600;
-          color: #fb923c;
-          min-width: 35px;
+          color: #374151;
+          min-width: 40px;
           text-align: right;
         }
 
@@ -349,13 +303,9 @@ export const MilestoneProgress = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
-          font-size: 11px;
+          margin-bottom: 16px;
+          font-size: 12px;
           color: #6b7280;
-          padding: 8px 10px;
-          background: rgba(251, 146, 60, 0.05);
-          border-radius: 6px;
-          border: 1px solid rgba(251, 146, 60, 0.1);
         }
 
         .milestone-due-date {
