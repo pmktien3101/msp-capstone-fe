@@ -404,7 +404,7 @@ export default function MeetingDetailPage() {
                 </div>
                 <div className="info-item">
                   <label>Thời gian kết thúc:</label>
-                  <p>{call.state.endsAt ? new Date(call.state.endsAt).toLocaleString("vi-VN") : "-"}</p>
+                  <p>{(call.state.custom as any)?.endsAt ? new Date((call.state.custom as any).endsAt).toLocaleString("vi-VN") : "-"}</p>
                 </div>
                 <div className="info-item">
                   <label>Trạng thái:</label>
