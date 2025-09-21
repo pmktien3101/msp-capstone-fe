@@ -5,3 +5,9 @@ export interface Member {
   avatar: string;
   email: string;
 }
+export interface Participant {
+  id: string;
+  role: string;
+  image: string;
+  email: string;
+}

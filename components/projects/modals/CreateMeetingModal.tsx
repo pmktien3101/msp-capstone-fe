@@ -8,15 +8,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useUser } from "@/hooks/useUser";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import { Member, Participant } from "@/types";
+import { mockParticipants } from "@/constants/mockData";
 
 const formSchema = z.object({
   title: z.string().min(1, "Vui lòng nhập tiêu đề"),
   description: z.string().min(1, "Vui lòng nhập mô tả"),
   date: z.string().min(1, "Vui lòng chọn ngày"),
   time: z.string().min(1, "Vui lòng chọn giờ"),
+  participants: z
+    .array(z.string())
+    .min(1, "Vui lòng chọn ít nhất 1 người tham gia"),
 });
 
 interface MeetingFormProps {
@@ -30,10 +34,13 @@ export default function MeetingForm({
   onCreated,
   projectId,
 }: MeetingFormProps) {
-  const router = useRouter();
   const { userId } = useUser();
   const client = useStreamVideoClient();
   const [callDetails, setCallDetails] = useState<Call>();
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
+    []
+  );
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -41,8 +48,36 @@ export default function MeetingForm({
       description: "",
       date: "",
       time: "",
+      participants: [],
     },
   });
+
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      try {
+        setParticipants(mockParticipants);
+      } catch (error) {
+        console.error("Error fetching participants:", error);
+        toast.error("Không thể tải danh sách người tham gia");
+      }
+    };
+
+    fetchParticipants();
+  }, [projectId]);
+
+  const handleParticipantChange = (participantId: string) => {
+    setSelectedParticipants((prev) => {
+      if (prev.includes(participantId)) {
+        return prev.filter((id) => id !== participantId);
+      }
+      return [...prev, participantId];
+    });
+  };
+  useEffect(() => {
+    form.setValue("participants", selectedParticipants, {
+      shouldValidate: true,
+    });
+  }, [selectedParticipants, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!client || !userId) {
@@ -54,6 +89,10 @@ export default function MeetingForm({
       if (!call) {
         throw new Error("Failed to create call");
       }
+
+      // Include all participants including the creator
+      const allParticipants = [...new Set([userId, ...selectedParticipants])];
+
       await call.getOrCreate({
         data: {
           custom: {
@@ -61,16 +100,18 @@ export default function MeetingForm({
             description: values.description,
             scheduledDate: values.date,
             scheduledTime: values.time,
-            projectId: projectId, // Lưu projectId vào custom field
+            projectId: projectId,
+            participants: allParticipants, // Add participants to custom data
           },
           starts_at: new Date(`${values.date}T${values.time}`).toISOString(),
-          members: [{ user_id: userId }],
+          members: allParticipants.map((id) => ({ user_id: id })),
         },
       });
       setCallDetails(call);
       onCreated?.(call);
     } catch (error) {
       console.error("Error creating meeting:", error);
+      toast.error("Không thể tạo cuộc họp");
     }
   }
 
@@ -190,6 +231,39 @@ export default function MeetingForm({
                     </p>
                   )}
                 </div>
+              </div>
+              {/* Thêm vào trong form, trước các nút action */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">
+                  Người tham gia
+                </label>
+                <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+                  {participants.map((participant) => (
+                    <div
+                      key={participant.id}
+                      className="flex items-center space-x-2 py-1"
+                    >
+                      <input
+                        type="checkbox"
+                        id={`participant-${participant.id}`}
+                        checked={selectedParticipants.includes(participant.id)}
+                        onChange={() => handleParticipantChange(participant.id)}
+                        className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                      />
+                      <label
+                        htmlFor={`participant-${participant.id}`}
+                        className="text-sm text-gray-700"
+                      >
+                        ({participant.email}) - {participant.role}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                {form.formState.errors.participants && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.participants.message}
+                  </p>
+                )}
               </div>
               <div className="flex justify-end space-x-4">
                 {onClose && (

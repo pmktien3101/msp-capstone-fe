@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Call } from "@stream-io/video-react-sdk";
 import { toast } from "react-toastify";
+import { Participant } from "@/types";
+import { mockParticipants } from "@/constants/mockData";
 
 interface UpdateMeetingModalProps {
   call: Call;
@@ -34,6 +36,39 @@ export const UpdateMeetingModal = ({
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
 
+  // Thêm state cho participants
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
+    () => {
+      // Đảm bảo luôn trả về một mảng, ngay cả khi custom.participants là undefined
+      const participants = custom?.participants || [];
+      return Array.isArray(participants) ? participants : [];
+    }
+  );
+
+  // Load participants khi component mount
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      try {
+        setParticipants(mockParticipants);
+      } catch (error) {
+        console.error("Error fetching participants:", error);
+        toast.error("Không thể tải danh sách người tham gia");
+      }
+    };
+
+    fetchParticipants();
+  }, []);
+
+  const handleParticipantChange = (participantId: string) => {
+    setSelectedParticipants((prev) => {
+      if (prev.includes(participantId)) {
+        return prev.filter((id) => id !== participantId);
+      }
+      return [...prev, participantId];
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -44,14 +79,25 @@ export const UpdateMeetingModal = ({
       if (newStarts && newStarts.getTime() < Date.now() - 60_000) {
         throw new Error("Thời gian bắt đầu phải ở tương lai");
       }
+      // Cập nhật thông tin cuộc họp
       await call.update({
         custom: {
           ...custom,
           title: title.trim(),
           description: description.trim(),
+          participants: selectedParticipants,
         },
         starts_at: newStarts?.toISOString(),
       });
+
+      // Cập nhật members với đầy đủ thông tin
+      await call.updateCallMembers({
+        update_members: selectedParticipants.map((id) => ({
+          user_id: id,
+          role: "call_member",
+        })),
+      });
+
       toast.success("Đã cập nhật cuộc họp");
       if (onUpdated) onUpdated(call);
       onClose();
@@ -125,6 +171,43 @@ export const UpdateMeetingModal = ({
               Chỉnh thời gian để cập nhật lịch bắt đầu cuộc họp.
             </p>
           </div>
+
+          {/* Thêm phần chọn participants */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Người tham gia</label>
+            <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+              {participants.map((participant) => {
+                const isSelected = selectedParticipants.includes(
+                  participant.id
+                );
+                console.log(
+                  `Participant ${participant.id} selected:`,
+                  isSelected
+                );
+                return (
+                  <div
+                    key={participant.id}
+                    className="flex items-center space-x-2 py-1"
+                  >
+                    <input
+                      type="checkbox"
+                      id={`participant-${participant.id}`}
+                      checked={isSelected}
+                      onChange={() => handleParticipantChange(participant.id)}
+                      className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                    />
+                    <label
+                      htmlFor={`participant-${participant.id}`}
+                      className="text-sm text-gray-700"
+                    >
+                      ({participant.email}) - {participant.role}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>

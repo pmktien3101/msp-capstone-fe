@@ -9,7 +9,7 @@ import React, { useEffect, useState } from "react";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { Filter } from "lucide-react";
+import { Filter, Mic, MicOff, Video, VideoOff, X } from "lucide-react";
 
 import { Call } from "@stream-io/video-react-sdk";
 
@@ -22,92 +22,120 @@ const MeetingSetup = ({
   setIsSetupComplete,
   call: callProp,
 }: MeetingSetupProps) => {
-  const [isMicCamToggledOn, setIsMicCamToggledOn] = useState(false);
+  const [isMicToggledOn, setIsMicToggledOn] = useState(true);
+  const [isCamToggledOn, setIsCamToggledOn] = useState(true);
   const hookCall = useCall();
   const call = callProp ?? hookCall;
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
 
   if (!call) throw new Error("Call not found in MeetingSetup");
+
   useEffect(() => {
-    if (isMicCamToggledOn) {
-      call?.camera?.disable();
-      call?.microphone?.disable();
-    } else {
+    if (isCamToggledOn) {
       call?.camera?.enable();
-      call?.microphone?.enable();
+    } else {
+      call?.camera?.disable();
     }
-  }, [isMicCamToggledOn, call?.camera, call?.microphone]);
+  }, [isCamToggledOn, call?.camera]);
+
+  useEffect(() => {
+    if (isMicToggledOn) {
+      call?.microphone?.enable();
+    } else {
+      call?.microphone?.disable();
+    }
+  }, [isMicToggledOn, call?.microphone]);
 
   return (
-    <main className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-orange-50 via-white to-orange-100 text-white p-4">
-      <div className="w-full max-w-xl rounded-2xl shadow-2xl bg-white/90 p-8 flex flex-col items-center gap-6 border border-orange-200">
-        <h1 className="text-3xl font-bold text-orange-700 mb-2">
-          Thiết lập cuộc họp
-        </h1>
-        <p className="text-gray-600 text-center mb-2">
-          Kiểm tra thiết bị, chọn hiệu ứng nền và sẵn sàng tham gia cuộc họp!
-        </p>
-        <div className="w-full flex justify-center">
-          <div className="w-[340px] h-[200px] rounded-xl overflow-hidden shadow-lg border border-orange-100 bg-black flex items-center justify-center">
+    <main className="flex h-screen w-full items-center justify-center bg-gradient-to-br bg-white text-white to-orange-100 p-4">
+      <div className="w-full max-w-5xl h-[600px] rounded-2xl shadow-2xl bg-white p-8 flex gap-8 border border-orange-200">
+        {/* Video Preview - Left Side */}
+        <div className="flex-1 flex flex-col">
+          <h2 className="text-xl font-medium text-orange-800 mb-4">
+            Bản xem trước
+          </h2>
+          <div className="flex-1 rounded-xl overflow-hidden bg-gray-900 border-2 border-orange-300 flex items-center justify-center shadow-lg">
             <VideoPreview className="w-full h-full object-cover" />
           </div>
-        </div>
-        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-          <Label className="flex items-center gap-2 text-orange-700 whitespace-nowrap bg-orange-50 px-3 py-2 rounded-lg border border-orange-200 shadow-sm">
-            <Input
-              type="checkbox"
-              checked={isMicCamToggledOn}
-              onChange={() => setIsMicCamToggledOn(!isMicCamToggledOn)}
-            />
-            <span className="text-sm">Tắt Mic & Camera</span>
-          </Label>
-          <div className="flex flex-col items-center justify-center gap-1">
-            <div className="bg-orange-50 rounded-full border border-orange-300 shadow flex items-center justify-center p-3 transition-all duration-150 hover:shadow-lg">
-              <DeviceSettings />
-            </div>
-          </div>
-          <div className="flex items-center justify-center">
+          <div className="mt-4 flex justify-center gap-4">
             <Button
-              onClick={() => setShowFiltersPanel((prev) => !prev)}
-              className="cursor-pointer bg-orange-100 hover:bg-orange-200 rounded-full px-4 py-2 flex items-center justify-center border border-orange-300 shadow"
-              title="Hiệu ứng nền"
+              onClick={() => setIsMicToggledOn(!isMicToggledOn)}
+              className={`cursor-pointer rounded-full h-12 w-12 p-0 flex items-center justify-center transition-all ${
+                isMicToggledOn
+                  ? "bg-gray-500 hover:bg-gray-600 text-white"
+                  : "bg-red-500 hover:bg-red-600 text-white"
+              }`}
             >
-              <Filter size={20} className="text-orange-600" />
-              <span className="ml-2 text-orange-700 text-sm font-medium">
-                Nền
-              </span>
+              {isMicToggledOn ? <Mic size={20} /> : <MicOff size={20} />}
+            </Button>
+            <Button
+              onClick={() => setIsCamToggledOn(!isCamToggledOn)}
+              className={`cursor-pointer rounded-full h-12 w-12 p-0 flex items-center justify-center transition-all ${
+                isCamToggledOn
+                  ? "bg-gray-500 hover:bg-gray-600 text-white"
+                  : "bg-red-500 hover:bg-red-600 text-white"
+              }`}
+            >
+              {isCamToggledOn ? <Video size={20} /> : <VideoOff size={20} />}
             </Button>
           </div>
         </div>
-        {showFiltersPanel && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="w-[340px] max-h-[70vh] overflow-y-auto rounded-2xl border border-orange-400 bg-white p-6 text-gray-800 shadow-xl relative">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-orange-500">
-                  Hiệu ứng nền
-                </h3>
-                <button
-                  onClick={() => setShowFiltersPanel(false)}
-                  className="text-sm text-orange-400 hover:text-orange-700 font-bold px-2 py-1 rounded cursor-pointer"
-                  aria-label="Đóng"
-                >
-                  Đóng
-                </button>
-              </div>
-              <BackgroundFilterSettings />
+
+        {/* Settings Panel - Right Side */}
+        <div className="w-80 flex flex-col">
+          <h1 className="text-2xl font-bold text-orange-800 mb-2">
+            Sẵn sàng tham gia?
+          </h1>
+          <p className="text-orange-600 text-sm mb-6">
+            Kiểm tra thiết bị, chọn hiệu ứng nền trước khi tham gia
+          </p>
+
+          <div className="space-y-4 mb-6">
+            <div className="flex items-center justify-between bg-orange-50 p-3 rounded-lg border border-orange-200">
+              <span className="text-sm text-orange-800">Cài đặt thiết bị</span>
+              <DeviceSettings />
             </div>
+
+            <Button
+              onClick={() => setShowFiltersPanel(true)}
+              className="w-full bg-orange-100 hover:bg-orange-200 justify-start px-3 py-2 h-auto text-orange-800 border border-orange-200 transition-all"
+            >
+              <Filter size={18} className="mr-2 text-orange-600" />
+              <span>Hiệu ứng nền</span>
+            </Button>
           </div>
-        )}
-        <Button
-          onClick={() => {
-            call?.join();
-            setIsSetupComplete(true);
-          }}
-          className="rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-3 text-white text-lg font-semibold shadow-lg hover:scale-105 hover:bg-orange-700 transition-all duration-150 mt-4"
-        >
-          Tham gia cuộc họp
-        </Button>
+
+          <Button
+            onClick={() => {
+              call?.join();
+              setIsSetupComplete(true);
+            }}
+            className="rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 py-3 cursor-pointer text-white font-medium mt-auto shadow-md transition-all transform hover:scale-105"
+          >
+            Tham gia ngay
+          </Button>
+        </div>
       </div>
+
+      {showFiltersPanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-[500px] max-h-[80vh] overflow-y-auto rounded-2xl border border-orange-300 bg-white p-6 text-orange-900 shadow-xl relative">
+            <div className="flex items-center justify-between mb-5 pb-3 border-b border-orange-200">
+              <h3 className="text-lg font-semibold text-orange-800">
+                Hiệu ứng nền
+              </h3>
+              <button
+                onClick={() => setShowFiltersPanel(false)}
+                className="text-orange-500 hover:text-orange-700 p-1 rounded-full hover:bg-orange-100 transition-colors"
+                aria-label="Đóng"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <BackgroundFilterSettings />
+          </div>
+        </div>
+      )}
     </main>
   );
 };

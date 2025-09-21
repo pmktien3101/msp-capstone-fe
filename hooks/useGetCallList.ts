@@ -15,7 +15,7 @@ export const useGetCall = () => {
       const { calls } = await client.queryCalls({
         sort: [{ field: "starts_at", direction: 1 }],
         filter_conditions: {
-          $or: [{ created_by_user_id: userId }, { "members.user_id": userId }],
+          $or: [{ created_by_user_id: userId }, { members: { $in: [userId] } }],
         },
       });
       setCalls(calls);
