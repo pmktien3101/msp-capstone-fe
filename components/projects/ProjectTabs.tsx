@@ -24,14 +24,18 @@ interface ProjectTabsProps {
   project: Project;
   onTaskClick?: (task: any) => void;
   onCreateTask?: () => void;
+  onTabChange?: (activeTab: string) => void;
+  initialActiveTab?: string;
 }
 
 export const ProjectTabs = ({
   project,
   onTaskClick,
   onCreateTask,
+  onTabChange,
+  initialActiveTab = "summary",
 }: ProjectTabsProps) => {
-  const [activeTab, setActiveTab] = useState("summary");
+  const [activeTab, setActiveTab] = useState(initialActiveTab);
 
   const tabs = [
     {
@@ -113,7 +117,10 @@ export const ProjectTabs = ({
             <button
               key={tab.id}
               className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                onTabChange?.(tab.id);
+              }}
             >
               <span className="tab-icon">{tab.icon}</span>
               <span className="tab-label">{tab.label}</span>

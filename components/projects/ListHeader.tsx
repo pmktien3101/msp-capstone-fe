@@ -1,5 +1,7 @@
 'use client';
 
+import { mockMembers } from '@/constants/mockData';
+
 interface ListHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -62,9 +64,13 @@ export const ListHeader = ({
             onChange={(e) => onAssigneeFilterChange(e.target.value)}
             className="filter-select"
           >
-            <option value="all">Tất cả người thực hiện</option>
-            <option value="QL">QL</option>
+            <option value="all">Tất cả</option>
             <option value="unassigned">Chưa giao</option>
+            {mockMembers.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.name} ({member.role})
+              </option>
+            ))}
           </select>
         </div>
       </div>

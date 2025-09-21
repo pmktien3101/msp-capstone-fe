@@ -122,6 +122,17 @@ export const mockTasks = [
     assignee: "member-1",
     startDate: "2025-09-25",
     endDate: "2025-09-30"
+  },
+  {
+    id: "MWA-7",
+    title: "Task without Milestone",
+    description: "Task không liên kết với milestone",
+    milestoneIds: [],
+    status: "todo",
+    priority: "low",
+    assignee: "",
+    startDate: "2025-09-25",
+    endDate: "2025-09-30"
   }
 ];
 
@@ -161,7 +172,7 @@ export const mockActivities = [
 ];
 
 // Shared milestone data - single source of truth
-export const mockMilestones = [
+let mockMilestones = [
   {
     id: "milestone-1",
     name: "Hoàn thành hệ thống đăng nhập",
@@ -183,6 +194,47 @@ export const mockMilestones = [
     meetings: ["meeting-3", "meeting-6"]
   },
 ];
+
+// Function to add new milestone
+export const addMilestone = (milestoneData: any) => {
+  const newMilestone = {
+    ...milestoneData,
+    id: `milestone-${Date.now()}`,
+    status: "pending",
+    tasks: [],
+    meetings: []
+  };
+  mockMilestones.push(newMilestone);
+  return newMilestone;
+};
+
+// Function to get milestones
+export const getMilestones = () => mockMilestones;
+
+// Function to delete milestone
+export const deleteMilestone = (milestoneId: string) => {
+  const milestoneIndex = mockMilestones.findIndex(m => m.id === milestoneId);
+  if (milestoneIndex === -1) {
+    throw new Error(`Milestone with id ${milestoneId} not found`);
+  }
+  
+  const deletedMilestone = mockMilestones[milestoneIndex];
+  
+  // Remove milestone from array
+  mockMilestones.splice(milestoneIndex, 1);
+  
+  // Remove milestone from all tasks that reference it
+  mockTasks.forEach(task => {
+    if (task.milestoneIds.includes(milestoneId)) {
+      task.milestoneIds = task.milestoneIds.filter(id => id !== milestoneId);
+    }
+  });
+  
+  return deletedMilestone;
+};
+
+// Export the array for backward compatibility
+export { mockMilestones };
 
 // Helper function to calculate milestone progress based on tasks
 export const calculateMilestoneProgress = (milestoneId: string) => {

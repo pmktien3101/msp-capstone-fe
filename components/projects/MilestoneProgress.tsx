@@ -2,6 +2,7 @@
 
 import {
   mockMilestones,
+  mockTasks,
   calculateMilestoneProgress,
   getMilestoneStatus,
 } from "@/constants/mockData";
@@ -11,11 +12,16 @@ export const MilestoneProgress = () => {
     const progress = calculateMilestoneProgress(milestone.id);
     const status = getMilestoneStatus(milestone.id);
 
+    // Map task IDs to actual task objects
+    const taskObjects = milestone.tasks
+      .map(taskId => mockTasks.find(task => task.id === taskId))
+      .filter(task => task !== undefined); // Remove undefined tasks
+
     return {
       ...milestone,
       progress: progress,
       status: status,
-      tasks: milestone.tasks.map((task) => ({
+      tasks: taskObjects.map((task) => ({
         id: task.id,
         title: task.title,
         completed: task.status === "done",
