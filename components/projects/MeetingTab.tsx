@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Project } from "@/types/project";
 import { Button } from "@/components/ui/button";
 import { CreateMeetingModal } from "./modals/CreateMeetingModal";
@@ -10,7 +10,8 @@ import { Call } from "@stream-io/video-react-sdk";
 import { tokenService } from "@/services/streamService";
 import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 import { toast } from "react-toastify";
-import { Eye, LogIn, Pencil, Trash, Plus } from "lucide-react";
+import { Eye, Pencil, Trash, Plus } from "lucide-react";
+import { useUser } from "@/hooks/useUser";
 
 interface MeetingTabProps {
   project: Project;
@@ -23,7 +24,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const { upcomingCalls, endedCalls, isLoadingCall, refetchCalls } =
     useGetCall();
   const [viewType, setViewType] = useState<"all" | "upcoming" | "ended">("all");
-
+  const { role } = useUser();
+  const isMember = role === "Member";
   // Lọc meetings theo projectId
   const allMeetings = useMemo(() => {
     return [...upcomingCalls, ...endedCalls].filter(
@@ -102,37 +104,39 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           <h3>Cuộc họp dự án</h3>
           <p>Quản lý các cuộc họp của dự án {project.name}</p>
         </div>
-        <Button
-          onClick={() => {
-            console.log("Create meeting button clicked");
-            setShowCreateModal(true);
-          }}
-          style={{
-            background: "transparent",
-            color: "#FF5E13",
-            border: "1px solid #FF5E13",
-            borderRadius: "8px",
-            padding: "10px 20px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: 500,
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            transition: "all 0.2s ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#FF5E13";
-            e.currentTarget.style.color = "white";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "#FF5E13";
-          }}
-        >
-          <Plus size={16} />
-          Tạo cuộc họp
-        </Button>
+        {!isMember && (
+          <Button
+            onClick={() => {
+              console.log("Create meeting button clicked");
+              setShowCreateModal(true);
+            }}
+            style={{
+              background: "transparent",
+              color: "#FF5E13",
+              border: "1px solid #FF5E13",
+              borderRadius: "8px",
+              padding: "10px 20px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: 500,
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#FF5E13";
+              e.currentTarget.style.color = "white";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#FF5E13";
+            }}
+          >
+            <Plus size={16} />
+            Tạo cuộc họp
+          </Button>
+        )}
       </div>
       <div className="meeting-stats">
         <div className="stat-card">

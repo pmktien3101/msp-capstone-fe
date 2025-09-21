@@ -41,11 +41,31 @@ const MOCK_USERS = [
     },
   },
   {
-    email: "member@gmail.com",
+    email: "member1@gmail.com",
     password: "123",
     userData: {
       userId: "4",
-      email: "member@gmail.com",
+      email: "member1@gmail.com",
+      role: "Member",
+      image: "https://getstream.io/random_svg/?id=4&name=staff",
+    },
+  },
+  {
+    email: "member2@gmail.com",
+    password: "123",
+    userData: {
+      userId: "5",
+      email: "member2@gmail.com",
+      role: "Member",
+      image: "https://getstream.io/random_svg/?id=4&name=staff",
+    },
+  },
+  {
+    email: "member3@gmail.com",
+    password: "123",
+    userData: {
+      userId: "6",
+      email: "member3@gmail.com",
       role: "Member",
       image: "https://getstream.io/random_svg/?id=4&name=staff",
     },

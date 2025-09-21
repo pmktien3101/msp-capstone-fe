@@ -1,5 +1,7 @@
 // Mock data tập trung cho tất cả tabs trong dự án
 
+import { Member, Participant } from "@/types";
+
 export const mockProject = {
   id: "1",
   name: "Hệ thống quản lý dự án MSP",
@@ -856,5 +858,26 @@ export const additionalMockTasks = [
     projectId: "6",
     milestoneId: "milestone-6",
     comments: [],
+  },
+];
+// Mock participants
+export const mockParticipants: Participant[] = [
+  {
+    id: "4",
+    email: "member1@example.com",
+    image: "/avatar-3.png",
+    role: "Member",
+  },
+  {
+    id: "5",
+    email: "member2@example.com",
+    image: "/avatar-1.png",
+    role: "Member",
+  },
+  {
+    id: "6",
+    email: "member3@example.com",
+    image: "/avatar-4.png",
+    role: "Member",
   },
 ];
