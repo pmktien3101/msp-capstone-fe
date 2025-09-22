@@ -54,14 +54,6 @@ export default function DashboardPage() {
     setLoading(false);
   }, []);
 
-  // Calculate statistics
-  const averageProgress = projects.length > 0 
-    ? Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length)
-    : 0;
-
-  // Ensure selectedProjectId exists in projects
-  const validProjectId = projects.find(p => p.id === selectedProjectId)?.id || (projects.length > 0 ? projects[0].id : "1");
-
   if (loading) {
     return (
       <div className="pm-dashboard">
