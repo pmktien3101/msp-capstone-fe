@@ -121,6 +121,21 @@ const Sidebar = () => {
         </svg>
       )
     },
+    {
+      id: 'meetings',
+      label: 'Cuộc Họp',
+      route: '/meetings',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M22 16.92V7.08C21.9996 6.74864 21.9071 6.42412 21.7315 6.14424C21.556 5.86436 21.3037 5.63932 21 5.49L13 1.49C12.696 1.34028 12.3511 1.26758 12 1.26758C11.6489 1.26758 11.304 1.34028 11 1.49L3 5.49C2.69626 5.63932 2.44398 5.86436 2.26846 6.14424C2.09294 6.42412 2.00036 6.74864 2 7.08V16.92C2.00036 17.2514 2.09294 17.5759 2.26846 17.8558C2.44398 18.1356 2.69626 18.3607 3 18.51L11 22.51C11.304 22.6597 11.6489 22.7324 12 22.7324C12.3511 22.7324 12.696 22.6597 13 22.51L21 18.51C21.3037 18.3607 21.556 18.1356 21.7315 17.8558C21.9071 17.5759 21.9996 17.2514 22 16.92Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M7.5 4.21L12 6.33L16.5 4.21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M7.5 19.79V14.6L3 12.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M21 12.5L16.5 14.6V19.79" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M3.27 6.96L12 12.01L20.73 6.96" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M12 22.08V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )
+    },
   ];
 
   // Member menu items

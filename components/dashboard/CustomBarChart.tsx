@@ -29,7 +29,7 @@ export default function CustomBarChart({
 
   // Tính toán vị trí các cột
   const getBarHeight = (value: number) => {
-    return (value / maxValue) * (height - 100);
+    return (value / maxValue) * (height - 130);
   };
 
   const getBarWidth = () => {
@@ -69,13 +69,13 @@ export default function CustomBarChart({
               <div 
                 key={index} 
                 className="grid-line"
-                style={{ top: `${(index / (scaleValues.length - 1)) * (height - 100) + 20}px` }}
+                style={{ top: `${(index / (scaleValues.length - 1)) * (height - 130) + 20}px` }}
               />
             ))}
           </div>
 
           <div className="chart-bars-container">
-            <div className="chart-bars" style={{ height: `${height - 100}px`, marginTop: '20px', marginBottom: '80px' }}>
+            <div className="chart-bars" style={{ height: `${height - 130}px`, marginTop: '20px', marginBottom: '30px' }}>
               {data.labels.map((label, index) => {
                 const completedHeight = getBarHeight(data.completedData[index]);
                 const totalHeight = getBarHeight(data.totalData[index]);
@@ -146,3 +146,160 @@ export default function CustomBarChart({
     </div>
   );
 }
+
+<style jsx>{`
+  .custom-bar-chart {
+    width: 100%;
+    height: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chart-header {
+    margin-bottom: 12px;
+  }
+
+  .chart-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  .legend-color.completed {
+    background: #A8C5DA;
+  }
+
+  .legend-color.total {
+    background: rgba(168, 197, 218, 0.5);
+  }
+
+  .legend-item span {
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .chart-content {
+    flex: 1;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chart-y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-right: 8px;
+    min-width: 30px;
+  }
+
+  .y-axis-label {
+    font-size: 11px;
+    color: #6b7280;
+    text-align: right;
+    line-height: 1;
+  }
+
+  .chart-main {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    padding-bottom: 30px;
+  }
+
+  .chart-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  .grid-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #e5e7eb;
+  }
+
+  .chart-bars-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .chart-bars {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .bar-group {
+    cursor: pointer;
+  }
+
+  .bar-container {
+    position: relative;
+  }
+
+  .bar {
+    transition: all 0.3s ease;
+  }
+
+  .chart-x-axis {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    height: 30px;
+  }
+
+  .x-axis-label {
+    font-size: 11px;
+    color: #6b7280;
+    text-align: center;
+    transform: rotate(-45deg);
+    transform-origin: center;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 768px) {
+    .chart-legend {
+      gap: 12px;
+    }
+    
+    .legend-item span {
+      font-size: 11px;
+    }
+    
+    .x-axis-label {
+      font-size: 10px;
+    }
+  }
+`}</style>

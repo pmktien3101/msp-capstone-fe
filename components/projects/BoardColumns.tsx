@@ -6,8 +6,10 @@ import { TaskCard } from "./TaskCard";
 import { AddColumnModal } from "./AddColumnModal";
 import { ColumnMenu } from "./ColumnMenu";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
-import { mockTasks, mockMembers, mockMilestones } from "@/constants/mockData";
+import { mockTasks, mockMembers, mockMilestones, mockProjects } from "@/constants/mockData";
 import { Task } from "@/types/milestone";
+import { ChevronDown, Plus } from "lucide-react";
+import { useUser } from "@/hooks/useUser";
 
 interface BoardColumnsProps {
   project: Project;
@@ -23,8 +25,20 @@ export const BoardColumns = ({
   groupBy,
   onTaskClick,
 }: BoardColumnsProps) => {
-  // Map mockTasks to Task interface with proper member information
-  const mappedTasks: Task[] = mockTasks.map(task => {
+  const { role } = useUser();
+
+  // Check permissions
+  const canCreateTask = role && role.toLowerCase() !== 'member';
+  const canCreateColumn = role && role.toLowerCase() !== 'member';
+  const canDeleteColumn = role && role.toLowerCase() !== 'member';
+  // Get tasks for this specific project based on milestoneIds
+  const projectMilestones = mockProjects.find(p => p.id === project.id)?.milestones || [];
+  const projectTasks = mockTasks.filter(task =>
+    task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
+  );
+
+  // Map projectTasks to Task interface with proper member information
+  const mappedTasks: Task[] = projectTasks.map(task => {
     const assigneeMember = mockMembers.find(member => member.id === task.assignee);
     return {
       id: task.id,
@@ -34,7 +48,7 @@ export const BoardColumns = ({
       epic: "", // Not in mockdata, can be added later
       status: task.status,
       priority: task.priority,
-      assignee: assigneeMember?.name || task.assignee,
+      assignee: task.assignee,
       assignedTo: assigneeMember ? {
         id: assigneeMember.id,
         name: assigneeMember.name,
@@ -74,15 +88,15 @@ export const BoardColumns = ({
       order: 1,
     },
     {
-      id: "done",
-      title: "HOÀN THÀNH",
-      color: "#10b981",
-      order: 2,
-    },
-    {
       id: "review",
       title: "ĐANG REVIEW",
       color: "#3b82f6",
+      order: 2,
+    },
+    {
+      id: "done",
+      title: "HOÀN THÀNH",
+      color: "#10b981",
       order: 3,
     },
   ]);
@@ -278,12 +292,12 @@ export const BoardColumns = ({
     } else if (groupBy === "assignee") {
       // Create columns for each member with their own status columns
       const memberColumns: any[] = [];
-      
+
       mockMembers.forEach(member => {
-        const memberTasks = filteredTasks.filter(task => 
+        const memberTasks = filteredTasks.filter(task =>
           task.assignee === member.id || task.assignedTo?.id === member.id
         );
-        
+
         if (memberTasks.length > 0) {
           // Add status columns for this member
           columns.forEach(statusColumn => {
@@ -299,12 +313,12 @@ export const BoardColumns = ({
           });
         }
       });
-      
+
       // Add unassigned tasks columns
-      const unassignedTasks = filteredTasks.filter(task => 
+      const unassignedTasks = filteredTasks.filter(task =>
         !task.assignee && !task.assignedTo
       );
-      
+
       if (unassignedTasks.length > 0) {
         columns.forEach(statusColumn => {
           memberColumns.push({
@@ -318,17 +332,17 @@ export const BoardColumns = ({
           });
         });
       }
-      
+
       return memberColumns;
     } else if (groupBy === "milestone") {
       // Create columns for each milestone with their own status columns
       const milestoneColumns: any[] = [];
-      
+
       mockMilestones.forEach(milestone => {
-        const milestoneTasks = filteredTasks.filter(task => 
+        const milestoneTasks = filteredTasks.filter(task =>
           task.milestoneIds?.includes(milestone.id) || task.milestoneId === milestone.id
         );
-        
+
         if (milestoneTasks.length > 0) {
           // Add status columns for this milestone
           columns.forEach(statusColumn => {
@@ -344,10 +358,10 @@ export const BoardColumns = ({
           });
         }
       });
-      
+
       return milestoneColumns;
     }
-    
+
     return columns.sort((a, b) => a.order - b.order);
   };
 
@@ -359,7 +373,7 @@ export const BoardColumns = ({
       return filteredTasks.filter((task) => task.status === column.id);
     } else if (groupBy === "assignee") {
       return filteredTasks.filter((task) => {
-        const matchesMember = column.memberId === "unassigned" 
+        const matchesMember = column.memberId === "unassigned"
           ? (!task.assignee && !task.assignedTo)
           : (task.assignee === column.memberId || task.assignedTo?.id === column.memberId);
         const matchesStatus = task.status === column.statusId;
@@ -378,25 +392,25 @@ export const BoardColumns = ({
   // Group tasks within each column based on groupBy (for milestone grouping)
   const getGroupedTasksForColumn = (column: any) => {
     const columnTasks = getTasksForColumn(column);
-    
+
     if (groupBy === "status" || groupBy === "assignee" || groupBy === "milestone") {
       return { "All Tasks": columnTasks };
     }
-    
+
     return { "All Tasks": columnTasks };
   };
 
   // Get member sections for assignee grouping
   const getMemberSections = () => {
     if (groupBy !== "assignee") return [];
-    
+
     const sections: any[] = [];
-    
+
     mockMembers.forEach(member => {
-      const memberTasks = filteredTasks.filter(task => 
+      const memberTasks = filteredTasks.filter(task =>
         task.assignee === member.id || task.assignedTo?.id === member.id
       );
-      
+
       if (memberTasks.length > 0) {
         sections.push({
           id: member.id,
@@ -406,12 +420,12 @@ export const BoardColumns = ({
         });
       }
     });
-    
+
     // Add unassigned section
-    const unassignedTasks = filteredTasks.filter(task => 
+    const unassignedTasks = filteredTasks.filter(task =>
       !task.assignee && !task.assignedTo
     );
-    
+
     if (unassignedTasks.length > 0) {
       sections.push({
         id: "unassigned",
@@ -420,21 +434,21 @@ export const BoardColumns = ({
         memberId: "unassigned"
       });
     }
-    
+
     return sections;
   };
 
   // Get milestone sections for milestone grouping
   const getMilestoneSections = () => {
     if (groupBy !== "milestone") return [];
-    
+
     const sections: any[] = [];
-    
+
     mockMilestones.forEach(milestone => {
-      const milestoneTasks = filteredTasks.filter(task => 
+      const milestoneTasks = filteredTasks.filter(task =>
         task.milestoneIds?.includes(milestone.id) || task.milestoneId === milestone.id
       );
-      
+
       if (milestoneTasks.length > 0) {
         sections.push({
           id: milestone.id,
@@ -444,7 +458,7 @@ export const BoardColumns = ({
         });
       }
     });
-    
+
     return sections;
   };
 
@@ -459,7 +473,7 @@ export const BoardColumns = ({
           {memberSections.map((section) => {
             const member = mockMembers.find(m => m.id === section.memberId);
             const isCollapsed = collapsedSections.has(section.id);
-            
+
             return (
               <div key={section.id} className="swimlane">
                 <div className="swimlane-header">
@@ -472,112 +486,87 @@ export const BoardColumns = ({
                         {section.name} ({section.taskCount} công việc)
                       </span>
                     </div>
-                    <button 
+                    <button
                       className="collapse-toggle"
                       onClick={() => toggleSectionCollapse(section.id)}
                     >
-                      <svg 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none"
-                        style={{ 
+                      <ChevronDown
+                        size={16}
+                        style={{
                           transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
                           transition: 'transform 0.2s ease'
                         }}
-                      >
-                        <path
-                          d="M6 9L12 15L18 9"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                      />
                     </button>
                   </div>
                 </div>
                 {!isCollapsed && (
                   <div className="swimlane-columns">
-                {columns.map((statusColumn) => {
-                  const column = {
-                    id: `${section.memberId}-${statusColumn.id}`,
-                    title: statusColumn.title,
-                    color: statusColumn.color,
-                    memberId: section.memberId,
-                    statusId: statusColumn.id,
-                    memberName: section.name
-                  };
-                  const columnTasks = getTasksForColumn(column);
-                  const groupedTasks = getGroupedTasksForColumn(column);
-                  
-                  return (
-                    <div
-                      key={column.id}
-                      className={`board-column ${
-                        draggedOverColumn === column.id ? "drag-over" : ""
-                      }`}
-                      onDragOver={(e) => handleDragOver(e, column.id)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, column.id)}
-                    >
-                      <div className="column-header">
-                        <div className="column-title">
-                          <div
-                            className="column-indicator"
-                            style={{ backgroundColor: column.color }}
-                          ></div>
-                          <span>{column.title}</span>
-                        </div>
-                        <div className="column-actions">
-                          <span className="column-count">{columnTasks.length}</span>
-                        </div>
-                      </div>
+                    {columns.map((statusColumn) => {
+                      const column = {
+                        id: `${section.memberId}-${statusColumn.id}`,
+                        title: statusColumn.title,
+                        color: statusColumn.color,
+                        memberId: section.memberId,
+                        statusId: statusColumn.id,
+                        memberName: section.name
+                      };
+                      const columnTasks = getTasksForColumn(column);
+                      const groupedTasks = getGroupedTasksForColumn(column);
 
-                      <div className="column-content">
-                        {Object.entries(groupedTasks).map(([groupName, tasks]) => (
-                          <div key={groupName} className="task-group">
-                            <div className="group-tasks">
-                              {tasks.map((task) => (
-                                <TaskCard
-                                  key={task.id}
-                                  task={task}
-                                  onMove={(newStatus) => handleTaskMove(task.id, newStatus)}
-                                  onDragStart={(e) => handleDragStart(e, task.id)}
-                                  onTaskClick={onTaskClick}
-                                  isDragging={draggedTask === task.id}
-                                />
-                              ))}
+                      return (
+                        <div
+                          key={column.id}
+                          className={`board-column ${draggedOverColumn === column.id ? "drag-over" : ""
+                            }`}
+                          onDragOver={(e) => handleDragOver(e, column.id)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, column.id)}
+                        >
+                          <div className="column-header">
+                            <div className="column-title">
+                              <div
+                                className="column-indicator"
+                                style={{ backgroundColor: column.color }}
+                              ></div>
+                              <span>{column.title}</span>
+                            </div>
+                            <div className="column-actions">
+                              <span className="column-count">{columnTasks.length}</span>
                             </div>
                           </div>
-                        ))}
 
-                        <button
-                          className="create-task-btn"
-                          onClick={() => handleCreateTaskClick(statusColumn.id)}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path
-                              d="M12 5V19"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M5 12H19"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          Tạo
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                          <div className="column-content">
+                            {Object.entries(groupedTasks).map(([groupName, tasks]) => (
+                              <div key={groupName} className="task-group">
+                                <div className="group-tasks">
+                                  {tasks.map((task) => (
+                                    <TaskCard
+                                      key={task.id}
+                                      task={task}
+                                      onMove={(newStatus) => handleTaskMove(task.id, newStatus)}
+                                      onDragStart={(e) => handleDragStart(e, task.id)}
+                                      onTaskClick={onTaskClick}
+                                      isDragging={draggedTask === task.id}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+
+                            {canCreateTask && (
+                              <button
+                                className="create-task-btn"
+                                onClick={() => handleCreateTaskClick(statusColumn.id)}
+                              >
+                                <Plus size={16} />
+                                Tạo
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -590,7 +579,7 @@ export const BoardColumns = ({
           {milestoneSections.map((section) => {
             const milestone = mockMilestones.find(m => m.id === section.milestoneId);
             const isCollapsed = collapsedSections.has(section.id);
-            
+
             return (
               <div key={section.id} className="swimlane">
                 <div className="swimlane-header">
@@ -600,112 +589,87 @@ export const BoardColumns = ({
                         {section.name} ({section.taskCount} công việc)
                       </span>
                     </div>
-                    <button 
+                    <button
                       className="collapse-toggle"
                       onClick={() => toggleSectionCollapse(section.id)}
                     >
-                      <svg 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none"
-                        style={{ 
+                      <ChevronDown
+                        size={16}
+                        style={{
                           transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
                           transition: 'transform 0.2s ease'
                         }}
-                      >
-                        <path
-                          d="M6 9L12 15L18 9"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                      />
                     </button>
                   </div>
                 </div>
                 {!isCollapsed && (
                   <div className="swimlane-columns">
-                {columns.map((statusColumn) => {
-                  const column = {
-                    id: `${section.milestoneId}-${statusColumn.id}`,
-                    title: statusColumn.title,
-                    color: statusColumn.color,
-                    milestoneId: section.milestoneId,
-                    statusId: statusColumn.id,
-                    milestoneName: section.name
-                  };
-                  const columnTasks = getTasksForColumn(column);
-                  const groupedTasks = getGroupedTasksForColumn(column);
-                  
-                  return (
-                    <div
-                      key={column.id}
-                      className={`board-column ${
-                        draggedOverColumn === column.id ? "drag-over" : ""
-                      }`}
-                      onDragOver={(e) => handleDragOver(e, column.id)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, column.id)}
-                    >
-                      <div className="column-header">
-                        <div className="column-title">
-                          <div
-                            className="column-indicator"
-                            style={{ backgroundColor: column.color }}
-                          ></div>
-                          <span>{column.title}</span>
-                        </div>
-                        <div className="column-actions">
-                          <span className="column-count">{columnTasks.length}</span>
-                        </div>
-                      </div>
+                    {columns.map((statusColumn) => {
+                      const column = {
+                        id: `${section.milestoneId}-${statusColumn.id}`,
+                        title: statusColumn.title,
+                        color: statusColumn.color,
+                        milestoneId: section.milestoneId,
+                        statusId: statusColumn.id,
+                        milestoneName: section.name
+                      };
+                      const columnTasks = getTasksForColumn(column);
+                      const groupedTasks = getGroupedTasksForColumn(column);
 
-                      <div className="column-content">
-                        {Object.entries(groupedTasks).map(([groupName, tasks]) => (
-                          <div key={groupName} className="task-group">
-                            <div className="group-tasks">
-                              {tasks.map((task) => (
-                                <TaskCard
-                                  key={task.id}
-                                  task={task}
-                                  onMove={(newStatus) => handleTaskMove(task.id, newStatus)}
-                                  onDragStart={(e) => handleDragStart(e, task.id)}
-                                  onTaskClick={onTaskClick}
-                                  isDragging={draggedTask === task.id}
-                                />
-                              ))}
+                      return (
+                        <div
+                          key={column.id}
+                          className={`board-column ${draggedOverColumn === column.id ? "drag-over" : ""
+                            }`}
+                          onDragOver={(e) => handleDragOver(e, column.id)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, column.id)}
+                        >
+                          <div className="column-header">
+                            <div className="column-title">
+                              <div
+                                className="column-indicator"
+                                style={{ backgroundColor: column.color }}
+                              ></div>
+                              <span>{column.title}</span>
+                            </div>
+                            <div className="column-actions">
+                              <span className="column-count">{columnTasks.length}</span>
                             </div>
                           </div>
-                        ))}
 
-                        <button
-                          className="create-task-btn"
-                          onClick={() => handleCreateTaskClick(statusColumn.id)}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path
-                              d="M12 5V19"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M5 12H19"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          Tạo
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                          <div className="column-content">
+                            {Object.entries(groupedTasks).map(([groupName, tasks]) => (
+                              <div key={groupName} className="task-group">
+                                <div className="group-tasks">
+                                  {tasks.map((task) => (
+                                    <TaskCard
+                                      key={task.id}
+                                      task={task}
+                                      onMove={(newStatus) => handleTaskMove(task.id, newStatus)}
+                                      onDragStart={(e) => handleDragStart(e, task.id)}
+                                      onTaskClick={onTaskClick}
+                                      isDragging={draggedTask === task.id}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+
+                            {canCreateTask && (
+                              <button
+                                className="create-task-btn"
+                                onClick={() => handleCreateTaskClick(statusColumn.id)}
+                              >
+                                <Plus size={16} />
+                                Tạo
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -718,13 +682,12 @@ export const BoardColumns = ({
           {displayColumns.map((column) => {
             const columnTasks = getTasksForColumn(column);
             const groupedTasks = getGroupedTasksForColumn(column);
-          
+
             return (
               <div
                 key={column.id}
-                className={`board-column ${
-                  draggedOverColumn === column.id ? "drag-over" : ""
-                }`}
+                className={`board-column ${draggedOverColumn === column.id ? "drag-over" : ""
+                  }`}
                 onDragOver={(e) => handleDragOver(e, column.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, column.id)}
@@ -739,30 +702,32 @@ export const BoardColumns = ({
                   </div>
                   <div className="column-actions">
                     <span className="column-count">{columnTasks.length}</span>
-                    <ColumnMenu
-                      columnId={column.id}
-                      columnTitle={column.title}
-                      isDoneColumn={
-                        column.id === "done" ||
-                        column.title.includes("HOÀN THÀNH")
-                      }
-                      onMoveLeft={() => handleMoveColumnLeft(column.id)}
-                      onMoveRight={() => handleMoveColumnRight(column.id)}
-                      onDelete={() => handleDeleteColumn(column.id)}
-                      onDeleteOldItems={
-                        column.id === "done" ||
-                        column.title.includes("HOÀN THÀNH")
-                          ? () => handleDeleteOldItems(column.id)
-                          : undefined
-                      }
-                      canMoveLeft={
-                        displayColumns.findIndex((col) => col.id === column.id) > 0
-                      }
-                      canMoveRight={
-                        displayColumns.findIndex((col) => col.id === column.id) <
-                        displayColumns.length - 1
-                      }
-                    />
+                    {canDeleteColumn && (
+                      <ColumnMenu
+                        columnId={column.id}
+                        columnTitle={column.title}
+                        isDoneColumn={
+                          column.id === "done" ||
+                          column.title.includes("HOÀN THÀNH")
+                        }
+                        onMoveLeft={() => handleMoveColumnLeft(column.id)}
+                        onMoveRight={() => handleMoveColumnRight(column.id)}
+                        onDelete={() => handleDeleteColumn(column.id)}
+                        onDeleteOldItems={
+                          column.id === "done" ||
+                            column.title.includes("HOÀN THÀNH")
+                            ? () => handleDeleteOldItems(column.id)
+                            : undefined
+                        }
+                        canMoveLeft={
+                          displayColumns.findIndex((col) => col.id === column.id) > 0
+                        }
+                        canMoveRight={
+                          displayColumns.findIndex((col) => col.id === column.id) <
+                          displayColumns.length - 1
+                        }
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -790,54 +755,26 @@ export const BoardColumns = ({
                     </div>
                   ))}
 
-                  <button
-                    className="create-task-btn"
-                    onClick={() => handleCreateTaskClick(column.id)}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M12 5V19"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M5 12H19"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Tạo
-                  </button>
+                  {canCreateTask && (
+                    <button
+                      className="create-task-btn"
+                      onClick={() => handleCreateTaskClick(column.id)}
+                    >
+                      <Plus size={16} />
+                      Tạo
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })}
 
-          {groupBy === "status" && (
+          {groupBy === "status" && canCreateColumn && (
             <button
               className="add-column-btn"
               onClick={() => setShowAddColumnModal(true)}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 5V19"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M5 12H19"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <Plus size={16} />
               Thêm cột
             </button>
           )}

@@ -14,7 +14,7 @@ import {
 import { ProjectSummary } from "./ProjectSummary";
 import { ProjectBoard } from "./ProjectBoard";
 import { ProjectList } from "./ProjectList";
-import { ProjectReports } from "./ProjectReports";
+// import { ProjectReports } from "./ProjectReports";
 import { ProjectSettings } from "./ProjectSettings";
 import { MeetingTab } from "./MeetingTab";
 import { ProjectDocuments } from "./ProjectDocuments";
@@ -79,11 +79,11 @@ export const ProjectTabs = ({
       label: "Cuộc họp",
       icon: <Video size={20} />,
     },
-    {
-      id: "reports",
-      label: "Báo cáo",
-      icon: <BarChart3 size={20} />,
-    },
+    // {
+    //   id: "reports",
+    //   label: "Báo cáo",
+    //   icon: <BarChart3 size={20} />,
+    // },
     {
       id: "settings",
       label: "Cài đặt",
@@ -94,7 +94,7 @@ export const ProjectTabs = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case "summary":
-        return <ProjectSummary projects={[project]} />;
+        return <ProjectSummary project={project} />;
       case "board":
         return (
           <ProjectBoard
@@ -109,12 +109,12 @@ export const ProjectTabs = ({
         return <ProjectDocuments project={project} />;
       case "meetings":
         return <MeetingTab project={project} />;
-      case "reports":
-        return <ProjectReports project={project} />;
+      // case "reports":
+      //   return <ProjectReports project={project} />;
       case "settings":
         return <ProjectSettings project={project} />;
       default:
-        return <ProjectSummary projects={[project]} />;
+        return <ProjectSummary project={project} />;
     }
   };
 
