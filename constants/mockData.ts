@@ -10,7 +10,7 @@ export const mockMembers = [
     email: "ql@msp.com",
     role: "Project Manager",
     avatar: "QL",
-    tasks: ["MWA-1", "MWA-6", "MWA-10"]
+    tasks: ["MWA-1", "MWA-6", "MWA-10"],
   },
   {
     id: "member-2",
@@ -18,7 +18,7 @@ export const mockMembers = [
     email: "a@msp.com",
     role: "Developer",
     avatar: "NA",
-    tasks: ["MWA-3", "MWA-12", "MWA-14"]
+    tasks: ["MWA-3", "MWA-12", "MWA-14"],
   },
   {
     id: "member-3",
@@ -26,7 +26,7 @@ export const mockMembers = [
     email: "b@msp.com",
     role: "Designer",
     avatar: "TB",
-    tasks: ["MWA-2", "MWA-8", "MWA-13"]
+    tasks: ["MWA-2", "MWA-8", "MWA-13"],
   },
   {
     id: "member-4",
@@ -34,7 +34,7 @@ export const mockMembers = [
     email: "c@msp.com",
     role: "Backend Developer",
     avatar: "LC",
-    tasks: ["MWA-4", "MWA-9"]
+    tasks: ["MWA-4", "MWA-9"],
   },
   {
     id: "member-5",
@@ -42,8 +42,8 @@ export const mockMembers = [
     email: "d@msp.com",
     role: "Frontend Developer",
     avatar: "PD",
-    tasks: ["MWA-5", "MWA-11"]
-  }
+    tasks: ["MWA-5", "MWA-11"],
+  },
 ];
 
 export const mockProjects = [
@@ -56,41 +56,51 @@ export const mockProjects = [
     endDate: "2025-12-31",
     milestones: ["milestone-1", "milestone-2"],
     members: ["member-1", "member-2", "member-3", "member-4", "member-5"],
-    meetings: ["meeting-1", "meeting-2", "meeting-3", "meeting-4", "meeting-5", "meeting-6"]
+    meetings: [
+      "meeting-1",
+      "meeting-2",
+      "meeting-3",
+      "meeting-4",
+      "meeting-5",
+      "meeting-6",
+    ],
   },
   {
     id: "2",
     name: "Ứng dụng Mobile Banking",
-    description: "Phát triển ứng dụng mobile banking với tính năng chuyển tiền, thanh toán hóa đơn",
+    description:
+      "Phát triển ứng dụng mobile banking với tính năng chuyển tiền, thanh toán hóa đơn",
     status: "active",
     startDate: "2025-08-15",
     endDate: "2026-02-28",
     milestones: ["milestone-3", "milestone-4"],
     members: ["member-1", "member-2", "member-4"],
-    meetings: ["meeting-7", "meeting-8"]
+    meetings: ["meeting-7", "meeting-8"],
   },
   {
     id: "3",
     name: "Hệ thống E-commerce",
-    description: "Xây dựng nền tảng thương mại điện tử với quản lý sản phẩm và đơn hàng",
+    description:
+      "Xây dựng nền tảng thương mại điện tử với quản lý sản phẩm và đơn hàng",
     status: "planning",
     startDate: "2025-10-01",
     endDate: "2026-04-30",
     milestones: ["milestone-5"],
     members: ["member-3", "member-5"],
-    meetings: ["meeting-9"]
+    meetings: ["meeting-9"],
   },
   {
     id: "4",
     name: "Dashboard Analytics",
-    description: "Phát triển dashboard phân tích dữ liệu với biểu đồ và báo cáo thời gian thực",
+    description:
+      "Phát triển dashboard phân tích dữ liệu với biểu đồ và báo cáo thời gian thực",
     status: "completed",
     startDate: "2025-06-01",
     endDate: "2025-08-31",
     milestones: ["milestone-6"],
     members: ["member-1", "member-2", "member-3"],
-    meetings: ["meeting-10"]
-  }
+    meetings: ["meeting-10"],
+  },
 ];
 
 // Backward compatibility - export the first project as mockProject
@@ -172,7 +182,7 @@ export const mockTasks = [
     priority: "low",
     assignee: "",
     startDate: "2025-09-25",
-    endDate: "2025-09-30"
+    endDate: "2025-09-30",
   },
   {
     id: "MWA-8",
@@ -183,7 +193,7 @@ export const mockTasks = [
     priority: "high",
     assignee: "member-3",
     startDate: "2025-08-20",
-    endDate: "2025-09-15"
+    endDate: "2025-09-15",
   },
   {
     id: "MWA-9",
@@ -194,7 +204,7 @@ export const mockTasks = [
     priority: "high",
     assignee: "member-4",
     startDate: "2025-08-25",
-    endDate: "2025-09-10"
+    endDate: "2025-09-10",
   },
   {
     id: "MWA-10",
@@ -205,7 +215,7 @@ export const mockTasks = [
     priority: "high",
     assignee: "member-1",
     startDate: "2026-01-15",
-    endDate: "2026-01-31"
+    endDate: "2026-01-31",
   },
   {
     id: "MWA-11",
@@ -216,7 +226,7 @@ export const mockTasks = [
     priority: "medium",
     assignee: "member-5",
     startDate: "2025-10-15",
-    endDate: "2025-11-30"
+    endDate: "2025-11-30",
   },
   {
     id: "MWA-12",
@@ -227,7 +237,7 @@ export const mockTasks = [
     priority: "medium",
     assignee: "member-2",
     startDate: "2025-11-01",
-    endDate: "2025-12-15"
+    endDate: "2025-12-15",
   },
   {
     id: "MWA-13",
@@ -238,7 +248,7 @@ export const mockTasks = [
     priority: "medium",
     assignee: "member-3",
     startDate: "2025-06-15",
-    endDate: "2025-07-15"
+    endDate: "2025-07-15",
   },
   {
     id: "MWA-14",
@@ -249,7 +259,7 @@ export const mockTasks = [
     priority: "low",
     assignee: "member-2",
     startDate: "2025-07-20",
-    endDate: "2025-08-10"
+    endDate: "2025-08-10",
   },
   {
     id: "MWA-15",
@@ -260,7 +270,7 @@ export const mockTasks = [
     priority: "high",
     assignee: "member-1",
     startDate: "2024-12-01",
-    endDate: "2024-12-15"
+    endDate: "2024-12-15",
   },
   {
     id: "MWA-16",
@@ -271,8 +281,8 @@ export const mockTasks = [
     priority: "medium",
     assignee: "member-4",
     startDate: "2024-11-20",
-    endDate: "2024-12-10"
-  }
+    endDate: "2024-12-10",
+  },
 ];
 
 // Mock Comments data
@@ -369,7 +379,7 @@ let mockMilestones = [
     status: "in-progress",
     tasks: ["MWA-8", "MWA-9"],
     projectId: "2",
-    meetings: ["meeting-7"]
+    meetings: ["meeting-7"],
   },
   {
     id: "milestone-4",
@@ -379,7 +389,7 @@ let mockMilestones = [
     status: "pending",
     tasks: ["MWA-10"],
     projectId: "2",
-    meetings: ["meeting-8"]
+    meetings: ["meeting-8"],
   },
   {
     id: "milestone-5",
@@ -389,7 +399,7 @@ let mockMilestones = [
     status: "pending",
     tasks: ["MWA-11", "MWA-12"],
     projectId: "3",
-    meetings: ["meeting-9"]
+    meetings: ["meeting-9"],
   },
   {
     id: "milestone-6",
@@ -399,7 +409,7 @@ let mockMilestones = [
     status: "completed",
     tasks: ["MWA-13", "MWA-14"],
     projectId: "4",
-    meetings: ["meeting-10"]
+    meetings: ["meeting-10"],
   },
 ];
 
@@ -659,8 +669,10 @@ export const mockMeetings = [
     startTime: "2025-08-20T09:00:00Z",
     endTime: "2025-08-20T10:30:00Z",
     status: "Finished",
-    roomUrl: "https://meet.google.com/mobile-banking-kickoff",
-    participates: ["member-1", "member-2", "member-4"]
+    meetingType: "offline",
+    roomUrl: "",
+    location: "Phòng họp A, Tầng 3, Văn phòng MSP",
+    participants: ["member-1", "member-2", "member-4"],
   },
   {
     id: "meeting-8",
@@ -671,8 +683,10 @@ export const mockMeetings = [
     startTime: "2026-01-20T14:00:00Z",
     endTime: "2026-01-20T16:00:00Z",
     status: "Scheduled",
-    roomUrl: "https://meet.google.com/security-review",
-    participates: ["member-1", "member-4"]
+    meetingType: "offline",
+    roomUrl: "",
+    location: "Phòng họp A, Tầng 3, Văn phòng MSP",
+    participants: ["member-1", "member-4"],
   },
   {
     id: "meeting-9",
@@ -683,8 +697,10 @@ export const mockMeetings = [
     startTime: "2025-10-05T10:00:00Z",
     endTime: "2025-10-05T12:00:00Z",
     status: "Scheduled",
-    roomUrl: "https://meet.google.com/ecommerce-planning",
-    participates: ["member-3", "member-5"]
+    meetingType: "offline",
+    roomUrl: "",
+    location: "Phòng họp A, Tầng 3, Văn phòng MSP",
+    participants: ["member-3", "member-5"],
   },
   {
     id: "meeting-10",
@@ -695,8 +711,10 @@ export const mockMeetings = [
     startTime: "2025-08-25T15:00:00Z",
     endTime: "2025-08-25T16:30:00Z",
     status: "Finished",
-    roomUrl: "https://meet.google.com/analytics-demo",
-    participates: ["member-1", "member-2", "member-3"]
+    meetingType: "offline",
+    roomUrl: "",
+    location: "Phòng họp A, Tầng 3, Văn phòng MSP",
+    participants: ["member-1", "member-2", "member-3"],
   },
 ];
 

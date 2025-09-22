@@ -257,7 +257,7 @@ export default function MeetingForm({
                     timeFormat="HH:mm"
                     timeIntervals={30}
                     dateFormat="dd/MM/yyyy HH:mm"
-                    className="w-full border rounded-md p-2"
+                    className="w-full border rounded-md p-2 text-sm"
                   />
                   {form.formState.errors.datetime && (
                     <p className="text-sm text-red-500">
