@@ -164,7 +164,7 @@ const ProjectDetailPage = () => {
             </div>
             <div className="meta-item">
               <Users size={16} />
-              <span>{project.members.length} thành viên</span>
+              <span>{project?.members?.length} thành viên</span>
             </div>
             <div className="meta-item">
               <Target size={16} />
