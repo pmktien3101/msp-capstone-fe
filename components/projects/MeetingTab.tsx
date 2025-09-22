@@ -168,6 +168,33 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
     }
   };
 
+  // Update the stats calculations to include mock meetings
+  const allMeetingsCount = useMemo(() => {
+    const streamMeetingsCount = allMeetings.length;
+    const mockMeetingsCount = mockMeetings.filter(m => m.projectId === project.id).length;
+    return streamMeetingsCount + mockMeetingsCount;
+  }, [allMeetings, project.id]);
+
+  const upcomingMeetingsCount = useMemo(() => {
+    const now = new Date();
+    const streamUpcomingCount = upcomingProjectMeetings.length;
+    const mockUpcomingCount = mockMeetings.filter(m => 
+      m.projectId === project.id && 
+      new Date(m.startTime) > now
+    ).length;
+    return streamUpcomingCount + mockUpcomingCount;
+  }, [upcomingProjectMeetings, project.id]);
+
+  const endedMeetingsCount = useMemo(() => {
+    const now = new Date();
+    const streamEndedCount = endedProjectMeetings.length;
+    const mockEndedCount = mockMeetings.filter(m => 
+      m.projectId === project.id && 
+      new Date(m.endTime) < now
+    ).length;
+    return streamEndedCount + mockEndedCount;
+  }, [endedProjectMeetings, project.id]);
+
   return (
     <div className="meeting-tab">
       <div className="meeting-header">
@@ -211,15 +238,15 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
       </div>
       <div className="meeting-stats">
         <div className="stat-card">
-          <div className="stat-number">{allMeetings.length}</div>
+          <div className="stat-number">{allMeetingsCount}</div>
           <div className="stat-label">Tổng cuộc họp</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{upcomingProjectMeetings.length}</div>
+          <div className="stat-number">{upcomingMeetingsCount}</div>
           <div className="stat-label">Đã lên lịch</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{endedProjectMeetings.length}</div>
+          <div className="stat-number">{endedMeetingsCount}</div>
           <div className="stat-label">Hoàn thành</div>
         </div>
       </div>
