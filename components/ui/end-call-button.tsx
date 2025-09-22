@@ -27,7 +27,7 @@ const EndCallButton = () => {
     } catch (err) {
       console.warn("Error ending call", err);
     } finally {
-      router.push("/projects");
+      router.push(`/meeting-detail/${call.id}`);
     }
   };
 
@@ -41,7 +41,7 @@ const EndCallButton = () => {
     } catch (err) {
       console.warn("Error leaving call", err);
     } finally {
-      router.push("/projects");
+      router.push(`/meeting-detail/${call.id}`);
     }
   };
 
