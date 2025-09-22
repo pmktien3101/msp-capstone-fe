@@ -121,25 +121,25 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
                 </div>
                 <div className="meta-item">
                   <span className="meta-label">Thành viên:</span>
-                  <span className="meta-value">{project.members.length} người</span>
+                  <span className="meta-value">{project.members?.length} người</span>
                 </div>
               </div>
 
               <div className="project-team">
                 <div className="team-avatars">
-                  {project.members.slice(0, 3).map((member, index) => (
+                  {project.members?.slice(0, 3).map((member, index) => (
                     <div key={member.id} className="team-avatar">
                       <span>{member.name.charAt(0)}</span>
                     </div>
                   ))}
-                  {project.members.length > 3 && (
+                  {(project.members?.length || 0) > 3 && (
                     <div className="team-avatar more">
-                      +{project.members.length - 3}
+                      +{(project.members?.length || 0) - 3}
                     </div>
                   )}
                 </div>
                 <span className="team-text">
-                  {project.members.length} thành viên
+                  {project.members?.length || 0} thành viên
                 </span>
               </div>
             </div>
