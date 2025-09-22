@@ -73,7 +73,7 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
           <div className="meetings-list">
             {sortedMeetings.map((meeting) => {
               const { date, time } = formatDateTime(meeting.startTime);
-              const participants = getParticipantNames(meeting.participates);
+              const participants = getParticipantNames(meeting.participants || []);
               
               return (
                 <div key={meeting.id} className="meeting-item">
