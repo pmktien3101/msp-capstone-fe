@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import {
   CallingState,
@@ -26,6 +28,7 @@ import MicButton from "../ui/mic-button";
 import CameraButton from "../ui/camera-button";
 import RecordButton from "../ui/record-button";
 import TranscriptButton from "../ui/transcript-button";
+import { CallIndicators } from "../ui/CallIndicators";
 
 type CallLayoutType = "grid" | "speaker-left" | "speaker-right";
 
@@ -37,15 +40,10 @@ const MeetingRoom = () => {
   const [showParticipantsBar, setShowParticipantsBar] = useState(false);
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
 
-  const {
-    useCallCallingState,
-    useCallSettings,
-    useIsCallTranscribingInProgress,
-  } = useCallStateHooks();
+  const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
   const call = useCall();
 
-  // Dùng ref để biết user đã từng join call chưa nhằm tránh redirect khi đang load ban đầu
   const wasJoinedRef = useRef(false);
 
   useEffect(() => {
@@ -106,6 +104,7 @@ const MeetingRoom = () => {
         <CameraButton />
         <RecordButton />
         <ScreenShareButton />
+
         {/* Layout Switch */}
         <DropdownMenu>
           <div className="flex items-center gap-2 bg-gray-800 rounded-3xl hover:bg-gray-700 transition-colors">
@@ -154,7 +153,7 @@ const MeetingRoom = () => {
         <TranscriptButton />
         <EndCallButton />
       </div>
-
+      <CallIndicators />
       {/* Filters Panel */}
       {showFiltersPanel && (
         <div className="fixed right-4 bottom-28 w-72 max-h-[60vh] overflow-y-auto rounded-lg border border-orange-600/40 bg-black/70 p-4 text-white backdrop-blur">

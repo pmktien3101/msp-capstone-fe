@@ -13,7 +13,6 @@ const RecordButton = () => {
   const localParticipant = useLocalParticipant();
   const [loading, setLoading] = useState(false);
 
-  // Chỉ hiển thị nếu local participant là người tạo cuộc gọi
   const isMeetingOwner =
     localParticipant?.userId &&
     call?.state?.createdBy?.id === localParticipant.userId;
@@ -33,7 +32,7 @@ const RecordButton = () => {
     try {
       if (isRecording) {
         await call.stopRecording();
-        toast("Dừng ghi hình!");
+        toast.info("Dừng ghi hình!");
       } else {
         await call.startRecording();
         toast.success("Bắt đầu ghi hình!");
