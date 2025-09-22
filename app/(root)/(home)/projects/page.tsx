@@ -7,7 +7,7 @@ import { EditProjectModal } from '@/components/projects/modals/EditProjectModal'
 import { CreateProjectModal } from '@/components/projects/modals/CreateProjectModal';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
-import { mockProject, mockMembers, mockTasks } from '@/constants/mockData';
+import { mockProjects, mockMembers, mockTasks } from '@/constants/mockData';
 import '@/app/styles/projects.scss';
 import '@/app/styles/projects-table.scss';
 import { Project } from '@/types/project';
@@ -20,20 +20,20 @@ const ProjectsPage = () => {
   const [selectedProject, setSelectedProject] = useState<any>(null);
   
   // State để quản lý danh sách projects
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: mockProject.id,
-      name: mockProject.name,
-      description: mockProject.description,
-      status: mockProject.status as 'active' | 'planning' | 'completed' | 'on-hold',
-      startDate: mockProject.startDate,
-      endDate: mockProject.endDate,
-      milestones: mockProject.milestones,
-      meetings: mockProject.meetings,
-      members: mockMembers.filter(member => mockProject.members?.includes(member.id)),
+  const [projects, setProjects] = useState<Project[]>(
+    mockProjects.map(project => ({
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      status: project.status as 'active' | 'planning' | 'completed' | 'on-hold',
+      startDate: project.startDate,
+      endDate: project.endDate,
+      milestones: project.milestones,
+      meetings: project.meetings,
+      members: mockMembers.filter(member => project.members?.includes(member.id)),
       manager: mockMembers.find(member => member.role === 'Project Manager')?.name || '',
-    }
-  ]);
+    }))
+  );
 
   // Handlers
 

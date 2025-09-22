@@ -24,7 +24,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
       case 'on-hold':
         return '#ef4444';
       case 'completed':
-        return '#6b7280';
+        return '#10b981';
       default:
         return '#6b7280';
     }
@@ -39,7 +39,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
       case 'on-hold':
         return '#fee2e2';
       case 'completed':
-        return '#f3f4f6';
+        return '#dcfce7';
       default:
         return '#f3f4f6';
     }
@@ -50,7 +50,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
       case 'active':
         return 'Đang hoạt động';
       case 'planning':
-        return 'Lên kế hoạch';
+        return 'Lập kế hoạch';
       case 'on-hold':
         return 'Tạm dừng';
       case 'completed':

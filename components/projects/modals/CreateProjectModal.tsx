@@ -158,8 +158,8 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
                 name="status"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className={errors.status ? "border-red-500" : ""}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled>
+                    <SelectTrigger className={`${errors.status ? "border-red-500" : ""} bg-gray-100 cursor-not-allowed`}>
                       <SelectValue placeholder="Chọn trạng thái" />
                     </SelectTrigger>
                     <SelectContent className="z-[9999]" position="popper" side="bottom" align="start">
@@ -169,31 +169,11 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
                           Lập kế hoạch
                         </div>
                       </SelectItem>
-                      <SelectItem value="active">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <PlayCircle size={16} />
-                          Đang thực hiện
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="on-hold">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Pause size={16} />
-                          Tạm dừng
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="completed">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <CheckCircle size={16} />
-                          Hoàn thành
-                        </div>
-                      </SelectItem>
                     </SelectContent>
                   </Select>
                 )}
               />
-              {errors.status && (
-                <p className="text-sm text-red-500 mt-1">{errors.status.message}</p>
-              )}
+              <p className="text-xs text-gray-500 mt-1">Trạng thái mặc định cho dự án mới</p>
             </div>
 
             <div>
