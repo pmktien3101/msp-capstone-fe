@@ -6,7 +6,7 @@ import { StatusOverview } from "./StatusOverview";
 import { MilestoneProgress } from "./MilestoneProgress";
 import { TeamWorkload } from "./TeamWorkload";
 import { TasksList } from "./TasksList";
-// import { UpcomingMeetings } from './UpcomingMeetings';
+import { UpcomingMeetings } from "./UpcomingMeetings";
 import { mockProject, getProjectStats } from "@/constants/mockData";
 
 interface ProjectSummaryProps {
@@ -35,7 +35,7 @@ export function ProjectSummary({ projects }: ProjectSummaryProps) {
         <div className="summary-right">
           <StatusOverview />
           <TeamWorkload />
-          {/* <UpcomingMeetings /> */}
+          <UpcomingMeetings />
         </div>
       </div>
 
