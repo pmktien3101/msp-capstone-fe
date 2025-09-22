@@ -33,6 +33,10 @@ export default function Milestones({ milestones, selectedProject, onCreateMilest
         return '#10B981';
       case 'in-progress':
         return '#FFA463';
+      case 'pending':
+        return '#64748B';
+      case 'overdue':
+        return '#EF4444';
       case 'delayed':
         return '#EF4444';
       default:
@@ -46,10 +50,14 @@ export default function Milestones({ milestones, selectedProject, onCreateMilest
         return 'Hoàn thành';
       case 'in-progress':
         return 'Đang thực hiện';
+      case 'pending':
+        return 'Chờ thực hiện';
+      case 'overdue':
+        return 'Quá hạn';
       case 'delayed':
         return 'Trễ hạn';
       default:
-        return 'Chờ bắt đầu';
+        return 'Chờ thực hiện';
     }
   };
 

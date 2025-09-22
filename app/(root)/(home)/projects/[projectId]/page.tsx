@@ -10,11 +10,13 @@ import { Task } from '@/types/milestone';
 import { Member } from '@/types/member';
 import { mockProject, mockMembers, mockTasks, addMilestone } from '@/constants/mockData';
 import { Plus, Calendar, Users, Target } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
 import '@/app/styles/project-detail.scss';
 
 const ProjectDetailPage = () => {
   const params = useParams();
   const projectId = params.projectId as string;
+  const { role } = useUser();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -22,6 +24,9 @@ const ProjectDetailPage = () => {
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState("summary");
+
+  // Check if user has permission to create milestones
+  const canCreateMilestone = role && role.toLowerCase() !== 'member';
 
 
   // Handlers
@@ -157,7 +162,7 @@ const ProjectDetailPage = () => {
           </div>
         </div>
         <div className="project-actions">
-          {(activeTab === "board" || activeTab === "list") && (
+          {(activeTab === "board" || activeTab === "list") && canCreateMilestone && (
             <button 
               className="create-milestone-btn"
               onClick={handleCreateMilestone}

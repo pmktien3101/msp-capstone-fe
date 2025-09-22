@@ -47,6 +47,12 @@ export const MilestoneProgress = () => {
           color: '#6b7280',
           border: 'rgba(107, 114, 128, 0.2)'
         };
+      case "overdue":
+        return {
+          background: 'rgba(239, 68, 68, 0.1)',
+          color: '#ef4444',
+          border: 'rgba(239, 68, 68, 0.2)'
+        };
       default:
         return {
           background: 'rgba(107, 114, 128, 0.1)',
@@ -63,7 +69,9 @@ export const MilestoneProgress = () => {
       case "in-progress":
         return "Đang thực hiện";
       case "pending":
-        return "Chờ bắt đầu";
+        return "Chờ thực hiện";
+      case "overdue":
+        return "Quá hạn";
       default:
         return status;
     }

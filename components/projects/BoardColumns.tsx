@@ -8,6 +8,8 @@ import { ColumnMenu } from "./ColumnMenu";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { mockTasks, mockMembers, mockMilestones } from "@/constants/mockData";
 import { Task } from "@/types/milestone";
+import { ChevronDown, Plus } from "lucide-react";
+import { useUser } from "@/hooks/useUser";
 
 interface BoardColumnsProps {
   project: Project;
@@ -23,6 +25,13 @@ export const BoardColumns = ({
   groupBy,
   onTaskClick,
 }: BoardColumnsProps) => {
+  const { role } = useUser();
+  
+  // Check permissions
+  const canCreateTask = role && role.toLowerCase() !== 'member';
+  const canCreateColumn = role && role.toLowerCase() !== 'member';
+  const canDeleteColumn = role && role.toLowerCase() !== 'member';
+  
   // Map mockTasks to Task interface with proper member information
   const mappedTasks: Task[] = mockTasks.map(task => {
     const assigneeMember = mockMembers.find(member => member.id === task.assignee);
@@ -74,15 +83,15 @@ export const BoardColumns = ({
       order: 1,
     },
     {
-      id: "done",
-      title: "HOÀN THÀNH",
-      color: "#10b981",
-      order: 2,
-    },
-    {
       id: "review",
       title: "ĐANG REVIEW",
       color: "#3b82f6",
+      order: 2,
+    },
+    {
+      id: "done",
+      title: "HOÀN THÀNH",
+      color: "#10b981",
       order: 3,
     },
   ]);
@@ -476,24 +485,13 @@ export const BoardColumns = ({
                       className="collapse-toggle"
                       onClick={() => toggleSectionCollapse(section.id)}
                     >
-                      <svg 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none"
+                      <ChevronDown 
+                        size={16}
                         style={{ 
                           transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
                           transition: 'transform 0.2s ease'
                         }}
-                      >
-                        <path
-                          d="M6 9L12 15L18 9"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                      />
                     </button>
                   </div>
                 </div>
@@ -552,28 +550,15 @@ export const BoardColumns = ({
                           </div>
                         ))}
 
-                        <button
-                          className="create-task-btn"
-                          onClick={() => handleCreateTaskClick(statusColumn.id)}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path
-                              d="M12 5V19"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M5 12H19"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          Tạo
-                        </button>
+                        {canCreateTask && (
+                          <button
+                            className="create-task-btn"
+                            onClick={() => handleCreateTaskClick(statusColumn.id)}
+                          >
+                            <Plus size={16} />
+                            Tạo
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -604,24 +589,13 @@ export const BoardColumns = ({
                       className="collapse-toggle"
                       onClick={() => toggleSectionCollapse(section.id)}
                     >
-                      <svg 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none"
+                      <ChevronDown 
+                        size={16}
                         style={{ 
                           transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
                           transition: 'transform 0.2s ease'
                         }}
-                      >
-                        <path
-                          d="M6 9L12 15L18 9"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                      />
                     </button>
                   </div>
                 </div>
@@ -680,28 +654,15 @@ export const BoardColumns = ({
                           </div>
                         ))}
 
-                        <button
-                          className="create-task-btn"
-                          onClick={() => handleCreateTaskClick(statusColumn.id)}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                            <path
-                              d="M12 5V19"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M5 12H19"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          Tạo
-                        </button>
+                        {canCreateTask && (
+                          <button
+                            className="create-task-btn"
+                            onClick={() => handleCreateTaskClick(statusColumn.id)}
+                          >
+                            <Plus size={16} />
+                            Tạo
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -739,30 +700,32 @@ export const BoardColumns = ({
                   </div>
                   <div className="column-actions">
                     <span className="column-count">{columnTasks.length}</span>
-                    <ColumnMenu
-                      columnId={column.id}
-                      columnTitle={column.title}
-                      isDoneColumn={
-                        column.id === "done" ||
-                        column.title.includes("HOÀN THÀNH")
-                      }
-                      onMoveLeft={() => handleMoveColumnLeft(column.id)}
-                      onMoveRight={() => handleMoveColumnRight(column.id)}
-                      onDelete={() => handleDeleteColumn(column.id)}
-                      onDeleteOldItems={
-                        column.id === "done" ||
-                        column.title.includes("HOÀN THÀNH")
-                          ? () => handleDeleteOldItems(column.id)
-                          : undefined
-                      }
-                      canMoveLeft={
-                        displayColumns.findIndex((col) => col.id === column.id) > 0
-                      }
-                      canMoveRight={
-                        displayColumns.findIndex((col) => col.id === column.id) <
-                        displayColumns.length - 1
-                      }
-                    />
+                    {canDeleteColumn && (
+                      <ColumnMenu
+                        columnId={column.id}
+                        columnTitle={column.title}
+                        isDoneColumn={
+                          column.id === "done" ||
+                          column.title.includes("HOÀN THÀNH")
+                        }
+                        onMoveLeft={() => handleMoveColumnLeft(column.id)}
+                        onMoveRight={() => handleMoveColumnRight(column.id)}
+                        onDelete={() => handleDeleteColumn(column.id)}
+                        onDeleteOldItems={
+                          column.id === "done" ||
+                          column.title.includes("HOÀN THÀNH")
+                            ? () => handleDeleteOldItems(column.id)
+                            : undefined
+                        }
+                        canMoveLeft={
+                          displayColumns.findIndex((col) => col.id === column.id) > 0
+                        }
+                        canMoveRight={
+                          displayColumns.findIndex((col) => col.id === column.id) <
+                          displayColumns.length - 1
+                        }
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -790,54 +753,26 @@ export const BoardColumns = ({
                     </div>
                   ))}
 
-                  <button
-                    className="create-task-btn"
-                    onClick={() => handleCreateTaskClick(column.id)}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M12 5V19"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M5 12H19"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Tạo
-                  </button>
+                  {canCreateTask && (
+                    <button
+                      className="create-task-btn"
+                      onClick={() => handleCreateTaskClick(column.id)}
+                    >
+                      <Plus size={16} />
+                      Tạo
+                    </button>
+                  )}
                 </div>
               </div>
             );
           })}
 
-          {groupBy === "status" && (
+          {groupBy === "status" && canCreateColumn && (
             <button
               className="add-column-btn"
               onClick={() => setShowAddColumnModal(true)}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 5V19"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M5 12H19"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <Plus size={16} />
               Thêm cột
             </button>
           )}

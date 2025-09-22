@@ -8,6 +8,7 @@ import { DeleteMilestoneModal } from "@/components/milestones/DeleteMilestoneMod
 import { UpdateMilestoneModal } from "@/components/milestones/UpdateMilestoneModal";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
 import { DetailTaskModal } from "@/components/tasks/DetailTaskModal";
+import { useUser } from "@/hooks/useUser";
 import {
   ChevronRight,
   Layers,
@@ -39,10 +40,17 @@ export const ListTable = ({
   sortBy,
   sortOrder,
 }: ListTableProps) => {
+  const { role } = useUser();
   const [tasks, setTasks] = useState(mockTasks);
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(
     new Set(["milestone-1"]) // Mở milestone đầu tiên mặc định
   );
+
+  // Check if user has permission to create tasks
+  const canCreateTask = role && role.toLowerCase() !== 'member';
+  
+  // Check if user has permission to edit/delete (non-member roles)
+  const canEditDelete = role && role.toLowerCase() !== 'member';
   const [createTaskModal, setCreateTaskModal] = useState<{
     isOpen: boolean;
     milestoneId?: string;
@@ -92,6 +100,7 @@ export const ListTable = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      // Task status
       case "todo":
         return "#6b7280";
       case "in-progress":
@@ -100,6 +109,13 @@ export const ListTable = ({
         return "#3b82f6";
       case "done":
         return "#10b981";
+      // Milestone status
+      case "pending":
+        return "#6b7280";
+      case "completed":
+        return "#10b981";
+      case "overdue":
+        return "#ef4444";
       default:
         return "#6b7280";
     }
@@ -107,6 +123,7 @@ export const ListTable = ({
 
   const getStatusBackgroundColor = (status: string) => {
     switch (status) {
+      // Task status
       case "todo":
         return "#f3f4f6";
       case "in-progress":
@@ -115,6 +132,13 @@ export const ListTable = ({
         return "#dbeafe";
       case "done":
         return "#dcfce7";
+      // Milestone status
+      case "pending":
+        return "#f3f4f6";
+      case "completed":
+        return "#dcfce7";
+      case "overdue":
+        return "#fee2e2";
       default:
         return "#f3f4f6";
     }
@@ -122,6 +146,7 @@ export const ListTable = ({
 
   const getStatusLabel = (status: string) => {
     switch (status) {
+      // Task status
       case "todo":
         return "Cần làm";
       case "in-progress":
@@ -130,6 +155,13 @@ export const ListTable = ({
         return "Đang review";
       case "done":
         return "Hoàn thành";
+      // Milestone status
+      case "pending":
+        return "Chờ thực hiện";
+      case "completed":
+        return "Hoàn thành";
+      case "overdue":
+        return "Quá hạn";
       default:
         return status;
     }
@@ -527,14 +559,16 @@ export const ListTable = ({
           <h2>Danh sách các cột mốc và công việc</h2>
           <p>Tổng cộng {tasks.length} công việc</p>
         </div>
-        <button
-          className="create-task-header-btn"
-          onClick={() => openCreateTaskModal()}
-          title="Tạo công việc mới"
-        >
-          <Plus size={14} />
-          Tạo công việc mới
-        </button>
+        {canCreateTask && (
+          <button
+            className="create-task-header-btn"
+            onClick={() => openCreateTaskModal()}
+            title="Tạo công việc mới"
+          >
+            <Plus size={14} />
+            Tạo công việc mới
+          </button>
+        )}
       </div>
       <div className="milestone-container">
         {/* Unassigned Tasks - Same level as milestones */}
@@ -667,26 +701,30 @@ export const ListTable = ({
                     </div>
                   </div>
                   <div className="action-buttons-modern">
-                    <button 
-                      className="action-btn-modern edit-btn" 
-                      title="Chỉnh sửa"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDetailTaskModal(task);
-                      }}
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button 
-                      className="action-btn-modern delete-btn" 
-                      title="Xóa"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDeleteTaskModal(task.id, task.title);
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {canEditDelete && (
+                      <button 
+                        className="action-btn-modern edit-btn" 
+                        title="Chỉnh sửa"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDetailTaskModal(task);
+                        }}
+                      >
+                        <Edit size={16} />
+                      </button>
+                    )}
+                    {canEditDelete && (
+                      <button 
+                        className="action-btn-modern delete-btn" 
+                        title="Xóa"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeleteTaskModal(task.id, task.title);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -758,26 +796,30 @@ export const ListTable = ({
                     </div>
                   </div>
                   <div className="milestone-actions">
-                    <button 
-                      className="action-btn-modern edit-btn" 
-                      title="Chỉnh sửa Milestone"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openUpdateMilestoneModal(milestone);
-                      }}
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      className="action-btn-modern delete-btn"
-                      title="Xóa Milestone"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDeleteMilestoneModal(milestone.id, milestone.name, milestone.tasks.length);
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {canEditDelete && (
+                      <button 
+                        className="action-btn-modern edit-btn" 
+                        title="Chỉnh sửa Milestone"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openUpdateMilestoneModal(milestone);
+                        }}
+                      >
+                        <Edit size={16} />
+                      </button>
+                    )}
+                    {canEditDelete && (
+                      <button
+                        className="action-btn-modern delete-btn"
+                        title="Xóa Milestone"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeleteMilestoneModal(milestone.id, milestone.name, milestone.tasks.length);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -857,26 +899,30 @@ export const ListTable = ({
                             </div>
                           </div>
                           <div className="action-buttons-modern">
-                            <button 
-                              className="action-btn-modern edit-btn" 
-                              title="Chỉnh sửa"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openDetailTaskModal(task);
-                              }}
-                            >
-                              <Edit size={16} />
-                            </button>
-                            <button 
-                              className="action-btn-modern delete-btn" 
-                              title="Xóa"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openDeleteTaskModal(task.id, task.title);
-                              }}
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            {canEditDelete && (
+                              <button 
+                                className="action-btn-modern edit-btn" 
+                                title="Chỉnh sửa"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDetailTaskModal(task);
+                                }}
+                              >
+                                <Edit size={16} />
+                              </button>
+                            )}
+                            {canEditDelete && (
+                              <button 
+                                className="action-btn-modern delete-btn" 
+                                title="Xóa"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDeleteTaskModal(task.id, task.title);
+                                }}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

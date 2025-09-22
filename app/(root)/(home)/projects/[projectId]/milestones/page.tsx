@@ -101,6 +101,7 @@ const availableMembers: Member[] = [
       'pending': 'Chờ thực hiện',
       'in-progress': 'Đang thực hiện',
       'completed': 'Hoàn thành',
+      'overdue': 'Quá hạn',
       'delayed': 'Bị trễ'
     }
     return statusMap[status] || status

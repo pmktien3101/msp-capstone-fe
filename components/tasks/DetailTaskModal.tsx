@@ -20,6 +20,7 @@ import {
   MoreVertical
 } from "lucide-react";
 import { mockMembers, mockMilestones, mockComments } from "@/constants/mockData";
+import { useUser } from "@/hooks/useUser";
 
 interface DetailTaskModalProps {
   isOpen: boolean;
@@ -36,10 +37,15 @@ export const DetailTaskModal = ({
   onDelete,
   task
 }: DetailTaskModalProps) => {
+  const { role } = useUser();
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [editedValues, setEditedValues] = useState<{[key: string]: any}>({});
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState<any[]>([]);
+
+  // Check permissions
+  const canEditTask = role && role.toLowerCase() !== 'member';
+  const canChangeStatus = true; // All users including members can change task status
 
   // Update comments when task changes
   React.useEffect(() => {
@@ -220,15 +226,19 @@ export const DetailTaskModal = ({
             <div className="header-info">
               <div className="task-title-section">
                 <label className="field-label">Tên công việc</label>
-                <input
-                  type="text"
-                  value={editedValues.title !== undefined ? editedValues.title : task.title}
-                  onChange={(e) => handleFieldChange('title', e.target.value)}
-                  onKeyPress={(e) => handleKeyPress(e, 'title')}
-                  onBlur={() => handleFieldSave('title')}
-                  className="edit-title-input"
-                  placeholder="Nhập tên công việc..."
-                />
+                {canEditTask ? (
+                  <input
+                    type="text"
+                    value={editedValues.title !== undefined ? editedValues.title : task.title}
+                    onChange={(e) => handleFieldChange('title', e.target.value)}
+                    onKeyPress={(e) => handleKeyPress(e, 'title')}
+                    onBlur={() => handleFieldSave('title')}
+                    className="edit-title-input"
+                    placeholder="Nhập tên công việc..."
+                  />
+                ) : (
+                  <div className="read-only-title">{task.title}</div>
+                )}
               </div>
               <div className="task-id">ID: {task.id}</div>
             </div>
@@ -266,18 +276,33 @@ export const DetailTaskModal = ({
                 <AlertCircle size={16} />
                 Độ ưu tiên
               </div>
-              <select
-                value={editedValues.priority !== undefined ? editedValues.priority : task.priority}
-                onChange={(e) => handleFieldChange('priority', e.target.value)}
-                onKeyPress={(e) => handleKeyPress(e, 'priority')}
-                onBlur={() => handleFieldSave('priority')}
-                className="edit-select"
-              >
-                <option value="low">Thấp</option>
-                <option value="medium">Trung bình</option>
-                <option value="high">Cao</option>
-                <option value="urgent">Khẩn cấp</option>
-              </select>
+              {canEditTask ? (
+                <select
+                  value={editedValues.priority !== undefined ? editedValues.priority : task.priority}
+                  onChange={(e) => handleFieldChange('priority', e.target.value)}
+                  onKeyPress={(e) => handleKeyPress(e, 'priority')}
+                  onBlur={() => handleFieldSave('priority')}
+                  className="edit-select"
+                >
+                  <option value="low">Thấp</option>
+                  <option value="medium">Trung bình</option>
+                  <option value="high">Cao</option>
+                  <option value="urgent">Khẩn cấp</option>
+                </select>
+              ) : (
+                <div className="read-only-value">
+                  <span 
+                    className="priority-badge-modern"
+                    style={{
+                      background: `linear-gradient(135deg, ${getPriorityColor(task.priority)}20, ${getPriorityColor(task.priority)}10)`,
+                      color: getPriorityColor(task.priority),
+                      borderColor: getPriorityColor(task.priority),
+                    }}
+                  >
+                    {getPriorityLabel(task.priority)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -289,15 +314,19 @@ export const DetailTaskModal = ({
               <span>Mô tả</span>
             </div>
             <div className="description-content">
-              <textarea
-                value={editedValues.description !== undefined ? editedValues.description : task.description}
-                onChange={(e) => handleFieldChange('description', e.target.value)}
-                onKeyPress={(e) => handleKeyPress(e, 'description')}
-                onBlur={() => handleFieldSave('description')}
-                className="edit-textarea"
-                rows={4}
-                placeholder="Nhập mô tả công việc..."
-              />
+              {canEditTask ? (
+                <textarea
+                  value={editedValues.description !== undefined ? editedValues.description : task.description}
+                  onChange={(e) => handleFieldChange('description', e.target.value)}
+                  onKeyPress={(e) => handleKeyPress(e, 'description')}
+                  onBlur={() => handleFieldSave('description')}
+                  className="edit-textarea"
+                  rows={4}
+                  placeholder="Nhập mô tả công việc..."
+                />
+              ) : (
+                <div className="read-only-description">{task.description}</div>
+              )}
             </div>
           </div>
 
@@ -309,20 +338,35 @@ export const DetailTaskModal = ({
                 Người thực hiện
               </div>
               <div className="assignee-info">
-                <select
-                  value={editedValues.assignee !== undefined ? editedValues.assignee : (task.assignedTo?.id || task.assignee || '')}
-                  onChange={(e) => handleFieldChange('assignee', e.target.value)}
-                  onKeyPress={(e) => handleKeyPress(e, 'assignee')}
-                  onBlur={() => handleFieldSave('assignee')}
-                  className="edit-select"
-                >
-                  <option value="">Chưa được giao</option>
-                  {mockMembers.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.name}
-                    </option>
-                  ))}
-                </select>
+                {canEditTask ? (
+                  <select
+                    value={editedValues.assignee !== undefined ? editedValues.assignee : (task.assignedTo?.id || task.assignee || '')}
+                    onChange={(e) => handleFieldChange('assignee', e.target.value)}
+                    onKeyPress={(e) => handleKeyPress(e, 'assignee')}
+                    onBlur={() => handleFieldSave('assignee')}
+                    className="edit-select"
+                  >
+                    <option value="">Chưa được giao</option>
+                    {mockMembers.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="read-only-assignee">
+                    {task.assignee ? (
+                      <div className="assignee-display">
+                        <div className="assignee-avatar">
+                          <span>{mockMembers.find(m => m.id === task.assignee)?.name?.charAt(0) || 'U'}</span>
+                        </div>
+                        <span>{mockMembers.find(m => m.id === task.assignee)?.name || 'Unknown'}</span>
+                      </div>
+                    ) : (
+                      <span className="unassigned-text">Chưa được giao</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -335,33 +379,50 @@ export const DetailTaskModal = ({
                 Cột mốc liên quan
               </div>
               <div className="milestones-checkbox-container">
-                {mockMilestones.map((milestone) => {
-                  const currentMilestoneIds = editedValues.milestoneIds !== undefined ? editedValues.milestoneIds : (task.milestoneIds || []);
-                  const isChecked = currentMilestoneIds.includes(milestone.id);
-                  
-                  
-                  return (
-                    <label key={milestone.id} className="milestone-checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          const currentIds = editedValues.milestoneIds !== undefined ? editedValues.milestoneIds : (task.milestoneIds || []);
-                          let newIds;
-                          if (e.target.checked) {
-                            newIds = [...currentIds, milestone.id];
-                          } else {
-                            newIds = currentIds.filter((id: string) => id !== milestone.id);
-                          }
-                          handleFieldChange('milestoneIds', newIds);
-                        }}
-                        onBlur={() => handleFieldSave('milestoneIds')}
-                        className="milestone-checkbox"
-                      />
-                      <span className="milestone-checkbox-label">{milestone.name}</span>
-                    </label>
-                  );
-                })}
+                {canEditTask ? (
+                  mockMilestones.map((milestone) => {
+                    const currentMilestoneIds = editedValues.milestoneIds !== undefined ? editedValues.milestoneIds : (task.milestoneIds || []);
+                    const isChecked = currentMilestoneIds.includes(milestone.id);
+                    
+                    return (
+                      <label key={milestone.id} className="milestone-checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const currentIds = editedValues.milestoneIds !== undefined ? editedValues.milestoneIds : (task.milestoneIds || []);
+                            let newIds;
+                            if (e.target.checked) {
+                              newIds = [...currentIds, milestone.id];
+                            } else {
+                              newIds = currentIds.filter((id: string) => id !== milestone.id);
+                            }
+                            handleFieldChange('milestoneIds', newIds);
+                          }}
+                          onBlur={() => handleFieldSave('milestoneIds')}
+                          className="milestone-checkbox"
+                        />
+                        <span className="milestone-checkbox-label">{milestone.name}</span>
+                      </label>
+                    );
+                  })
+                ) : (
+                  <div className="read-only-milestones">
+                    {task.milestoneIds && task.milestoneIds.length > 0 ? (
+                      task.milestoneIds.map((milestoneId: string) => {
+                        const milestone = mockMilestones.find(m => m.id === milestoneId);
+                        return milestone ? (
+                          <div key={milestoneId} className="milestone-tag">
+                            <Layers size={12} />
+                            <span>{milestone.name}</span>
+                          </div>
+                        ) : null;
+                      })
+                    ) : (
+                      <span className="no-milestones">Không có cột mốc liên quan</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -378,28 +439,40 @@ export const DetailTaskModal = ({
                    <Clock size={14} />
                    Ngày bắt đầu
                  </div>
-                 <input
-                   type="date"
-                   value={editedValues.startDate !== undefined ? (editedValues.startDate ? editedValues.startDate.split('T')[0] : '') : (task.startDate ? task.startDate.split('T')[0] : '')}
-                   onChange={(e) => handleFieldChange('startDate', e.target.value)}
-                   onKeyPress={(e) => handleKeyPress(e, 'startDate')}
-                   onBlur={() => handleFieldSave('startDate')}
-                   className="edit-date-input"
-                 />
+                 {canEditTask ? (
+                   <input
+                     type="date"
+                     value={editedValues.startDate !== undefined ? (editedValues.startDate ? editedValues.startDate.split('T')[0] : '') : (task.startDate ? task.startDate.split('T')[0] : '')}
+                     onChange={(e) => handleFieldChange('startDate', e.target.value)}
+                     onKeyPress={(e) => handleKeyPress(e, 'startDate')}
+                     onBlur={() => handleFieldSave('startDate')}
+                     className="edit-date-input"
+                   />
+                 ) : (
+                   <div className="read-only-date">
+                     {task.startDate ? new Date(task.startDate).toLocaleDateString('vi-VN') : 'Chưa có'}
+                   </div>
+                 )}
                </div>
                <div className="date-item">
                  <div className="date-label">
                    <CheckCircle size={14} />
                    Ngày kết thúc
                  </div>
-                 <input
-                   type="date"
-                   value={editedValues.endDate !== undefined ? (editedValues.endDate ? editedValues.endDate.split('T')[0] : '') : (task.endDate ? task.endDate.split('T')[0] : '')}
-                   onChange={(e) => handleFieldChange('endDate', e.target.value)}
-                   onKeyPress={(e) => handleKeyPress(e, 'endDate')}
-                   onBlur={() => handleFieldSave('endDate')}
-                   className="edit-date-input"
-                 />
+                 {canEditTask ? (
+                   <input
+                     type="date"
+                     value={editedValues.endDate !== undefined ? (editedValues.endDate ? editedValues.endDate.split('T')[0] : '') : (task.endDate ? task.endDate.split('T')[0] : '')}
+                     onChange={(e) => handleFieldChange('endDate', e.target.value)}
+                     onKeyPress={(e) => handleKeyPress(e, 'endDate')}
+                     onBlur={() => handleFieldSave('endDate')}
+                     className="edit-date-input"
+                   />
+                 ) : (
+                   <div className="read-only-date">
+                     {task.endDate ? new Date(task.endDate).toLocaleDateString('vi-VN') : 'Chưa có'}
+                   </div>
+                 )}
                </div>
              </div>
           </div>
@@ -915,6 +988,91 @@ export const DetailTaskModal = ({
          .edit-textarea:focus {
            border-color: #3b82f6;
            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+         }
+
+         /* Read-only styles */
+         .read-only-title {
+           font-size: 18px;
+           font-weight: 600;
+           color: #1f2937;
+           padding: 8px 0;
+           border-bottom: 2px solid transparent;
+         }
+
+         .read-only-description {
+           font-size: 14px;
+           color: #4b5563;
+           line-height: 1.6;
+           padding: 12px;
+           background: #f9fafb;
+           border-radius: 8px;
+           border: 1px solid #e5e7eb;
+         }
+
+         .read-only-assignee {
+           display: flex;
+           align-items: center;
+         }
+
+         .assignee-display {
+           display: flex;
+           align-items: center;
+           gap: 8px;
+         }
+
+         .assignee-avatar {
+           width: 32px;
+           height: 32px;
+           background: linear-gradient(135deg, #fb923c, #fbbf24);
+           color: white;
+           border-radius: 50%;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           font-size: 12px;
+           font-weight: 700;
+         }
+
+         .unassigned-text {
+           color: #9ca3af;
+           font-style: italic;
+         }
+
+         .read-only-milestones {
+           display: flex;
+           flex-wrap: wrap;
+           gap: 8px;
+         }
+
+         .milestone-tag {
+           display: flex;
+           align-items: center;
+           gap: 4px;
+           background: #f3f4f6;
+           color: #374151;
+           padding: 4px 8px;
+           border-radius: 6px;
+           font-size: 12px;
+           font-weight: 500;
+         }
+
+         .no-milestones {
+           color: #9ca3af;
+           font-style: italic;
+         }
+
+         .read-only-date {
+           font-size: 14px;
+           color: #374151;
+           padding: 8px 12px;
+           background: #f9fafb;
+           border-radius: 6px;
+           border: 1px solid #e5e7eb;
+         }
+
+         .read-only-value {
+           display: flex;
+           align-items: center;
          }
 
          .edit-date-input {
