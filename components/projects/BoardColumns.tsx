@@ -43,7 +43,7 @@ export const BoardColumns = ({
       epic: "", // Not in mockdata, can be added later
       status: task.status,
       priority: task.priority,
-      assignee: assigneeMember?.name || task.assignee,
+      assignee: task.assignee,
       assignedTo: assigneeMember ? {
         id: assigneeMember.id,
         name: assigneeMember.name,
