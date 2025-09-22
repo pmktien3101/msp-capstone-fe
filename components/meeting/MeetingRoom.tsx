@@ -85,7 +85,7 @@ const MeetingRoom = () => {
   return (
     <section className="relative h-screen w-full overflow-hidden pt-4 text-white">
       <div className="relative flex size-full justify-center items-center">
-        <div className="flex size-full max-w-[1000px] items-center">
+        <div className="flex size-full h-full max-w-[1220px] items-center">
           <CallLayout />
         </div>
         <div
@@ -150,25 +150,26 @@ const MeetingRoom = () => {
         </Button>
 
         {/* Transcription Toggle */}
-        {transcription?.mode !==
-          TranscriptionSettingsRequestModeEnum.DISABLED && (
-          <Button
-            onClick={() => {
-              if (isTranscribing) {
-                call?.stopTranscription().catch((err) => {
-                  console.error("Failed to stop transcription", err);
-                });
-              } else {
-                call?.startTranscription().catch((err) => {
-                  console.error("Failed to start transcription", err);
-                });
-              }
-            }}
-            className="cursor-pointer bg-gray-800 hover:bg-gray-700 rounded-3xl px-4 py-2"
-          >
-            {isTranscribing ? "Stop Transcript" : "Start Transcript"}
-          </Button>
-        )}
+        {!isPersonalRoom &&
+          transcription?.mode !==
+            TranscriptionSettingsRequestModeEnum.DISABLED && (
+            <Button
+              onClick={() => {
+                if (isTranscribing) {
+                  call?.stopTranscription().catch((err) => {
+                    console.error("Failed to stop transcription", err);
+                  });
+                } else {
+                  call?.startTranscription().catch((err) => {
+                    console.error("Failed to start transcription", err);
+                  });
+                }
+              }}
+              className="cursor-pointer bg-gray-800 hover:bg-gray-700 rounded-3xl px-4 py-2"
+            >
+              {isTranscribing ? "Stop Transcript" : "Start Transcript"}
+            </Button>
+          )}
 
         {!isPersonalRoom && <EndCallButton />}
       </div>

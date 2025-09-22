@@ -25,8 +25,7 @@ import {
 import "@/app/styles/meeting-detail.scss";
 import { useGetCallById } from "@/hooks/useGetCallById";
 import { Call, CallRecording } from "@stream-io/video-react-sdk";
-import MeetingSetup from "@/components/meeting/MeetingSetup";
-import MeetingRoom from "@/components/meeting/MeetingRoom";
+import { mockMilestones, mockParticipants } from "@/constants/mockData";
 
 // Map Stream call state to a simplified status label
 const mapCallStatus = (call?: Call) => {
@@ -122,74 +121,78 @@ export default function MeetingDetailPage() {
     setIsGeneratingTasks(true);
     try {
       // Simulate AI processing - trong thực tế sẽ gọi API AI
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Mock data dựa trên transcript với cấu trúc đúng theo mockData
       const mockTasks = [
         {
           id: "AI-1",
           title: "Implement Stripe payment gateway integration",
-          description: "Integrate Stripe API for checkout process as discussed in meeting",
+          description:
+            "Integrate Stripe API for checkout process as discussed in meeting",
           milestoneIds: [],
           status: "todo",
           priority: "high",
           assignee: "member-4", // Lê Văn C
           startDate: "2024-02-10",
-          endDate: "2024-02-15"
+          endDate: "2024-02-15",
         },
         {
           id: "AI-2",
           title: "Design mobile-first dashboard UI",
-          description: "Create wireframe and implement dashboard redesign focusing on mobile experience",
+          description:
+            "Create wireframe and implement dashboard redesign focusing on mobile experience",
           milestoneIds: [],
           status: "todo",
           priority: "medium",
           assignee: "member-3", // Trần Thị B
           startDate: "2024-02-15",
-          endDate: "2024-02-20"
+          endDate: "2024-02-20",
         },
         {
           id: "AI-3",
           title: "Setup automated testing for payment module",
-          description: "Implement automated testing with 80% coverage for critical payment paths",
+          description:
+            "Implement automated testing with 80% coverage for critical payment paths",
           milestoneIds: [],
           status: "todo",
           priority: "high",
           assignee: "member-4", // Lê Văn C
           startDate: "2024-02-12",
-          endDate: "2024-02-18"
+          endDate: "2024-02-18",
         },
         {
           id: "AI-4",
           title: "Implement user profile management",
-          description: "Develop user profile management features that can run parallel with payment development",
+          description:
+            "Develop user profile management features that can run parallel with payment development",
           milestoneIds: [],
           status: "todo",
           priority: "medium",
           assignee: "member-3", // Trần Thị B
           startDate: "2024-02-20",
-          endDate: "2024-02-25"
+          endDate: "2024-02-25",
         },
         {
           id: "AI-5",
           title: "Setup CI/CD pipeline and staging environment",
-          description: "Prepare staging environment and database migration scripts for testing",
+          description:
+            "Prepare staging environment and database migration scripts for testing",
           milestoneIds: [],
           status: "todo",
           priority: "medium",
           assignee: "member-4", // Lê Văn C
           startDate: "2024-02-18",
-          endDate: "2024-02-22"
-        }
+          endDate: "2024-02-22",
+        },
       ];
-      
+
       setGeneratedTasks(mockTasks);
-      
+
       // Tự động chuyển sang tab Tasks sau khi tạo xong
       setTimeout(() => {
         setActiveTab("tasks");
       }, 500); // Delay 500ms để user thấy kết quả
-      
     } catch (error) {
       console.error("Error generating tasks:", error);
       alert("Có lỗi xảy ra khi tạo task. Vui lòng thử lại.");
@@ -206,11 +209,9 @@ export default function MeetingDetailPage() {
 
   const handleSaveTask = () => {
     if (!editedTask) return;
-    
-    setGeneratedTasks(prev => 
-      prev.map(task => 
-        task.id === editingTaskId ? editedTask : task
-      )
+
+    setGeneratedTasks((prev) =>
+      prev.map((task) => (task.id === editingTaskId ? editedTask : task))
     );
     setEditingTaskId(null);
     setEditedTask(null);
@@ -226,15 +227,14 @@ export default function MeetingDetailPage() {
     setIsAddingToProject(true);
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       // Trong thực tế sẽ gọi API để thêm task vào project/milestone
       console.log("Adding tasks to project:", generatedTasks);
-      
+
       // Clear generated tasks sau khi thêm thành công
       setGeneratedTasks([]);
       alert("Đã thêm thành công các task vào project!");
-      
     } catch (error) {
       console.error("Error adding tasks to project:", error);
       alert("Có lỗi xảy ra khi thêm task vào project. Vui lòng thử lại.");
@@ -300,7 +300,14 @@ export default function MeetingDetailPage() {
       </div>
     );
   }
-
+  const getMilestoneName = (milestoneId: string) => {
+    const milestone = mockMilestones.find((m) => m.id === milestoneId);
+    return milestone ? milestone.name : "Chưa gán milestone";
+  };
+  const getParticipantEmail = (participantId: string) => {
+    const participant = mockParticipants.find((p) => p.id === participantId);
+    return participant ? participant.email : "Chưa gán email";
+  };
   // Derived info từ call
   const status = mapCallStatus(call);
   const description =
@@ -315,6 +322,17 @@ export default function MeetingDetailPage() {
   const startsAt = call.state.startsAt
     ? new Date(call.state.startsAt)
     : undefined;
+  const endsAt = call.state.endedAt ? new Date(call.state.endedAt) : undefined;
+  const milestoneId = (call.state.custom as any)?.milestoneId || null;
+  const milestoneName = milestoneId
+    ? getMilestoneName(milestoneId)
+    : "Chưa gán milestone";
+  const participants: string[] = (call.state.custom as any)?.participants || [];
+  const createdById = call.state.createdBy?.id;
+  // lọc bỏ creator khỏi danh sách participants
+  const displayParticipants = participants.filter((p) => p !== createdById);
+  const participantEmails: string[] =
+    displayParticipants.map(getParticipantEmail);
 
   return (
     <div className="meeting-detail-page">
@@ -404,11 +422,13 @@ export default function MeetingDetailPage() {
                 </div>
                 <div className="info-item">
                   <label>Thời gian kết thúc:</label>
-                  <p>{(call.state.custom as any)?.endsAt ? new Date((call.state.custom as any).endsAt).toLocaleString("vi-VN") : "-"}</p>
+                  <p>
+                    {endsAt ? new Date(endsAt).toLocaleString("vi-VN") : "-"}
+                  </p>
                 </div>
                 <div className="info-item">
                   <label>Trạng thái:</label>
-                  <span 
+                  <span
                     className="status-badge"
                     style={{ backgroundColor: getStatusColor(status) }}
                   >
@@ -436,10 +456,6 @@ export default function MeetingDetailPage() {
                   <label>Ngày tạo:</label>
                   <p>{createdAt ? createdAt.toLocaleString("vi-VN") : "-"}</p>
                 </div>
-                <div className="info-item">
-                  <label>ID cuộc họp:</label>
-                  <p className="meeting-id">{call.id}</p>
-                </div>
               </div>
             </div>
 
@@ -453,16 +469,22 @@ export default function MeetingDetailPage() {
                 </div>
                 <div className="info-item">
                   <label>Milestone liên quan:</label>
-                  <p>Sprint 1 - Authentication & UI</p>
+                  <p>{milestoneName}</p>
                 </div>
                 <div className="info-item">
                   <label>Thành viên tham gia:</label>
                   <div className="participants">
-                    <span className="participant">Quang Long (PM)</span>
-                    <span className="participant">Nguyễn Văn A (Dev)</span>
-                    <span className="participant">Trần Thị B (Designer)</span>
-                    <span className="participant">Lê Văn C (Backend)</span>
-                    <span className="participant">Phạm Thị D (Frontend)</span>
+                    {participantEmails.length > 0 ? (
+                      <ul>
+                        {participantEmails.map((email: string, idx: number) => (
+                          <li className="participant" key={idx}>
+                            {email}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>Chưa có người tham gia</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -549,7 +571,11 @@ export default function MeetingDetailPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => alert("Đây là mock data - không có bản ghi thực tế")}
+                            onClick={() =>
+                              alert(
+                                "Đây là mock data - không có bản ghi thực tế"
+                              )
+                            }
                           >
                             <Play size={16} />
                             Xem
@@ -557,7 +583,11 @@ export default function MeetingDetailPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => alert("Đây là mock data - không có bản ghi thực tế")}
+                            onClick={() =>
+                              alert(
+                                "Đây là mock data - không có bản ghi thực tế"
+                              )
+                            }
                           >
                             <Download size={16} />
                             Tải xuống
@@ -632,134 +662,181 @@ export default function MeetingDetailPage() {
 
               <div className="transcript">
                 <h4>Transcript</h4>
-                <div 
-                  className={`transcript-content ${isTranscriptExpanded ? 'expanded' : ''}`}
+                <div
+                  className={`transcript-content ${
+                    isTranscriptExpanded ? "expanded" : ""
+                  }`}
                   onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
                 >
                   <div className="transcript-item">
                     <span className="timestamp">00:05</span>
                     <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Chào mọi người, chúng ta bắt đầu cuộc họp sprint planning hôm nay. Tôi hy vọng mọi người đã chuẩn bị sẵn sàng cho việc lập kế hoạch sprint mới.
+                      <strong>Nguyễn Văn A:</strong> Chào mọi người, chúng ta
+                      bắt đầu cuộc họp sprint planning hôm nay. Tôi hy vọng mọi
+                      người đã chuẩn bị sẵn sàng cho việc lập kế hoạch sprint
+                      mới.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">00:15</span>
                     <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Tôi đã chuẩn bị danh sách các task cho sprint này. Có tổng cộng 15 user stories cần được implement, bao gồm cả tính năng authentication và dashboard mới.
+                      <strong>Trần Thị B:</strong> Tôi đã chuẩn bị danh sách các
+                      task cho sprint này. Có tổng cộng 15 user stories cần được
+                      implement, bao gồm cả tính năng authentication và
+                      dashboard mới.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">00:30</span>
                     <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Chúng ta cần ưu tiên tính năng thanh toán trước. Đây là tính năng core của ứng dụng và khách hàng đang chờ đợi rất nhiều.
+                      <strong>Lê Văn C:</strong> Chúng ta cần ưu tiên tính năng
+                      thanh toán trước. Đây là tính năng core của ứng dụng và
+                      khách hàng đang chờ đợi rất nhiều.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">00:45</span>
                     <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Đồng ý với Lê Văn C. Tôi nghĩ chúng ta nên dành 60% effort cho payment module trong sprint này. Còn lại 40% cho các tính năng phụ trợ.
+                      <strong>Nguyễn Văn A:</strong> Đồng ý với Lê Văn C. Tôi
+                      nghĩ chúng ta nên dành 60% effort cho payment module trong
+                      sprint này. Còn lại 40% cho các tính năng phụ trợ.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">01:00</span>
                     <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Về mặt technical, tôi đã research và thấy chúng ta có thể integrate với Stripe API. Nó sẽ giúp giảm thiểu rủi ro và tăng tốc độ development.
+                      <strong>Trần Thị B:</strong> Về mặt technical, tôi đã
+                      research và thấy chúng ta có thể integrate với Stripe API.
+                      Nó sẽ giúp giảm thiểu rủi ro và tăng tốc độ development.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">01:15</span>
                     <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tuyệt vời! Tôi sẽ bắt đầu implement payment flow từ ngày mai. Ước tính sẽ mất khoảng 3-4 ngày để hoàn thành basic flow.
+                      <strong>Lê Văn C:</strong> Tuyệt vời! Tôi sẽ bắt đầu
+                      implement payment flow từ ngày mai. Ước tính sẽ mất khoảng
+                      3-4 ngày để hoàn thành basic flow.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">01:30</span>
                     <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Còn về phần UI/UX, chúng ta cần thiết kế lại dashboard để user experience tốt hơn. Trần Thị B, bạn có thể handle phần này không?
+                      <strong>Nguyễn Văn A:</strong> Còn về phần UI/UX, chúng ta
+                      cần thiết kế lại dashboard để user experience tốt hơn.
+                      Trần Thị B, bạn có thể handle phần này không?
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">01:45</span>
                     <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Được rồi, tôi sẽ làm wireframe cho dashboard mới. Tôi nghĩ chúng ta nên focus vào mobile-first design vì 70% user sử dụng mobile.
+                      <strong>Trần Thị B:</strong> Được rồi, tôi sẽ làm
+                      wireframe cho dashboard mới. Tôi nghĩ chúng ta nên focus
+                      vào mobile-first design vì 70% user sử dụng mobile.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">02:00</span>
                     <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Về phần testing, chúng ta cần đảm bảo coverage ít nhất 80% cho payment module. Tôi sẽ setup automated testing cho critical paths.
+                      <strong>Lê Văn C:</strong> Về phần testing, chúng ta cần
+                      đảm bảo coverage ít nhất 80% cho payment module. Tôi sẽ
+                      setup automated testing cho critical paths.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">02:15</span>
                     <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Tốt! Bây giờ chúng ta cần thảo luận về timeline. Sprint này sẽ kéo dài 2 tuần, deadline là ngày 15/02. Mọi người có thấy timeline này realistic không?
+                      <strong>Nguyễn Văn A:</strong> Tốt! Bây giờ chúng ta cần
+                      thảo luận về timeline. Sprint này sẽ kéo dài 2 tuần,
+                      deadline là ngày 15/02. Mọi người có thấy timeline này
+                      realistic không?
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">02:30</span>
                     <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Tôi nghĩ timeline này hơi tight, đặc biệt là với payment integration. Có thể chúng ta cần thêm 1 tuần buffer để đảm bảo quality.
+                      <strong>Trần Thị B:</strong> Tôi nghĩ timeline này hơi
+                      tight, đặc biệt là với payment integration. Có thể chúng
+                      ta cần thêm 1 tuần buffer để đảm bảo quality.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">02:45</span>
                     <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tôi đồng ý với Trần Thị B. Payment là tính năng nhạy cảm, chúng ta không thể rush. Tôi suggest extend deadline đến 22/02.
+                      <strong>Lê Văn C:</strong> Tôi đồng ý với Trần Thị B.
+                      Payment là tính năng nhạy cảm, chúng ta không thể rush.
+                      Tôi suggest extend deadline đến 22/02.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">03:00</span>
                     <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Được rồi, tôi sẽ discuss với management về việc extend deadline. Trong khi đó, chúng ta bắt đầu implement những phần không phụ thuộc vào payment.
+                      <strong>Nguyễn Văn A:</strong> Được rồi, tôi sẽ discuss
+                      với management về việc extend deadline. Trong khi đó,
+                      chúng ta bắt đầu implement những phần không phụ thuộc vào
+                      payment.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">03:15</span>
                     <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Tôi sẽ bắt đầu với user profile management và notification system. Những tính năng này có thể develop parallel với payment.
+                      <strong>Trần Thị B:</strong> Tôi sẽ bắt đầu với user
+                      profile management và notification system. Những tính năng
+                      này có thể develop parallel với payment.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">03:30</span>
                     <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tôi sẽ setup CI/CD pipeline và database migration scripts. Cũng cần prepare staging environment cho testing.
+                      <strong>Lê Văn C:</strong> Tôi sẽ setup CI/CD pipeline và
+                      database migration scripts. Cũng cần prepare staging
+                      environment cho testing.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">03:45</span>
                     <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Perfect! Chúng ta cũng cần schedule daily standup meetings để track progress. Tôi suggest 9:00 AM mỗi ngày.
+                      <strong>Nguyễn Văn A:</strong> Perfect! Chúng ta cũng cần
+                      schedule daily standup meetings để track progress. Tôi
+                      suggest 9:00 AM mỗi ngày.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">04:00</span>
                     <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Đồng ý! Tôi cũng suggest chúng ta nên có weekly demo để stakeholders có thể review progress và provide feedback.
+                      <strong>Trần Thị B:</strong> Đồng ý! Tôi cũng suggest
+                      chúng ta nên có weekly demo để stakeholders có thể review
+                      progress và provide feedback.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">04:15</span>
                     <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tuyệt vời! Tôi sẽ prepare demo environment và schedule weekly demo vào thứ 6 hàng tuần. Có gì khác cần thảo luận không?
+                      <strong>Lê Văn C:</strong> Tuyệt vời! Tôi sẽ prepare demo
+                      environment và schedule weekly demo vào thứ 6 hàng tuần.
+                      Có gì khác cần thảo luận không?
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">04:30</span>
                     <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Tôi nghĩ chúng ta đã cover hết các điểm chính. Cảm ơn mọi người đã tham gia cuộc họp. Chúng ta sẽ bắt đầu implement từ ngày mai. Good luck!
+                      <strong>Nguyễn Văn A:</strong> Tôi nghĩ chúng ta đã cover
+                      hết các điểm chính. Cảm ơn mọi người đã tham gia cuộc họp.
+                      Chúng ta sẽ bắt đầu implement từ ngày mai. Good luck!
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">04:35</span>
                     <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Cảm ơn! Tôi sẽ gửi meeting notes và action items cho mọi người trong vòng 1 giờ.
+                      <strong>Trần Thị B:</strong> Cảm ơn! Tôi sẽ gửi meeting
+                      notes và action items cho mọi người trong vòng 1 giờ.
                     </div>
                   </div>
                   <div className="transcript-item">
                     <span className="timestamp">04:40</span>
                     <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Perfect! Tôi sẽ update project timeline và tạo tasks trong Jira. Hẹn gặp lại mọi người vào standup ngày mai.
+                      <strong>Lê Văn C:</strong> Perfect! Tôi sẽ update project
+                      timeline và tạo tasks trong Jira. Hẹn gặp lại mọi người
+                      vào standup ngày mai.
                     </div>
                   </div>
                 </div>
@@ -780,14 +857,14 @@ export default function MeetingDetailPage() {
                     <div className="ai-badge">Powered by AI</div>
                   </div>
                   <div className="ai-actions">
-                    <Button 
+                    <Button
                       onClick={handleGenerateTasks}
                       disabled={isGeneratingTasks}
                       className="generate-tasks-btn"
                       style={{
-                        backgroundColor: 'white',
-                        border: '2px solid #ff8c42',
-                        color: '#ff8c42'
+                        backgroundColor: "white",
+                        border: "2px solid #ff8c42",
+                        color: "#ff8c42",
                       }}
                     >
                       {isGeneratingTasks ? (
@@ -841,22 +918,37 @@ export default function MeetingDetailPage() {
                             <div className="edit-fields">
                               <input
                                 type="text"
-                                value={editedTask?.title || ''}
-                                onChange={(e) => setEditedTask({...editedTask, title: e.target.value})}
+                                value={editedTask?.title || ""}
+                                onChange={(e) =>
+                                  setEditedTask({
+                                    ...editedTask,
+                                    title: e.target.value,
+                                  })
+                                }
                                 className="edit-input"
                                 placeholder="Task title"
                               />
                               <textarea
-                                value={editedTask?.description || ''}
-                                onChange={(e) => setEditedTask({...editedTask, description: e.target.value})}
+                                value={editedTask?.description || ""}
+                                onChange={(e) =>
+                                  setEditedTask({
+                                    ...editedTask,
+                                    description: e.target.value,
+                                  })
+                                }
                                 className="edit-textarea"
                                 placeholder="Task description"
                                 rows={3}
                               />
                               <div className="edit-meta">
                                 <select
-                                  value={editedTask?.assignee || ''}
-                                  onChange={(e) => setEditedTask({...editedTask, assignee: e.target.value})}
+                                  value={editedTask?.assignee || ""}
+                                  onChange={(e) =>
+                                    setEditedTask({
+                                      ...editedTask,
+                                      assignee: e.target.value,
+                                    })
+                                  }
                                   className="edit-select"
                                 >
                                   <option value="member-2">Nguyễn Văn A</option>
@@ -865,8 +957,13 @@ export default function MeetingDetailPage() {
                                   <option value="member-5">Phạm Thị D</option>
                                 </select>
                                 <select
-                                  value={editedTask?.priority || ''}
-                                  onChange={(e) => setEditedTask({...editedTask, priority: e.target.value})}
+                                  value={editedTask?.priority || ""}
+                                  onChange={(e) =>
+                                    setEditedTask({
+                                      ...editedTask,
+                                      priority: e.target.value,
+                                    })
+                                  }
                                   className="edit-select"
                                 >
                                   <option value="low">Low</option>
@@ -875,18 +972,31 @@ export default function MeetingDetailPage() {
                                 </select>
                                 <input
                                   type="date"
-                                  value={editedTask?.endDate || ''}
-                                  onChange={(e) => setEditedTask({...editedTask, endDate: e.target.value})}
+                                  value={editedTask?.endDate || ""}
+                                  onChange={(e) =>
+                                    setEditedTask({
+                                      ...editedTask,
+                                      endDate: e.target.value,
+                                    })
+                                  }
                                   className="edit-date"
                                 />
                               </div>
                             </div>
                             <div className="edit-actions">
-                              <Button size="sm" onClick={handleSaveTask} className="save-btn">
+                              <Button
+                                size="sm"
+                                onClick={handleSaveTask}
+                                className="save-btn"
+                              >
                                 <Save size={14} />
                                 Lưu
                               </Button>
-                              <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleCancelEdit}
+                              >
                                 <X size={14} />
                                 Hủy
                               </Button>
@@ -900,25 +1010,37 @@ export default function MeetingDetailPage() {
                               <div className="task-meta">
                                 <span className="assignee">
                                   <User size={12} />
-                                  {task.assignee === 'member-2' ? 'Nguyễn Văn A' :
-                                   task.assignee === 'member-3' ? 'Trần Thị B' :
-                                   task.assignee === 'member-4' ? 'Lê Văn C' :
-                                   task.assignee === 'member-5' ? 'Phạm Thị D' : 'Chưa giao'}
+                                  {task.assignee === "member-2"
+                                    ? "Nguyễn Văn A"
+                                    : task.assignee === "member-3"
+                                    ? "Trần Thị B"
+                                    : task.assignee === "member-4"
+                                    ? "Lê Văn C"
+                                    : task.assignee === "member-5"
+                                    ? "Phạm Thị D"
+                                    : "Chưa giao"}
                                 </span>
                                 <span className="deadline">
                                   <Calendar size={12} />
-                                  Hạn: {new Date(task.endDate).toLocaleDateString('vi-VN')}
+                                  Hạn:{" "}
+                                  {new Date(task.endDate).toLocaleDateString(
+                                    "vi-VN"
+                                  )}
                                 </span>
                                 <span className={`priority ${task.priority}`}>
                                   <Flag size={12} />
-                                  {task.priority === 'high' ? 'High' : task.priority === 'medium' ? 'Medium' : 'Low'}
+                                  {task.priority === "high"
+                                    ? "High"
+                                    : task.priority === "medium"
+                                    ? "Medium"
+                                    : "Low"}
                                 </span>
                               </div>
                             </div>
                             <div className="task-actions">
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={() => handleEditTask(task)}
                                 className="edit-btn"
                               >
@@ -931,17 +1053,17 @@ export default function MeetingDetailPage() {
                       </div>
                     ))}
                   </div>
-                  
+
                   {generatedTasks.length > 0 && (
                     <div className="ai-tasks-footer">
-                      <Button 
+                      <Button
                         onClick={handleAddTasksToProject}
                         disabled={isAddingToProject}
                         className="add-to-project-btn"
                         style={{
-                          backgroundColor: 'white',
-                          border: '2px solid #ff8c42',
-                          color: '#ff8c42'
+                          backgroundColor: "white",
+                          border: "2px solid #ff8c42",
+                          color: "#ff8c42",
                         }}
                       >
                         {isAddingToProject ? (
@@ -960,7 +1082,6 @@ export default function MeetingDetailPage() {
                   )}
                 </div>
               )}
-
             </div>
           </div>
         )}
@@ -1148,8 +1269,18 @@ export default function MeetingDetailPage() {
         .transcript-content:not(.expanded) {
           max-height: 200px;
           overflow: hidden;
-          mask: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
-          -webkit-mask: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
+          mask: linear-gradient(
+            to bottom,
+            black 0%,
+            black 70%,
+            transparent 100%
+          );
+          -webkit-mask: linear-gradient(
+            to bottom,
+            black 0%,
+            black 70%,
+            transparent 100%
+          );
         }
 
         .transcript-content.expanded {
@@ -1203,7 +1334,8 @@ export default function MeetingDetailPage() {
           border-radius: 16px;
           padding: 24px;
           margin-top: 24px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+            0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         .summary-header {
@@ -1395,7 +1527,6 @@ export default function MeetingDetailPage() {
           border-color: #ff8c42 !important;
         }
 
-
         .ai-generated-tasks {
           margin-bottom: 32px;
           padding: 24px;
@@ -1433,7 +1564,6 @@ export default function MeetingDetailPage() {
           box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
         }
 
-
         .task-actions {
           display: flex;
           gap: 8px;
@@ -1465,7 +1595,10 @@ export default function MeetingDetailPage() {
           margin-bottom: 16px;
         }
 
-        .edit-input, .edit-textarea, .edit-select, .edit-date {
+        .edit-input,
+        .edit-textarea,
+        .edit-select,
+        .edit-date {
           padding: 8px 12px;
           border: 1px solid #d1d5db;
           border-radius: 8px;
@@ -1473,7 +1606,10 @@ export default function MeetingDetailPage() {
           transition: border-color 0.2s;
         }
 
-        .edit-input:focus, .edit-textarea:focus, .edit-select:focus, .edit-date:focus {
+        .edit-input:focus,
+        .edit-textarea:focus,
+        .edit-select:focus,
+        .edit-date:focus {
           outline: none;
           border-color: #ff8c42;
           box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
@@ -1485,7 +1621,8 @@ export default function MeetingDetailPage() {
           flex-wrap: wrap;
         }
 
-        .edit-select, .edit-date {
+        .edit-select,
+        .edit-date {
           flex: 1;
           min-width: 120px;
         }
@@ -1558,7 +1695,9 @@ export default function MeetingDetailPage() {
           gap: 32px;
         }
 
-        .meeting-info, .project-info, .meeting-stats {
+        .meeting-info,
+        .project-info,
+        .meeting-stats {
           background: white;
           border: 1px solid #e2e8f0;
           border-radius: 16px;
@@ -1566,7 +1705,9 @@ export default function MeetingDetailPage() {
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
-        .meeting-info h3, .project-info h3, .meeting-stats h3 {
+        .meeting-info h3,
+        .project-info h3,
+        .meeting-stats h3 {
           margin: 0 0 20px 0;
           font-size: 20px;
           font-weight: 700;
@@ -1612,7 +1753,7 @@ export default function MeetingDetailPage() {
         }
 
         .meeting-id {
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
           background: #f3f4f6;
           padding: 4px 8px;
           border-radius: 6px;
@@ -1742,7 +1883,6 @@ export default function MeetingDetailPage() {
             letter-spacing: normal;
           }
 
-
           .ai-generated-tasks {
             padding: 16px;
             margin-bottom: 24px;
@@ -1753,7 +1893,8 @@ export default function MeetingDetailPage() {
             gap: 8px;
           }
 
-          .edit-select, .edit-date {
+          .edit-select,
+          .edit-date {
             min-width: auto;
           }
 
@@ -1769,7 +1910,9 @@ export default function MeetingDetailPage() {
             gap: 24px;
           }
 
-          .meeting-info, .project-info, .meeting-stats {
+          .meeting-info,
+          .project-info,
+          .meeting-stats {
             padding: 20px;
           }
 
