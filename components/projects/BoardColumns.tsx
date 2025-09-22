@@ -6,7 +6,7 @@ import { TaskCard } from "./TaskCard";
 import { AddColumnModal } from "./AddColumnModal";
 import { ColumnMenu } from "./ColumnMenu";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
-import { mockTasks, mockMembers, mockMilestones } from "@/constants/mockData";
+import { mockTasks, mockMembers, mockMilestones, mockProjects } from "@/constants/mockData";
 import { Task } from "@/types/milestone";
 
 interface BoardColumnsProps {
@@ -23,8 +23,14 @@ export const BoardColumns = ({
   groupBy,
   onTaskClick,
 }: BoardColumnsProps) => {
-  // Map mockTasks to Task interface with proper member information
-  const mappedTasks: Task[] = mockTasks.map(task => {
+  // Get tasks for this specific project based on milestoneIds
+  const projectMilestones = mockProjects.find(p => p.id === project.id)?.milestones || [];
+  const projectTasks = mockTasks.filter(task => 
+    task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
+  );
+
+  // Map projectTasks to Task interface with proper member information
+  const mappedTasks: Task[] = projectTasks.map(task => {
     const assigneeMember = mockMembers.find(member => member.id === task.assignee);
     return {
       id: task.id,

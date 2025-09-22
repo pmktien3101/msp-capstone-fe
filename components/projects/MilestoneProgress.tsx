@@ -1,5 +1,6 @@
 "use client";
 
+import { Project } from "@/types/project";
 import {
   mockMilestones,
   mockTasks,
@@ -7,8 +8,32 @@ import {
   getMilestoneStatus,
 } from "@/constants/mockData";
 
-export const MilestoneProgress = () => {
-  const milestones = mockMilestones.map((milestone) => {
+interface MilestoneProgressProps {
+  project: Project;
+}
+
+export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
+  // Kiểm tra project có tồn tại không
+  if (!project) {
+    return (
+      <div className="milestone-progress">
+        <div className="section-header">
+          <div className="section-title">
+            <h3>Tiến độ cột mốc</h3>
+            <p>Theo dõi tiến độ hoàn thành các cột mốc dự án.</p>
+          </div>
+        </div>
+        <div className="no-data-message">
+          <p>Không có thông tin dự án</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter milestones for this specific project
+  const projectMilestones = mockMilestones.filter(m => m.projectId === project.id);
+  
+  const milestones = projectMilestones.map((milestone) => {
     const progress = calculateMilestoneProgress(milestone.id);
     const status = getMilestoneStatus(milestone.id);
 

@@ -94,7 +94,7 @@ export const ProjectTabs = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case "summary":
-        return <ProjectSummary projects={[project]} />;
+        return <ProjectSummary project={project} />;
       case "board":
         return (
           <ProjectBoard
@@ -114,7 +114,7 @@ export const ProjectTabs = ({
       case "settings":
         return <ProjectSettings project={project} />;
       default:
-        return <ProjectSummary projects={[project]} />;
+        return <ProjectSummary project={project} />;
     }
   };
 

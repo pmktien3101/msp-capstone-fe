@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Project } from "@/types/project";
-import { mockTasks, mockMembers, mockMilestones, deleteMilestone, updateMilestone, deleteTask, updateTask } from "@/constants/mockData";
+import { mockTasks, mockMembers, mockMilestones, mockProjects, deleteMilestone, updateMilestone, deleteTask, updateTask } from "@/constants/mockData";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { DeleteMilestoneModal } from "@/components/milestones/DeleteMilestoneModal";
 import { UpdateMilestoneModal } from "@/components/milestones/UpdateMilestoneModal";
@@ -39,7 +39,13 @@ export const ListTable = ({
   sortBy,
   sortOrder,
 }: ListTableProps) => {
-  const [tasks, setTasks] = useState(mockTasks);
+  // Get tasks for this specific project based on milestoneIds
+  const projectMilestones = mockProjects.find(p => p.id === project.id)?.milestones || [];
+  const projectTasks = mockTasks.filter(task => 
+    task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
+  );
+  
+  const [tasks, setTasks] = useState(projectTasks);
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(
     new Set(["milestone-1"]) // Mở milestone đầu tiên mặc định
   );
@@ -406,7 +412,12 @@ export const ListTable = ({
 
   // Create hierarchical data structure
   const createHierarchicalData = () => {
-    const filteredMilestones = mockMilestones.map(milestone => {
+    // Filter milestones for this specific project
+    const projectMilestones = mockMilestones.filter(milestone => 
+      milestone.projectId === project.id
+    );
+    
+    const filteredMilestones = projectMilestones.map(milestone => {
       const milestoneTasks = tasks.filter(task =>
         task.milestoneIds.includes(milestone.id)
       );

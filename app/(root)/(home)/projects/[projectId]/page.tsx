@@ -8,7 +8,7 @@ import { CreateMilestoneModal } from '@/components/milestones/CreateMilestoneMod
 import { Project } from '@/types/project';
 import { Task } from '@/types/milestone';
 import { Member } from '@/types/member';
-import { mockProject, mockMembers, mockTasks, addMilestone } from '@/constants/mockData';
+import { mockProjects, mockMembers, mockTasks, mockMilestones, addMilestone } from '@/constants/mockData';
 import { Plus, Calendar, Users, Target } from 'lucide-react';
 import '@/app/styles/project-detail.scss';
 
@@ -73,10 +73,16 @@ const ProjectDetailPage = () => {
   };
 
 
-  // Calculate project progress based on tasks
-  const calculateProjectProgress = () => {
-    const completedTasks = mockTasks.filter(task => task.status === 'done').length;
-    const totalTasks = mockTasks.length;
+  // Calculate project progress based on tasks for specific project
+  const calculateProjectProgress = (projectId: string) => {
+    // Get tasks for this specific project based on milestoneIds
+    const projectMilestones = mockProjects.find(p => p.id === projectId)?.milestones || [];
+    const projectTasks = mockTasks.filter(task => 
+      task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
+    );
+    
+    const completedTasks = projectTasks.filter(task => task.status === 'done').length;
+    const totalTasks = projectTasks.length;
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   };
 
@@ -84,20 +90,25 @@ const ProjectDetailPage = () => {
   useEffect(() => {
     // Simulate API call delay
     const timer = setTimeout(() => {
-      if (projectId === mockProject.id) {
+      // Find the specific project
+      const currentMockProject = mockProjects.find(p => p.id === projectId);
+      
+      if (currentMockProject) {
         // Convert mockProject to Project type with members data
         const projectWithMembers: Project = {
-          ...mockProject,
-          status: mockProject.status as "active" | "planning" | "on-hold" | "completed",
+          ...currentMockProject,
+          status: currentMockProject.status as "active" | "planning" | "on-hold" | "completed",
           manager: mockMembers[0].name, // Quang Long as manager
-          members: mockMembers.map(member => ({
+          members: mockMembers.filter(member => 
+            currentMockProject.members.includes(member.id)
+          ).map(member => ({
             id: member.id,
             name: member.name,
             email: member.email,
             role: member.role,
             avatar: member.avatar
           })),
-          progress: calculateProjectProgress() // Calculate real progress
+          progress: calculateProjectProgress(projectId) // Calculate real progress for this project
         };
         setProject(projectWithMembers);
       } else {
