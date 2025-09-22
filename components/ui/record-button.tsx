@@ -3,6 +3,7 @@ import { useCall, useCallStateHooks } from "@stream-io/video-react-sdk";
 import { Button } from "./button";
 import { Circle, Square } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "react-toastify";
 
 const RecordButton = () => {
   const call = useCall();
@@ -32,8 +33,10 @@ const RecordButton = () => {
     try {
       if (isRecording) {
         await call.stopRecording();
+        toast("Dừng ghi hình!");
       } else {
         await call.startRecording();
+        toast.success("Bắt đầu ghi hình!");
       }
     } catch (err) {
       console.error("Record error", err);
