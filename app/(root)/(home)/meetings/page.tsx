@@ -322,7 +322,7 @@ const MeetingsPage = () => {
                     </div>
                     <div className="detail-item">
                       <Users size={16} />
-                      <span>{meeting.participates.length} người tham gia</span>
+                      <span>{meeting.participants?.length ?? 0} người tham gia</span>
                     </div>
                   </div>
                   
