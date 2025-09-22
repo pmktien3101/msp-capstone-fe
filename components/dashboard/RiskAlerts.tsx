@@ -31,7 +31,7 @@ export const RiskAlerts = ({ projects }: RiskAlertsProps) => {
       .map(project => {
         const endDate = new Date(project.endDate);
         const daysUntilDeadline = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        const progressRate = project.progress / Math.max(1, daysUntilDeadline);
+        const progressRate = project.progress ?? 0 / Math.max(1, daysUntilDeadline);
         
         let riskLevel = 'low';
         if (daysUntilDeadline <= 3 || progressRate < 0.5) riskLevel = 'critical';

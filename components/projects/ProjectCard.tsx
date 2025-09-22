@@ -64,7 +64,7 @@ export function ProjectCard({ project, onEditProject, onAddMeeting }: ProjectCar
           </div>
           <div className="meta-item">
             <span className="meta-icon">👥</span>
-            <span className="meta-text">{project.members.length} thành viên</span>
+            <span className="meta-text">{project.members?.length ?? 0} thành viên</span>
           </div>
         </div>
         

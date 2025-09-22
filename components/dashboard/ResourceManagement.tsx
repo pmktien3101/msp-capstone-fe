@@ -25,7 +25,7 @@ export const ResourceManagement = ({ projects }: ResourceManagementProps) => {
   const getResourceAllocation = () => {
     return mockMembers.map(member => {
       const memberProjects = projects.filter(project => 
-        project.members.some(m => m.id === member.id)
+        project.members?.some(m => m.id === member.id)
       );
       
       const memberTasks = mockTasks.filter(task => task.assignee === member.id);
@@ -50,7 +50,7 @@ export const ResourceManagement = ({ projects }: ResourceManagementProps) => {
   const getBudgetData = () => {
     return projects.map(project => {
       const totalBudget = Math.floor(Math.random() * 1000000) + 500000; // 500k - 1.5M
-      const usedBudget = Math.floor(totalBudget * (project.progress / 100) * (0.7 + Math.random() * 0.3));
+      const usedBudget = Math.floor(totalBudget * (project.progress ?? 0 / 100) * (0.7 + Math.random() * 0.3));
       const remainingBudget = totalBudget - usedBudget;
       
       return {

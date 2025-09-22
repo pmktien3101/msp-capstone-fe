@@ -154,7 +154,7 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
                     <h4>{project.name}</h4>
                     <div className="project-meta">
                       <span className="progress">{project.progress}%</span>
-                      <span className="members">{project.members.length} thành viên</span>
+                      <span className="members">{project.members?.length ?? 0} thành viên</span>
                     </div>
                   </div>
                   <div className="project-status">

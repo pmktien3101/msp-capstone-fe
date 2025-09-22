@@ -22,7 +22,7 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
     task.milestoneIds.some(milestoneId => projectMilestones.some(m => m.id === milestoneId))
   );
   const projectMembers = mockMembers.filter(member => 
-    project.members.some(m => m.id === member.id)
+    project.members?.some(m => m.id === member.id)
   );
   
   // Tính toán các số liệu mới

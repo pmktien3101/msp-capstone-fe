@@ -37,7 +37,7 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
 
   const totalProjects = projects.length;
   const averageProgress = projects.length > 0 
-    ? Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length)
+    ? Math.round(projects.reduce((sum, p) => sum + (p.progress ?? 0), 0) / projects.length)
     : 0;
 
   // Lọc dự án theo trạng thái
@@ -190,18 +190,18 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
                   <td className="members-cell">
                     <div className="members-info">
                       <Users size={16} />
-                      <span>{project.members.length} thành viên</span>
+                      <span>{project.members?.length ?? 0} thành viên</span>
                     </div>
                   </td>
                   <td className="progress-cell">
                     <div className="progress-info">
                       <div className="progress-header">
-                        <span>{project.progress}%</span>
+                        <span>{(project.progress ?? 0)}%</span>
                       </div>
                       <div className="progress-bar">
                         <div 
                           className="progress-fill"
-                          style={{ width: `${project.progress}%` }}
+                          style={{ width: `${project.progress ?? 0}%` }}
                         />
                       </div>
                     </div>

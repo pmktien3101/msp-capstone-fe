@@ -24,7 +24,7 @@ export const ProjectVisualization = ({ projects }: ProjectVisualizationProps) =>
     const memberWorkload = mockMembers.map(member => {
       const memberTasks = mockTasks.filter(task => task.assignee === member.id);
       const memberProjects = projects.filter(project => 
-        project.members.some(m => m.id === member.id)
+        project.members?.some(m => m.id === member.id)
       );
       
       return {
@@ -44,10 +44,10 @@ export const ProjectVisualization = ({ projects }: ProjectVisualizationProps) =>
   // Tính toán progress distribution
   const getProgressDistribution = () => {
     const distribution = {
-      '0-25%': projects.filter(p => p.progress >= 0 && p.progress <= 25).length,
-      '26-50%': projects.filter(p => p.progress > 25 && p.progress <= 50).length,
-      '51-75%': projects.filter(p => p.progress > 50 && p.progress <= 75).length,
-      '76-100%': projects.filter(p => p.progress > 75 && p.progress <= 100).length,
+      '0-25%': projects.filter(p => (p.progress ?? 0) >= 0 && (p.progress ?? 0) <= 25).length,
+      '26-50%': projects.filter(p => (p.progress ?? 0) > 25 && (p.progress ?? 0) <= 50).length,
+      '51-75%': projects.filter(p => (p.progress ?? 0) > 50 && (p.progress ?? 0) <= 75).length,
+      '76-100%': projects.filter(p => (p.progress ?? 0) > 75 && (p.progress ?? 0) <= 100).length,
     };
     return distribution;
   };
@@ -115,7 +115,7 @@ export const ProjectVisualization = ({ projects }: ProjectVisualizationProps) =>
                       />
                     </div>
                     <div className="progress-details">
-                      <span>{project.members.length} thành viên</span>
+                      <span>{project.members?.length} thành viên</span>
                       <span>{new Date(project.endDate).toLocaleDateString('vi-VN')}</span>
                     </div>
                   </div>
