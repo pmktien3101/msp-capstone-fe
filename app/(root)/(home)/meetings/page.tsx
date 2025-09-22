@@ -39,18 +39,6 @@ const MeetingsPage = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Redirect if not PM
-  if (role !== 'pm') {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-600 mb-2">Không có quyền truy cập</h2>
-          <p className="text-gray-500">Chỉ Project Manager mới có thể xem trang này.</p>
-        </div>
-      </div>
-    );
-  }
-
   // Filter meetings based on search and filters
   const filteredMeetings = useMemo(() => {
     return mockMeetings.filter((meeting: any) => {
@@ -133,6 +121,18 @@ const MeetingsPage = () => {
     e.stopPropagation(); // Ngăn chặn event bubbling lên card
     alert(`Tham gia cuộc họp: ${meetingTitle}`);
   };
+
+  // Redirect if not PM
+  if (role !== 'pm') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-600 mb-2">Không có quyền truy cập</h2>
+          <p className="text-gray-500">Chỉ Project Manager mới có thể xem trang này.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="meetings-page">
