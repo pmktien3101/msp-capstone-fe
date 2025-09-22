@@ -1,44 +1,65 @@
 "use client";
 import { useCall, useCallStateHooks } from "@stream-io/video-react-sdk";
-import React, { useState } from "react";
 import { Button } from "./button";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const EndCallButton = () => {
   const call = useCall();
-  const router = useRouter();
   const { useLocalParticipant } = useCallStateHooks();
   const localParticipant = useLocalParticipant();
-  const [isEnding, setIsEnding] = useState(false);
+  const router = useRouter();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  if (!localParticipant) return null;
 
   const isMeetingOwner =
     localParticipant?.userId &&
     call?.state?.createdBy?.id === localParticipant.userId;
 
-  if (!isMeetingOwner) return null;
-
-  const handleEnd = async () => {
-    if (!call || isEnding) return;
-    setIsEnding(true);
-
+  const handleEndForAll = async () => {
+    if (!call || isProcessing) return;
+    setIsProcessing(true);
     try {
       await call.camera?.disable();
       await call.microphone?.disable();
-      await call.endCall();
+      await call.endCall(); // end cho tất cả
     } catch (err) {
       console.warn("Error ending call", err);
     } finally {
-      router.push("/projects");
+      router.push(`/meeting-detail/${call.id}`);
+    }
+  };
+
+  const handleLeave = async () => {
+    if (!call || isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await call.camera?.disable();
+      await call.microphone?.disable();
+      await call.leave(); // rời call cho participant này
+    } catch (err) {
+      console.warn("Error leaving call", err);
+    } finally {
+      router.push(`/meeting-detail/${call.id}`);
     }
   };
 
   return (
     <Button
-      onClick={handleEnd}
-      disabled={isEnding}
-      className="cursor-pointer bg-red-600 hover:bg-red-700 flex items-center disabled:opacity-60 disabled:cursor-not-allowed"
+      onClick={isMeetingOwner ? handleEndForAll : handleLeave}
+      disabled={isProcessing}
+      title={isMeetingOwner ? "Kết thúc cuộc gọi cho tất cả" : "Rời cuộc gọi"}
+      className={`cursor-pointer flex items-center disabled:opacity-60 disabled:cursor-not-allowed
+        bg-red-600 hover:bg-red-700 rounded-full p-4`}
     >
-      {isEnding ? "Ending..." : "End Call for All"}
+      {isProcessing
+        ? isMeetingOwner
+          ? "Ending..."
+          : "Leaving..."
+        : isMeetingOwner
+        ? "End Call for All"
+        : "Leave Call"}
     </Button>
   );
 };

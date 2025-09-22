@@ -106,7 +106,7 @@ export const mockTasks = [
     priority: "high",
     assignee: "member-1",
     startDate: "2025-09-01",
-    endDate: "2025-09-14"
+    endDate: "2025-09-14",
   },
   {
     id: "MWA-2",
@@ -117,7 +117,7 @@ export const mockTasks = [
     priority: "high",
     assignee: "member-3",
     startDate: "2025-09-15",
-    endDate: "2025-09-16"
+    endDate: "2025-09-16",
   },
   {
     id: "MWA-3",
@@ -128,7 +128,7 @@ export const mockTasks = [
     priority: "medium",
     assignee: "member-2",
     startDate: "2025-09-01",
-    endDate: "2025-09-10"
+    endDate: "2025-09-10",
   },
   {
     id: "MWA-4",
@@ -139,7 +139,7 @@ export const mockTasks = [
     priority: "high",
     assignee: "member-4",
     startDate: "2025-09-15",
-    endDate: "2025-09-20"
+    endDate: "2025-09-20",
   },
   {
     id: "MWA-5",
@@ -150,7 +150,7 @@ export const mockTasks = [
     priority: "medium",
     assignee: "member-5",
     startDate: "2025-09-20",
-    endDate: "2025-09-25"
+    endDate: "2025-09-25",
   },
   {
     id: "MWA-6",
@@ -161,7 +161,7 @@ export const mockTasks = [
     priority: "low",
     assignee: "member-1",
     startDate: "2025-09-25",
-    endDate: "2025-09-30"
+    endDate: "2025-09-30",
   },
   {
     id: "MWA-7",
@@ -281,26 +281,27 @@ export const mockComments = [
     id: "comment-1",
     taskId: "MWA-3",
     authorId: "member-1",
-    content: "Đã hoàn thành thiết kế database schema cho bảng users và authentication",
+    content:
+      "Đã hoàn thành thiết kế database schema cho bảng users và authentication",
     timestamp: "2025-09-05T10:30:00Z",
-    isEdited: false
+    isEdited: false,
   },
   {
-    id: "comment-2", 
+    id: "comment-2",
     taskId: "MWA-3",
     authorId: "member-2",
     content: "Cần thêm index cho các trường thường xuyên query",
     timestamp: "2025-09-06T14:20:00Z",
-    isEdited: false
+    isEdited: false,
   },
   {
     id: "comment-3",
-    taskId: "MWA-1", 
+    taskId: "MWA-1",
     authorId: "member-3",
     content: "API authentication đã được test và hoạt động tốt",
     timestamp: "2025-09-07T09:15:00Z",
-    isEdited: false
-  }
+    isEdited: false,
+  },
 ];
 
 export const mockActivities = [
@@ -348,7 +349,7 @@ let mockMilestones = [
     status: "in-progress",
     tasks: ["MWA-1", "MWA-2", "MWA-3", "MWA-5"],
     projectId: "1",
-    meetings: ["meeting-1", "meeting-2", "meeting-5"]
+    meetings: ["meeting-1", "meeting-2", "meeting-5"],
   },
   {
     id: "milestone-2",
@@ -358,7 +359,7 @@ let mockMilestones = [
     status: "in-progress",
     tasks: ["MWA-4", "MWA-6", "MWA-1"],
     projectId: "1",
-    meetings: ["meeting-3", "meeting-6"]
+    meetings: ["meeting-3", "meeting-6"],
   },
   {
     id: "milestone-3",
@@ -409,7 +410,7 @@ export const addMilestone = (milestoneData: any) => {
     id: `milestone-${Date.now()}`,
     status: "pending",
     tasks: [],
-    meetings: []
+    meetings: [],
   };
   mockMilestones.push(newMilestone);
   return newMilestone;
@@ -420,62 +421,64 @@ export const getMilestones = () => mockMilestones;
 
 // Function to update milestone
 export const updateMilestone = (milestoneId: string, milestoneData: any) => {
-  const milestoneIndex = mockMilestones.findIndex(m => m.id === milestoneId);
+  const milestoneIndex = mockMilestones.findIndex((m) => m.id === milestoneId);
   if (milestoneIndex === -1) {
     throw new Error(`Milestone with id ${milestoneId} not found`);
   }
-  
+
   const oldMilestone = mockMilestones[milestoneIndex];
   const oldTaskIds = oldMilestone.tasks || [];
   const newTaskIds = milestoneData.tasks || [];
-  
+
   // Update milestone with new data while preserving existing fields
   mockMilestones[milestoneIndex] = {
     ...mockMilestones[milestoneIndex],
     ...milestoneData,
     id: milestoneId, // Ensure ID doesn't change
   };
-  
+
   // Update task.milestoneIds for tasks that were removed from milestone
-  const removedTaskIds = oldTaskIds.filter(id => !newTaskIds.includes(id));
-  removedTaskIds.forEach(taskId => {
-    const task = mockTasks.find(t => t.id === taskId);
+  const removedTaskIds = oldTaskIds.filter((id) => !newTaskIds.includes(id));
+  removedTaskIds.forEach((taskId) => {
+    const task = mockTasks.find((t) => t.id === taskId);
     if (task) {
-      task.milestoneIds = task.milestoneIds.filter(id => id !== milestoneId);
+      task.milestoneIds = task.milestoneIds.filter((id) => id !== milestoneId);
     }
   });
-  
+
   // Update task.milestoneIds for tasks that were added to milestone
-  const addedTaskIds = newTaskIds.filter((id: string) => !oldTaskIds.includes(id));
+  const addedTaskIds = newTaskIds.filter(
+    (id: string) => !oldTaskIds.includes(id)
+  );
   addedTaskIds.forEach((taskId: string) => {
-    const task = mockTasks.find(t => t.id === taskId);
+    const task = mockTasks.find((t) => t.id === taskId);
     if (task && !task.milestoneIds.includes(milestoneId)) {
       task.milestoneIds.push(milestoneId);
     }
   });
-  
+
   return mockMilestones[milestoneIndex];
 };
 
 // Function to delete milestone
 export const deleteMilestone = (milestoneId: string) => {
-  const milestoneIndex = mockMilestones.findIndex(m => m.id === milestoneId);
+  const milestoneIndex = mockMilestones.findIndex((m) => m.id === milestoneId);
   if (milestoneIndex === -1) {
     throw new Error(`Milestone with id ${milestoneId} not found`);
   }
-  
+
   const deletedMilestone = mockMilestones[milestoneIndex];
-  
+
   // Remove milestone from array
   mockMilestones.splice(milestoneIndex, 1);
-  
+
   // Remove milestone from all tasks that reference it
-  mockTasks.forEach(task => {
+  mockTasks.forEach((task) => {
     if (task.milestoneIds.includes(milestoneId)) {
-      task.milestoneIds = task.milestoneIds.filter(id => id !== milestoneId);
+      task.milestoneIds = task.milestoneIds.filter((id) => id !== milestoneId);
     }
   });
-  
+
   return deletedMilestone;
 };
 
@@ -487,10 +490,10 @@ export const calculateMilestoneProgress = (milestoneId: string) => {
   const milestone = mockMilestones.find((m) => m.id === milestoneId);
   if (!milestone || !milestone.tasks.length) return 0;
 
-  const milestoneTasks = mockTasks.filter(task => 
+  const milestoneTasks = mockTasks.filter((task) =>
     task.milestoneIds.includes(milestoneId)
   );
-  
+
   const completedTasks = milestoneTasks.filter(
     (task) => task.status === "done"
   ).length;
@@ -516,8 +519,8 @@ export const getMilestoneStatus = (milestoneId: string) => {
 export const mockHierarchicalWorkItems = mockMilestones.map((milestone) => {
   const progress = calculateMilestoneProgress(milestone.id);
   const status = getMilestoneStatus(milestone.id);
-  
-  const milestoneTasks = mockTasks.filter(task => 
+
+  const milestoneTasks = mockTasks.filter((task) =>
     task.milestoneIds.includes(milestone.id)
   );
 
@@ -551,8 +554,8 @@ export const mockFlattenedWorkItems = (() => {
   mockMilestones.forEach((milestone) => {
     const progress = calculateMilestoneProgress(milestone.id);
     const status = getMilestoneStatus(milestone.id);
-    
-    const milestoneTasks = mockTasks.filter(task => 
+
+    const milestoneTasks = mockTasks.filter((task) =>
       task.milestoneIds.includes(milestone.id)
     );
 
@@ -600,8 +603,10 @@ export const mockMeetings = [
     startTime: "2025-09-15T09:00:00Z",
     endTime: "2025-09-15T10:30:00Z",
     status: "Finished",
-    roomUrl: "https://meet.google.com/abc-defg-hij",
-    participates: ["member-1", "member-2", "member-3", "member-4", "member-5"]
+    meetingType: "offline",
+    roomUrl: "",
+    location: "Phòng họp A, Tầng 3, Văn phòng MSP",
+    participants: ["member-1", "member-2", "member-3", "member-4", "member-5"],
   },
   {
     id: "meeting-2",
@@ -609,11 +614,13 @@ export const mockMeetings = [
     milestoneId: "milestone-1",
     title: "Review thiết kế UI/UX",
     description: "Review và feedback về thiết kế giao diện đăng nhập",
-    startTime: "2025-09-20T14:00:00Z",
-    endTime: "2025-09-20T15:30:00Z",
+    startTime: "2025-09-28T14:00:00Z",
+    endTime: "",
     status: "Scheduled",
-    roomUrl: "https://meet.google.com/xyz-uvw-rst",
-    participates: ["member-1", "member-3", "member-5"]
+    meetingType: "offline",
+    roomUrl: "",
+    location: "Phòng họp B, Tầng 2, Văn phòng MSP",
+    participants: ["member-1", "member-3", "member-5"],
   },
   {
     id: "meeting-3",
@@ -621,11 +628,13 @@ export const mockMeetings = [
     milestoneId: "milestone-2",
     title: "Demo tích hợp Payment",
     description: "Demo tính năng tích hợp thanh toán VNPay",
-    startTime: "2025-09-25T10:00:00Z",
-    endTime: "2025-09-25T11:00:00Z",
+    startTime: "2025-09-28T10:00:00Z",
+    endTime: "",
     status: "Scheduled",
-    roomUrl: "https://meet.google.com/mno-pqr-stu",
-    participates: ["member-1", "member-4"]
+    meetingType: "offline",
+    roomUrl: "",
+    location: "Phòng họp C, Tầng 1, Văn phòng MSP",
+    participants: ["member-1", "member-4"],
   },
   {
     id: "meeting-4",
@@ -633,35 +642,13 @@ export const mockMeetings = [
     milestoneId: null,
     title: "Họp hàng tuần",
     description: "Họp cập nhật tiến độ dự án hàng tuần",
-    startTime: "2025-09-22T09:00:00Z",
-    endTime: "2025-09-22T10:00:00Z",
-    status: "Ongoing",
-    roomUrl: "https://meet.google.com/weekly-standup",
-    participates: ["member-1", "member-2", "member-3", "member-4", "member-5"]
-  },
-  {
-    id: "meeting-5",
-    projectId: "1",
-    milestoneId: "milestone-1",
-    title: "Code review session",
-    description: "Review code cho module authentication",
-    startTime: "2025-09-18T15:00:00Z",
-    endTime: "2025-09-18T16:30:00Z",
+    startTime: "2025-09-21T09:00:00Z",
+    endTime: "2025-09-21T10:00:00Z",
     status: "Finished",
-    roomUrl: "https://meet.google.com/code-review-123",
-    participates: ["member-1", "member-2", "member-4"]
-  },
-  {
-    id: "meeting-6",
-    projectId: "1",
-    milestoneId: "milestone-2",
-    title: "Testing session",
-    description: "Test tích hợp payment gateway",
-    startTime: "2025-09-28T14:00:00Z",
-    endTime: null,
-    status: "Scheduled",
-    roomUrl: "https://meet.google.com/testing-session",
-    participates: ["member-1", "member-4", "member-5"]
+    meetingType: "offline",
+    roomUrl: "",
+    location: "Phòng họp A, Tầng 3, Văn phòng MSP",
+    participants: ["member-1", "member-2", "member-3", "member-4", "member-5"],
   },
   {
     id: "meeting-7",
@@ -753,88 +740,92 @@ export const getTasksByMilestone = (milestoneId: string) => {
 
 // Function to delete task
 export const deleteTask = (taskId: string) => {
-  const taskIndex = mockTasks.findIndex(t => t.id === taskId);
+  const taskIndex = mockTasks.findIndex((t) => t.id === taskId);
   if (taskIndex === -1) {
     throw new Error(`Task with id ${taskId} not found`);
   }
-  
+
   const deletedTask = mockTasks[taskIndex];
-  
+
   // Remove task from array
   mockTasks.splice(taskIndex, 1);
-  
+
   // Remove task from all milestones that reference it
-  mockMilestones.forEach(milestone => {
+  mockMilestones.forEach((milestone) => {
     if (milestone.tasks.includes(taskId)) {
-      milestone.tasks = milestone.tasks.filter(id => id !== taskId);
+      milestone.tasks = milestone.tasks.filter((id) => id !== taskId);
     }
   });
-  
+
   // Remove task from member's tasks
-  mockMembers.forEach(member => {
+  mockMembers.forEach((member) => {
     if (member.tasks.includes(taskId)) {
-      member.tasks = member.tasks.filter(id => id !== taskId);
+      member.tasks = member.tasks.filter((id) => id !== taskId);
     }
   });
-  
+
   return deletedTask;
 };
 
 // Function to update task
 export const updateTask = (taskId: string, taskData: any) => {
-  const taskIndex = mockTasks.findIndex(t => t.id === taskId);
+  const taskIndex = mockTasks.findIndex((t) => t.id === taskId);
   if (taskIndex === -1) {
     throw new Error(`Task with id ${taskId} not found`);
   }
-  
+
   const oldTask = mockTasks[taskIndex];
   const oldMilestoneIds = oldTask.milestoneIds || [];
   const newMilestoneIds = taskData.milestoneIds || [];
-  
+
   // Update task with new data while preserving existing fields
   mockTasks[taskIndex] = {
     ...mockTasks[taskIndex],
     ...taskData,
     id: taskId, // Ensure ID doesn't change
   };
-  
+
   // Update milestone.tasks for milestones that were removed from task
-  const removedMilestoneIds = oldMilestoneIds.filter(id => !newMilestoneIds.includes(id));
-  removedMilestoneIds.forEach(milestoneId => {
-    const milestone = mockMilestones.find(m => m.id === milestoneId);
+  const removedMilestoneIds = oldMilestoneIds.filter(
+    (id) => !newMilestoneIds.includes(id)
+  );
+  removedMilestoneIds.forEach((milestoneId) => {
+    const milestone = mockMilestones.find((m) => m.id === milestoneId);
     if (milestone) {
-      milestone.tasks = milestone.tasks.filter(id => id !== taskId);
+      milestone.tasks = milestone.tasks.filter((id) => id !== taskId);
     }
   });
-  
+
   // Update milestone.tasks for milestones that were added to task
-  const addedMilestoneIds = newMilestoneIds.filter((id: string) => !oldMilestoneIds.includes(id));
+  const addedMilestoneIds = newMilestoneIds.filter(
+    (id: string) => !oldMilestoneIds.includes(id)
+  );
   addedMilestoneIds.forEach((milestoneId: string) => {
-    const milestone = mockMilestones.find(m => m.id === milestoneId);
+    const milestone = mockMilestones.find((m) => m.id === milestoneId);
     if (milestone && !milestone.tasks.includes(taskId)) {
       milestone.tasks.push(taskId);
     }
   });
-  
+
   // Update member's tasks if assignee changed
   if (oldTask.assignee !== taskData.assignee) {
     // Remove from old assignee
     if (oldTask.assignee) {
-      const oldMember = mockMembers.find(m => m.id === oldTask.assignee);
+      const oldMember = mockMembers.find((m) => m.id === oldTask.assignee);
       if (oldMember) {
-        oldMember.tasks = oldMember.tasks.filter(id => id !== taskId);
+        oldMember.tasks = oldMember.tasks.filter((id) => id !== taskId);
       }
     }
-    
+
     // Add to new assignee
     if (taskData.assignee) {
-      const newMember = mockMembers.find(m => m.id === taskData.assignee);
+      const newMember = mockMembers.find((m) => m.id === taskData.assignee);
       if (newMember && !newMember.tasks.includes(taskId)) {
         newMember.tasks.push(taskId);
       }
     }
   }
-  
+
   return mockTasks[taskIndex];
 };
 
@@ -854,4 +845,3 @@ export const getProjectStats = () => {
     completionRate: Math.round((completedTasks / totalTasks) * 100),
   };
 };
-

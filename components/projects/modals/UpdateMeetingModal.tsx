@@ -7,7 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Call } from "@stream-io/video-react-sdk";
 import { toast } from "react-toastify";
 import { Participant } from "@/types";
-import { mockParticipants } from "@/constants/mockData";
+import { mockParticipants, mockMilestones } from "@/constants/mockData";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 interface UpdateMeetingModalProps {
   call: Call;
@@ -31,10 +33,24 @@ export const UpdateMeetingModal = ({
         .toISOString()
         .slice(0, 16)
     : "";
-  const [dateTime, setDateTime] = useState<string>(initialDateTime);
+  const [dateTime, setDateTime] = useState<Date | null>(
+    startsAt ? new Date(startsAt) : null
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
+
+  // Thêm state cho meetingType, location và milestone
+  const [meetingType, setMeetingType] = useState<"online" | "offline">(
+    custom?.meetingType || "online"
+  );
+  const [location, setLocation] = useState<string>(custom?.location || "");
+  const [milestoneId, setMilestoneId] = useState<string>(
+    custom?.milestoneId || ""
+  );
+  const [milestones, setMilestones] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
 
   // Thêm state cho participants
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -60,6 +76,20 @@ export const UpdateMeetingModal = ({
     fetchParticipants();
   }, []);
 
+  // Load milestones khi component mount
+  useEffect(() => {
+    const fetchMilestones = async () => {
+      try {
+        setMilestones(mockMilestones);
+      } catch (error) {
+        console.error("Error fetching milestones:", error);
+        toast.error("Không thể tải danh sách milestones");
+      }
+    };
+
+    fetchMilestones();
+  }, []);
+
   const handleParticipantChange = (participantId: string) => {
     setSelectedParticipants((prev) => {
       if (prev.includes(participantId)) {
@@ -74,20 +104,22 @@ export const UpdateMeetingModal = ({
     setSaving(true);
     setError(null);
     try {
-      const newStarts = dateTime ? new Date(dateTime) : undefined;
       if (!title.trim()) throw new Error("Tiêu đề không được để trống");
-      if (newStarts && newStarts.getTime() < Date.now() - 60_000) {
+      if (dateTime && dateTime.getTime() < Date.now() - 60_000) {
         throw new Error("Thời gian bắt đầu phải ở tương lai");
       }
-      // Cập nhật thông tin cuộc họp
+
       await call.update({
         custom: {
           ...custom,
           title: title.trim(),
           description: description.trim(),
           participants: selectedParticipants,
+          meetingType,
+          location: meetingType === "offline" ? location.trim() : "",
+          milestoneId,
         },
-        starts_at: newStarts?.toISOString(),
+        starts_at: dateTime?.toISOString(),
       });
 
       // Cập nhật members với đầy đủ thông tin
@@ -159,17 +191,76 @@ export const UpdateMeetingModal = ({
             <label className="block text-sm font-medium">
               Thời gian bắt đầu
             </label>
-            <Input
-              type="datetime-local"
-              value={dateTime}
-              onChange={(e) => {
-                setDateTime(e.target.value);
+            <DatePicker
+              selected={dateTime}
+              onChange={(date) => {
+                setDateTime(date);
                 setTouched(true);
               }}
+              showTimeSelect
+              timeFormat="HH:mm"
+              timeIntervals={30}
+              dateFormat="dd/MM/yyyy HH:mm"
+              className="w-full border rounded-md p-2"
             />
             <p className="text-[11px] text-muted-foreground mt-1">
               Chỉnh thời gian để cập nhật lịch bắt đầu cuộc họp.
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">Loại cuộc họp</label>
+            <div className="flex space-x-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="online"
+                  checked={meetingType === "online"}
+                  onChange={(e) => setMeetingType("online")}
+                  className="mr-2"
+                />
+                Online
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="offline"
+                  checked={meetingType === "offline"}
+                  onChange={(e) => setMeetingType("offline")}
+                  className="mr-2"
+                />
+                Offline
+              </label>
+            </div>
+          </div>
+
+          {meetingType === "offline" && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Địa điểm</label>
+              <Input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Nhập địa điểm cuộc họp"
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">
+              Milestone (không bắt buộc)
+            </label>
+            <select
+              value={milestoneId}
+              onChange={(e) => setMilestoneId(e.target.value)}
+              className="w-full rounded-md border border-gray-300 p-2"
+            >
+              <option value="">-- Chọn milestone --</option>
+              {milestones.map((milestone) => (
+                <option key={milestone.id} value={milestone.id}>
+                  {milestone.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Thêm phần chọn participants */}

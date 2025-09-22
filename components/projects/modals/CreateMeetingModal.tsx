@@ -11,16 +11,20 @@ import { useUser } from "@/hooks/useUser";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { Member, Participant } from "@/types";
-import { mockParticipants } from "@/constants/mockData";
+import { mockMilestones, mockParticipants } from "@/constants/mockData";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const formSchema = z.object({
   title: z.string().min(1, "Vui lòng nhập tiêu đề"),
   description: z.string().min(1, "Vui lòng nhập mô tả"),
-  date: z.string().min(1, "Vui lòng chọn ngày"),
-  time: z.string().min(1, "Vui lòng chọn giờ"),
+  datetime: z.date().min(new Date(), "Vui lòng chọn ngày giờ hợp lệ"),
   participants: z
     .array(z.string())
     .min(1, "Vui lòng chọn ít nhất 1 người tham gia"),
+  meetingType: z.enum(["online", "offline"]),
+  location: z.string().optional(),
+  milestoneId: z.string().optional(),
 });
 
 interface MeetingFormProps {
@@ -41,14 +45,23 @@ export default function MeetingForm({
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
     []
   );
+  const [meetingType, setMeetingType] = useState<"online" | "offline">(
+    "online"
+  );
+  const [milestones, setMilestones] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
       description: "",
-      date: "",
-      time: "",
+      datetime: undefined,
       participants: [],
+      meetingType: "online",
+      location: "",
+      milestoneId: "",
     },
   });
 
@@ -61,8 +74,17 @@ export default function MeetingForm({
         toast.error("Không thể tải danh sách người tham gia");
       }
     };
+    const fetchMilestones = async () => {
+      try {
+        setMilestones(mockMilestones);
+      } catch (error) {
+        console.error("Error fetching milestones:", error);
+        toast.error("Không thể tải danh sách milestones");
+      }
+    };
 
     fetchParticipants();
+    fetchMilestones();
   }, [projectId]);
 
   const handleParticipantChange = (participantId: string) => {
@@ -85,30 +107,41 @@ export default function MeetingForm({
     }
     try {
       const meetingId = crypto.randomUUID();
-      const call = client.call("default", meetingId);
-      if (!call) {
-        throw new Error("Failed to create call");
-      }
 
       // Include all participants including the creator
       const allParticipants = [...new Set([userId, ...selectedParticipants])];
 
-      await call.getOrCreate({
-        data: {
-          custom: {
-            title: values.title,
-            description: values.description,
-            scheduledDate: values.date,
-            scheduledTime: values.time,
-            projectId: projectId,
-            participants: allParticipants, // Add participants to custom data
+      const meetingData = {
+        title: values.title,
+        description: values.description,
+        scheduledAt: values.datetime.toISOString(),
+        projectId: projectId,
+        participants: allParticipants,
+        meetingType: values.meetingType,
+        location: values.location,
+        milestoneId: values.milestoneId,
+      };
+
+      if (values.meetingType === "online" && client) {
+        const call = client.call("default", meetingId);
+        if (!call) {
+          throw new Error("Failed to create call");
+        }
+
+        await call.getOrCreate({
+          data: {
+            custom: meetingData,
+            starts_at: values.datetime.toISOString(),
+            members: allParticipants.map((id) => ({ user_id: id })),
           },
-          starts_at: new Date(`${values.date}T${values.time}`).toISOString(),
-          members: allParticipants.map((id) => ({ user_id: id })),
-        },
-      });
-      setCallDetails(call);
-      onCreated?.(call);
+        });
+        setCallDetails(call);
+        onCreated?.(call);
+      } else {
+        console.log("Creating offline meeting:", meetingData);
+        toast.success("Đã tạo cuộc họp offline thành công!");
+        onClose?.();
+      }
     } catch (error) {
       console.error("Error creating meeting:", error);
       toast.error("Không thể tạo cuộc họp");
@@ -214,25 +247,88 @@ export default function MeetingForm({
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium">Ngày họp</label>
-                  <Input type="date" {...form.register("date")} />
-                  {form.formState.errors.date && (
+                  <label className="block text-sm font-medium">
+                    Ngày & giờ họp
+                  </label>
+                  <DatePicker
+                    selected={form.watch("datetime")}
+                    onChange={(date) => form.setValue("datetime", date as Date)}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={30}
+                    dateFormat="dd/MM/yyyy HH:mm"
+                    className="w-full border rounded-md p-2"
+                  />
+                  {form.formState.errors.datetime && (
                     <p className="text-sm text-red-500">
-                      {form.formState.errors.date.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Giờ họp</label>
-                  <Input type="time" step="60" {...form.register("time")} />
-                  {form.formState.errors.time && (
-                    <p className="text-sm text-red-500">
-                      {form.formState.errors.time.message}
+                      {form.formState.errors.datetime.message as string}
                     </p>
                   )}
                 </div>
               </div>
-              {/* Thêm vào trong form, trước các nút action */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">
+                  Loại cuộc họp
+                </label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="online"
+                      checked={meetingType === "online"}
+                      onChange={(e) => {
+                        setMeetingType("online");
+                        form.setValue("meetingType", "online");
+                      }}
+                      className="mr-2"
+                    />
+                    Online
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="offline"
+                      checked={meetingType === "offline"}
+                      onChange={(e) => {
+                        setMeetingType("offline");
+                        form.setValue("meetingType", "offline");
+                      }}
+                      className="mr-2"
+                    />
+                    Offline
+                  </label>
+                </div>
+              </div>
+              {meetingType === "offline" && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Địa điểm</label>
+                  <Input
+                    placeholder="Nhập địa điểm cuộc họp"
+                    {...form.register("location")}
+                  />
+                  {form.formState.errors.location && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.location.message}
+                    </p>
+                  )}
+                </div>
+              )}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">
+                  Milestone (không bắt buộc)
+                </label>
+                <select
+                  {...form.register("milestoneId")}
+                  className="w-full rounded-md border border-gray-300 p-2"
+                >
+                  <option value="">-- Chọn milestone --</option>
+                  {milestones.map((milestone) => (
+                    <option key={milestone.id} value={milestone.id}>
+                      {milestone.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="space-y-2">
                 <label className="block text-sm font-medium">
                   Người tham gia

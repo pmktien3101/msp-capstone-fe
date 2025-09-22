@@ -12,6 +12,7 @@ import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 import { toast } from "react-toastify";
 import { Eye, Pencil, Trash, Plus } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { mockMeetings } from "@/constants/mockData";
 
 interface MeetingTabProps {
   project: Project;
@@ -53,10 +54,80 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
 
   // Meetings hiển thị theo tab
   const meetings = useMemo(() => {
-    if (viewType === "all") return allMeetings;
-    if (viewType === "upcoming") return upcomingProjectMeetings;
-    return endedProjectMeetings;
-  }, [viewType, allMeetings, upcomingProjectMeetings, endedProjectMeetings]);
+    const now = new Date();
+
+    const streamMeetings =
+      viewType === "all"
+        ? allMeetings
+        : viewType === "upcoming"
+        ? upcomingProjectMeetings
+        : endedProjectMeetings;
+
+    // Filter mock meetings based on viewType and meeting time
+    const filteredMockMeetings = mockMeetings.filter((m) => {
+      if (m.projectId !== project.id) return false;
+
+      const startTime = new Date(m.startTime);
+      const endTime = new Date(m.endTime);
+
+      if (viewType === "all") return true;
+      if (viewType === "upcoming") return startTime > now;
+      if (viewType === "ended") return endTime < now;
+
+      return false;
+    });
+
+    // Combine and sort all meetings
+    const combinedMeetings = [...streamMeetings, ...filteredMockMeetings];
+
+    // Type guard to check if meeting has 'state'
+    const hasState = (meeting: any): meeting is Call => {
+      return typeof meeting === "object" && "state" in meeting;
+    };
+
+    // Type guard to check if meeting is a mock meeting
+    const isMockMeeting = (
+      meeting: any
+    ): meeting is {
+      id: string;
+      projectId: string;
+      milestoneId: string;
+      title: string;
+      description: string;
+      startTime: string;
+      endTime: string;
+      status: string;
+      meetingType: string;
+      roomUrl: string;
+      location: string;
+      participants: string[];
+    } => {
+      return typeof meeting === "object" && "startTime" in meeting;
+    };
+
+    // Sort by start time in descending order
+    return combinedMeetings.sort((a, b) => {
+      const aTime =
+        hasState(a) && a.state?.startsAt
+          ? new Date(a.state.startsAt)
+          : isMockMeeting(a) && a.startTime
+          ? new Date(a.startTime)
+          : new Date();
+      const bTime =
+        hasState(b) && b.state?.startsAt
+          ? new Date(b.state.startsAt)
+          : isMockMeeting(b) && b.startTime
+          ? new Date(b.startTime)
+          : new Date();
+      return aTime.getTime() - bTime.getTime();
+    });
+  }, [
+    viewType,
+    allMeetings,
+    upcomingProjectMeetings,
+    endedProjectMeetings,
+    project.id,
+  ]);
 
   const getStatusInfo = (call: Call) => {
     const now = new Date();
@@ -96,6 +167,33 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
       toast.error(e?.message || "Xóa thất bại");
     }
   };
+
+  // Update the stats calculations to include mock meetings
+  const allMeetingsCount = useMemo(() => {
+    const streamMeetingsCount = allMeetings.length;
+    const mockMeetingsCount = mockMeetings.filter(m => m.projectId === project.id).length;
+    return streamMeetingsCount + mockMeetingsCount;
+  }, [allMeetings, project.id]);
+
+  const upcomingMeetingsCount = useMemo(() => {
+    const now = new Date();
+    const streamUpcomingCount = upcomingProjectMeetings.length;
+    const mockUpcomingCount = mockMeetings.filter(m => 
+      m.projectId === project.id && 
+      new Date(m.startTime) > now
+    ).length;
+    return streamUpcomingCount + mockUpcomingCount;
+  }, [upcomingProjectMeetings, project.id]);
+
+  const endedMeetingsCount = useMemo(() => {
+    const now = new Date();
+    const streamEndedCount = endedProjectMeetings.length;
+    const mockEndedCount = mockMeetings.filter(m => 
+      m.projectId === project.id && 
+      new Date(m.endTime) < now
+    ).length;
+    return streamEndedCount + mockEndedCount;
+  }, [endedProjectMeetings, project.id]);
 
   return (
     <div className="meeting-tab">
@@ -140,15 +238,15 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
       </div>
       <div className="meeting-stats">
         <div className="stat-card">
-          <div className="stat-number">{allMeetings.length}</div>
+          <div className="stat-number">{allMeetingsCount}</div>
           <div className="stat-label">Tổng cuộc họp</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{upcomingProjectMeetings.length}</div>
+          <div className="stat-number">{upcomingMeetingsCount}</div>
           <div className="stat-label">Đã lên lịch</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{endedProjectMeetings.length}</div>
+          <div className="stat-number">{endedMeetingsCount}</div>
           <div className="stat-label">Hoàn thành</div>
         </div>
       </div>
@@ -255,33 +353,59 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           <div className="meeting-table">
             <div
               className="table-header"
-              style={{ gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1.5fr" }}
+              style={{ gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1fr 1.5fr" }} // Thêm 1fr cho cột Type
             >
               <div className="col-title">Tiêu đề</div>
               <div className="col-time">Thời gian</div>
+              <div className="col-type">Loại họp</div> {/* Thêm cột mới */}
               <div className="col-room">Phòng họp</div>
               <div className="col-status">Trạng thái</div>
               <div className="col-actions">Thao tác</div>
             </div>
             {meetings.map((meeting: any, idx: number) => {
               const call = meeting as Call;
-              const title = call.state?.custom?.title || "Cuộc họp";
-              const description = call.state?.custom?.description?.substring(
-                0,
-                120
-              );
-              const startsAt = call.state?.startsAt
-                ? new Date(call.state.startsAt)
+              const isStreamMeeting = !!meeting.state; // nếu có state thì là từ Stream
+
+              const title = isStreamMeeting
+                ? meeting.state?.custom?.title || "Cuộc họp"
+                : meeting.title;
+
+              const description = isStreamMeeting
+                ? meeting.state?.custom?.description?.substring(0, 120)
+                : meeting.description;
+
+              const startsAt = isStreamMeeting
+                ? meeting.state?.startsAt
+                  ? new Date(meeting.state.startsAt)
+                  : null
+                : meeting.startTime
+                ? new Date(meeting.startTime)
                 : null;
-              const endsAt = call.state?.endedAt
-                ? new Date(call.state.endedAt)
+
+              const endsAt = isStreamMeeting
+                ? meeting.state?.endedAt
+                  ? new Date(meeting.state.endedAt)
+                  : null
+                : meeting.endTime
+                ? new Date(meeting.endTime)
                 : null;
-              const statusInfo = getStatusInfo(call);
+
+              const statusInfo = isStreamMeeting
+                ? getStatusInfo(meeting)
+                : meeting.status === "Scheduled"
+                ? { label: "Lên lịch", color: "#47D69D" }
+                : meeting.status === "Finished"
+                ? { label: "Hoàn thành", color: "#A41F39" }
+                : { label: "Đang diễn ra", color: "#FFA500" };
+
+              const meetingType = isStreamMeeting
+                ? meeting.state?.custom?.meetingType || "online"
+                : meeting.meetingType || "offline";
               return (
                 <div
                   key={call.id || idx}
                   className="table-row"
-                  style={{ gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1.5fr" }}
+                  style={{ gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1fr 1.5fr" }} // Thêm 1fr cho cột Type
                 >
                   <div className="col-title">
                     <div className="meeting-title-text">{title}</div>
@@ -303,14 +427,33 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       )}
                     </div>
                   </div>
+
+                  {/* Thêm cột Type mới */}
+                  <div className="col-type">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        meetingType === "online"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      {meetingType === "online" ? "Trực tuyến" : "Trực tiếp"}
+                    </span>
+                  </div>
+
+                  {/* Các cột còn lại */}
                   <div className="col-room">
-                    {statusInfo.label === "Hoàn thành" ? (
+                    {meetingType === "offline" ? (
+                      <span className="text-sm text-gray-600">
+                        {meeting.location}
+                      </span>
+                    ) : statusInfo.label === "Hoàn thành" ? (
                       <span className="text-xs text-gray-400 italic">
                         (Đã kết thúc)
                       </span>
                     ) : (
                       <button
-                        className="room-link"
+                        className="room-link cursor-pointer"
                         onClick={() => handleJoin(call)}
                       >
                         Tham gia
@@ -326,26 +469,28 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       {statusInfo.label}
                     </span>
                   </div>
-                  <div className="col-actions flex items-center gap-2">
+                  <div className="col-actions flex items-center gap-2 cursor-pointer">
                     <button
-                      className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                      className=" cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
                       title="Xem chi tiết"
                       onClick={() => handleView(call)}
                     >
                       <Eye className="w-5 h-5" />
                     </button>
-                    {!(viewType === "ended") && !isMember && (
-                      <button
-                        className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
-                        title="Cập nhật"
-                        onClick={() => handleEdit(call)}
-                      >
-                        <Pencil className="w-5 h-5" />
-                      </button>
-                    )}
+                    {!(viewType === "ended") &&
+                      !(statusInfo.label === "Hoàn thành") &&
+                      !isMember && (
+                        <button
+                          className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                          title="Cập nhật"
+                          onClick={() => handleEdit(call)}
+                        >
+                          <Pencil className="w-5 h-5" />
+                        </button>
+                      )}
                     {!isMember && (
                       <button
-                        className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                        className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
                         title="Xóa"
                         onClick={() => handleDelete(call)}
                       >
