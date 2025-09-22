@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Project } from "@/types/project";
-import { mockTasks, mockMembers, mockMilestones, deleteMilestone, updateMilestone, deleteTask, updateTask } from "@/constants/mockData";
+import { mockTasks, mockMembers, mockMilestones, mockProjects, deleteMilestone, updateMilestone, deleteTask, updateTask } from "@/constants/mockData";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { DeleteMilestoneModal } from "@/components/milestones/DeleteMilestoneModal";
 import { UpdateMilestoneModal } from "@/components/milestones/UpdateMilestoneModal";
@@ -41,14 +41,20 @@ export const ListTable = ({
   sortOrder,
 }: ListTableProps) => {
   const { role } = useUser();
-  const [tasks, setTasks] = useState(mockTasks);
+  // Get tasks for this specific project based on milestoneIds
+  const projectMilestones = mockProjects.find(p => p.id === project.id)?.milestones || [];
+  const projectTasks = mockTasks.filter(task =>
+    task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
+  );
+
+  const [tasks, setTasks] = useState(projectTasks);
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(
     new Set(["milestone-1"]) // Mở milestone đầu tiên mặc định
   );
 
   // Check if user has permission to create tasks
   const canCreateTask = role && role.toLowerCase() !== 'member';
-  
+
   // Check if user has permission to edit/delete (non-member roles)
   const canEditDelete = role && role.toLowerCase() !== 'member';
   const [createTaskModal, setCreateTaskModal] = useState<{
@@ -289,12 +295,12 @@ export const ListTable = ({
 
     try {
       deleteMilestone(deleteMilestoneModal.milestoneId);
-      
+
       // Remove from expanded milestones if it was expanded
       const newExpanded = new Set(expandedMilestones);
       newExpanded.delete(deleteMilestoneModal.milestoneId);
       setExpandedMilestones(newExpanded);
-      
+
       closeDeleteMilestoneModal();
     } catch (error) {
       console.error('Error deleting milestone:', error);
@@ -366,10 +372,10 @@ export const ListTable = ({
 
     try {
       deleteTask(deleteTaskModal.taskId);
-      
+
       // Update local tasks state
       setTasks(prevTasks => prevTasks.filter(task => task.id !== deleteTaskModal.taskId));
-      
+
       closeDeleteTaskModal();
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -381,10 +387,10 @@ export const ListTable = ({
   const handleUpdateTask = (taskData: any) => {
     try {
       updateTask(taskData.id, taskData);
-      
+
       // Update local tasks state
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
           task.id === taskData.id ? { ...task, ...taskData } : task
         )
       );
@@ -438,7 +444,12 @@ export const ListTable = ({
 
   // Create hierarchical data structure
   const createHierarchicalData = () => {
-    const filteredMilestones = mockMilestones.map(milestone => {
+    // Filter milestones for this specific project
+    const projectMilestones = mockMilestones.filter(milestone =>
+      milestone.projectId === project.id
+    );
+
+    const filteredMilestones = projectMilestones.map(milestone => {
       const milestoneTasks = tasks.filter(task =>
         task.milestoneIds.includes(milestone.id)
       );
@@ -702,8 +713,8 @@ export const ListTable = ({
                   </div>
                   <div className="action-buttons-modern">
                     {canEditDelete && (
-                      <button 
-                        className="action-btn-modern edit-btn" 
+                      <button
+                        className="action-btn-modern edit-btn"
                         title="Chỉnh sửa"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -714,8 +725,8 @@ export const ListTable = ({
                       </button>
                     )}
                     {canEditDelete && (
-                      <button 
-                        className="action-btn-modern delete-btn" 
+                      <button
+                        className="action-btn-modern delete-btn"
                         title="Xóa"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -797,8 +808,8 @@ export const ListTable = ({
                   </div>
                   <div className="milestone-actions">
                     {canEditDelete && (
-                      <button 
-                        className="action-btn-modern edit-btn" 
+                      <button
+                        className="action-btn-modern edit-btn"
                         title="Chỉnh sửa Milestone"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -900,8 +911,8 @@ export const ListTable = ({
                           </div>
                           <div className="action-buttons-modern">
                             {canEditDelete && (
-                              <button 
-                                className="action-btn-modern edit-btn" 
+                              <button
+                                className="action-btn-modern edit-btn"
                                 title="Chỉnh sửa"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -912,8 +923,8 @@ export const ListTable = ({
                               </button>
                             )}
                             {canEditDelete && (
-                              <button 
-                                className="action-btn-modern delete-btn" 
+                              <button
+                                className="action-btn-modern delete-btn"
                                 title="Xóa"
                                 onClick={(e) => {
                                   e.stopPropagation();

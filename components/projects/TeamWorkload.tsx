@@ -1,15 +1,43 @@
 'use client';
 
-import { mockTasks, mockMembers } from '@/constants/mockData';
+import { Project } from '@/types/project';
+import { mockTasks, mockMembers, mockMilestones } from '@/constants/mockData';
 
-export const TeamWorkload = () => {
-  const assigneeCounts = mockTasks.reduce((acc, task) => {
+interface TeamWorkloadProps {
+  project: Project;
+}
+
+export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
+  // Kiểm tra project có tồn tại không
+  if (!project) {
+    return (
+      <div className="team-workload">
+        <div className="section-header">
+          <div className="section-title">
+            <h3>Các thành viên trong nhóm</h3>
+            <p>Danh sách thành viên và công việc được giao.</p>
+          </div>
+        </div>
+        <div className="no-data-message">
+          <p>Không có thông tin dự án</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter tasks for this specific project
+  const projectMilestones = mockMilestones.filter(m => m.projectId === project.id);
+  const projectTasks = mockTasks.filter(task => 
+    task.milestoneIds.some(milestoneId => projectMilestones.some(m => m.id === milestoneId))
+  );
+  
+  const assigneeCounts = projectTasks.reduce((acc, task) => {
     const assignee = task.assignee || 'unassigned';
     acc[assignee] = (acc[assignee] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  const totalTasks = mockTasks.length;
+  const totalTasks = projectTasks.length;
   
   const workloadData = Object.entries(assigneeCounts).map(([assigneeId, count]) => {
     const member = mockMembers.find(m => m.id === assigneeId);

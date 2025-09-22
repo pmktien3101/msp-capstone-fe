@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 import {
-  CallControls,
   CallingState,
   CallParticipantsList,
   CallStatsButton,
@@ -8,7 +7,7 @@ import {
   SpeakerLayout,
   useCallStateHooks,
   useCall,
-  TranscriptionSettingsRequestModeEnum,
+  ScreenShareButton,
 } from "@stream-io/video-react-sdk";
 import BackgroundFilterSettings from "../filters/background-filter-settings";
 import React, { Fragment, useEffect, useRef, useState } from "react";
@@ -23,6 +22,10 @@ import { Filter, LayoutList, User } from "lucide-react";
 import { Button } from "../ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import EndCallButton from "../ui/end-call-button";
+import MicButton from "../ui/mic-button";
+import CameraButton from "../ui/camera-button";
+import RecordButton from "../ui/record-button";
+import TranscriptButton from "../ui/transcript-button";
 
 type CallLayoutType = "grid" | "speaker-left" | "speaker-right";
 
@@ -41,10 +44,6 @@ const MeetingRoom = () => {
   } = useCallStateHooks();
   const callingState = useCallCallingState();
   const call = useCall();
-
-  // transcription hooks
-  const { transcription } = useCallSettings() || {};
-  const isTranscribing = useIsCallTranscribingInProgress();
 
   // Dùng ref để biết user đã từng join call chưa nhằm tránh redirect khi đang load ban đầu
   const wasJoinedRef = useRef(false);
@@ -85,7 +84,7 @@ const MeetingRoom = () => {
   return (
     <section className="relative h-screen w-full overflow-hidden pt-4 text-white">
       <div className="relative flex size-full justify-center items-center">
-        <div className="flex size-full max-w-[1000px] items-center">
+        <div className="flex size-full h-full max-w-[1220px] items-center">
           <CallLayout />
         </div>
         <div
@@ -102,9 +101,11 @@ const MeetingRoom = () => {
       </div>
 
       {/* Controls */}
-      <div className="fixed bottom-0 flex w-full justify-center items-center gap-5 flex-wrap">
-        <CallControls />
-
+      <div className="fixed bottom-2 flex w-full justify-center items-center gap-5 flex-wrap">
+        <MicButton />
+        <CameraButton />
+        <RecordButton />
+        <ScreenShareButton />
         {/* Layout Switch */}
         <DropdownMenu>
           <div className="flex items-center gap-2 bg-gray-800 rounded-3xl hover:bg-gray-700 transition-colors">
@@ -150,27 +151,8 @@ const MeetingRoom = () => {
         </Button>
 
         {/* Transcription Toggle */}
-        {transcription?.mode !==
-          TranscriptionSettingsRequestModeEnum.DISABLED && (
-          <Button
-            onClick={() => {
-              if (isTranscribing) {
-                call?.stopTranscription().catch((err) => {
-                  console.error("Failed to stop transcription", err);
-                });
-              } else {
-                call?.startTranscription().catch((err) => {
-                  console.error("Failed to start transcription", err);
-                });
-              }
-            }}
-            className="cursor-pointer bg-gray-800 hover:bg-gray-700 rounded-3xl px-4 py-2"
-          >
-            {isTranscribing ? "Stop Transcript" : "Start Transcript"}
-          </Button>
-        )}
-
-        {!isPersonalRoom && <EndCallButton />}
+        <TranscriptButton />
+        <EndCallButton />
       </div>
 
       {/* Filters Panel */}

@@ -1,15 +1,39 @@
 'use client';
 
+import { Project } from '@/types/project';
 import { mockMeetings, mockMembers } from '@/constants/mockData';
 
-export const UpcomingMeetings = () => {
+interface UpcomingMeetingsProps {
+  project: Project;
+}
+
+export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
+  // Kiểm tra project có tồn tại không
+  if (!project) {
+    return (
+      <div className="upcoming-meetings">
+        <div className="section-header">
+          <div className="section-title">
+            <h3>Cuộc họp sắp tới</h3>
+            <p>Danh sách các cuộc họp sắp diễn ra.</p>
+          </div>
+        </div>
+        <div className="no-meetings-message">
+          <p>Không có thông tin dự án</p>
+        </div>
+      </div>
+    );
+  }
+
   // Lấy thông tin member
   const getMemberInfo = (memberId: string) => {
     return mockMembers.find(member => member.id === memberId);
   };
 
-  // Lọc các cuộc họp sắp tới (Scheduled)
-  const upcomingMeetings = mockMeetings.filter(meeting => meeting.status === 'Scheduled');
+  // Lọc các cuộc họp sắp tới (Scheduled) cho dự án cụ thể
+  const upcomingMeetings = mockMeetings.filter(meeting => 
+    meeting.status === 'Scheduled' && meeting.projectId === project.id
+  );
 
   // Sắp xếp theo thời gian bắt đầu
   const sortedMeetings = upcomingMeetings.sort((a, b) => 
@@ -49,7 +73,7 @@ export const UpcomingMeetings = () => {
           <div className="meetings-list">
             {sortedMeetings.map((meeting) => {
               const { date, time } = formatDateTime(meeting.startTime);
-              const participants = getParticipantNames(meeting.participates);
+              const participants = getParticipantNames(meeting.participants || []);
               
               return (
                 <div key={meeting.id} className="meeting-item">
@@ -464,6 +488,13 @@ export const UpcomingMeetings = () => {
             width: 100%;
             justify-content: center;
           }
+        }
+
+        .no-meetings-message {
+          padding: 20px;
+          text-align: center;
+          color: #6b7280;
+          font-style: italic;
         }
       `}</style>
     </div>
