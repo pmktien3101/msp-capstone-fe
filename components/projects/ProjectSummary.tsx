@@ -1,14 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Project } from '@/types/project';
-import { OverviewCards } from './OverviewCards';
-import { StatusOverview } from './StatusOverview';
-import { MilestoneProgress } from './MilestoneProgress';
-import { TeamWorkload } from './TeamWorkload';
-import { TasksList } from './TasksList';
-import { UpcomingMeetings } from './UpcomingMeetings';
-import { mockProject, mockTasks, mockMilestones, mockMeetings, getProjectStats } from '@/constants/mockData';
+import { Project } from "@/types/project";
+import { OverviewCards } from "./OverviewCards";
+import { StatusOverview } from "./StatusOverview";
+import { MilestoneProgress } from "./MilestoneProgress";
+import { TeamWorkload } from "./TeamWorkload";
+import { TasksList } from "./TasksList";
+// import { UpcomingMeetings } from './UpcomingMeetings';
+import { mockProject, getProjectStats } from "@/constants/mockData";
 
 interface ProjectSummaryProps {
   projects: Project[];
@@ -36,7 +35,7 @@ export function ProjectSummary({ projects }: ProjectSummaryProps) {
         <div className="summary-right">
           <StatusOverview />
           <TeamWorkload />
-          <UpcomingMeetings />
+          {/* <UpcomingMeetings /> */}
         </div>
       </div>
 
