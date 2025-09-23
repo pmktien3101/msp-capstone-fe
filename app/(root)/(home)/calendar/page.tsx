@@ -5,11 +5,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Calendar,
   Clock,
   Users,
   MapPin,
+  ArrowRight,
+  Phone,
 } from "lucide-react";
+import { DetailTaskModal } from "@/components/tasks/DetailTaskModal";
+import { mockTasks } from "@/constants/mockData";
 
 interface CalendarEvent {
   id: string;
@@ -26,10 +32,13 @@ interface CalendarEvent {
 }
 
 export default function CalendarPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   // Mock data for calendar events
   const mockEvents: CalendarEvent[] = [
     // Ngày 15/09/2025 - Nhiều sự kiện
@@ -413,28 +422,69 @@ export default function CalendarPage() {
     }
   };
 
+  const handleEventCardClick = (event: CalendarEvent) => {
+    console.log('Event clicked:', event);
+    if (event.type === "task") {
+      // Create task object from calendar event
+      const task = {
+        id: event.id,
+        title: event.title,
+        description: event.description || "",
+        milestoneIds: [], // Default empty array
+        status: event.status || "todo",
+        priority: event.priority || "medium",
+        assignee: "", // Default no assignee
+        startDate: event.date,
+        endDate: event.date,
+      };
+      console.log('Created task:', task);
+      setSelectedTask(task);
+      setIsTaskModalOpen(true);
+    } else if (event.type === "meeting") {
+      // Navigate to meeting detail page
+      router.push(`/meeting-detail/${event.id}`);
+    }
+  };
+
   const handleTaskDetail = (taskId: string) => {
-    // Navigate to task detail page
-    // window.open(`/tasks/${taskId}`, '_blank');
-    alert(`Xem chi tiết công việc: ${taskId}`);
+    // Find the corresponding calendar event
+    const event = events.find(e => e.id === taskId && e.type === "task");
+    if (event) {
+      // Create task object from calendar event
+      const task = {
+        id: event.id,
+        title: event.title,
+        description: event.description || "",
+        milestoneIds: [], // Default empty array
+        status: event.status || "todo",
+        priority: event.priority || "medium",
+        assignee: "", // Default no assignee
+        startDate: event.date,
+        endDate: event.date,
+      };
+      setSelectedTask(task);
+      setIsTaskModalOpen(true);
+    }
   };
 
   const handleJoinMeeting = (meetingId: string) => {
-    // Handle meeting join logic
-    const meeting = events.find((event) => event.id === meetingId);
-    if (meeting) {
-      if (meeting.location?.includes("Online")) {
-        // For online meetings, show join link
-        alert(
-          `Tham gia cuộc họp: ${meeting.title}\nThời gian: ${meeting.startTime} - ${meeting.endTime}\nĐịa điểm: ${meeting.location}`
-        );
-      } else {
-        // For physical meetings, show location info
-        alert(
-          `Tham gia cuộc họp: ${meeting.title}\nThời gian: ${meeting.startTime} - ${meeting.endTime}\nĐịa điểm: ${meeting.location}`
-        );
-      }
-    }
+    // Navigate to meeting detail page
+    router.push(`/meeting-detail/${meetingId}`);
+  };
+
+  const handleCloseTaskModal = () => {
+    setIsTaskModalOpen(false);
+    setSelectedTask(null);
+  };
+
+  const handleTaskEdit = (task: any) => {
+    // Handle task edit - you can implement actual edit logic here
+    console.log('Editing task:', task);
+  };
+
+  const handleTaskDelete = (taskId: string, taskTitle: string) => {
+    // Handle task delete - you can implement actual delete logic here
+    console.log('Deleting task:', taskId, taskTitle);
   };
 
   const days = getDaysInMonth(currentDate);
@@ -555,7 +605,7 @@ export default function CalendarPage() {
             ) : (
               <>
                 {displayedEvents.map((event) => (
-                  <div key={event.id} className="event-card">
+                  <div key={event.id} className="event-card" onClick={() => handleEventCardClick(event)}>
                     <div className="event-header">
                       <div className="event-type">
                         <div className={`type-icon ${event.type}`}>
@@ -636,20 +686,7 @@ export default function CalendarPage() {
                           onClick={() => handleTaskDetail(event.id)}
                         >
                           <span>Xem chi tiết</span>
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <path
-                              d="M9 18L15 12L9 6"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
+                          <ArrowRight size={16} />
                         </button>
                       ) : (
                         <button
@@ -657,20 +694,7 @@ export default function CalendarPage() {
                           onClick={() => handleJoinMeeting(event.id)}
                         >
                           <span>Tham gia</span>
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <path
-                              d="M22 16.92V19.92C22.0011 20.1985 21.9441 20.4742 21.8325 20.7293C21.7209 20.9845 21.5573 21.2136 21.3521 21.4019C21.1468 21.5901 20.9046 21.7335 20.6407 21.8227C20.3769 21.9119 20.0974 21.9451 19.82 21.92C16.7428 21.5856 13.787 20.5341 11.19 18.85C8.77382 17.3147 6.72533 15.2662 5.19 12.85C3.49997 10.2412 2.44824 7.27099 2.12 4.18C2.095 3.90347 2.12787 3.62476 2.21649 3.36162C2.30512 3.09849 2.44756 2.85669 2.63476 2.65162C2.82196 2.44655 3.0498 2.28271 3.30379 2.17052C3.55777 2.05833 3.83233 2.00026 4.11 2H7.11C7.59531 1.99522 8.06679 2.16708 8.43376 2.48353C8.80073 2.79999 9.03996 3.23945 9.11 3.72C9.23662 4.68007 9.47144 5.62273 9.81 6.53C9.94454 6.88792 9.97366 7.27691 9.89391 7.65088C9.81415 8.02485 9.62886 8.36811 9.36 8.64L8.09 9.91C9.51355 12.4135 11.5865 14.4864 14.09 15.91L15.36 14.64C15.6319 14.3711 15.9751 14.1858 16.3491 14.1061C16.7231 14.0263 17.1121 14.0555 17.47 14.19C18.3773 14.5286 19.3199 14.7634 20.28 14.89C20.7658 14.9585 21.2094 15.2032 21.5265 15.5775C21.8437 15.9518 22.0122 16.4296 22 16.92Z"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
+                          <Phone size={16} />
                         </button>
                       )}
                     </div>
@@ -687,20 +711,7 @@ export default function CalendarPage() {
                       <span>
                         Xem thêm {selectedDateEvents.length - 3} sự kiện khác
                       </span>
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M9 18L15 12L9 6"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                      <ChevronDown size={16} />
                     </button>
                   </div>
                 )}
@@ -713,20 +724,7 @@ export default function CalendarPage() {
                       onClick={() => setShowAllEvents(false)}
                     >
                       <span>Thu gọn</span>
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M15 18L9 12L15 6"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                      <ChevronUp size={16} />
                     </button>
                   </div>
                 )}
@@ -735,6 +733,17 @@ export default function CalendarPage() {
           </div>
         </div>
       </div>
+
+      {/* Detail Task Modal */}
+      {selectedTask && (
+        <DetailTaskModal
+          isOpen={isTaskModalOpen}
+          onClose={handleCloseTaskModal}
+          onEdit={handleTaskEdit}
+          onDelete={handleTaskDelete}
+          task={selectedTask}
+        />
+      )}
 
       <style jsx>{`
         .calendar-page {
@@ -976,6 +985,7 @@ export default function CalendarPage() {
           border-radius: 8px;
           padding: 16px;
           transition: all 0.2s ease;
+          cursor: pointer;
         }
 
         .event-card:hover {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { ProjectTabs } from '@/components/projects/ProjectTabs';
 import { DetailTaskModal } from '@/components/tasks/DetailTaskModal';
 import { CreateMilestoneModal } from '@/components/milestones/CreateMilestoneModal';
@@ -15,6 +15,7 @@ import '@/app/styles/project-detail.scss';
 
 const ProjectDetailPage = () => {
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params.projectId as string;
   const { role } = useUser();
   const [project, setProject] = useState<Project | null>(null);
@@ -93,6 +94,12 @@ const ProjectDetailPage = () => {
 
   // Load project data from mockData
   useEffect(() => {
+    // Get tab from URL parameters
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && ['summary', 'board', 'list', 'documents', 'meetings', 'settings'].includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+
     // Simulate API call delay
     const timer = setTimeout(() => {
       // Find the specific project
@@ -123,7 +130,7 @@ const ProjectDetailPage = () => {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [projectId]);
+  }, [projectId, searchParams]);
 
   if (loading) {
     return (
