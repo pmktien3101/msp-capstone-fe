@@ -55,8 +55,8 @@ const MeetingsPage = () => {
   // Filter meetings based on search and filters
   const filteredMeetings = useMemo(() => {
     return meetings.filter((meeting: any) => {
-      const matchesSearch = meeting.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        meeting.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = meeting?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        meeting?.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesProject = selectedProject === 'all' || meeting.projectId === selectedProject;
 
