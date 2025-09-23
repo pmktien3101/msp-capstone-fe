@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Project } from '@/types/project';
+import { useUser } from '@/hooks/useUser';
 import { Eye, Edit, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface ProjectsTableProps {
@@ -14,6 +15,10 @@ interface ProjectsTableProps {
 export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewProject }: ProjectsTableProps) {
   const [sortField, setSortField] = useState<keyof Project>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const { role } = useUser();
+
+  // Check if user can edit projects (not a member)
+  const canEditProject = role !== 'Member';
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -223,14 +228,15 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                     >
                       <Eye size={16} />
                     </button>
-                    <button 
-                      className="action-btn edit-btn"
-                      onClick={() => onEditProject(project)}
-                      title="Chỉnh sửa"
-                    >
-                      <Edit size={16} />
-                    </button>
-
+                    {canEditProject && (
+                      <button 
+                        className="action-btn edit-btn"
+                        onClick={() => onEditProject(project)}
+                        title="Chỉnh sửa"
+                      >
+                        <Edit size={16} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
