@@ -1190,25 +1190,6 @@ export const ListTable = ({
           z-index: 3; /* Ensure task items appear above everything */
         }
 
-        .task-item::before {
-          content: '';
-          position: absolute;
-          left: -12px;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 8px;
-          height: 8px;
-          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
-          border-radius: 50%;
-          box-shadow: 0 2px 4px rgba(255, 140, 66, 0.3);
-        }
-
-        .task-item:hover::before {
-          background: linear-gradient(135deg, #ff6b1a 0%, #e55100 100%);
-          transform: translateY(-50%) scale(1.2);
-          box-shadow: 0 4px 8px rgba(255, 107, 26, 0.4);
-        }
-
         .task-card-full {
           background: white;
           border-radius: 8px;
@@ -1218,6 +1199,8 @@ export const ListTable = ({
           overflow: visible; /* Allow task card to be visible */
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
           cursor: pointer;
+          margin-left: 16px;
+
         }
 
         .task-card-full:hover {
