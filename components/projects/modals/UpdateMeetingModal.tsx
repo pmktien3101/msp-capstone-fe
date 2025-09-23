@@ -9,7 +9,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { Call } from "@stream-io/video-react-sdk";
 import { toast } from "react-toastify";
 import { Participant } from "@/types";
-import { mockParticipants, mockMilestones } from "@/constants/mockData";
+import { mockParticipants, mockMilestones, mockProjects } from "@/constants/mockData";
 
 interface MockMeeting {
   id: string;
@@ -29,7 +29,8 @@ interface UpdateMeetingModalProps {
   call?: Call;
   mockMeeting?: MockMeeting;
   onClose: () => void;
-  onUpdated?: () => void;
+  onUpdated?: (updatedMeeting?: any) => void;
+  requireProjectSelection?: boolean;
 }
 
 export const UpdateMeetingModal = ({
@@ -37,6 +38,7 @@ export const UpdateMeetingModal = ({
   mockMeeting,
   onClose,
   onUpdated,
+  requireProjectSelection = false,
 }: UpdateMeetingModalProps) => {
   const isStreamMeeting = !!call;
 
@@ -78,10 +80,28 @@ export const UpdateMeetingModal = ({
 
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [milestones, setMilestones] = useState(mockMilestones);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(
+    mockMeeting?.projectId || ""
+  );
 
   useEffect(() => {
     setParticipants(mockParticipants);
-  }, []);
+    
+    if (requireProjectSelection) {
+      setProjects(mockProjects);
+    }
+    
+    // Filter milestones based on selected project
+    if (selectedProjectId) {
+      const projectMilestones = mockMilestones.filter(
+        milestone => milestone.projectId === selectedProjectId
+      );
+      setMilestones(projectMilestones);
+    } else {
+      setMilestones(mockMilestones);
+    }
+  }, [selectedProjectId, requireProjectSelection]);
 
   // Sync state khi call hoặc mockMeeting thay đổi
   useEffect(() => {
@@ -123,6 +143,12 @@ export const UpdateMeetingModal = ({
     );
   };
 
+  const handleProjectChange = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    // Reset milestone khi thay đổi project
+    setMilestoneId("");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -153,11 +179,26 @@ export const UpdateMeetingModal = ({
           })),
         });
         toast.success("Đã cập nhật cuộc họp Stream");
+        onUpdated?.();
       } else {
-        toast.success("Đã cập nhật cuộc họp Offline (mock)");
+        // Tạo updated meeting object cho offline meeting
+        const updatedMeeting = {
+          ...mockMeeting,
+          title: title.trim(),
+          description: description.trim(),
+          startTime: dateTime?.toISOString() || mockMeeting?.startTime,
+          endTime: dateTime ? new Date(dateTime.getTime() + 60 * 60 * 1000).toISOString() : mockMeeting?.endTime,
+          meetingType,
+          location: meetingType === "offline" ? location.trim() : undefined,
+          milestoneId: milestoneId || null,
+          participants: selectedParticipants,
+          projectId: requireProjectSelection ? selectedProjectId : mockMeeting?.projectId,
+        };
+        
+        toast.success("Đã cập nhật cuộc họp Offline");
+        onUpdated?.(updatedMeeting);
       }
 
-      onUpdated?.();
       onClose();
     } catch (err: any) {
       console.error(err);
@@ -262,12 +303,33 @@ export const UpdateMeetingModal = ({
             </div>
           )}
 
+          {requireProjectSelection && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">
+                Dự án <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedProjectId}
+                onChange={(e) => handleProjectChange(e.target.value)}
+                className="w-full rounded-md border border-gray-300 p-2"
+                required
+              >
+                <option value="">-- Chọn dự án --</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="space-y-2">
             <label className="block text-sm font-medium">Milestone</label>
             <select
               value={milestoneId}
               onChange={(e) => setMilestoneId(e.target.value)}
               className="w-full rounded-md border border-gray-300 p-2"
+              disabled={requireProjectSelection && !selectedProjectId}
             >
               <option value="">-- Chọn milestone --</option>
               {milestones.map((m) => (
@@ -276,6 +338,11 @@ export const UpdateMeetingModal = ({
                 </option>
               ))}
             </select>
+            {requireProjectSelection && !selectedProjectId && (
+              <p className="text-xs text-red-500">
+                Vui lòng chọn dự án trước để xem milestones
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

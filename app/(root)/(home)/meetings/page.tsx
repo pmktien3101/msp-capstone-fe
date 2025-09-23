@@ -1,19 +1,25 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/useUser';
-import { mockMeetings, mockProject, mockMilestones } from '@/constants/mockData';
-import { 
-  Search, 
-  Filter, 
-  Calendar, 
-  Clock, 
-  Users, 
-  MapPin, 
+import { mockMeetings, mockProject, mockMilestones, mockProjects, mockMembers } from '@/constants/mockData';
+import { CreateMeetingModal } from '@/components/projects/modals/CreateMeetingModal';
+import { UpdateMeetingModal } from '@/components/projects/modals/UpdateMeetingModal';
+import { DeleteMeetingModal } from '@/components/modals/DeleteMeetingModal';
+import {
+  Search,
+  Filter,
+  Calendar,
+  Clock,
+  Users,
+  MapPin,
   Video,
   ChevronDown,
-  Plus
+  Plus,
+  Edit,
+  Trash2,
+  MoreVertical
 } from 'lucide-react';
 
 interface Meeting {
@@ -38,30 +44,38 @@ const MeetingsPage = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedDate, setSelectedDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
+  const [meetingToDelete, setMeetingToDelete] = useState<any>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [meetings, setMeetings] = useState(mockMeetings);
 
   // Filter meetings based on search and filters
   const filteredMeetings = useMemo(() => {
-    return mockMeetings.filter((meeting: any) => {
+    return meetings.filter((meeting: any) => {
       const matchesSearch = meeting.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           meeting.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
+        meeting.description.toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesProject = selectedProject === 'all' || meeting.projectId === selectedProject;
-      
-      const matchesMilestone = selectedMilestone === 'all' || 
-                              (meeting.milestoneId && meeting.milestoneId === selectedMilestone) ||
-                              (!meeting.milestoneId && selectedMilestone === 'no-milestone');
-      
+
+      const matchesMilestone = selectedMilestone === 'all' ||
+        (meeting.milestoneId && meeting.milestoneId === selectedMilestone) ||
+        (!meeting.milestoneId && selectedMilestone === 'no-milestone');
+
       const matchesStatus = selectedStatus === 'all' || meeting.status === selectedStatus;
-      
+
       const meetingDate = new Date(meeting.startTime).toISOString().split('T')[0];
       const matchesDate = !selectedDate || meetingDate === selectedDate;
-      
+
       return matchesSearch && matchesProject && matchesMilestone && matchesStatus && matchesDate;
     });
-  }, [searchTerm, selectedProject, selectedMilestone, selectedStatus, selectedDate]);
+  }, [meetings, searchTerm, selectedProject, selectedMilestone, selectedStatus, selectedDate]);
 
   const getProjectName = (projectId: string) => {
-    return mockProject.id === projectId ? mockProject.name : 'Không xác định';
+    const project = mockProjects.find(p => p.id === projectId);
+    return project ? project.name : 'Không xác định';
   };
 
   const getMilestoneName = (milestoneId?: string) => {
@@ -73,22 +87,24 @@ const MeetingsPage = () => {
   const getStatusLabel = (status: string) => {
     switch (status.toLowerCase()) {
       case 'scheduled':
-      case 'upcoming':
         return 'Đã lên lịch';
-      case 'completed':
+      // case 'upcoming':
+      //   return 'Sắp diễn ra';
+      // case 'completed':
+      //   return 'Đã hoàn thành';
       case 'finished':
         return 'Đã hoàn thành';
-      case 'cancelled':
-      case 'canceled':
-        return 'Đã hủy';
-      case 'in-progress':
-      case 'ongoing':
-        return 'Đang diễn ra';
-      case 'pending':
-        return 'Chờ xử lý';
-      case 'draft':
-        return 'Bản nháp';
-      default: 
+      // case 'canceled':
+      //   return 'Đã hủy';
+      // case 'in-progress':
+      //   return 'Đang diễn ra';
+      // case 'ongoing':
+      //   return 'Đang diễn ra';
+      // case 'pending':
+      //   return 'Chờ xử lý';
+      // case 'draft':
+      //   return 'Bản nháp';
+      default:
         return status;
     }
   };
@@ -107,7 +123,7 @@ const MeetingsPage = () => {
       case 'in-progress':
       case 'ongoing':
         return 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border border-yellow-300';
-      default: 
+      default:
         return 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300';
     }
   };
@@ -121,6 +137,103 @@ const MeetingsPage = () => {
     e.stopPropagation(); // Ngăn chặn event bubbling lên card
     alert(`Tham gia cuộc họp: ${meetingTitle}`);
   };
+
+  const handleOpenCreateModal = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  const handleCreateMeeting = (meetingData: any) => {
+    console.log('Meeting created:', meetingData);
+
+    // Thêm meeting mới vào state
+    setMeetings(prevMeetings => [meetingData, ...prevMeetings]);
+
+    // Đóng modal
+    setIsCreateModalOpen(false);
+  };
+
+  const handleEditMeeting = (meeting: any, e: React.MouseEvent) => {
+    e.stopPropagation(); // Ngăn chặn event bubbling lên card
+    setSelectedMeeting(meeting);
+    setIsUpdateModalOpen(true);
+    setOpenDropdownId(null); // Đóng dropdown
+  };
+
+  const handleDeleteMeeting = (meeting: any, e: React.MouseEvent) => {
+    e.stopPropagation(); // Ngăn chặn event bubbling lên card
+    setMeetingToDelete(meeting);
+    setIsDeleteModalOpen(true);
+    setOpenDropdownId(null); // Đóng dropdown
+  };
+
+  const handleConfirmDelete = (meetingId: string) => {
+    setMeetings(prevMeetings => prevMeetings.filter(m => m.id !== meetingId));
+    setIsDeleteModalOpen(false);
+    setMeetingToDelete(null);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setMeetingToDelete(null);
+  };
+
+  const handleUpdateMeeting = (updatedMeeting: any) => {
+    console.log('Meeting updated:', updatedMeeting);
+    
+    // Cập nhật meeting trong state
+    setMeetings(prevMeetings => 
+      prevMeetings.map(m => m.id === updatedMeeting.id ? updatedMeeting : m)
+    );
+    
+    // Đóng modal
+    setIsUpdateModalOpen(false);
+    setSelectedMeeting(null);
+  };
+
+  const handleCloseUpdateModal = () => {
+    setIsUpdateModalOpen(false);
+    setSelectedMeeting(null);
+  };
+
+  const handleDropdownToggle = (meetingId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpenDropdownId(openDropdownId === meetingId ? null : meetingId);
+  };
+
+  const handleCloseDropdown = () => {
+    setOpenDropdownId(null);
+  };
+
+  // Đóng dropdown khi click bên ngoài
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdownId) {
+        setOpenDropdownId(null);
+      }
+    };
+
+    if (openDropdownId) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [openDropdownId]);
+
+  // Reset state khi component mount lại (khi back từ detail page)
+  useEffect(() => {
+    setOpenDropdownId(null);
+    setIsCreateModalOpen(false);
+    setIsUpdateModalOpen(false);
+    setIsDeleteModalOpen(false);
+    setSelectedMeeting(null);
+    setMeetingToDelete(null);
+  }, []);
 
   // Redirect if not PM
   if (role !== 'pm') {
@@ -141,7 +254,7 @@ const MeetingsPage = () => {
           <h1 className="page-title">Danh sách cuộc Họp</h1>
           <p className="page-subtitle">Quản lý và theo dõi các cuộc họp dự án</p>
         </div>
-        <button className="create-meeting-btn">
+        <button className="create-meeting-btn" onClick={handleOpenCreateModal}>
           <Plus size={16} />
           Tạo cuộc họp mới
         </button>
@@ -149,7 +262,7 @@ const MeetingsPage = () => {
 
       <div className="filters-section">
         <div className="search-bar">
-            <span className='search-icon'><Search size={20} /></span>
+          <span className='search-icon'><Search size={20} /></span>
           {/* <Search size={20} className="search-icon" /> */}
           <input
             type="text"
@@ -159,8 +272,8 @@ const MeetingsPage = () => {
             className="search-input"
           />
         </div>
-        
-        <button 
+
+        <button
           className="filter-toggle-btn"
           onClick={() => setShowFilters(!showFilters)}
         >
@@ -169,7 +282,7 @@ const MeetingsPage = () => {
           <ChevronDown size={16} className={`chevron ${showFilters ? 'rotated' : ''}`} />
         </button>
 
-        <button 
+        <button
           className="clear-filters-btn"
           onClick={() => {
             setSearchTerm('');
@@ -180,11 +293,11 @@ const MeetingsPage = () => {
           }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 6h18"/>
-            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-            <line x1="10" y1="11" x2="10" y2="17"/>
-            <line x1="14" y1="11" x2="14" y2="17"/>
+            <path d="M3 6h18" />
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+            <line x1="10" y1="11" x2="10" y2="17" />
+            <line x1="14" y1="11" x2="14" y2="17" />
           </svg>
           Xóa bộ lọc
         </button>
@@ -195,22 +308,27 @@ const MeetingsPage = () => {
           <div className="filter-row">
             <div className="filter-group">
               <label className="filter-label">Dự án</label>
-              <select 
-                value={selectedProject} 
+              <select
+                value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
                 className="filter-select"
               >
                 <option value="all">Tất cả dự án</option>
-                <option key={mockProject.id} value={mockProject.id}>
+                {/* <option key={mockProject.id} value={mockProject.id}>
                   {mockProject.name}
-                </option>
+                </option> */}
+                {mockProjects?.map((project: any) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className="filter-group">
               <label className="filter-label">Milestone</label>
-              <select 
-                value={selectedMilestone} 
+              <select
+                value={selectedMilestone}
                 onChange={(e) => setSelectedMilestone(e.target.value)}
                 className="filter-select"
               >
@@ -226,18 +344,18 @@ const MeetingsPage = () => {
 
             <div className="filter-group">
               <label className="filter-label">Trạng thái</label>
-              <select 
-                value={selectedStatus} 
+              <select
+                value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="filter-select"
               >
                 <option value="all">Tất cả trạng thái</option>
-                <option value="scheduled">Đã lên lịch</option>
-                <option value="completed">Đã hoàn thành</option>
-                <option value="cancelled">Đã hủy</option>
+                <option value="Scheduled">Đã lên lịch</option>
+                <option value="Finished">Đã hoàn thành</option>
+                {/* <option value="cancelled">Đã hủy</option>
                 <option value="in-progress">Đang diễn ra</option>
                 <option value="pending">Chờ xử lý</option>
-                <option value="draft">Bản nháp</option>
+                <option value="draft">Bản nháp</option> */}
               </select>
             </div>
 
@@ -262,13 +380,13 @@ const MeetingsPage = () => {
           </div>
           <div className="stat-card">
             <div className="stat-number">
-              {filteredMeetings.filter(m => m.status === 'scheduled').length}
+              {filteredMeetings.filter(m => m.status === 'Scheduled').length}
             </div>
             <div className="stat-label">Đã lên lịch</div>
           </div>
           <div className="stat-card">
             <div className="stat-number">
-              {filteredMeetings.filter(m => m.status === 'completed').length}
+              {filteredMeetings.filter(m => m.status === 'Finished').length}
             </div>
             <div className="stat-label">Đã hoàn thành</div>
           </div>
@@ -277,28 +395,57 @@ const MeetingsPage = () => {
         <div className="meetings-list">
           {filteredMeetings.length === 0 ? (
             <div className="empty-state">
-                <span className='empty-icon'><Calendar size={48} /></span>
+              <span className='empty-icon'><Calendar size={48} /></span>
               <h3 className="empty-title">Không có cuộc họp nào</h3>
               <p className="empty-description">
-                {searchTerm || selectedProject !== 'all' || selectedMilestone !== 'all' || 
-                 selectedStatus !== 'all' || selectedDate
+                {searchTerm || selectedProject !== 'all' || selectedMilestone !== 'all' ||
+                  selectedStatus !== 'all' || selectedDate
                   ? 'Không tìm thấy cuộc họp phù hợp với bộ lọc.'
                   : 'Chưa có cuộc họp nào được tạo.'}
               </p>
             </div>
           ) : (
             <div className="meetings-grid">
-               {filteredMeetings.map((meeting: any) => (
-                 <div key={meeting.id} className="meeting-card" onClick={() => handleCardClick(meeting.id)}>
+              {filteredMeetings.map((meeting: any) => (
+                <div key={meeting.id} className="meeting-card" onClick={() => handleCardClick(meeting.id)}>
                   <div className="meeting-header">
                     <h3 className="meeting-title">{meeting.title}</h3>
-                    <span className={`status-badge ${getStatusColor(meeting.status)}`}>
-                      {getStatusLabel(meeting.status)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`status-badge ${getStatusColor(meeting.status)}`}>
+                        {getStatusLabel(meeting.status)}
+                      </span>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => handleDropdownToggle(meeting.id, e)}
+                          className="dropdown-trigger"
+                          title="Tùy chọn"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        {openDropdownId === meeting.id && (
+                          <div className="dropdown-menu">
+                            <button
+                              onClick={(e) => handleEditMeeting(meeting, e)}
+                              className="dropdown-item edit-item"
+                            >
+                              <Edit size={14} />
+                              <span>Chỉnh sửa</span>
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteMeeting(meeting, e)}
+                              className="dropdown-item delete-item"
+                            >
+                              <Trash2 size={14} />
+                              <span>Xóa</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  
+
                   <p className="meeting-description">{meeting.description}</p>
-                  
+
                   <div className="meeting-details">
                     <div className="detail-item">
                       <Calendar size={16} />
@@ -307,25 +454,29 @@ const MeetingsPage = () => {
                     <div className="detail-item">
                       <Clock size={16} />
                       <span>
-                        {new Date(meeting.startTime).toLocaleTimeString('vi-VN', { 
+                        {/* {new Date(meeting.startTime).toLocaleTimeString('vi-VN', { 
                           hour: '2-digit', 
                           minute: '2-digit' 
                         })} - {new Date(meeting.endTime).toLocaleTimeString('vi-VN', { 
                           hour: '2-digit', 
                           minute: '2-digit' 
+                        })} */}
+                        {new Date(meeting.startTime).toLocaleTimeString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit'
                         })}
                       </span>
                     </div>
                     <div className="detail-item">
                       {meeting.roomUrl ? <Video size={16} /> : <MapPin size={16} />}
-                      <span>{meeting.roomUrl ? 'Online' : 'Offline'}</span>
+                      <span>{meeting.roomUrl ? 'Online' : 'Offline - ' + meeting.location}</span>
                     </div>
                     <div className="detail-item">
                       <Users size={16} />
                       <span>{meeting.participants?.length ?? 0} người tham gia</span>
                     </div>
                   </div>
-                  
+
                   <div className="meeting-meta">
                     <div className="meta-item">
                       <span className="meta-label">Dự án:</span>
@@ -335,17 +486,17 @@ const MeetingsPage = () => {
                       <span className="meta-label">Milestone:</span>
                       <span className="meta-value">{getMilestoneName(meeting.milestoneId)}</span>
                     </div>
-                     {meeting.roomUrl && (
-                       <div className="meta-item">
-                         <span className="meta-label">Link:</span>
-                         <button 
-                           onClick={(e) => handleJoinMeeting(e, meeting.title)}
-                           className="meta-link"
-                         >
-                           Tham gia cuộc họp
-                         </button>
-                       </div>
-                     )}
+                    {meeting.roomUrl && (
+                      <div className="meta-item">
+                        <span className="meta-label">Link:</span>
+                        <button
+                          onClick={(e) => handleJoinMeeting(e, meeting.title)}
+                          className="meta-link"
+                        >
+                          Tham gia cuộc họp
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -690,12 +841,13 @@ const MeetingsPage = () => {
         .meeting-card {
           border: 2px solid #e2e8f0;
           border-radius: 8px;
-          padding: 16px;
+          padding: 16px !important;
           background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           cursor: pointer;
           position: relative;
           overflow: hidden;
+          box-sizing: border-box !important;
         }
 
 
@@ -706,19 +858,102 @@ const MeetingsPage = () => {
         }
 
         .meeting-header {
+          display: flex !important;
+          justify-content: space-between !important;
+          align-items: center !important;
+          margin-bottom: 12px !important;
+          padding-bottom: 8px !important;
+          padding-top: 0 !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+          border-bottom: 1px solid #e5e7eb !important;
+          box-sizing: border-box !important;
+        }
+
+        .dropdown-trigger {
           display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 10px;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          background: rgba(107, 114, 128, 0.1);
+          color: #6b7280;
+        }
+
+        .dropdown-trigger:hover {
+          background: rgba(107, 114, 128, 0.2);
+          color: #374151;
+          transform: translateY(-1px);
+        }
+
+        .dropdown-menu {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          z-index: 50;
+          margin-top: 4px;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+          min-width: 140px;
+          overflow: hidden;
+          animation: dropdownFadeIn 0.15s ease-out;
+        }
+
+        @keyframes dropdownFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+          padding: 10px 12px;
+          border: none;
+          background: none;
+          cursor: pointer;
+          font-size: 14px;
+          color: #374151;
+          transition: background-color 0.15s ease;
+          text-align: left;
+        }
+
+        .dropdown-item:hover {
+          background: #f9fafb;
+        }
+
+        .edit-item:hover {
+          background: rgba(59, 130, 246, 0.05);
+          color: #3b82f6;
+        }
+
+        .delete-item:hover {
+          background: rgba(239, 68, 68, 0.05);
+          color: #ef4444;
         }
 
         .meeting-title {
-          font-size: 16px;
-          font-weight: 600;
-          color: #1e293b;
-          margin: 0;
-          flex: 1;
-          line-height: 1.3;
+          font-size: 16px !important;
+          font-weight: 600 !important;
+          color: #1e293b !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          flex: 1 !important;
+          line-height: 1.3 !important;
+          box-sizing: border-box !important;
         }
 
         .status-badge {
@@ -958,6 +1193,31 @@ const MeetingsPage = () => {
           }
         }
       `}</style>
+
+      {isCreateModalOpen && (
+        <CreateMeetingModal
+          onClose={handleCloseCreateModal}
+          onCreated={handleCreateMeeting}
+          requireProjectSelection={true}
+        />
+      )}
+
+      {isUpdateModalOpen && selectedMeeting && (
+        <UpdateMeetingModal
+          mockMeeting={selectedMeeting}
+          onClose={handleCloseUpdateModal}
+          onUpdated={handleUpdateMeeting}
+          requireProjectSelection={true}
+        />
+      )}
+
+      {isDeleteModalOpen && meetingToDelete && (
+        <DeleteMeetingModal
+          meeting={meetingToDelete}
+          onClose={handleCloseDeleteModal}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
     </div>
   );
 };

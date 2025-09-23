@@ -11,7 +11,7 @@ import { useUser } from "@/hooks/useUser";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { Member, Participant } from "@/types";
-import { mockMilestones, mockParticipants } from "@/constants/mockData";
+import { mockMilestones, mockParticipants, mockProjects } from "@/constants/mockData";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -24,19 +24,22 @@ const formSchema = z.object({
     .min(1, "Vui lòng chọn ít nhất 1 người tham gia"),
   meetingType: z.enum(["online", "offline"]),
   location: z.string().optional(),
+  projectId: z.string().min(1, "Vui lòng chọn dự án"),
   milestoneId: z.string().optional(),
 });
 
 interface MeetingFormProps {
   onClose?: () => void;
-  onCreated?: (call: Call) => void;
+  onCreated?: (call: Call | any) => void;
   projectId?: string;
+  requireProjectSelection?: boolean;
 }
 
 export default function MeetingForm({
   onClose,
   onCreated,
   projectId,
+  requireProjectSelection = false,
 }: MeetingFormProps) {
   const { userId } = useUser();
   const client = useStreamVideoClient();
@@ -51,6 +54,12 @@ export default function MeetingForm({
   const [milestones, setMilestones] = useState<
     Array<{ id: string; name: string }>
   >([]);
+  const [projects, setProjects] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(
+    projectId || ""
+  );
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -61,6 +70,7 @@ export default function MeetingForm({
       participants: [],
       meetingType: "online",
       location: "",
+      projectId: projectId || "",
       milestoneId: "",
     },
   });
@@ -74,9 +84,27 @@ export default function MeetingForm({
         toast.error("Không thể tải danh sách người tham gia");
       }
     };
+    
+    const fetchProjects = async () => {
+      try {
+        setProjects(mockProjects);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+        toast.error("Không thể tải danh sách dự án");
+      }
+    };
+
     const fetchMilestones = async () => {
       try {
-        setMilestones(mockMilestones);
+        // Nếu có projectId được chọn, filter milestones theo project đó
+        if (selectedProjectId) {
+          const projectMilestones = mockMilestones.filter(
+            milestone => milestone.projectId === selectedProjectId
+          );
+          setMilestones(projectMilestones);
+        } else {
+          setMilestones(mockMilestones);
+        }
       } catch (error) {
         console.error("Error fetching milestones:", error);
         toast.error("Không thể tải danh sách milestones");
@@ -84,8 +112,11 @@ export default function MeetingForm({
     };
 
     fetchParticipants();
+    if (requireProjectSelection) {
+      fetchProjects();
+    }
     fetchMilestones();
-  }, [projectId]);
+  }, [projectId, selectedProjectId, requireProjectSelection]);
 
   const handleParticipantChange = (participantId: string) => {
     setSelectedParticipants((prev) => {
@@ -94,6 +125,13 @@ export default function MeetingForm({
       }
       return [...prev, participantId];
     });
+  };
+
+  const handleProjectChange = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    form.setValue("projectId", projectId);
+    // Reset milestone khi thay đổi project
+    form.setValue("milestoneId", "");
   };
   useEffect(() => {
     form.setValue("participants", selectedParticipants, {
@@ -115,7 +153,7 @@ export default function MeetingForm({
         title: values.title,
         description: values.description,
         scheduledAt: values.datetime.toISOString(),
-        projectId: projectId,
+        projectId: values.projectId || projectId,
         participants: allParticipants,
         meetingType: values.meetingType,
         location: values.location,
@@ -139,7 +177,30 @@ export default function MeetingForm({
         onCreated?.(call);
       } else {
         console.log("Creating offline meeting:", meetingData);
+        
+        // Tạo meeting object giống như mockData
+        const offlineMeeting = {
+          id: meetingId,
+          title: meetingData.title,
+          description: meetingData.description,
+          startTime: meetingData.scheduledAt,
+          endTime: new Date(new Date(meetingData.scheduledAt).getTime() + 60 * 60 * 1000).toISOString(), // +1 hour
+          status: "Scheduled",
+          roomUrl: null, // Offline meeting không có room URL
+          projectId: meetingData.projectId,
+          milestoneId: meetingData.milestoneId || null,
+          participates: meetingData.participants,
+          participants: meetingData.participants.map(id => {
+            const participant = mockParticipants.find(p => p.id === id);
+            return participant ? { id: participant.id, name: participant.email } : { id, name: "Unknown" };
+          }),
+          createdBy: userId,
+          location: meetingData.location,
+          meetingType: meetingData.meetingType
+        };
+        
         toast.success("Đã tạo cuộc họp offline thành công!");
+        onCreated?.(offlineMeeting); // Trả data về trang gọi
         onClose?.();
       }
     } catch (error) {
@@ -313,6 +374,31 @@ export default function MeetingForm({
                   )}
                 </div>
               )}
+              {requireProjectSelection && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">
+                    Dự án <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => handleProjectChange(e.target.value)}
+                    className="w-full rounded-md border border-gray-300 p-2"
+                    required
+                  >
+                    <option value="">-- Chọn dự án --</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                  {form.formState.errors.projectId && (
+                    <p className="text-sm text-red-500">
+                      {form.formState.errors.projectId.message}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="block text-sm font-medium">
                   Milestone (không bắt buộc)
@@ -320,6 +406,7 @@ export default function MeetingForm({
                 <select
                   {...form.register("milestoneId")}
                   className="w-full rounded-md border border-gray-300 p-2"
+                  disabled={requireProjectSelection && !selectedProjectId}
                 >
                   <option value="">-- Chọn milestone --</option>
                   {milestones.map((milestone) => (
@@ -328,6 +415,11 @@ export default function MeetingForm({
                     </option>
                   ))}
                 </select>
+                {requireProjectSelection && !selectedProjectId && (
+                  <p className="text-xs text-red-500">
+                    Vui lòng chọn dự án trước để xem milestones
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="block text-sm font-medium">
