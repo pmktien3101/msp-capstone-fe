@@ -4,16 +4,18 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import "@/app/styles/sign-up.scss";
+import { UploadCloud, FileText, X, User } from "lucide-react";
 
 interface RegisterFormData {
   businessName: string;
   businessType: string;
   industry: string;
-  taxCode: string;
   businessAddress: string;
   firstName: string;
   lastName: string;
   email: string;
+  password: string;
+  confirmPassword: string;
   phone: string;
   agreeTerms: boolean;
   licenseFile: File | null;
@@ -29,11 +31,12 @@ export default function SignUpPage() {
     businessName: "",
     businessType: "",
     industry: "",
-    taxCode: "",
     businessAddress: "",
     firstName: "",
     lastName: "",
     email: "",
+    password: "",
+    confirmPassword: "",
     phone: "",
     agreeTerms: false,
     licenseFile: null,
@@ -196,11 +199,13 @@ export default function SignUpPage() {
       registerForm.businessName &&
       registerForm.businessType &&
       registerForm.industry &&
-      registerForm.taxCode &&
       registerForm.businessAddress &&
       registerForm.firstName &&
       registerForm.lastName &&
       registerForm.email &&
+      registerForm.password &&
+      registerForm.confirmPassword &&
+      registerForm.password === registerForm.confirmPassword &&
       registerForm.phone &&
       registerForm.agreeTerms &&
       registerForm.licenseFile &&
@@ -271,28 +276,7 @@ export default function SignUpPage() {
           <div className="form-header">
             <div className="logo-container">
               <div className="logo-icon">
-                <svg
-                  width="40"
-                  height="40"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21"
-                    stroke="#FF5E13"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M8.5 11C10.7091 11 12.5 9.20914 12.5 7C12.5 4.79086 10.7091 3 8.5 3C6.29086 3 4.5 4.79086 4.5 7C4.5 9.20914 6.29086 11 8.5 11Z"
-                    stroke="#FF5E13"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <User size={40} strokeWidth={2} color="#FF5E13" />
               </div>
               <h1>Đăng Ký Tài Khoản Business Owner</h1>
               <p>Vui lòng điền thông tin doanh nghiệp và chờ admin duyệt</p>
@@ -382,24 +366,10 @@ export default function SignUpPage() {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="taxCode">Mã Số Thuế *</label>
-                <div className="input-wrapper">
-                  <input
-                    type="text"
-                    id="taxCode"
-                    name="taxCode"
-                    placeholder="Nhập mã số thuế"
-                    value={registerForm.taxCode}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
             </div>
 
             <div className="form-section">
-              <h3 className="section-title">Thông Tin Liên Hệ</h3>
+              <h3 className="section-title">Thông Tin Tài Khoản</h3>
 
               <div className="form-row">
                 <div className="form-group">
@@ -447,9 +417,50 @@ export default function SignUpPage() {
                   />
                 </div>
                 <small className="form-help">
-                  Tài khoản và mật khẩu sẽ được gửi về email này sau khi admin
-                  duyệt
+                  Email này sẽ được sử dụng để đăng nhập vào hệ thống
                 </small>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="password">Mật Khẩu *</label>
+                  <div className="input-wrapper">
+                    <input
+                      type="password"
+                      id="password"
+                      name="password"
+                      placeholder="Nhập mật khẩu"
+                      value={registerForm.password}
+                      onChange={handleInputChange}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <small className="form-help">
+                    Mật khẩu phải có ít nhất 6 ký tự
+                  </small>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">Xác Nhận Mật Khẩu *</label>
+                  <div className="input-wrapper">
+                    <input
+                      type="password"
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      placeholder="Nhập lại mật khẩu"
+                      value={registerForm.confirmPassword}
+                      onChange={handleInputChange}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  {registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword && (
+                    <small className="form-error">
+                      Mật khẩu xác nhận không khớp
+                    </small>
+                  )}
+                </div>
               </div>
 
               <div className="form-group">
@@ -468,7 +479,7 @@ export default function SignUpPage() {
               </div>
             </div>
 
-            <div className="form-group">
+            {/* <div className="form-group">
               <label className="checkbox-container">
                 <input
                   type="checkbox"
@@ -487,7 +498,7 @@ export default function SignUpPage() {
                   Chính Sách Bảo Mật
                 </a>
               </label>
-            </div>
+            </div> */}
 
             <button
               type="submit"
@@ -497,7 +508,7 @@ export default function SignUpPage() {
               {isLoading ? (
                 <div className="loading-spinner"></div>
               ) : (
-                <span>Gửi Đăng Ký</span>
+                <span>Gửi Đơn & Thanh Toán</span>
               )}
             </button>
 
@@ -523,43 +534,13 @@ export default function SignUpPage() {
                 </label>
                 <div className="file-upload-wrapper">
                   <div
-                    className={`file-upload-area ${
-                      registerForm.licenseFile ? "has-file" : ""
-                    }`}
+                    className={`file-upload-area ${registerForm.licenseFile ? "has-file" : ""
+                      }`}
                     onClick={() =>
                       document.getElementById("licenseFile")?.click()
                     }
                   >
-                    <svg
-                      className="upload-icon"
-                      width="48"
-                      height="48"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15"
-                        stroke="#FFA463"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M17 8L12 3L7 8"
-                        stroke="#FFA463"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M12 3V15"
-                        stroke="#FFA463"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <UploadCloud className="upload-icon" size={48} color="#FFA463" strokeWidth={2} />
                     <div className="upload-text">
                       <span className="upload-title">
                         Tải lên file giấy phép kinh doanh
@@ -581,22 +562,7 @@ export default function SignUpPage() {
                   {registerForm.licenseFile && (
                     <div className="file-info">
                       <div className="file-details">
-                        <svg
-                          className="file-icon"
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
-                            stroke="#10B981"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
+                        <FileText className="file-icon" size={20} color="#10B981" strokeWidth={2} />
                         <span className="file-name">
                           {registerForm.licenseFile.name}
                         </span>
@@ -610,21 +576,7 @@ export default function SignUpPage() {
                         onClick={removeFile}
                         title="Xóa file"
                       >
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M18 6L6 18M6 6L18 18"
-                            stroke="#EF4444"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
+                        <X width={16} height={16} color="#EF4444" strokeWidth={2} />
                       </button>
                     </div>
                   )}
@@ -642,9 +594,8 @@ export default function SignUpPage() {
                 {availablePlans.map((plan) => (
                   <div
                     key={plan.id}
-                    className={`plan-option ${
-                      registerForm.selectedPlan === plan.id ? "selected" : ""
-                    }`}
+                    className={`plan-option ${registerForm.selectedPlan === plan.id ? "selected" : ""
+                      }`}
                     onClick={() => selectPlan(plan.id)}
                   >
                     <div className="plan-header">
@@ -721,30 +672,23 @@ export default function SignUpPage() {
                   <div className="step-content">
                     <h4>Điền thông tin</h4>
                     <p>
-                      Điền đầy đủ thông tin doanh nghiệp và tải lên giấy phép
-                      kinh doanh
+                      Điền đầy đủ thông tin doanh nghiệp, tải lên giấy phép
+                      kinh doanh và chọn gói dịch vụ phù hợp
                     </p>
                   </div>
                 </div>
                 <div className="step-item">
                   <div className="step-number">2</div>
                   <div className="step-content">
-                    <h4>Admin xem xét</h4>
-                    <p>Admin sẽ xem xét và duyệt hồ sơ trong vòng 24-48 giờ</p>
+                    <h4>Gửi đơn & Thanh toán</h4>
+                    <p>Tiến hành gửi đơn đăng ký và thực hiện thanh toán</p>
                   </div>
                 </div>
                 <div className="step-item">
                   <div className="step-number">3</div>
                   <div className="step-content">
-                    <h4>Nhận tài khoản</h4>
-                    <p>Tài khoản và mật khẩu sẽ được gửi về email của bạn</p>
-                  </div>
-                </div>
-                <div className="step-item">
-                  <div className="step-number">4</div>
-                  <div className="step-content">
-                    <h4>Bắt đầu sử dụng</h4>
-                    <p>Bạn có thể đăng nhập và đổi mật khẩu sau đó</p>
+                    <h4>Kích hoạt tài khoản</h4>
+                    <p>Thanh toán thành công, Email Doanh Nghiệp và Mật Khẩu sẽ được dùng làm tài khoản Chủ Doanh Nghiệp để quản lý nhân sự và doanh nghiệp</p>
                   </div>
                 </div>
               </div>
