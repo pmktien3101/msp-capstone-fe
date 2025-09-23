@@ -216,6 +216,7 @@ const ProjectDetailPage = () => {
             // Handle task delete - you can implement actual delete logic here
           }}
           task={selectedTask}
+          projectId={projectId}
         />
       )}
 

@@ -58,9 +58,7 @@
     }
   }
 
-  .projects-table-container {
-    margin-bottom: 2rem;
-  }
+  // Removed projects-table-container styling to avoid conflict with projects-table.scss
 
   // Legacy styles for project cards (kept for compatibility)
   .project-card {

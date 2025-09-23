@@ -14,6 +14,8 @@ import {
   Star,
   ArrowRight
 } from 'lucide-react';
+import CreateMeetingModal from '@/components/projects/modals/CreateMeetingModal';
+import { CreateProjectModal } from '@/components/projects/modals/CreateProjectModal';
 
 interface QuickActionsProps {
   projects: Project[];
@@ -24,6 +26,9 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
     // Mock: Lấy 3 dự án gần nhất mà PM đang xem
     return projects.slice(0, 3);
   });
+  
+  const [isCreateMeetingModalOpen, setIsCreateMeetingModalOpen] = useState(false);
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
 
   const quickActions = [
     {
@@ -33,8 +38,7 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
       icon: <Plus size={24} />,
       color: '#3b82f6',
       action: () => {
-        console.log('Tạo dự án mới');
-        // Navigate to create project page
+        setIsCreateProjectModalOpen(true);
       }
     },
     {
@@ -44,8 +48,7 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
       icon: <Calendar size={24} />,
       color: '#ef4444',
       action: () => {
-        console.log('Lên lịch họp');
-        // Open meeting scheduling modal
+        setIsCreateMeetingModalOpen(true);
       }
     }
   ];
@@ -441,6 +444,28 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
           }
         }
       `}</style>
+      
+      {/* Create Meeting Modal */}
+      {isCreateMeetingModalOpen && (
+        <CreateMeetingModal
+          onClose={() => setIsCreateMeetingModalOpen(false)}
+          onCreated={(meeting) => {
+            console.log('Meeting created:', meeting);
+            setIsCreateMeetingModalOpen(false);
+          }}
+          requireProjectSelection={true}
+        />
+      )}
+      
+      {/* Create Project Modal */}
+      <CreateProjectModal
+        isOpen={isCreateProjectModalOpen}
+        onClose={() => setIsCreateProjectModalOpen(false)}
+        onCreateProject={(project) => {
+          console.log('Project created:', project);
+          setIsCreateProjectModalOpen(false);
+        }}
+      />
     </div>
   );
 };

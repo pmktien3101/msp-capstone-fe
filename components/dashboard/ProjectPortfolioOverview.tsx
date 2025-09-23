@@ -131,15 +131,6 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon warning">
-            <AlertTriangle size={24} />
-          </div>
-          <div className="stat-content">
-            <h3>{statusStats['on-hold']}</h3>
-            <p>Tạm dừng</p>
-          </div>
-        </div>
 
         <div className="stat-card">
           <div className="stat-icon">
@@ -155,8 +146,8 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
       {/* Projects List */}
       <div className="projects-list">
         <h3>Danh sách dự án ({filteredProjects.length})</h3>
-        <div className="projects-table-container">
-          <table className="projects-table">
+        <div className="dashboard-projects-table-container">
+          <table className="dashboard-projects-table">
             <thead>
               <tr>
                 <th>Tên dự án</th>
@@ -284,6 +275,15 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
           background: #f9fafb;
           border-radius: 8px;
           border: 1px solid #e5e7eb;
+          transition: all 0.2s ease;
+          cursor: pointer;
+        }
+
+        .stat-card:hover {
+          background: #f3f4f6;
+          border-color: #d1d5db;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .stat-icon {
@@ -312,6 +312,7 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
           color: #ef4444;
         }
 
+
         .stat-content h3 {
           margin: 0 0 4px 0;
           font-size: 20px;
@@ -332,19 +333,19 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
           color: #111827;
         }
 
-        .projects-table-container {
+        .dashboard-projects-table-container {
           overflow-x: auto;
           border: 1px solid #e5e7eb;
           border-radius: 8px;
         }
 
-        .projects-table {
+        .dashboard-projects-table {
           width: 100%;
           border-collapse: collapse;
           background: white;
         }
 
-        .projects-table th {
+        .dashboard-projects-table th {
           background: #f9fafb;
           padding: 12px 16px;
           text-align: left;
@@ -354,7 +355,7 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
           border-bottom: 1px solid #e5e7eb;
         }
 
-        .projects-table td {
+        .dashboard-projects-table td {
           padding: 16px;
           border-bottom: 1px solid #f3f4f6;
           vertical-align: top;
@@ -471,8 +472,8 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
             gap: 12px;
           }
 
-          .projects-table th,
-          .projects-table td {
+          .dashboard-projects-table th,
+          .dashboard-projects-table td {
             padding: 8px 12px;
             font-size: 12px;
           }

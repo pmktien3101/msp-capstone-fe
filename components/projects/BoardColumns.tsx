@@ -795,6 +795,7 @@ export const BoardColumns = ({
           onCreateTask={handleCreateTask}
           milestoneId={createTaskColumn}
           defaultStatus={createTaskColumn}
+          projectId={project.id}
         />
       )}
 

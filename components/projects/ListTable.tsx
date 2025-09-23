@@ -952,6 +952,7 @@ export const ListTable = ({
         onClose={closeCreateTaskModal}
         milestoneId={createTaskModal.milestoneId}
         onCreateTask={handleCreateTask}
+        projectId={project.id}
       />
 
       {/* Delete Milestone Modal */}
@@ -988,6 +989,7 @@ export const ListTable = ({
         onEdit={handleUpdateTask}
         onDelete={openDeleteTaskModal}
         task={detailTaskModal.task}
+        projectId={project.id}
       />
 
       <style jsx>{`

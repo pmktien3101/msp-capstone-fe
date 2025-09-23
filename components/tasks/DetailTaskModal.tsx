@@ -19,7 +19,7 @@ import {
   Send,
   MoreVertical
 } from "lucide-react";
-import { mockMembers, mockMilestones, mockComments } from "@/constants/mockData";
+import { mockMembers, mockMilestones, mockComments, mockProjects } from "@/constants/mockData";
 import { useUser } from "@/hooks/useUser";
 
 interface DetailTaskModalProps {
@@ -28,6 +28,7 @@ interface DetailTaskModalProps {
   onEdit?: (task: any) => void;
   onDelete?: (taskId: string, taskTitle: string) => void;
   task: any;
+  projectId?: string;
 }
 
 export const DetailTaskModal = ({ 
@@ -35,7 +36,8 @@ export const DetailTaskModal = ({
   onClose, 
   onEdit,
   onDelete,
-  task
+  task,
+  projectId
 }: DetailTaskModalProps) => {
   const { role } = useUser();
   const [showFullDescription, setShowFullDescription] = useState(false);
@@ -143,6 +145,18 @@ export const DetailTaskModal = ({
       const milestone = mockMilestones.find(m => m.id === id);
       return milestone ? milestone.name : "Không xác định";
     });
+  };
+
+  // Get milestones for the current project only
+  const getProjectMilestones = () => {
+    if (!projectId) return mockMilestones; // Fallback to all milestones if no projectId
+    
+    const project = mockProjects.find(p => p.id === projectId);
+    if (!project) return mockMilestones; // Fallback to all milestones if project not found
+    
+    return mockMilestones.filter(milestone => 
+      project.milestones.includes(milestone.id)
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -380,7 +394,7 @@ export const DetailTaskModal = ({
               </div>
               <div className="milestones-checkbox-container">
                 {canEditTask ? (
-                  mockMilestones.map((milestone) => {
+                  getProjectMilestones().map((milestone) => {
                     const currentMilestoneIds = editedValues.milestoneIds !== undefined ? editedValues.milestoneIds : (task.milestoneIds || []);
                     const isChecked = currentMilestoneIds.includes(milestone.id);
                     
@@ -410,7 +424,7 @@ export const DetailTaskModal = ({
                   <div className="read-only-milestones">
                     {task.milestoneIds && task.milestoneIds.length > 0 ? (
                       task.milestoneIds.map((milestoneId: string) => {
-                        const milestone = mockMilestones.find(m => m.id === milestoneId);
+                        const milestone = getProjectMilestones().find(m => m.id === milestoneId);
                         return milestone ? (
                           <div key={milestoneId} className="milestone-tag">
                             <Layers size={12} />

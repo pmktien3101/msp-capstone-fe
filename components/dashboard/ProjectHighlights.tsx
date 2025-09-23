@@ -190,7 +190,7 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
           <div className="card-header" onClick={() => toggleCard('milestones')}>
             <div className="card-title">
               <Flag size={20} />
-              <h3>Cột mốc sắp hạn</h3>
+              <h3>Cột mốc sắp đến hạn</h3>
             </div>
             <div className="card-header-right">
               <span className="count-badge">{upcomingMilestones.length}</span>
@@ -202,7 +202,7 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
             {upcomingMilestones.length === 0 ? (
               <div className="empty-state">
                 <CheckCircle2 size={32} />
-                <p>Không có cột mốc sắp hạn</p>
+                <p>Không có cột mốc sắp đến hạn</p>
               </div>
             ) : (
               upcomingMilestones.map(milestone => {
