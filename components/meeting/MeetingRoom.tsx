@@ -27,7 +27,6 @@ import EndCallButton from "../ui/end-call-button";
 import MicButton from "../ui/mic-button";
 import CameraButton from "../ui/camera-button";
 import RecordButton from "../ui/record-button";
-import TranscriptButton from "../ui/transcript-button";
 import { CallIndicators } from "../ui/CallIndicators";
 
 type CallLayoutType = "grid" | "speaker-left" | "speaker-right";
@@ -148,9 +147,6 @@ const MeetingRoom = () => {
         >
           <Filter size={20} className="text-white" />
         </Button>
-
-        {/* Transcription Toggle */}
-        <TranscriptButton />
         <EndCallButton />
       </div>
       <CallIndicators />
