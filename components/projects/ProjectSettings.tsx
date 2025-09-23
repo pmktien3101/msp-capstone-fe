@@ -38,7 +38,7 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
     status: project.status,
     startDate: project.startDate,
     endDate: project.endDate,
-    manager: project.manager,
+    manager: project.manager ?? '',
     notifications: {
       email: true,
       slack: false,
@@ -52,7 +52,7 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
     },
   });
 
-  const [members, setMembers] = useState<Member[]>(project.members);
+  const [members, setMembers] = useState<Member[]>(project.members ?? []);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
 

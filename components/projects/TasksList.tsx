@@ -1,8 +1,34 @@
 'use client';
 
+import { Project } from '@/types/project';
 import { mockTasks, mockMembers, mockMilestones } from '@/constants/mockData';
 
-export const TasksList = () => {
+interface TasksListProps {
+  project: Project;
+}
+
+export const TasksList = ({ project }: TasksListProps) => {
+  // Kiểm tra project có tồn tại không
+  if (!project) {
+    return (
+      <div className="tasks-list">
+        <div className="section-header">
+          <div className="section-title">
+            <h3>Công việc cần review</h3>
+          </div>
+        </div>
+        <div className="no-data-message">
+          <p>Không có thông tin dự án</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter tasks for this specific project
+  const projectMilestones = mockMilestones.filter(m => m.projectId === project.id);
+  const projectTasks = mockTasks.filter(task => 
+    task.milestoneIds.some(milestoneId => projectMilestones.some(m => m.id === milestoneId))
+  );
   // Lấy thông tin member và milestone
   const getMemberInfo = (memberId: string) => {
     return mockMembers.find(member => member.id === memberId);
@@ -88,8 +114,11 @@ export const TasksList = () => {
     }
   };
 
+  // Lọc chỉ các tasks cần review
+  const reviewTasks = projectTasks.filter(task => task.status === 'review');
+  
   // Sắp xếp tasks theo priority và status
-  const sortedTasks = [...mockTasks].sort((a, b) => {
+  const sortedTasks = [...reviewTasks].sort((a, b) => {
     const priorityOrder = { high: 3, medium: 2, low: 1 };
     const statusOrder = { todo: 4, 'in-progress': 3, review: 2, done: 1 };
     
@@ -104,7 +133,7 @@ export const TasksList = () => {
     <div className="tasks-list">
       <div className="section-header">
         <div className="section-title">
-          <h3>Danh sách công việc</h3>
+          <h3>Công việc cần review</h3>
         </div>
         <a 
           href="#" 
@@ -121,7 +150,19 @@ export const TasksList = () => {
       </div>
 
       <div className="tasks-content">
-          {sortedTasks.map((task) => {
+          {sortedTasks.length === 0 ? (
+            <div className="no-tasks-message">
+              <div className="no-tasks-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h4>Không có công việc nào cần review</h4>
+              <p>Tất cả công việc đã được hoàn thành hoặc đang trong quá trình thực hiện.</p>
+            </div>
+          ) : (
+            sortedTasks.map((task) => {
             const member = getMemberInfo(task.assignee);
             const milestones = getMilestoneInfo(task.milestoneIds || []);
             
@@ -174,7 +215,8 @@ export const TasksList = () => {
                 </div>
               </div>
             );
-          })}
+          })
+          )}
       </div>
 
       <style jsx>{`
@@ -221,6 +263,35 @@ export const TasksList = () => {
         .tasks-content {
           max-height: 600px;
           overflow-y: auto;
+        }
+
+        .no-tasks-message {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 20px;
+          text-align: center;
+          color: #6b7280;
+        }
+
+        .no-tasks-icon {
+          margin-bottom: 16px;
+          color: #d1d5db;
+        }
+
+        .no-tasks-message h4 {
+          margin: 0 0 8px 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: #374151;
+        }
+
+        .no-tasks-message p {
+          margin: 0;
+          font-size: 14px;
+          color: #6b7280;
+          line-height: 1.5;
         }
 
         .tasks-list {

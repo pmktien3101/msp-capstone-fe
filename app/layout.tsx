@@ -6,7 +6,6 @@ import "./critical.css"; // moved former inline critical CSS here to avoid hydra
 import "./globals.css";
 // Preload critical styles (consider removing if large and not needed immediately)
 import "./styles/dashboard.scss";
-import "./styles/projects.scss";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 
 const geistSans = Geist({

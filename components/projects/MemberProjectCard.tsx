@@ -53,8 +53,8 @@ export function MemberProjectCard({ project, index = 0 }: MemberProjectCardProps
           <div className="creator-avatars">
             <img
               className="creator-avatar"
-              src={project.members[0]?.avatar || '/avatars/default.png'}
-              alt={project.members[0]?.name || 'Member'}
+              src={project.members?.[0]?.avatar || '/avatars/default.png'}
+              alt={project.members?.[0]?.name || 'Member'}
             />
           </div>
         </div>

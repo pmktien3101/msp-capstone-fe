@@ -14,7 +14,7 @@ import {
 import { ProjectSummary } from "./ProjectSummary";
 import { ProjectBoard } from "./ProjectBoard";
 import { ProjectList } from "./ProjectList";
-import { ProjectReports } from "./ProjectReports";
+// import { ProjectReports } from "./ProjectReports";
 import { ProjectSettings } from "./ProjectSettings";
 import { MeetingTab } from "./MeetingTab";
 import { ProjectDocuments } from "./ProjectDocuments";
@@ -79,11 +79,11 @@ export const ProjectTabs = ({
       label: "Cuộc họp",
       icon: <Video size={20} />,
     },
-    {
-      id: "reports",
-      label: "Báo cáo",
-      icon: <BarChart3 size={20} />,
-    },
+    // {
+    //   id: "reports",
+    //   label: "Báo cáo",
+    //   icon: <BarChart3 size={20} />,
+    // },
     {
       id: "settings",
       label: "Cài đặt",
@@ -94,7 +94,7 @@ export const ProjectTabs = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case "summary":
-        return <ProjectSummary projects={[project]} />;
+        return <ProjectSummary project={project} />;
       case "board":
         return (
           <ProjectBoard
@@ -109,12 +109,12 @@ export const ProjectTabs = ({
         return <ProjectDocuments project={project} />;
       case "meetings":
         return <MeetingTab project={project} />;
-      case "reports":
-        return <ProjectReports project={project} />;
+      // case "reports":
+      //   return <ProjectReports project={project} />;
       case "settings":
         return <ProjectSettings project={project} />;
       default:
-        return <ProjectSummary projects={[project]} />;
+        return <ProjectSummary project={project} />;
     }
   };
 
@@ -150,7 +150,7 @@ export const ProjectTabs = ({
 
         .tabs-header {
           border-bottom: 1px solid #e5e7eb;
-          padding: 0 24px;
+          padding: 0 16px;
         }
 
         .tabs-list {
@@ -161,13 +161,13 @@ export const ProjectTabs = ({
         .tab-button {
           display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 16px 20px;
+          gap: 6px;
+          padding: 12px 16px;
           background: none;
           border: none;
           border-bottom: 2px solid transparent;
           color: #6b7280;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
@@ -205,54 +205,54 @@ export const ProjectTabs = ({
         /* Large Desktop (1200px+) */
         @media (min-width: 1200px) {
           .tabs-header {
-            padding: 0 32px;
+            padding: 0 20px;
           }
 
           .tab-button {
-            padding: 18px 24px;
-            font-size: 15px;
+            padding: 14px 18px;
+            font-size: 14px;
           }
 
           .tabs-content {
-            padding: 32px;
+            padding: 24px;
           }
         }
 
         /* Desktop (1024px - 1199px) */
         @media (max-width: 1199px) and (min-width: 1024px) {
           .tabs-header {
-            padding: 0 28px;
+            padding: 0 18px;
           }
 
           .tab-button {
-            padding: 16px 20px;
-            font-size: 14px;
+            padding: 12px 16px;
+            font-size: 13px;
           }
 
           .tabs-content {
-            padding: 28px;
+            padding: 20px;
           }
         }
 
         /* Tablet (768px - 1023px) */
         @media (max-width: 1023px) and (min-width: 769px) {
           .tabs-header {
-            padding: 0 20px;
+            padding: 0 16px;
           }
 
           .tab-button {
-            padding: 14px 16px;
-            font-size: 13px;
-            gap: 6px;
+            padding: 10px 14px;
+            font-size: 12px;
+            gap: 5px;
           }
 
           .tab-icon {
-            transform: scale(0.9);
+            transform: scale(0.85);
           }
 
           .tabs-content {
-            padding: 20px;
-            min-height: 350px;
+            padding: 16px;
+            min-height: 300px;
           }
         }
 

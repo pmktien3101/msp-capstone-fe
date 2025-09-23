@@ -1,40 +1,61 @@
-"use client";
+'use client';
 
-import { mockMeetings, mockMembers } from "@/constants/mockData";
+import { Project } from '@/types/project';
+import { mockMeetings, mockMembers } from '@/constants/mockData';
 
-export const UpcomingMeetings = () => {
+interface UpcomingMeetingsProps {
+  project: Project;
+}
+
+export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
+  // Kiểm tra project có tồn tại không
+  if (!project) {
+    return (
+      <div className="upcoming-meetings">
+        <div className="section-header">
+          <div className="section-title">
+            <h3>Cuộc họp sắp tới</h3>
+            <p>Danh sách các cuộc họp sắp diễn ra.</p>
+          </div>
+        </div>
+        <div className="no-meetings-message">
+          <p>Không có thông tin dự án</p>
+        </div>
+      </div>
+    );
+  }
+
   // Lấy thông tin member
   const getMemberInfo = (memberId: string) => {
-    return mockMembers.find((member) => member.id === memberId);
+    return mockMembers.find(member => member.id === memberId);
   };
 
-  // Lọc các cuộc họp sắp tới (Scheduled)
-  const upcomingMeetings = mockMeetings.filter(
-    (meeting) => meeting.status === "Scheduled"
+  // Lọc các cuộc họp sắp tới (Scheduled) cho dự án cụ thể
+  const upcomingMeetings = mockMeetings.filter(meeting => 
+    meeting.status === 'Scheduled' && meeting.projectId === project.id
   );
 
   // Sắp xếp theo thời gian bắt đầu
-  const sortedMeetings = upcomingMeetings.sort(
-    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  const sortedMeetings = upcomingMeetings.sort((a, b) => 
+    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );
 
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
     return {
-      date: date.toLocaleDateString("vi-VN"),
-      time: date.toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      }),
+      date: date.toLocaleDateString('vi-VN'),
+      time: date.toLocaleTimeString('vi-VN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      })
     };
   };
 
-  const getParticipantNames = (participantIds: string[] | undefined) => {
-    if (!participantIds) return [];
-    return participantIds.map((id) => {
+  const getParticipantNames = (participantIds: string[]) => {
+    return participantIds.map(id => {
       const member = getMemberInfo(id);
-      return member ? member.name : "Unknown";
+      return member ? member.name : 'Unknown';
     });
   };
 
@@ -52,33 +73,16 @@ export const UpcomingMeetings = () => {
           <div className="meetings-list">
             {sortedMeetings.map((meeting) => {
               const { date, time } = formatDateTime(meeting.startTime);
-              const participants = getParticipantNames(meeting.participants);
-
+              const participants = getParticipantNames(meeting.participants || []);
+              
               return (
                 <div key={meeting.id} className="meeting-item">
                   <div className="meeting-time-section">
                     <div className="meeting-time-badge">
                       <div className="time-icon">
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                        >
-                          <path
-                            d="M12 7V12L16 14"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          <path
-                            d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 7V12L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </div>
                       <div className="time-content">
@@ -87,7 +91,7 @@ export const UpcomingMeetings = () => {
                       </div>
                     </div>
                   </div>
-
+                  
                   <div className="meeting-content">
                     <div className="meeting-header">
                       <h4 className="meeting-title">{meeting.title}</h4>
@@ -96,30 +100,21 @@ export const UpcomingMeetings = () => {
                         <span>Sắp tới</span>
                       </div>
                     </div>
-
+                    
                     <p className="meeting-description">{meeting.description}</p>
-
+                    
                     <div className="meeting-participants">
                       <div className="participants-avatars">
                         {participants.slice(0, 4).map((name, index) => {
-                          const member = mockMembers.find(
-                            (m) => m.name === name
-                          );
+                          const member = mockMembers.find(m => m.name === name);
                           return (
-                            <div
-                              key={index}
-                              className="participant-avatar"
-                              title={name}
-                            >
+                            <div key={index} className="participant-avatar" title={name}>
                               {member ? member.avatar : name.charAt(0)}
                             </div>
                           );
                         })}
                         {participants.length > 4 && (
-                          <div
-                            className="participant-more"
-                            title={`+${participants.length - 4} người khác`}
-                          >
+                          <div className="participant-more" title={`+${participants.length - 4} người khác`}>
                             +{participants.length - 4}
                           </div>
                         )}
@@ -129,29 +124,12 @@ export const UpcomingMeetings = () => {
                       </div>
                     </div>
                   </div>
-
+                  
                   <div className="meeting-actions">
                     <button className="join-button">
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M15 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H9"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M8 11L12 15L16 11"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                        <path d="M15 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M8 11L12 15L16 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                       Tham gia
                     </button>
@@ -164,34 +142,10 @@ export const UpcomingMeetings = () => {
           <div className="no-meetings">
             <div className="no-meetings-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M8 2V5"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M16 2V5"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M3 10H21"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
+                <path d="M8 2V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M16 2V5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
             <p>Không có cuộc họp sắp tới</p>
@@ -265,7 +219,7 @@ export const UpcomingMeetings = () => {
         }
 
         .meeting-item::before {
-          content: "";
+          content: '';
           position: absolute;
           top: 0;
           left: 0;
@@ -534,6 +488,13 @@ export const UpcomingMeetings = () => {
             width: 100%;
             justify-content: center;
           }
+        }
+
+        .no-meetings-message {
+          padding: 20px;
+          text-align: center;
+          color: #6b7280;
+          font-style: italic;
         }
       `}</style>
     </div>

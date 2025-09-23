@@ -119,7 +119,7 @@ export const RecentProjects = ({ projects }: RecentProjectsProps) => {
 
             <div className="project-details">
               <div className="project-meta">
-                <span className="project-members">{project.members.length} thành viên</span>
+                <span className="project-members">{project.members?.length ?? 0} thành viên</span>
               </div>
               <div className="project-dates">
                 <span className="start-date">Bắt đầu: {new Date(project.startDate).toLocaleDateString('vi-VN')}</span>

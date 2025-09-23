@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { Project } from "@/types/project";
-import { mockTasks, mockMembers, mockMilestones, deleteMilestone, updateMilestone, deleteTask, updateTask } from "@/constants/mockData";
+import { mockTasks, mockMembers, mockMilestones, mockProjects, deleteMilestone, updateMilestone, deleteTask, updateTask } from "@/constants/mockData";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { DeleteMilestoneModal } from "@/components/milestones/DeleteMilestoneModal";
 import { UpdateMilestoneModal } from "@/components/milestones/UpdateMilestoneModal";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
 import { DetailTaskModal } from "@/components/tasks/DetailTaskModal";
+import { useUser } from "@/hooks/useUser";
 import {
   ChevronRight,
   Layers,
@@ -39,10 +40,23 @@ export const ListTable = ({
   sortBy,
   sortOrder,
 }: ListTableProps) => {
-  const [tasks, setTasks] = useState(mockTasks);
+  const { role } = useUser();
+  // Get tasks for this specific project based on milestoneIds
+  const projectMilestones = mockProjects.find(p => p.id === project.id)?.milestones || [];
+  const projectTasks = mockTasks.filter(task =>
+    task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
+  );
+
+  const [tasks, setTasks] = useState(projectTasks);
   const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(
     new Set(["milestone-1"]) // Mở milestone đầu tiên mặc định
   );
+
+  // Check if user has permission to create tasks
+  const canCreateTask = role && role.toLowerCase() !== 'member';
+
+  // Check if user has permission to edit/delete (non-member roles)
+  const canEditDelete = role && role.toLowerCase() !== 'member';
   const [createTaskModal, setCreateTaskModal] = useState<{
     isOpen: boolean;
     milestoneId?: string;
@@ -92,6 +106,7 @@ export const ListTable = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      // Task status
       case "todo":
         return "#6b7280";
       case "in-progress":
@@ -100,6 +115,13 @@ export const ListTable = ({
         return "#3b82f6";
       case "done":
         return "#10b981";
+      // Milestone status
+      case "pending":
+        return "#6b7280";
+      case "completed":
+        return "#10b981";
+      case "overdue":
+        return "#ef4444";
       default:
         return "#6b7280";
     }
@@ -107,6 +129,7 @@ export const ListTable = ({
 
   const getStatusBackgroundColor = (status: string) => {
     switch (status) {
+      // Task status
       case "todo":
         return "#f3f4f6";
       case "in-progress":
@@ -115,6 +138,13 @@ export const ListTable = ({
         return "#dbeafe";
       case "done":
         return "#dcfce7";
+      // Milestone status
+      case "pending":
+        return "#f3f4f6";
+      case "completed":
+        return "#dcfce7";
+      case "overdue":
+        return "#fee2e2";
       default:
         return "#f3f4f6";
     }
@@ -122,6 +152,7 @@ export const ListTable = ({
 
   const getStatusLabel = (status: string) => {
     switch (status) {
+      // Task status
       case "todo":
         return "Cần làm";
       case "in-progress":
@@ -130,6 +161,13 @@ export const ListTable = ({
         return "Đang review";
       case "done":
         return "Hoàn thành";
+      // Milestone status
+      case "pending":
+        return "Chờ thực hiện";
+      case "completed":
+        return "Hoàn thành";
+      case "overdue":
+        return "Quá hạn";
       default:
         return status;
     }
@@ -257,12 +295,12 @@ export const ListTable = ({
 
     try {
       deleteMilestone(deleteMilestoneModal.milestoneId);
-      
+
       // Remove from expanded milestones if it was expanded
       const newExpanded = new Set(expandedMilestones);
       newExpanded.delete(deleteMilestoneModal.milestoneId);
       setExpandedMilestones(newExpanded);
-      
+
       closeDeleteMilestoneModal();
     } catch (error) {
       console.error('Error deleting milestone:', error);
@@ -334,10 +372,10 @@ export const ListTable = ({
 
     try {
       deleteTask(deleteTaskModal.taskId);
-      
+
       // Update local tasks state
       setTasks(prevTasks => prevTasks.filter(task => task.id !== deleteTaskModal.taskId));
-      
+
       closeDeleteTaskModal();
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -349,10 +387,10 @@ export const ListTable = ({
   const handleUpdateTask = (taskData: any) => {
     try {
       updateTask(taskData.id, taskData);
-      
+
       // Update local tasks state
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
           task.id === taskData.id ? { ...task, ...taskData } : task
         )
       );
@@ -406,7 +444,12 @@ export const ListTable = ({
 
   // Create hierarchical data structure
   const createHierarchicalData = () => {
-    const filteredMilestones = mockMilestones.map(milestone => {
+    // Filter milestones for this specific project
+    const projectMilestones = mockMilestones.filter(milestone =>
+      milestone.projectId === project.id
+    );
+
+    const filteredMilestones = projectMilestones.map(milestone => {
       const milestoneTasks = tasks.filter(task =>
         task.milestoneIds.includes(milestone.id)
       );
@@ -527,14 +570,16 @@ export const ListTable = ({
           <h2>Danh sách các cột mốc và công việc</h2>
           <p>Tổng cộng {tasks.length} công việc</p>
         </div>
-        <button
-          className="create-task-header-btn"
-          onClick={() => openCreateTaskModal()}
-          title="Tạo công việc mới"
-        >
-          <Plus size={14} />
-          Tạo công việc mới
-        </button>
+        {canCreateTask && (
+          <button
+            className="create-task-header-btn"
+            onClick={() => openCreateTaskModal()}
+            title="Tạo công việc mới"
+          >
+            <Plus size={14} />
+            Tạo công việc mới
+          </button>
+        )}
       </div>
       <div className="milestone-container">
         {/* Unassigned Tasks - Same level as milestones */}
@@ -667,26 +712,30 @@ export const ListTable = ({
                     </div>
                   </div>
                   <div className="action-buttons-modern">
-                    <button 
-                      className="action-btn-modern edit-btn" 
-                      title="Chỉnh sửa"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDetailTaskModal(task);
-                      }}
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button 
-                      className="action-btn-modern delete-btn" 
-                      title="Xóa"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDeleteTaskModal(task.id, task.title);
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {canEditDelete && (
+                      <button
+                        className="action-btn-modern edit-btn"
+                        title="Chỉnh sửa"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDetailTaskModal(task);
+                        }}
+                      >
+                        <Edit size={16} />
+                      </button>
+                    )}
+                    {canEditDelete && (
+                      <button
+                        className="action-btn-modern delete-btn"
+                        title="Xóa"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeleteTaskModal(task.id, task.title);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -758,26 +807,30 @@ export const ListTable = ({
                     </div>
                   </div>
                   <div className="milestone-actions">
-                    <button 
-                      className="action-btn-modern edit-btn" 
-                      title="Chỉnh sửa Milestone"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openUpdateMilestoneModal(milestone);
-                      }}
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      className="action-btn-modern delete-btn"
-                      title="Xóa Milestone"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDeleteMilestoneModal(milestone.id, milestone.name, milestone.tasks.length);
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {canEditDelete && (
+                      <button
+                        className="action-btn-modern edit-btn"
+                        title="Chỉnh sửa Milestone"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openUpdateMilestoneModal(milestone);
+                        }}
+                      >
+                        <Edit size={16} />
+                      </button>
+                    )}
+                    {canEditDelete && (
+                      <button
+                        className="action-btn-modern delete-btn"
+                        title="Xóa Milestone"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeleteMilestoneModal(milestone.id, milestone.name, milestone.tasks.length);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -857,26 +910,30 @@ export const ListTable = ({
                             </div>
                           </div>
                           <div className="action-buttons-modern">
-                            <button 
-                              className="action-btn-modern edit-btn" 
-                              title="Chỉnh sửa"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openDetailTaskModal(task);
-                              }}
-                            >
-                              <Edit size={16} />
-                            </button>
-                            <button 
-                              className="action-btn-modern delete-btn" 
-                              title="Xóa"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openDeleteTaskModal(task.id, task.title);
-                              }}
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            {canEditDelete && (
+                              <button
+                                className="action-btn-modern edit-btn"
+                                title="Chỉnh sửa"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDetailTaskModal(task);
+                                }}
+                              >
+                                <Edit size={16} />
+                              </button>
+                            )}
+                            {canEditDelete && (
+                              <button
+                                className="action-btn-modern delete-btn"
+                                title="Xóa"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDeleteTaskModal(task.id, task.title);
+                                }}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -895,6 +952,7 @@ export const ListTable = ({
         onClose={closeCreateTaskModal}
         milestoneId={createTaskModal.milestoneId}
         onCreateTask={handleCreateTask}
+        projectId={project.id}
       />
 
       {/* Delete Milestone Modal */}
@@ -931,6 +989,7 @@ export const ListTable = ({
         onEdit={handleUpdateTask}
         onDelete={openDeleteTaskModal}
         task={detailTaskModal.task}
+        projectId={project.id}
       />
 
       <style jsx>{`
@@ -1133,25 +1192,6 @@ export const ListTable = ({
           z-index: 3; /* Ensure task items appear above everything */
         }
 
-        .task-item::before {
-          content: '';
-          position: absolute;
-          left: -12px;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 8px;
-          height: 8px;
-          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
-          border-radius: 50%;
-          box-shadow: 0 2px 4px rgba(255, 140, 66, 0.3);
-        }
-
-        .task-item:hover::before {
-          background: linear-gradient(135deg, #ff6b1a 0%, #e55100 100%);
-          transform: translateY(-50%) scale(1.2);
-          box-shadow: 0 4px 8px rgba(255, 107, 26, 0.4);
-        }
-
         .task-card-full {
           background: white;
           border-radius: 8px;
@@ -1161,6 +1201,8 @@ export const ListTable = ({
           overflow: visible; /* Allow task card to be visible */
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
           cursor: pointer;
+          margin-left: 16px;
+
         }
 
         .task-card-full:hover {

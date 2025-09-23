@@ -24,7 +24,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
       case 'on-hold':
         return '#ef4444';
       case 'completed':
-        return '#6b7280';
+        return '#10b981';
       default:
         return '#6b7280';
     }
@@ -39,7 +39,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
       case 'on-hold':
         return '#fee2e2';
       case 'completed':
-        return '#f3f4f6';
+        return '#dcfce7';
       default:
         return '#f3f4f6';
     }
@@ -50,7 +50,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
       case 'active':
         return 'Đang hoạt động';
       case 'planning':
-        return 'Lên kế hoạch';
+        return 'Lập kế hoạch';
       case 'on-hold':
         return 'Tạm dừng';
       case 'completed':
@@ -70,8 +70,8 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
   };
 
   const sortedProjects = [...projects].sort((a, b) => {
-    const aValue = a[sortField];
-    const bValue = b[sortField];
+    const aValue = a[sortField] || '';
+    const bValue = b[sortField] || '';
     
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
@@ -163,7 +163,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                 <td className="project-name-cell">
                   <div className="project-info">
                     <div className="project-name">{project.name}</div>
-                    <div className="project-key">PMS-{project.id}</div>
+                    {/* <div className="project-key">PMS-{project.id}</div> */}
                     <div className="project-description">{project.description}</div>
                   </div>
                 </td>
@@ -184,10 +184,10 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                     <div className="progress-bar">
                       <div 
                         className="progress-fill" 
-                        style={{ width: `${project.progress}%` }}
+                        style={{ width: `${(project as any).progress || 0}%` }}
                       ></div>
                     </div>
-                    <span className="progress-text">{project.progress}%</span>
+                    <span className="progress-text">{(project as any).progress || 0}%</span>
                   </div>
                 </td>
                 <td className="date-cell">
@@ -198,17 +198,19 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                 </td>
                 <td className="members-cell">
                   <div className="members-list">
-                    {project.members.slice(0, 3).map((member) => (
-                      <div key={member.id} className="member-avatar" title={member.name}>
-                        {member.avatar ? (
-                          <img src={member.avatar} alt={member.name} />
-                        ) : (
-                          <span>{member.name.charAt(0)}</span>
+                    {project.members && project.members.length > 0 ? (
+                      <>
+                        {project.members.slice(0, 3).map((member: any) => (
+                          <div key={member.id} className="member-avatar" title={member.name}>
+                            <span>{member.avatar}</span>
+                          </div>
+                        ))}
+                        {project.members.length > 3 && (
+                          <div className="member-count">+{project.members.length - 3}</div>
                         )}
-                      </div>
-                    ))}
-                    {project.members.length > 3 && (
-                      <div className="member-count">+{project.members.length - 3}</div>
+                      </>
+                    ) : (
+                      <span className="text-gray-400 text-sm">Chưa có thành viên</span>
                     )}
                   </div>
                 </td>
@@ -228,13 +230,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                     >
                       <Edit size={16} />
                     </button>
-                    <button 
-                      className="action-btn meeting-btn"
-                      onClick={() => onAddMeeting(project)}
-                      title="Thêm cuộc họp"
-                    >
-                      <Calendar size={16} />
-                    </button>
+
                   </div>
                 </td>
               </tr>

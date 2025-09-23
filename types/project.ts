@@ -5,9 +5,11 @@ export interface Project {
   status: "planning" | "active" | "on-hold" | "completed";
   startDate: string;
   endDate: string;
-  manager: string;
-  members: ProjectMember[];
-  progress: number;
+  milestones?: string[];
+  meetings?: string[];
+  progress?: number;
+  members?: ProjectMember[];
+  manager?: string;
 }
 
 export interface ProjectMember {

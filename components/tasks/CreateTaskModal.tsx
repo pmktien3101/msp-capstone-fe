@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X, Calendar, User, Flag, FileText, Layers } from "lucide-react";
-import { mockMembers, mockMilestones } from "@/constants/mockData";
+import { mockMembers, mockMilestones, mockProjects } from "@/constants/mockData";
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -10,6 +10,7 @@ interface CreateTaskModalProps {
   milestoneId?: string;
   defaultStatus?: string;
   onCreateTask: (taskData: any) => void;
+  projectId?: string; // Added projectId prop
 }
 
 export const CreateTaskModal = ({ 
@@ -17,7 +18,8 @@ export const CreateTaskModal = ({
   onClose, 
   milestoneId, 
   defaultStatus = "todo",
-  onCreateTask 
+  onCreateTask,
+  projectId // Destructured projectId
 }: CreateTaskModalProps) => {
   const [formData, setFormData] = useState({
     title: "",
@@ -31,6 +33,18 @@ export const CreateTaskModal = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Get milestones for the current project only
+  const getProjectMilestones = () => {
+    if (!projectId) return mockMilestones; // Fallback to all milestones if no projectId
+    
+    const project = mockProjects.find(p => p.id === projectId);
+    if (!project) return mockMilestones; // Fallback to all milestones if project not found
+    
+    return mockMilestones.filter(milestone => 
+      project.milestones.includes(milestone.id)
+    );
+  };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
@@ -182,7 +196,7 @@ export const CreateTaskModal = ({
                 Cột mốc liên quan
               </label>
               <div className="milestone-selection">
-                {mockMilestones.map((milestone) => (
+                {getProjectMilestones().map((milestone) => (
                   <label key={milestone.id} className="milestone-checkbox">
                     <input
                       type="checkbox"

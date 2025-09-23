@@ -17,11 +17,28 @@ import { mockMeetings } from "@/constants/mockData";
 interface MeetingTabProps {
   project: Project;
 }
+// Định nghĩa type cho mock meeting
+interface MockMeeting {
+  id: string;
+  projectId: string;
+  milestoneId?: string;
+  title: string;
+  description?: string;
+  startTime: string; // hoặc Date nếu đã parse
+  endTime: string; // hoặc Date
+  status: "Scheduled" | "Finished" | "Ongoing";
+  meetingType: "online" | "offline";
+  roomUrl?: string;
+  location?: string;
+  participants: string[];
+}
 
 export const MeetingTab = ({ project }: MeetingTabProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
+  const [selectedMockMeeting, setSelectedMockMeeting] =
+    useState<MockMeeting | null>(null);
   const { upcomingCalls, endedCalls, isLoadingCall, refetchCalls } =
     useGetCall();
   const [viewType, setViewType] = useState<"all" | "upcoming" | "ended">("all");
@@ -152,7 +169,15 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   };
 
   const handleEdit = (call: Call) => {
-    setSelectedCall(call);
+    if ("state" in call) {
+      // Stream call
+      setSelectedCall(call as Call);
+      setSelectedMockMeeting(null);
+    } else {
+      // Mock meeting
+      setSelectedMockMeeting(call as MockMeeting);
+      setSelectedCall(null);
+    }
     setShowUpdateModal(true);
   };
 
@@ -171,16 +196,17 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   // Update the stats calculations to include mock meetings
   const allMeetingsCount = useMemo(() => {
     const streamMeetingsCount = allMeetings.length;
-    const mockMeetingsCount = mockMeetings.filter(m => m.projectId === project.id).length;
+    const mockMeetingsCount = mockMeetings.filter(
+      (m) => m.projectId === project.id
+    ).length;
     return streamMeetingsCount + mockMeetingsCount;
   }, [allMeetings, project.id]);
 
   const upcomingMeetingsCount = useMemo(() => {
     const now = new Date();
     const streamUpcomingCount = upcomingProjectMeetings.length;
-    const mockUpcomingCount = mockMeetings.filter(m => 
-      m.projectId === project.id && 
-      new Date(m.startTime) > now
+    const mockUpcomingCount = mockMeetings.filter(
+      (m) => m.projectId === project.id && new Date(m.startTime) > now
     ).length;
     return streamUpcomingCount + mockUpcomingCount;
   }, [upcomingProjectMeetings, project.id]);
@@ -188,9 +214,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const endedMeetingsCount = useMemo(() => {
     const now = new Date();
     const streamEndedCount = endedProjectMeetings.length;
-    const mockEndedCount = mockMeetings.filter(m => 
-      m.projectId === project.id && 
-      new Date(m.endTime) < now
+    const mockEndedCount = mockMeetings.filter(
+      (m) => m.projectId === project.id && new Date(m.endTime) < now
     ).length;
     return streamEndedCount + mockEndedCount;
   }, [endedProjectMeetings, project.id]);
@@ -516,12 +541,14 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           }}
         />
       )}
-      {showUpdateModal && selectedCall && (
+      {showUpdateModal && (selectedCall || selectedMockMeeting) && (
         <UpdateMeetingModal
-          call={selectedCall}
+          call={selectedCall || undefined}
+          mockMeeting={selectedMockMeeting || undefined}
           onClose={() => {
             setShowUpdateModal(false);
             setSelectedCall(null);
+            setSelectedMockMeeting(null);
           }}
           onUpdated={async () => {
             await refetchCalls();

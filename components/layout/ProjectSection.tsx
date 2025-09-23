@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Project } from '@/types/project';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
-import { mockTasks, mockProject, mockMembers } from '@/constants/mockData';
+import { mockTasks, mockProjects, mockMembers, mockMilestones } from '@/constants/mockData';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -21,19 +21,21 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
   // Calculate progress based on tasks for each project
   const calculateProjectProgress = (projectId: string) => {
-    if (projectId === '1') {
-      // Main project from mockData.ts
-      const completedTasks = mockTasks.filter(task => task.status === 'done').length;
-      const totalTasks = mockTasks.length;
-      return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    }
-    return 0;
+    // Get tasks for this specific project based on milestoneIds
+    const projectMilestones = mockProjects.find(p => p.id === projectId)?.milestones || [];
+    const projectTasks = mockTasks.filter(task => 
+      task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
+    );
+    
+    const completedTasks = projectTasks.filter(task => task.status === 'done').length;
+    const totalTasks = projectTasks.length;
+    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   };
 
   // Mock data - using data from constants/mockData.ts
   useEffect(() => {
-    // Convert mockProject to Project format
-    const mainProject: Project = {
+    // Convert all mockProjects to Project format
+    const allProjects: Project[] = mockProjects.map(mockProject => ({
       id: mockProject.id,
       name: mockProject.name,
       description: mockProject.description,
@@ -41,7 +43,9 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
       startDate: mockProject.startDate,
       endDate: mockProject.endDate,
       manager: 'Quang Long', // From mockMembers
-      members: mockMembers.map(member => ({
+      members: mockMembers.filter(member => 
+        mockProject.members.includes(member.id)
+      ).map(member => ({
         id: member.id,
         name: member.name,
         role: member.role,
@@ -49,9 +53,9 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
         avatar: `/avatars/${member.avatar.toLowerCase()}.png`
       })),
       progress: calculateProjectProgress(mockProject.id)
-    };
+    }));
 
-    setProjects([mainProject]);
+    setProjects(allProjects);
     setLoading(false);
   }, []);
 

@@ -1,20 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { ProjectTabs } from '@/components/projects/ProjectTabs';
 import { DetailTaskModal } from '@/components/tasks/DetailTaskModal';
 import { CreateMilestoneModal } from '@/components/milestones/CreateMilestoneModal';
 import { Project } from '@/types/project';
 import { Task } from '@/types/milestone';
 import { Member } from '@/types/member';
-import { mockProject, mockMembers, mockTasks, addMilestone } from '@/constants/mockData';
+import { mockProjects, mockMembers, mockTasks, mockMilestones, addMilestone } from '@/constants/mockData';
 import { Plus, Calendar, Users, Target } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
 import '@/app/styles/project-detail.scss';
 
 const ProjectDetailPage = () => {
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params.projectId as string;
+  const { role } = useUser();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -22,6 +25,9 @@ const ProjectDetailPage = () => {
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState("summary");
+
+  // Check if user has permission to create milestones
+  const canCreateMilestone = role && role.toLowerCase() !== 'member';
 
 
   // Handlers
@@ -73,31 +79,48 @@ const ProjectDetailPage = () => {
   };
 
 
-  // Calculate project progress based on tasks
-  const calculateProjectProgress = () => {
-    const completedTasks = mockTasks.filter(task => task.status === 'done').length;
-    const totalTasks = mockTasks.length;
+  // Calculate project progress based on tasks for specific project
+  const calculateProjectProgress = (projectId: string) => {
+    // Get tasks for this specific project based on milestoneIds
+    const projectMilestones = mockProjects.find(p => p.id === projectId)?.milestones || [];
+    const projectTasks = mockTasks.filter(task => 
+      task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
+    );
+    
+    const completedTasks = projectTasks.filter(task => task.status === 'done').length;
+    const totalTasks = projectTasks.length;
     return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   };
 
   // Load project data from mockData
   useEffect(() => {
+    // Get tab from URL parameters
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && ['summary', 'board', 'list', 'documents', 'meetings', 'settings'].includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+
     // Simulate API call delay
     const timer = setTimeout(() => {
-      if (projectId === mockProject.id) {
+      // Find the specific project
+      const currentMockProject = mockProjects.find(p => p.id === projectId);
+      
+      if (currentMockProject) {
         // Convert mockProject to Project type with members data
         const projectWithMembers: Project = {
-          ...mockProject,
-          status: mockProject.status as "active" | "planning" | "on-hold" | "completed",
+          ...currentMockProject,
+          status: currentMockProject.status as "active" | "planning" | "on-hold" | "completed",
           manager: mockMembers[0].name, // Quang Long as manager
-          members: mockMembers.map(member => ({
+          members: mockMembers.filter(member => 
+            currentMockProject.members.includes(member.id)
+          ).map(member => ({
             id: member.id,
             name: member.name,
             email: member.email,
             role: member.role,
             avatar: member.avatar
           })),
-          progress: calculateProjectProgress() // Calculate real progress
+          progress: calculateProjectProgress(projectId) // Calculate real progress for this project
         };
         setProject(projectWithMembers);
       } else {
@@ -107,7 +130,7 @@ const ProjectDetailPage = () => {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [projectId]);
+  }, [projectId, searchParams]);
 
   if (loading) {
     return (
@@ -148,7 +171,7 @@ const ProjectDetailPage = () => {
             </div>
             <div className="meta-item">
               <Users size={16} />
-              <span>{project.members.length} thành viên</span>
+              <span>{project?.members?.length} thành viên</span>
             </div>
             <div className="meta-item">
               <Target size={16} />
@@ -157,7 +180,7 @@ const ProjectDetailPage = () => {
           </div>
         </div>
         <div className="project-actions">
-          {(activeTab === "board" || activeTab === "list") && (
+          {(activeTab === "board" || activeTab === "list") && canCreateMilestone && (
             <button 
               className="create-milestone-btn"
               onClick={handleCreateMilestone}
@@ -193,6 +216,7 @@ const ProjectDetailPage = () => {
             // Handle task delete - you can implement actual delete logic here
           }}
           task={selectedTask}
+          projectId={projectId}
         />
       )}
 

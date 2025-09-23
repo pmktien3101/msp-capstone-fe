@@ -1,22 +1,40 @@
 'use client';
 
-import { getProjectStats, mockTasks, mockMilestones, mockMembers } from '@/constants/mockData';
+import { Project } from '@/types/project';
+import { mockTasks, mockMilestones, mockMembers } from '@/constants/mockData';
 
-export const OverviewCards = () => {
-  const stats = getProjectStats();
+interface OverviewCardsProps {
+  project: Project;
+  stats: {
+    total: number;
+    completed: number;
+    inProgress: number;
+    todo: number;
+    review: number;
+    completionRate: number;
+  };
+}
+
+export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
+  // Filter data for this specific project
+  const projectMilestones = mockMilestones.filter(m => m.projectId === project.id);
+  const projectTasks = mockTasks.filter(task => 
+    task.milestoneIds.some(milestoneId => projectMilestones.some(m => m.id === milestoneId))
+  );
+  const projectMembers = mockMembers.filter(member => 
+    project.members?.some(m => m.id === member.id)
+  );
   
   // Tính toán các số liệu mới
-  const totalTasks = mockTasks.length;
-  const completedTasks = mockTasks.filter(task => task.status === 'done').length;
+  const totalTasks = projectTasks.length;
+  const completedTasks = projectTasks.filter(task => task.status === 'done').length;
   const completedPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   
-  const totalMilestones = mockMilestones.length;
-  const completedMilestones = mockMilestones.filter(milestone => 
-    mockTasks.filter(task => task.milestoneIds?.includes(milestone.id))
+  const totalMilestones = projectMilestones.length;
+  const completedMilestones = projectMilestones.filter(milestone => 
+    projectTasks.filter(task => task.milestoneIds?.includes(milestone.id))
       .every(task => task.status === 'done')
   ).length;
-  
-  const projectMembers = mockMembers.length;
   
   const overviewData = [
     {
@@ -58,7 +76,7 @@ export const OverviewCards = () => {
     },
     {
       id: 'members',
-      title: `${projectMembers}`,
+      title: `${projectMembers.length}`,
       subtitle: 'Thành viên dự án',
       icon: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">

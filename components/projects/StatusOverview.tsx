@@ -1,9 +1,20 @@
 'use client';
 
-import { getProjectStats } from '@/constants/mockData';
+import { Project } from '@/types/project';
 
-export const StatusOverview = () => {
-  const stats = getProjectStats();
+interface StatusOverviewProps {
+  project: Project;
+  stats: {
+    total: number;
+    completed: number;
+    inProgress: number;
+    todo: number;
+    review: number;
+    completionRate: number;
+  };
+}
+
+export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
   
   const statusData = [
     { status: 'Hoàn thành', count: stats.completed, color: '#10b981', percentage: Math.round((stats.completed / stats.total) * 100) },
