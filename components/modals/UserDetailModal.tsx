@@ -32,6 +32,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClose, memb
   return (
     <Dialog open={isOpen} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-[600px] p-0 overflow-hidden bg-white rounded-xl">
+        <DialogHeader>
+          <DialogTitle className="sr-only">Chi tiết người dùng - {member.name}</DialogTitle>
         {/* Header */}
         <div className="user-header">
           <div className="user-avatar">
@@ -48,6 +50,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClose, memb
             </div>
           </div>
         </div>
+        </DialogHeader>
+
 
         {/* Content */}
         <div className="user-content">

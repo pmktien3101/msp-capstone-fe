@@ -385,6 +385,31 @@ $off-white: #F9F4EE;
       }
     }
   }
+
+  .register-section {
+    margin-top: 32px;
+    text-align: center;
+
+    .register-description {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 400px;
+      margin: 0 auto;
+
+      .register-link {
+        color: $primary-orange;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: $secondary-orange;
+          text-decoration: underline;
+        }
+      }
+    }
+  }
 }
 
 @keyframes float {
