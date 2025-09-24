@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import "@/app/styles/sign-up.scss";
-import { UploadCloud, FileText, X, User } from "lucide-react";
+import { User, Eye, EyeOff } from "lucide-react";
 
 interface RegisterFormData {
   businessName: string;
@@ -18,7 +18,6 @@ interface RegisterFormData {
   confirmPassword: string;
   phone: string;
   agreeTerms: boolean;
-  licenseFile: File | null;
   selectedPlan: string;
   yearlyBilling: boolean;
 }
@@ -26,6 +25,8 @@ interface RegisterFormData {
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
   const [registerForm, setRegisterForm] = useState<RegisterFormData>({
     businessName: "",
@@ -39,7 +40,6 @@ export default function SignUpPage() {
     confirmPassword: "",
     phone: "",
     agreeTerms: false,
-    licenseFile: null,
     selectedPlan: "",
     yearlyBilling: false,
   });
@@ -162,22 +162,6 @@ export default function SignUpPage() {
     }));
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setRegisterForm((prev) => ({
-        ...prev,
-        licenseFile: file,
-      }));
-    }
-  };
-
-  const removeFile = () => {
-    setRegisterForm((prev) => ({
-      ...prev,
-      licenseFile: null,
-    }));
-  };
 
   const selectPlan = (planId: string) => {
     setRegisterForm((prev) => ({
@@ -186,13 +170,6 @@ export default function SignUpPage() {
     }));
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
 
   const isFormValid = () => {
     return (
@@ -208,7 +185,6 @@ export default function SignUpPage() {
       registerForm.password === registerForm.confirmPassword &&
       registerForm.phone &&
       registerForm.agreeTerms &&
-      registerForm.licenseFile &&
       registerForm.selectedPlan
     );
   };
@@ -426,7 +402,7 @@ export default function SignUpPage() {
                   <label htmlFor="password">Mật Khẩu *</label>
                   <div className="input-wrapper">
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       id="password"
                       name="password"
                       placeholder="Nhập mật khẩu"
@@ -435,6 +411,18 @@ export default function SignUpPage() {
                       required
                       minLength={6}
                     />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label="Toggle password visibility"
+                    >
+                      {showPassword ? (
+                        <EyeOff size={20} color="#FFA463" strokeWidth={2} />
+                      ) : (
+                        <Eye size={20} color="#FFA463" strokeWidth={2} />
+                      )}
+                    </button>
                   </div>
                   <small className="form-help">
                     Mật khẩu phải có ít nhất 6 ký tự
@@ -445,7 +433,7 @@ export default function SignUpPage() {
                   <label htmlFor="confirmPassword">Xác Nhận Mật Khẩu *</label>
                   <div className="input-wrapper">
                     <input
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       id="confirmPassword"
                       name="confirmPassword"
                       placeholder="Nhập lại mật khẩu"
@@ -454,6 +442,18 @@ export default function SignUpPage() {
                       required
                       minLength={6}
                     />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label="Toggle confirm password visibility"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff size={20} color="#FFA463" strokeWidth={2} />
+                      ) : (
+                        <Eye size={20} color="#FFA463" strokeWidth={2} />
+                      )}
+                    </button>
                   </div>
                   {registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword && (
                     <small className="form-error">
@@ -522,67 +522,6 @@ export default function SignUpPage() {
 
         <div className="register-info-section">
           <div className="info-content">
-            <div className="upload-section">
-              <h3 className="section-title">Giấy Phép Kinh Doanh</h3>
-              <p className="section-description">
-                Tải lên giấy phép kinh doanh để xác minh doanh nghiệp của bạn
-              </p>
-
-              <div className="form-group">
-                <label htmlFor="licenseFile">
-                  Tải Lên Giấy Phép Kinh Doanh *
-                </label>
-                <div className="file-upload-wrapper">
-                  <div
-                    className={`file-upload-area ${registerForm.licenseFile ? "has-file" : ""
-                      }`}
-                    onClick={() =>
-                      document.getElementById("licenseFile")?.click()
-                    }
-                  >
-                    <UploadCloud className="upload-icon" size={48} color="#FFA463" strokeWidth={2} />
-                    <div className="upload-text">
-                      <span className="upload-title">
-                        Tải lên file giấy phép kinh doanh
-                      </span>
-                      <span className="upload-subtitle">
-                        Hỗ trợ: PDF, JPG, PNG (Tối đa 10MB)
-                      </span>
-                    </div>
-                    <input
-                      type="file"
-                      id="licenseFile"
-                      name="licenseFile"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={handleFileSelect}
-                      style={{ display: "none" }}
-                      required
-                    />
-                  </div>
-                  {registerForm.licenseFile && (
-                    <div className="file-info">
-                      <div className="file-details">
-                        <FileText className="file-icon" size={20} color="#10B981" strokeWidth={2} />
-                        <span className="file-name">
-                          {registerForm.licenseFile.name}
-                        </span>
-                        <span className="file-size">
-                          {formatFileSize(registerForm.licenseFile.size)}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        className="remove-file"
-                        onClick={removeFile}
-                        title="Xóa file"
-                      >
-                        <X width={16} height={16} color="#EF4444" strokeWidth={2} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
 
             <div className="plan-section">
               <h3 className="section-title">Chọn Gói Dịch Vụ</h3>
@@ -672,8 +611,7 @@ export default function SignUpPage() {
                   <div className="step-content">
                     <h4>Điền thông tin</h4>
                     <p>
-                      Điền đầy đủ thông tin doanh nghiệp, tải lên giấy phép
-                      kinh doanh và chọn gói dịch vụ phù hợp
+                      Điền đầy đủ thông tin doanh nghiệp và chọn gói dịch vụ phù hợp
                     </p>
                   </div>
                 </div>
