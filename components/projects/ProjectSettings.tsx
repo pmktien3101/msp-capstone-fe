@@ -132,7 +132,7 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
           </div>
           
           <div className="form-grid">
-          <div className="form-group">
+          <div className="form-group full-width">
               <label className="form-label">
                 <User size={14} />
                 Tên dự án
