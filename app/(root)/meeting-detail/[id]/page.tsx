@@ -53,6 +53,12 @@ export default function MeetingDetailPage() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editedTask, setEditedTask] = useState<any>(null);
   const [isAddingToProject, setIsAddingToProject] = useState(false);
+  const [transcriptions, setTranscriptions] = useState<any[]>([]);
+  const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(false);
+  const [transcriptionsError, setTranscriptionsError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<string>("");
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   // Khi đã join thì chuyển sang hiển thị MeetingRoom
   useEffect(() => {
@@ -80,6 +86,73 @@ export default function MeetingDetailPage() {
       loadRecordings();
     }
   }, [activeTab, call]);
+
+  // Fetch transcriptions when switching to recording tab
+  useEffect(() => {
+    const loadTranscriptions = async () => {
+      if (!call?.id) return;
+      setIsLoadingTranscriptions(true);
+      setTranscriptionsError(null);
+      try {
+        const response = await fetch(`https://localhost:7213/api/stream/call/default/${call.id}/transcriptions`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setTranscriptions(data || []);
+      } catch (e: any) {
+        console.error("Failed to fetch transcriptions", e);
+        setTranscriptionsError("Không tải được transcript");
+      } finally {
+        setIsLoadingTranscriptions(false);
+      }
+    };
+    if (activeTab === "recording") {
+      loadTranscriptions();
+    }
+  }, [activeTab, call]);
+
+  // Generate summary when transcriptions are loaded
+  useEffect(() => {
+    const generateSummary = async () => {
+      if (transcriptions.length === 0) return;
+      
+      setIsLoadingSummary(true);
+      setSummaryError(null);
+      try {
+        // Format transcriptions into text
+        const formattedText = transcriptions
+          .map(item => `${getSpeakerName(item.speakerId)}: ${item.text}`)
+          .join('\n');
+
+        const response = await fetch('https://localhost:5000/api/Summarize/summary', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: formattedText
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        setSummary(result.data?.summary || "Không thể tạo tóm tắt");
+      } catch (e: any) {
+        console.error("Failed to generate summary", e);
+        setSummaryError("Không thể tạo tóm tắt");
+      } finally {
+        setIsLoadingSummary(false);
+      }
+    };
+
+    if (transcriptions.length > 0) {
+      generateSummary();
+    }
+  }, [transcriptions]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -116,78 +189,75 @@ export default function MeetingDetailPage() {
     return hours > 0 ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`;
   };
 
+  // Format timestamp from milliseconds to MM:SS
+  const formatTimestamp = (timestamp: number) => {
+    const seconds = Math.floor(timestamp / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+  };
+
+  // Get speaker name from speakerId
+  const getSpeakerName = (speakerId: string) => {
+    // Map speakerId to actual names - you can customize this based on your data
+    const speakerMap: { [key: string]: string } = {
+      "1": "Nguyễn Văn A",
+      "2": "Trần Thị B", 
+      "3": "Lê Văn C",
+      "4": "Phạm Thị D",
+      "5": "Hoàng Văn E"
+    };
+    return speakerMap[speakerId] || `Speaker ${speakerId}`;
+  };
+
   // Xử lý tạo task từ AI dựa trên transcript
   const handleGenerateTasks = async () => {
+    if (transcriptions.length === 0) {
+      alert("Chưa có transcript để tạo task. Vui lòng chờ transcript được tải.");
+      return;
+    }
+
     setIsGeneratingTasks(true);
     try {
-      // Simulate AI processing - trong thực tế sẽ gọi API AI
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Format transcriptions into text without quotes or newlines
+      const formattedText = transcriptions
+        .map(item => `${getSpeakerName(item.speakerId)}: ${item.text}`)
+        .join(' ');
 
-      // Mock data dựa trên transcript với cấu trúc đúng theo mockData
-      const mockTasks = [
-        {
-          id: "AI-1",
-          title: "Implement Stripe payment gateway integration",
-          description:
-            "Integrate Stripe API for checkout process as discussed in meeting",
-          milestoneIds: [],
-          status: "todo",
-          priority: "high",
-          assignee: "member-4", // Lê Văn C
-          startDate: "2024-02-10",
-          endDate: "2024-02-15",
+      const response = await fetch('https://localhost:5000/api/Summarize/create-todolist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          id: "AI-2",
-          title: "Design mobile-first dashboard UI",
-          description:
-            "Create wireframe and implement dashboard redesign focusing on mobile experience",
-          milestoneIds: [],
-          status: "todo",
-          priority: "medium",
-          assignee: "member-3", // Trần Thị B
-          startDate: "2024-02-15",
-          endDate: "2024-02-20",
-        },
-        {
-          id: "AI-3",
-          title: "Setup automated testing for payment module",
-          description:
-            "Implement automated testing with 80% coverage for critical payment paths",
-          milestoneIds: [],
-          status: "todo",
-          priority: "high",
-          assignee: "member-4", // Lê Văn C
-          startDate: "2024-02-12",
-          endDate: "2024-02-18",
-        },
-        {
-          id: "AI-4",
-          title: "Implement user profile management",
-          description:
-            "Develop user profile management features that can run parallel with payment development",
-          milestoneIds: [],
-          status: "todo",
-          priority: "medium",
-          assignee: "member-3", // Trần Thị B
-          startDate: "2024-02-20",
-          endDate: "2024-02-25",
-        },
-        {
-          id: "AI-5",
-          title: "Setup CI/CD pipeline and staging environment",
-          description:
-            "Prepare staging environment and database migration scripts for testing",
-          milestoneIds: [],
-          status: "todo",
-          priority: "medium",
-          assignee: "member-4", // Lê Văn C
-          startDate: "2024-02-18",
-          endDate: "2024-02-22",
-        },
-      ];
+        body: JSON.stringify({
+          text: formattedText
+        })
+      });
 
-      setGeneratedTasks(mockTasks);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Get the summary from result.data.summary
+      const summaryText = result.data?.summary || "";
+      
+      // Split by lines and create task objects
+      const taskLines = summaryText.split('\n').filter((line: string) => line.trim() !== '');
+      const generatedTasks = taskLines.map((taskText: string, index: number) => ({
+        id: `AI-${index + 1}`,
+        title: taskText.trim().replace(/^[-•]\s*/, ''), // Remove leading dash or bullet point
+        description: `To-do list được tạo từ AI dựa trên cuộc họp`,
+        milestoneIds: [],
+        status: "todo",
+        priority: "medium",
+        assignee: "",
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+      }));
+
+      setGeneratedTasks(generatedTasks);
 
       // Tự động chuyển sang tab Tasks sau khi tạo xong
       setTimeout(() => {
@@ -383,7 +453,7 @@ export default function MeetingDetailPage() {
           onClick={() => setActiveTab("tasks")}
         >
           <CheckSquare size={16} />
-          To-do & Tasks
+          To-do List
         </button>
         <button
           className={`tab ${activeTab === "comments" ? "active" : ""}`}
@@ -662,185 +732,33 @@ export default function MeetingDetailPage() {
 
               <div className="transcript">
                 <h4>Transcript</h4>
-                <div
-                  className={`transcript-content ${
-                    isTranscriptExpanded ? "expanded" : ""
-                  }`}
-                  onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
-                >
-                  <div className="transcript-item">
-                    <span className="timestamp">00:05</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Chào mọi người, chúng ta
-                      bắt đầu cuộc họp sprint planning hôm nay. Tôi hy vọng mọi
-                      người đã chuẩn bị sẵn sàng cho việc lập kế hoạch sprint
-                      mới.
-                    </div>
+                {isLoadingTranscriptions && (
+                  <div className="transcript-loading">Đang tải transcript...</div>
+                )}
+                {transcriptionsError && !isLoadingTranscriptions && (
+                  <div className="transcript-error">{transcriptionsError}</div>
+                )}
+                {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length === 0 && (
+                  <div className="transcript-empty">Chưa có transcript cho cuộc họp này</div>
+                )}
+                {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length > 0 && (
+                  <div
+                    className={`transcript-content ${
+                      isTranscriptExpanded ? "expanded" : ""
+                    }`}
+                    onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
+                  >
+                    {transcriptions.map((item, index) => (
+                      <div key={index} className="transcript-item">
+                        <span className="timestamp">{formatTimestamp(item.startTs)}</span>
+                        <div className="transcript-text">
+                          <strong>{getSpeakerName(item.speakerId)}:</strong> {item.text}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">00:15</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Tôi đã chuẩn bị danh sách các
-                      task cho sprint này. Có tổng cộng 15 user stories cần được
-                      implement, bao gồm cả tính năng authentication và
-                      dashboard mới.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">00:30</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Chúng ta cần ưu tiên tính năng
-                      thanh toán trước. Đây là tính năng core của ứng dụng và
-                      khách hàng đang chờ đợi rất nhiều.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">00:45</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Đồng ý với Lê Văn C. Tôi
-                      nghĩ chúng ta nên dành 60% effort cho payment module trong
-                      sprint này. Còn lại 40% cho các tính năng phụ trợ.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">01:00</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Về mặt technical, tôi đã
-                      research và thấy chúng ta có thể integrate với Stripe API.
-                      Nó sẽ giúp giảm thiểu rủi ro và tăng tốc độ development.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">01:15</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tuyệt vời! Tôi sẽ bắt đầu
-                      implement payment flow từ ngày mai. Ước tính sẽ mất khoảng
-                      3-4 ngày để hoàn thành basic flow.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">01:30</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Còn về phần UI/UX, chúng ta
-                      cần thiết kế lại dashboard để user experience tốt hơn.
-                      Trần Thị B, bạn có thể handle phần này không?
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">01:45</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Được rồi, tôi sẽ làm
-                      wireframe cho dashboard mới. Tôi nghĩ chúng ta nên focus
-                      vào mobile-first design vì 70% user sử dụng mobile.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">02:00</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Về phần testing, chúng ta cần
-                      đảm bảo coverage ít nhất 80% cho payment module. Tôi sẽ
-                      setup automated testing cho critical paths.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">02:15</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Tốt! Bây giờ chúng ta cần
-                      thảo luận về timeline. Sprint này sẽ kéo dài 2 tuần,
-                      deadline là ngày 15/02. Mọi người có thấy timeline này
-                      realistic không?
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">02:30</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Tôi nghĩ timeline này hơi
-                      tight, đặc biệt là với payment integration. Có thể chúng
-                      ta cần thêm 1 tuần buffer để đảm bảo quality.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">02:45</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tôi đồng ý với Trần Thị B.
-                      Payment là tính năng nhạy cảm, chúng ta không thể rush.
-                      Tôi suggest extend deadline đến 22/02.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">03:00</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Được rồi, tôi sẽ discuss
-                      với management về việc extend deadline. Trong khi đó,
-                      chúng ta bắt đầu implement những phần không phụ thuộc vào
-                      payment.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">03:15</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Tôi sẽ bắt đầu với user
-                      profile management và notification system. Những tính năng
-                      này có thể develop parallel với payment.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">03:30</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tôi sẽ setup CI/CD pipeline và
-                      database migration scripts. Cũng cần prepare staging
-                      environment cho testing.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">03:45</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Perfect! Chúng ta cũng cần
-                      schedule daily standup meetings để track progress. Tôi
-                      suggest 9:00 AM mỗi ngày.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">04:00</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Đồng ý! Tôi cũng suggest
-                      chúng ta nên có weekly demo để stakeholders có thể review
-                      progress và provide feedback.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">04:15</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tuyệt vời! Tôi sẽ prepare demo
-                      environment và schedule weekly demo vào thứ 6 hàng tuần.
-                      Có gì khác cần thảo luận không?
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">04:30</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Tôi nghĩ chúng ta đã cover
-                      hết các điểm chính. Cảm ơn mọi người đã tham gia cuộc họp.
-                      Chúng ta sẽ bắt đầu implement từ ngày mai. Good luck!
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">04:35</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Cảm ơn! Tôi sẽ gửi meeting
-                      notes và action items cho mọi người trong vòng 1 giờ.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">04:40</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Perfect! Tôi sẽ update project
-                      timeline và tạo tasks trong Jira. Hẹn gặp lại mọi người
-                      vào standup ngày mai.
-                    </div>
-                  </div>
-                </div>
-                {!isTranscriptExpanded && (
+                )}
+                {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length > 0 && !isTranscriptExpanded && (
                   <div className="transcript-expand-hint">
                     <span>Click để xem toàn bộ transcript</span>
                   </div>
@@ -875,18 +793,32 @@ export default function MeetingDetailPage() {
                       ) : (
                         <>
                           <Plus size={16} />
-                          Tạo task từ cuộc họp
+                          Tạo To-do list từ cuộc họp
                         </>
                       )}
                     </Button>
                   </div>
                 </div>
                 <div className="summary-content">
-                  <p>
-                    Cuộc họp tập trung vào việc lập kế hoạch cho Sprint 3 với
-                    các tính năng chính: thanh toán, quản lý sản phẩm, và báo
-                    cáo. Team đã thống nhất về timeline và phân công công việc.
-                  </p>
+                  {isLoadingSummary && (
+                    <div className="summary-loading">
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Đang tạo tóm tắt...</span>
+                    </div>
+                  )}
+                  {summaryError && !isLoadingSummary && (
+                    <div className="summary-error">
+                      <p>{summaryError}</p>
+                    </div>
+                  )}
+                  {!isLoadingSummary && !summaryError && !summary && (
+                    <div className="summary-empty">
+                      <p>Chưa có transcript để tạo tóm tắt</p>
+                    </div>
+                  )}
+                  {!isLoadingSummary && !summaryError && summary && (
+                    <p>{summary}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -896,7 +828,7 @@ export default function MeetingDetailPage() {
         {activeTab === "tasks" && !showJoinFlow && (
           <div className="tasks-section">
             <div className="tasks-header">
-              <h3>To-do & Tasks</h3>
+              <h3>To-do list</h3>
             </div>
 
             <div className="tasks-content">
@@ -906,7 +838,7 @@ export default function MeetingDetailPage() {
                   <div className="ai-tasks-header">
                     <div className="ai-tasks-title">
                       <Sparkles size={16} />
-                      <h4>Task được tạo từ AI</h4>
+                      <h4>To-do list được tạo từ AI</h4>
                       <span className="ai-badge">AI Generated</span>
                     </div>
                   </div>
@@ -1074,7 +1006,7 @@ export default function MeetingDetailPage() {
                         ) : (
                           <>
                             <Plus size={16} />
-                            Thêm các task vào project
+                            Thêm các To-do vào project
                           </>
                         )}
                       </Button>
