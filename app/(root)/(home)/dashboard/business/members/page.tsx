@@ -10,8 +10,7 @@ import * as XLSX from 'xlsx';
 interface Member {
   id: string;
   name: string;
-  companyEmail: string;
-  personalEmail: string;
+  email: string;
   phone: string;
   password: string;
   role: 'Member' | 'ProjectManager';
@@ -26,8 +25,7 @@ const MembersRolesPage = () => {
     {
       id: '1',
       name: 'Nguyễn Văn A',
-      companyEmail: 'nguyenvana@company.com',
-      personalEmail: 'nguyenvana@gmail.com',
+      email: 'nguyenvana@company.com',
       phone: '+84 123 456 789',
       password: 'password123',
       role: 'ProjectManager',
@@ -39,8 +37,7 @@ const MembersRolesPage = () => {
     {
       id: '2',
       name: 'Trần Thị B',
-      companyEmail: 'tranthib@company.com',
-      personalEmail: 'tranthib@gmail.com',
+      email: 'tranthib@company.com',
       phone: '+84 987 654 321',
       password: 'password123',
       role: 'Member',
@@ -52,8 +49,7 @@ const MembersRolesPage = () => {
     {
       id: '3',
       name: 'Lê Văn C',
-      companyEmail: 'levanc@company.com',
-      personalEmail: 'levanc@yahoo.com',
+      email: 'levanc@company.com',
       phone: '+84 555 123 456',
       password: 'password123',
       role: 'Member',
@@ -65,8 +61,7 @@ const MembersRolesPage = () => {
     {
       id: '4',
       name: 'Phạm Thị D',
-      companyEmail: 'phamthid@company.com',
-      personalEmail: 'phamthid@outlook.com',
+      email: 'phamthid@company.com',
       phone: '+84 111 222 333',
       password: 'password123',
       role: 'ProjectManager',
@@ -94,8 +89,7 @@ const MembersRolesPage = () => {
 
   const [newMember, setNewMember] = useState({
     name: '',
-    emailPrefix: '',
-    personalEmail: '',
+    email: '',
     phone: '',
     password: '',
     role: 'Member' as 'Member' | 'ProjectManager'
@@ -109,16 +103,14 @@ const MembersRolesPage = () => {
     const templateData = [
       {
         'Tên': 'Nguyễn Văn A',
-        'Email công ty (phần trước @)': 'nguyenvana',
-        'Email cá nhân': 'nguyenvana@gmail.com',
+        'Email': 'nguyenvana@company.com',
         'Số điện thoại': '+84 123 456 789',
         'Mật khẩu': 'password123',
         'Vai trò': 'Member'
       },
       {
         'Tên': 'Trần Thị B',
-        'Email công ty (phần trước @)': 'tranthib',
-        'Email cá nhân': 'tranthib@gmail.com',
+        'Email': 'tranthib@company.com',
         'Số điện thoại': '+84 987 654 321',
         'Mật khẩu': 'password123',
         'Vai trò': 'ProjectManager'
@@ -132,8 +124,7 @@ const MembersRolesPage = () => {
     // Set column widths
     ws['!cols'] = [
       { wch: 20 }, // Tên
-      { wch: 25 }, // Email công ty
-      { wch: 25 }, // Email cá nhân
+      { wch: 30 }, // Email
       { wch: 20 }, // Số điện thoại
       { wch: 15 }, // Mật khẩu
       { wch: 15 }  // Vai trò
@@ -158,8 +149,7 @@ const MembersRolesPage = () => {
       // Validate and format data
       const validatedData = jsonData.map((row: any, index: number) => {
         const name = row['Tên'] || '';
-        const emailPrefix = row['Email công ty (phần trước @)'] || '';
-        const personalEmail = row['Email cá nhân'] || '';
+        const email = row['Email'] || '';
         const phone = row['Số điện thoại'] || '';
         const password = row['Mật khẩu'] || '';
         const role = row['Vai trò'] || 'Member';
@@ -167,12 +157,11 @@ const MembersRolesPage = () => {
         return {
           rowIndex: index + 2, // +2 because Excel starts from row 1 and we skip header
           name: name.toString().trim(),
-          emailPrefix: emailPrefix.toString().trim(),
-          personalEmail: personalEmail.toString().trim(),
+          email: email.toString().trim(),
           phone: phone.toString().trim(),
           password: password.toString().trim(),
           role: role.toString().trim(),
-          isValid: name && emailPrefix && personalEmail && phone && password,
+          isValid: name && email && phone && password,
           errors: [] as string[]
         };
       });
@@ -180,8 +169,7 @@ const MembersRolesPage = () => {
       // Validate data
       validatedData.forEach(item => {
         if (!item.name) item.errors.push('Tên không được để trống');
-        if (!item.emailPrefix) item.errors.push('Email công ty không được để trống');
-        if (!item.personalEmail) item.errors.push('Email cá nhân không được để trống');
+        if (!item.email) item.errors.push('Email không được để trống');
         if (!item.phone) item.errors.push('Số điện thoại không được để trống');
         if (!item.password) item.errors.push('Mật khẩu không được để trống');
         if (!['Member', 'ProjectManager'].includes(item.role)) {
@@ -205,8 +193,7 @@ const MembersRolesPage = () => {
     const newMembers: Member[] = validData.map(item => ({
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       name: item.name,
-      companyEmail: item.emailPrefix + companyDomain,
-      personalEmail: item.personalEmail,
+      email: item.email,
       phone: item.phone,
       password: item.password,
       role: item.role as 'Member' | 'ProjectManager',
@@ -223,19 +210,17 @@ const MembersRolesPage = () => {
 
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.companyEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.personalEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      member.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || member.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
   const handleAddMember = () => {
-    if (newMember.name && newMember.emailPrefix && newMember.personalEmail && newMember.phone && newMember.password) {
+    if (newMember.name && newMember.email && newMember.phone && newMember.password) {
       const member: Member = {
         id: Date.now().toString(),
         name: newMember.name,
-        companyEmail: newMember.emailPrefix + companyDomain,
-        personalEmail: newMember.personalEmail,
+        email: newMember.email,
         phone: newMember.phone,
         password: newMember.password,
         role: newMember.role,
@@ -245,7 +230,7 @@ const MembersRolesPage = () => {
         projects: 0
       };
       setMembers([...members, member]);
-      setNewMember({ name: '', emailPrefix: '', personalEmail: '', phone: '', password: '', role: 'Member' });
+      setNewMember({ name: '', email: '', phone: '', password: '', role: 'Member' });
       setShowAddModal(false);
     }
   };
@@ -435,7 +420,7 @@ const MembersRolesPage = () => {
         <div className="members-table">
           <div className="table-header-row">
             <div className="col-name">Tên</div>
-            <div className="col-email">Email Doanh Nghiệp</div>
+            <div className="col-email">Email</div>
             <div className="col-role">Vai trò</div>
             <div className="col-status">Trạng thái</div>
             <div className="col-projects">Dự án</div>
@@ -457,7 +442,7 @@ const MembersRolesPage = () => {
               </div>
 
               <div className="col-email">
-                <span className="email">{member.companyEmail}</span>
+                <span className="email">{member.email}</span>
               </div>
 
               <div className="col-role">
@@ -523,60 +508,49 @@ const MembersRolesPage = () => {
             </div>
 
             <div className="modal-body">
-              <div className="form-group">
-                <label>Tên thành viên</label>
-                <input
-                  type="text"
-                  value={newMember.name}
-                  onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
-                  placeholder="Nhập tên thành viên"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Email doanh nghiệp</label>
-                <div className="email-input-group">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Tên thành viên</label>
                   <input
                     type="text"
-                    value={newMember.emailPrefix}
-                    onChange={(e) => setNewMember({ ...newMember, emailPrefix: e.target.value })}
-                    placeholder="Nhập phần trước @"
+                    value={newMember.name}
+                    onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
+                    placeholder="Nhập tên thành viên"
                   />
-                  <span className="email-domain">{companyDomain}</span>
+                </div>
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={newMember.email}
+                    onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
+                    placeholder="example@company.com"
+                  />
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Email cá nhân</label>
-                <input
-                  type="email"
-                  value={newMember.personalEmail}
-                  onChange={(e) => setNewMember({ ...newMember, personalEmail: e.target.value })}
-                  placeholder="example@gmail.com"
-                />
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Số điện thoại</label>
+                  <input
+                    type="tel"
+                    value={newMember.phone}
+                    onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })}
+                    placeholder="Nhập số điện thoại"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Mật khẩu</label>
+                  <input
+                    type="password"
+                    value={newMember.password}
+                    onChange={(e) => setNewMember({ ...newMember, password: e.target.value })}
+                    placeholder="Nhập mật khẩu"
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label>Số điện thoại</label>
-                <input
-                  type="tel"
-                  value={newMember.phone}
-                  onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })}
-                  placeholder="Nhập số điện thoại"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Mật khẩu</label>
-                <input
-                  type="password"
-                  value={newMember.password}
-                  onChange={(e) => setNewMember({ ...newMember, password: e.target.value })}
-                  placeholder="Nhập mật khẩu"
-                />
-              </div>
-
-              <div className="form-group">
+              <div className="form-group full-width">
                 <label>Vai trò</label>
                 <select
                   value={newMember.role}
@@ -623,34 +597,23 @@ const MembersRolesPage = () => {
             </div>
 
             <div className="modal-body">
-              <div className="form-group">
-                <label>Tên thành viên</label>
-                <input
-                  type="text"
-                  value={selectedMember.name}
-                  onChange={(e) => setSelectedMember({ ...selectedMember, name: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Email doanh nghiệp</label>
-                <div className="email-input-group">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Tên thành viên</label>
                   <input
                     type="text"
-                    value={selectedMember.companyEmail.split('@')[0]}
-                    onChange={(e) => setSelectedMember({ ...selectedMember, companyEmail: e.target.value + companyDomain })}
+                    value={selectedMember.name}
+                    onChange={(e) => setSelectedMember({ ...selectedMember, name: e.target.value })}
                   />
-                  <span className="email-domain">{companyDomain}</span>
                 </div>
-              </div>
-
-              <div className="form-group">
-                <label>Email cá nhân</label>
-                <input
-                  type="email"
-                  value={selectedMember.personalEmail}
-                  onChange={(e) => setSelectedMember({ ...selectedMember, personalEmail: e.target.value })}
-                />
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={selectedMember.email}
+                    onChange={(e) => setSelectedMember({ ...selectedMember, email: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="form-group">
@@ -662,35 +625,27 @@ const MembersRolesPage = () => {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Mật khẩu</label>
-                <input
-                  type="password"
-                  value={selectedMember.password}
-                  onChange={(e) => setSelectedMember({ ...selectedMember, password: e.target.value })}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Vai trò</label>
-                <select
-                  value={selectedMember.role}
-                  onChange={(e) => setSelectedMember({ ...selectedMember, role: e.target.value as 'Member' | 'ProjectManager' })}
-                >
-                  <option value="Member">Member</option>
-                  <option value="ProjectManager">Project Manager</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Trạng thái</label>
-                <select
-                  value={selectedMember.status}
-                  onChange={(e) => setSelectedMember({ ...selectedMember, status: e.target.value as 'active' | 'inactive' })}
-                >
-                  <option value="active">Hoạt động</option>
-                  <option value="inactive">Không hoạt động</option>
-                </select>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Vai trò</label>
+                  <select
+                    value={selectedMember.role}
+                    onChange={(e) => setSelectedMember({ ...selectedMember, role: e.target.value as 'Member' | 'ProjectManager' })}
+                  >
+                    <option value="Member">Member</option>
+                    <option value="ProjectManager">Project Manager</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Trạng thái</label>
+                  <select
+                    value={selectedMember.status}
+                    onChange={(e) => setSelectedMember({ ...selectedMember, status: e.target.value as 'active' | 'inactive' })}
+                  >
+                    <option value="active">Hoạt động</option>
+                    <option value="inactive">Không hoạt động</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -814,8 +769,7 @@ const MembersRolesPage = () => {
                 <div className="preview-header">
                   <div className="preview-col">Dòng</div>
                   <div className="preview-col">Tên</div>
-                  <div className="preview-col">Email DN</div>
-                  <div className="preview-col">Email cá nhân</div>
+                  <div className="preview-col">Email</div>
                   <div className="preview-col">Số điện thoại</div>
                   <div className="preview-col">Mật khẩu</div>
                   <div className="preview-col">Vai trò</div>
@@ -826,8 +780,7 @@ const MembersRolesPage = () => {
                   <div key={index} className={`preview-row ${item.isValid ? 'valid' : 'error'}`}>
                     <div className="preview-col">{item.rowIndex}</div>
                     <div className="preview-col">{item.name}</div>
-                    <div className="preview-col">{item.emailPrefix + companyDomain}</div>
-                    <div className="preview-col">{item.personalEmail}</div>
+                    <div className="preview-col">{item.email}</div>
                     <div className="preview-col">{item.phone}</div>
                     <div className="preview-col">{item.password}</div>
                     <div className="preview-col">{item.role}</div>
@@ -1367,19 +1320,36 @@ const MembersRolesPage = () => {
 
         .modal {
           background: white;
-          border-radius: 12px;
+          border-radius: 16px;
           width: 90%;
-          max-width: 500px;
+          max-width: 600px;
           max-height: 90vh;
           overflow-y: auto;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          backdrop-filter: blur(10px);
+          animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
         }
 
         .modal-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 20px 24px;
+          padding: 24px 28px;
           border-bottom: 1px solid #F3F4F6;
+          background: linear-gradient(135deg, #F9F4EE 0%, #FFF5F0 100%);
+          border-radius: 16px 16px 0 0;
         }
 
         .modal-header h3 {
@@ -1403,10 +1373,26 @@ const MembersRolesPage = () => {
 
         .modal-body {
           padding: 24px;
+          background: white;
         }
 
         .form-group {
-          margin-bottom: 20px;
+          margin-bottom: 16px;
+        }
+
+        .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+
+        .form-row .form-group {
+          margin-bottom: 0;
+        }
+
+        .form-group.full-width {
+          grid-column: 1 / -1;
         }
 
         .form-group label {
@@ -1420,17 +1406,21 @@ const MembersRolesPage = () => {
         .form-group input,
         .form-group select {
           width: 100%;
-          padding: 12px;
+          padding: 14px 16px;
           border: 2px solid #E5E7EB;
-          border-radius: 8px;
+          border-radius: 12px;
           font-size: 14px;
-          transition: border-color 0.3s ease;
+          transition: all 0.3s ease;
+          background: #FAFBFC;
         }
 
         .form-group input:focus,
         .form-group select:focus {
           outline: none;
           border-color: #FF5E13;
+          background: white;
+          box-shadow: 0 0 0 3px rgba(255, 94, 19, 0.1);
+          transform: translateY(-1px);
         }
 
         .email-input-group {
@@ -1586,7 +1576,7 @@ const MembersRolesPage = () => {
 
         .preview-header {
           display: grid;
-          grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 1fr 1fr 1fr;
+          grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 1fr 1fr;
           gap: 12px;
           padding: 12px 16px;
           background: #F9F4EE;
@@ -1602,7 +1592,7 @@ const MembersRolesPage = () => {
 
         .preview-row {
           display: grid;
-          grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 1fr 1fr 1fr;
+          grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 1fr 1fr;
           gap: 12px;
           padding: 12px 16px;
           border-bottom: 1px solid #F3F4F6;
@@ -1666,18 +1656,20 @@ const MembersRolesPage = () => {
           display: flex;
           justify-content: flex-end;
           gap: 12px;
-          padding: 20px 24px;
+          padding: 24px 28px;
           border-top: 1px solid #F3F4F6;
+          background: #FAFBFC;
+          border-radius: 0 0 16px 16px;
         }
 
         .cancel-btn {
-          padding: 10px 20px;
+          padding: 12px 24px;
           border: 2px solid #E5E7EB;
           background: white;
           color: #787486;
-          border-radius: 8px;
+          border-radius: 12px;
           font-size: 14px;
-          font-weight: 500;
+          font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
         }
@@ -1685,22 +1677,27 @@ const MembersRolesPage = () => {
         .cancel-btn:hover {
           border-color: #D1D5DB;
           color: #0D062D;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .save-btn {
-          padding: 10px 20px;
+          padding: 12px 24px;
           border: none;
-          background: #FF5E13;
+          background: linear-gradient(135deg, #FF5E13, #FF8C42);
           color: white;
-          border-radius: 8px;
+          border-radius: 12px;
           font-size: 14px;
-          font-weight: 500;
+          font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.3);
         }
 
         .save-btn:hover {
-          background: #FFA463;
+          background: linear-gradient(135deg, #E04A0C, #FF5E13);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(255, 94, 19, 0.4);
         }
 
         @media (max-width: 768px) {
@@ -1748,6 +1745,29 @@ const MembersRolesPage = () => {
           .col-status::before { content: "Trạng thái: "; font-weight: 600; }
           .col-projects::before { content: "Dự án: "; font-weight: 600; }
           .col-actions::before { content: "Thao tác: "; font-weight: 600; }
+
+          /* Modal responsive */
+          .modal {
+            max-width: 95%;
+            margin: 20px;
+          }
+
+          .form-row {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+
+          .modal-header {
+            padding: 20px 24px;
+          }
+
+          .modal-body {
+            padding: 20px 24px;
+          }
+
+          .modal-footer {
+            padding: 20px 24px;
+          }
         }
       `}</style>
     </div>
