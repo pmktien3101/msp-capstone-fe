@@ -9,10 +9,8 @@ export interface UserDetailModalProps {
   member: {
     id: string;
     name: string;
-    companyEmail: string;
-    personalEmail: string;
+    email: string;
     phone: string;
-    password: string;
     role: "Member" | "ProjectManager";
     status: "active" | "inactive";
     joinDate: string;
@@ -41,7 +39,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClose, memb
           </div>
           <div className="user-info">
             <h2 className="user-name">{member.name}</h2>
-            <p className="user-email">{member.companyEmail}</p>
+            <p className="user-email">{member.email}</p>
             <div className="user-badges">
               <span className="badge role">{roleText}</span>
               <span className={`badge status ${member.status === "active" ? "active" : "inactive"}`}>
@@ -60,20 +58,12 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClose, memb
             <h3 className="section-title">Thông tin liên hệ</h3>
             <div className="info-grid">
               <div className="info-item">
-                <div className="info-label">Email doanh nghiệp</div>
-                <div className="info-value">{member.companyEmail}</div>
-              </div>
-              <div className="info-item">
-                <div className="info-label">Email cá nhân</div>
-                <div className="info-value">{member.personalEmail}</div>
+                <div className="info-label">Email</div>
+                <div className="info-value">{member.email}</div>
               </div>
               <div className="info-item">
                 <div className="info-label">Số điện thoại</div>
                 <div className="info-value">{member.phone}</div>
-              </div>
-              <div className="info-item">
-                <div className="info-label">Mật khẩu</div>
-                <div className="info-value password">{member.password}</div>
               </div>
             </div>
           </div>
@@ -256,13 +246,6 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({ isOpen, onClose, memb
             line-height: 1.3;
           }
 
-          .info-value.password {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            background: #F1F5F9;
-            padding: 6px 10px;
-            border-radius: 4px;
-            border: 1px solid #E2E8F0;
-          }
 
           /* Overview Grid */
           .overview-grid {

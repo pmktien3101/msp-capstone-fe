@@ -3,134 +3,120 @@
 import React, { useState } from 'react';
 import { Eye, Edit, Pause, Trash2, X, Search } from 'lucide-react';
 
-interface Company {
+interface BusinessOwner {
   id: number;
-  name: string;
+  fullName: string;
   email: string;
-  domain: string;
   phone: string;
-  plan: string;
-  status: 'active' | 'trial' | 'suspended' | 'inactive';
-  users: number;
+  organizationName: string;
+  status: 'active' | 'inactive';
   joinDate: string;
-  revenue: string;
+  lastLogin: string;
 }
 
-const AdminCompanies = () => {
+const AdminBusinessOwners = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [selectedBusinessOwner, setSelectedBusinessOwner] = useState<BusinessOwner | null>(null);
 
-  const [companies, setCompanies] = useState<Company[]>([
+  const [businessOwners, setBusinessOwners] = useState<BusinessOwner[]>([
     {
       id: 1,
-      name: 'Công ty ABC',
-      email: 'contact@abc.com',
-      domain: '@abc.com',
+      fullName: 'Nguyễn Văn An',
+      email: 'an.nguyen@abc.com',
       phone: '+84 123 456 789',
-      plan: 'Premium',
+      organizationName: 'Công ty ABC',
       status: 'active',
-      users: 25,
       joinDate: '2024-01-15',
-      revenue: '$2,500'
+      lastLogin: '2024-12-20'
     },
     {
       id: 2,
-      name: 'Công ty XYZ',
-      email: 'info@xyz.com',
-      domain: '@xyz.com',
+      fullName: 'Trần Thị Bình',
+      email: 'binh.tran@xyz.com',
       phone: '+84 987 654 321',
-      plan: 'Basic',
+      organizationName: 'Công ty XYZ',
       status: 'active',
-      users: 10,
       joinDate: '2024-02-20',
-      revenue: '$500'
+      lastLogin: '2024-12-19'
     },
     {
       id: 3,
-      name: 'Công ty DEF',
-      email: 'hello@def.com',
-      domain: '@def.com',
+      fullName: 'Lê Văn Cường',
+      email: 'cuong.le@def.com',
       phone: '+84 555 123 456',
-      plan: 'Enterprise',
-      status: 'trial',
-      users: 50,
+      organizationName: 'Công ty DEF',
+      status: 'active',
       joinDate: '2024-03-10',
-      revenue: '$0'
+      lastLogin: '2024-12-18'
     },
     {
       id: 4,
-      name: 'Công ty GHI',
-      email: 'contact@ghi.com',
-      domain: '@ghi.com',
+      fullName: 'Phạm Thị Dung',
+      email: 'dung.pham@ghi.com',
       phone: '+84 111 222 333',
-      plan: 'Premium',
-      status: 'suspended',
-      users: 15,
+      organizationName: 'Công ty GHI',
+      status: 'inactive',
       joinDate: '2024-01-05',
-      revenue: '$1,500'
+      lastLogin: '2024-12-10'
     },
     {
       id: 5,
-      name: 'Công ty JKL',
-      email: 'support@jkl.com',
-      domain: '@jkl.com',
+      fullName: 'Hoàng Văn Em',
+      email: 'em.hoang@jkl.com',
       phone: '+84 444 555 666',
-      plan: 'Basic',
+      organizationName: 'Công ty JKL',
       status: 'inactive',
-      users: 5,
       joinDate: '2024-04-01',
-      revenue: '$0'
+      lastLogin: '2024-11-15'
     }
   ]);
 
-  const filteredCompanies = companies.filter(company => {
-    const matchesSearch = company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         company.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         company.domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         company.phone.includes(searchTerm);
-    const matchesFilter = filterStatus === 'all' || company.status === filterStatus;
+  const filteredBusinessOwners = businessOwners.filter(businessOwner => {
+    const matchesSearch = businessOwner.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         businessOwner.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         businessOwner.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         businessOwner.phone.includes(searchTerm);
+    const matchesFilter = filterStatus === 'all' || businessOwner.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
-  const handleDeleteCompany = (company: Company) => {
-    setSelectedCompany(company);
+  const handleDeleteBusinessOwner = (businessOwner: BusinessOwner) => {
+    setSelectedBusinessOwner(businessOwner);
     setShowDeleteModal(true);
   };
 
-  const handleDeactivateCompany = (company: Company) => {
-    setSelectedCompany(company);
+  const handleDeactivateBusinessOwner = (businessOwner: BusinessOwner) => {
+    setSelectedBusinessOwner(businessOwner);
     setShowDeactivateModal(true);
   };
 
   const confirmDelete = () => {
-    if (selectedCompany) {
-      setCompanies(companies.filter(c => c.id !== selectedCompany.id));
+    if (selectedBusinessOwner) {
+      setBusinessOwners(businessOwners.filter(bo => bo.id !== selectedBusinessOwner.id));
       setShowDeleteModal(false);
-      setSelectedCompany(null);
+      setSelectedBusinessOwner(null);
     }
   };
 
   const confirmDeactivate = () => {
-    if (selectedCompany) {
-      setCompanies(companies.map(c => 
-        c.id === selectedCompany.id 
-          ? { ...c, status: 'inactive' as const }
-          : c
+    if (selectedBusinessOwner) {
+      setBusinessOwners(businessOwners.map(bo => 
+        bo.id === selectedBusinessOwner.id 
+          ? { ...bo, status: 'inactive' as const }
+          : bo
       ));
       setShowDeactivateModal(false);
-      setSelectedCompany(null);
+      setSelectedBusinessOwner(null);
     }
   };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       active: { color: '#D1FAE5', textColor: '#065F46', text: 'Hoạt động' },
-      trial: { color: '#FEF3C7', textColor: '#92400E', text: 'Dùng thử' },
-      suspended: { color: '#FEE2E2', textColor: '#991B1B', text: 'Tạm dừng' },
-      inactive: { color: '#F3F4F6', textColor: '#6B7280', text: 'Không hoạt động' }
+      inactive: { color: '#F3F4F6', textColor: '#6B7280', text: 'Ngừng hoạt động' }
     };
     
     const config = statusConfig[status as keyof typeof statusConfig];
@@ -147,32 +133,12 @@ const AdminCompanies = () => {
     );
   };
 
-  const getPlanBadge = (plan: string) => {
-    const planConfig = {
-      Basic: { color: '#E5E7EB', textColor: '#374151' },
-      Premium: { color: '#DBEAFE', textColor: '#1E40AF' },
-      Enterprise: { color: '#F3E8FF', textColor: '#7C3AED' }
-    };
-    
-    const config = planConfig[plan as keyof typeof planConfig];
-    return (
-      <span 
-        className="plan-badge"
-        style={{ 
-          backgroundColor: config.color, 
-          color: config.textColor 
-        }}
-      >
-        {plan}
-      </span>
-    );
-  };
 
   return (
-    <div className="admin-companies">
+    <div className="admin-business-owners">
       <div className="page-header">
-        <h1>Quản Lý Doanh Nghiệp</h1>
-        <p>Quản lý tất cả các doanh nghiệp đang sử dụng hệ thống</p>
+        <h1>Quản Lý Business Owner</h1>
+        <p>Quản lý tất cả các Business Owner đang sử dụng hệ thống</p>
       </div>
 
       {/* Filters */}
@@ -180,12 +146,11 @@ const AdminCompanies = () => {
         <div className="search-box">
           <input
             type="text"
-            placeholder="Tìm kiếm theo tên hoặc email..."
+            placeholder="Tìm kiếm theo tên, email hoặc tên tổ chức..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <span className="search-icon"><Search size={16}/></span>
-          {/* <Search className="search-icon" size={16} /> */}
         </div>
 
         <div className="filter-buttons">
@@ -202,22 +167,10 @@ const AdminCompanies = () => {
             Hoạt động
           </button>
           <button 
-            className={`filter-btn ${filterStatus === 'trial' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('trial')}
-          >
-            Dùng thử
-          </button>
-          <button 
-            className={`filter-btn ${filterStatus === 'suspended' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('suspended')}
-          >
-            Tạm dừng
-          </button>
-          <button 
             className={`filter-btn ${filterStatus === 'inactive' ? 'active' : ''}`}
             onClick={() => setFilterStatus('inactive')}
           >
-            Không hoạt động
+            Ngừng hoạt động
           </button>
         </div>
       </div>
@@ -225,58 +178,50 @@ const AdminCompanies = () => {
       {/* Stats */}
       <div className="stats-row">
         <div className="stat-item">
-          <span className="stat-number">{companies.length}</span>
-          <span className="stat-label">Tổng doanh nghiệp</span>
+          <span className="stat-number">{businessOwners.length}</span>
+          <span className="stat-label">Tổng Business Owner</span>
         </div>
         <div className="stat-item">
-          <span className="stat-number">{companies.filter(c => c.status === 'active').length}</span>
+          <span className="stat-number">{businessOwners.filter(bo => bo.status === 'active').length}</span>
           <span className="stat-label">Đang hoạt động</span>
         </div>
         <div className="stat-item">
-          <span className="stat-number">{companies.filter(c => c.status === 'trial').length}</span>
-          <span className="stat-label">Dùng thử</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-number">{companies.reduce((sum, c) => sum + c.users, 0)}</span>
-          <span className="stat-label">Tổng người dùng</span>
+          <span className="stat-number">{businessOwners.filter(bo => bo.status === 'inactive').length}</span>
+          <span className="stat-label">Ngừng hoạt động</span>
         </div>
       </div>
 
-      {/* Companies Table */}
-      <div className="companies-table">
+      {/* Business Owners Table */}
+      <div className="business-owners-table">
         <div className="table-header">
-          <div className="table-cell">Tên công ty</div>
+          <div className="table-cell">Họ và tên</div>
           <div className="table-cell">Email</div>
-          <div className="table-cell">Domain</div>
           <div className="table-cell">Số điện thoại</div>
-          <div className="table-cell">Gói</div>
+          <div className="table-cell">Tên tổ chức</div>
           <div className="table-cell">Trạng thái</div>
-          <div className="table-cell">Người dùng</div>
           <div className="table-cell">Ngày tham gia</div>
-          <div className="table-cell">Doanh thu</div>
+          <div className="table-cell">Lần đăng nhập cuối</div>
           <div className="table-cell">Hành động</div>
         </div>
 
-        {filteredCompanies.map((company) => (
-          <div key={company.id} className="table-row">
-            <div className="table-cell" data-label="Tên công ty">
-              <div className="company-info">
-                <div className="company-avatar">
-                  {company.name.charAt(0)}
+        {filteredBusinessOwners.map((businessOwner) => (
+          <div key={businessOwner.id} className="table-row">
+            <div className="table-cell" data-label="Họ và tên">
+              <div className="business-owner-info">
+                <div className="business-owner-avatar">
+                  {businessOwner.fullName.charAt(0)}
                 </div>
-                <span className="company-name">{company.name}</span>
+                <span className="business-owner-name">{businessOwner.fullName}</span>
               </div>
             </div>
-            <div className="table-cell" data-label="Email">{company.email}</div>
-            <div className="table-cell" data-label="Domain">
-              <span className="domain-badge">{company.domain}</span>
+            <div className="table-cell" data-label="Email">{businessOwner.email}</div>
+            <div className="table-cell" data-label="Số điện thoại">{businessOwner.phone}</div>
+            <div className="table-cell" data-label="Tên tổ chức">
+              <span className="organization-badge">{businessOwner.organizationName}</span>
             </div>
-            <div className="table-cell" data-label="Số điện thoại">{company.phone}</div>
-            <div className="table-cell" data-label="Gói">{getPlanBadge(company.plan)}</div>
-            <div className="table-cell" data-label="Trạng thái">{getStatusBadge(company.status)}</div>
-            <div className="table-cell" data-label="Người dùng">{company.users}</div>
-            <div className="table-cell" data-label="Ngày tham gia">{company.joinDate}</div>
-            <div className="table-cell" data-label="Doanh thu">{company.revenue}</div>
+            <div className="table-cell" data-label="Trạng thái">{getStatusBadge(businessOwner.status)}</div>
+            <div className="table-cell" data-label="Ngày tham gia">{businessOwner.joinDate}</div>
+            <div className="table-cell" data-label="Lần đăng nhập cuối">{businessOwner.lastLogin}</div>
             <div className="table-cell" data-label="Hành động">
               <div className="action-buttons">
                 <button className="action-btn view" title="Xem chi tiết">
@@ -285,11 +230,11 @@ const AdminCompanies = () => {
                 <button className="action-btn edit" title="Chỉnh sửa">
                   <Edit size={16} />
                 </button>
-                {company.status !== 'inactive' && (
+                {businessOwner.status !== 'inactive' && (
                   <button 
                     className="action-btn deactivate" 
                     title="Vô hiệu hóa"
-                    onClick={() => handleDeactivateCompany(company)}
+                    onClick={() => handleDeactivateBusinessOwner(businessOwner)}
                   >
                     <Pause size={16} />
                   </button>
@@ -297,7 +242,7 @@ const AdminCompanies = () => {
                 <button 
                   className="action-btn delete" 
                   title="Xóa"
-                  onClick={() => handleDeleteCompany(company)}
+                  onClick={() => handleDeleteBusinessOwner(businessOwner)}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -308,11 +253,11 @@ const AdminCompanies = () => {
       </div>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && selectedCompany && (
+      {showDeleteModal && selectedBusinessOwner && (
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>Xác nhận xóa công ty</h3>
+              <h3>Xác nhận xóa Business Owner</h3>
               <button 
                 className="modal-close"
                 onClick={() => setShowDeleteModal(false)}
@@ -321,7 +266,7 @@ const AdminCompanies = () => {
               </button>
             </div>
             <div className="modal-body">
-              <p>Bạn có chắc chắn muốn xóa công ty <strong>{selectedCompany.name}</strong>?</p>
+              <p>Bạn có chắc chắn muốn xóa Business Owner <strong>{selectedBusinessOwner.fullName}</strong>?</p>
               <p className="warning-text">Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan.</p>
             </div>
             <div className="modal-footer">
@@ -343,11 +288,11 @@ const AdminCompanies = () => {
       )}
 
       {/* Deactivate Confirmation Modal */}
-      {showDeactivateModal && selectedCompany && (
+      {showDeactivateModal && selectedBusinessOwner && (
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>Xác nhận vô hiệu hóa công ty</h3>
+              <h3>Xác nhận vô hiệu hóa Business Owner</h3>
               <button 
                 className="modal-close"
                 onClick={() => setShowDeactivateModal(false)}
@@ -356,8 +301,8 @@ const AdminCompanies = () => {
               </button>
             </div>
             <div className="modal-body">
-              <p>Bạn có chắc chắn muốn vô hiệu hóa công ty <strong>{selectedCompany.name}</strong>?</p>
-              <p className="info-text">Công ty sẽ không thể truy cập hệ thống nhưng dữ liệu sẽ được giữ lại.</p>
+              <p>Bạn có chắc chắn muốn vô hiệu hóa Business Owner <strong>{selectedBusinessOwner.fullName}</strong>?</p>
+              <p className="info-text">Business Owner sẽ không thể truy cập hệ thống nhưng dữ liệu sẽ được giữ lại.</p>
             </div>
             <div className="modal-footer">
               <button 
@@ -378,7 +323,7 @@ const AdminCompanies = () => {
       )}
 
       <style jsx>{`
-        .admin-companies {
+        .admin-business-owners {
           max-width: 1400px;
           margin: 0 auto;
           padding: 24px;
@@ -467,7 +412,7 @@ const AdminCompanies = () => {
 
         .stats-row {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          grid-template-columns: repeat(3, 1fr);
           gap: 20px;
           margin-bottom: 32px;
         }
@@ -493,7 +438,7 @@ const AdminCompanies = () => {
           color: #787486;
         }
 
-        .companies-table {
+        .business-owners-table {
           background: white;
           border-radius: 16px;
           overflow: hidden;
@@ -502,7 +447,7 @@ const AdminCompanies = () => {
 
         .table-header {
           display: grid;
-          grid-template-columns: 2fr 2fr 1fr 1.5fr 1fr 1fr 1fr 1fr 1fr 1.5fr;
+          grid-template-columns: 180px 200px 140px 180px 120px 120px 120px 140px;
           background: #F9F4EE;
           padding: 16px 20px;
           font-weight: 600;
@@ -512,7 +457,7 @@ const AdminCompanies = () => {
 
         .table-row {
           display: grid;
-          grid-template-columns: 2fr 2fr 1fr 1.5fr 1fr 1fr 1fr 1fr 1fr 1.5fr;
+          grid-template-columns: 180px 200px 140px 180px 120px 120px 120px 140px;
           padding: 16px 20px;
           border-bottom: 1px solid #F3F4F6;
           align-items: center;
@@ -526,15 +471,19 @@ const AdminCompanies = () => {
         .table-cell {
           font-size: 14px;
           color: #0D062D;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          padding: 0 4px;
         }
 
-        .company-info {
+        .business-owner-info {
           display: flex;
           align-items: center;
           gap: 12px;
         }
 
-        .company-avatar {
+        .business-owner-avatar {
           width: 32px;
           height: 32px;
           background: linear-gradient(135deg, #FFA463 0%, #FF5E13 100%);
@@ -547,18 +496,18 @@ const AdminCompanies = () => {
           font-size: 14px;
         }
 
-        .company-name {
+        .business-owner-name {
           font-weight: 500;
         }
 
-        .status-badge, .plan-badge, .domain-badge {
+        .status-badge, .organization-badge {
           padding: 4px 8px;
           border-radius: 6px;
           font-size: 12px;
           font-weight: 500;
         }
 
-        .domain-badge {
+        .organization-badge {
           background: #E0F2FE;
           color: #0369A1;
           border: 1px solid #BAE6FD;
@@ -745,7 +694,7 @@ const AdminCompanies = () => {
           background: #D97706;
         }
 
-        @media (max-width: 1200px) {
+        @media (max-width: 1400px) {
           .table-header {
             display: none;
           }
@@ -765,6 +714,9 @@ const AdminCompanies = () => {
             align-items: center;
             margin-bottom: 8px;
             padding: 4px 0;
+            white-space: normal;
+            overflow: visible;
+            text-overflow: unset;
           }
 
           .table-cell:last-child {
@@ -784,7 +736,7 @@ const AdminCompanies = () => {
         }
 
         @media (max-width: 768px) {
-          .admin-companies {
+          .admin-business-owners {
             padding: 16px;
           }
 
@@ -814,7 +766,7 @@ const AdminCompanies = () => {
           }
 
           .stats-row {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 12px;
           }
 
@@ -826,7 +778,7 @@ const AdminCompanies = () => {
             font-size: 20px;
           }
 
-          .company-info {
+          .business-owner-info {
             flex-direction: column;
             align-items: flex-start;
             gap: 8px;
@@ -855,7 +807,7 @@ const AdminCompanies = () => {
         }
 
         @media (max-width: 480px) {
-          .admin-companies {
+          .admin-business-owners {
             padding: 12px;
           }
 
@@ -881,11 +833,11 @@ const AdminCompanies = () => {
             font-size: 12px;
           }
 
-          .company-name {
+          .business-owner-name {
             font-size: 14px;
           }
 
-          .status-badge, .plan-badge, .domain-badge {
+          .status-badge, .organization-badge {
             font-size: 10px;
             padding: 2px 6px;
           }
@@ -895,4 +847,4 @@ const AdminCompanies = () => {
   );
 };
 
-export default AdminCompanies;
+export default AdminBusinessOwners;
