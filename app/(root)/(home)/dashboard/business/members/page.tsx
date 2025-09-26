@@ -1,13 +1,19 @@
+
+
 'use client';
 
-import React, { useState } from 'react';
+import { Eye } from 'lucide-react';
+import UserDetailModal from '@/components/modals/UserDetailModal';
+import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 
 interface Member {
   id: string;
   name: string;
-  email: string;
+  companyEmail: string;
+  personalEmail: string;
   phone: string;
+  password: string;
   role: 'Member' | 'ProjectManager';
   status: 'active' | 'inactive';
   joinDate: string;
@@ -20,8 +26,10 @@ const MembersRolesPage = () => {
     {
       id: '1',
       name: 'Nguyễn Văn A',
-      email: 'nguyenvana@company.com',
+      companyEmail: 'nguyenvana@company.com',
+      personalEmail: 'nguyenvana@gmail.com',
       phone: '+84 123 456 789',
+      password: 'password123',
       role: 'ProjectManager',
       status: 'active',
       joinDate: '2024-01-15',
@@ -31,8 +39,10 @@ const MembersRolesPage = () => {
     {
       id: '2',
       name: 'Trần Thị B',
-      email: 'tranthib@company.com',
+      companyEmail: 'tranthib@company.com',
+      personalEmail: 'tranthib@gmail.com',
       phone: '+84 987 654 321',
+      password: 'password123',
       role: 'Member',
       status: 'active',
       joinDate: '2024-02-20',
@@ -42,8 +52,10 @@ const MembersRolesPage = () => {
     {
       id: '3',
       name: 'Lê Văn C',
-      email: 'levanc@company.com',
+      companyEmail: 'levanc@company.com',
+      personalEmail: 'levanc@yahoo.com',
       phone: '+84 555 123 456',
+      password: 'password123',
       role: 'Member',
       status: 'inactive',
       joinDate: '2024-03-10',
@@ -53,8 +65,10 @@ const MembersRolesPage = () => {
     {
       id: '4',
       name: 'Phạm Thị D',
-      email: 'phamthid@company.com',
+      companyEmail: 'phamthid@company.com',
+      personalEmail: 'phamthid@outlook.com',
       phone: '+84 111 222 333',
+      password: 'password123',
       role: 'ProjectManager',
       status: 'active',
       joinDate: '2024-04-05',
@@ -67,6 +81,12 @@ const MembersRolesPage = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'Member' | 'ProjectManager'>('all');
@@ -75,7 +95,9 @@ const MembersRolesPage = () => {
   const [newMember, setNewMember] = useState({
     name: '',
     emailPrefix: '',
+    personalEmail: '',
     phone: '',
+    password: '',
     role: 'Member' as 'Member' | 'ProjectManager'
   });
 
@@ -87,14 +109,18 @@ const MembersRolesPage = () => {
     const templateData = [
       {
         'Tên': 'Nguyễn Văn A',
-        'Email (phần trước @)': 'nguyenvana',
+        'Email công ty (phần trước @)': 'nguyenvana',
+        'Email cá nhân': 'nguyenvana@gmail.com',
         'Số điện thoại': '+84 123 456 789',
+        'Mật khẩu': 'password123',
         'Vai trò': 'Member'
       },
       {
         'Tên': 'Trần Thị B',
-        'Email (phần trước @)': 'tranthib',
+        'Email công ty (phần trước @)': 'tranthib',
+        'Email cá nhân': 'tranthib@gmail.com',
         'Số điện thoại': '+84 987 654 321',
+        'Mật khẩu': 'password123',
         'Vai trò': 'ProjectManager'
       }
     ];
@@ -106,8 +132,10 @@ const MembersRolesPage = () => {
     // Set column widths
     ws['!cols'] = [
       { wch: 20 }, // Tên
-      { wch: 25 }, // Email
+      { wch: 25 }, // Email công ty
+      { wch: 25 }, // Email cá nhân
       { wch: 20 }, // Số điện thoại
+      { wch: 15 }, // Mật khẩu
       { wch: 15 }  // Vai trò
     ];
 
@@ -130,17 +158,21 @@ const MembersRolesPage = () => {
       // Validate and format data
       const validatedData = jsonData.map((row: any, index: number) => {
         const name = row['Tên'] || '';
-        const emailPrefix = row['Email (phần trước @)'] || '';
+        const emailPrefix = row['Email công ty (phần trước @)'] || '';
+        const personalEmail = row['Email cá nhân'] || '';
         const phone = row['Số điện thoại'] || '';
+        const password = row['Mật khẩu'] || '';
         const role = row['Vai trò'] || 'Member';
 
         return {
           rowIndex: index + 2, // +2 because Excel starts from row 1 and we skip header
           name: name.toString().trim(),
           emailPrefix: emailPrefix.toString().trim(),
+          personalEmail: personalEmail.toString().trim(),
           phone: phone.toString().trim(),
+          password: password.toString().trim(),
           role: role.toString().trim(),
-          isValid: name && emailPrefix && phone,
+          isValid: name && emailPrefix && personalEmail && phone && password,
           errors: [] as string[]
         };
       });
@@ -148,8 +180,10 @@ const MembersRolesPage = () => {
       // Validate data
       validatedData.forEach(item => {
         if (!item.name) item.errors.push('Tên không được để trống');
-        if (!item.emailPrefix) item.errors.push('Email không được để trống');
+        if (!item.emailPrefix) item.errors.push('Email công ty không được để trống');
+        if (!item.personalEmail) item.errors.push('Email cá nhân không được để trống');
         if (!item.phone) item.errors.push('Số điện thoại không được để trống');
+        if (!item.password) item.errors.push('Mật khẩu không được để trống');
         if (!['Member', 'ProjectManager'].includes(item.role)) {
           item.errors.push('Vai trò phải là Member hoặc ProjectManager');
         }
@@ -171,8 +205,10 @@ const MembersRolesPage = () => {
     const newMembers: Member[] = validData.map(item => ({
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       name: item.name,
-      email: item.emailPrefix + companyDomain,
+      companyEmail: item.emailPrefix + companyDomain,
+      personalEmail: item.personalEmail,
       phone: item.phone,
+      password: item.password,
       role: item.role as 'Member' | 'ProjectManager',
       status: 'active',
       joinDate: new Date().toISOString().split('T')[0],
@@ -187,18 +223,21 @@ const MembersRolesPage = () => {
 
   const filteredMembers = members.filter(member => {
     const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase());
+      member.companyEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      member.personalEmail.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'all' || member.role === roleFilter;
     return matchesSearch && matchesRole;
   });
 
   const handleAddMember = () => {
-    if (newMember.name && newMember.emailPrefix && newMember.phone) {
+    if (newMember.name && newMember.emailPrefix && newMember.personalEmail && newMember.phone && newMember.password) {
       const member: Member = {
         id: Date.now().toString(),
         name: newMember.name,
-        email: newMember.emailPrefix + companyDomain,
+        companyEmail: newMember.emailPrefix + companyDomain,
+        personalEmail: newMember.personalEmail,
         phone: newMember.phone,
+        password: newMember.password,
         role: newMember.role,
         status: 'active',
         joinDate: new Date().toISOString().split('T')[0],
@@ -206,9 +245,14 @@ const MembersRolesPage = () => {
         projects: 0
       };
       setMembers([...members, member]);
-      setNewMember({ name: '', emailPrefix: '', phone: '', role: 'Member' });
+      setNewMember({ name: '', emailPrefix: '', personalEmail: '', phone: '', password: '', role: 'Member' });
       setShowAddModal(false);
     }
+  };
+
+  const handleViewMember = (member: Member) => {
+    setSelectedMember(member);
+    setShowDetailModal(true);
   };
 
   const handleEditMember = (member: Member) => {
@@ -391,8 +435,7 @@ const MembersRolesPage = () => {
         <div className="members-table">
           <div className="table-header-row">
             <div className="col-name">Tên</div>
-            <div className="col-email">Email</div>
-            <div className="col-phone">Số điện thoại</div>
+            <div className="col-email">Email Doanh Nghiệp</div>
             <div className="col-role">Vai trò</div>
             <div className="col-status">Trạng thái</div>
             <div className="col-projects">Dự án</div>
@@ -414,11 +457,7 @@ const MembersRolesPage = () => {
               </div>
 
               <div className="col-email">
-                <span className="email">{member.email}</span>
-              </div>
-
-              <div className="col-phone">
-                <span className="phone">{member.phone}</span>
+                <span className="email">{member.companyEmail}</span>
               </div>
 
               <div className="col-role">
@@ -435,8 +474,16 @@ const MembersRolesPage = () => {
 
               <div className="col-actions">
                 <button
+                  className="action-btn view"
+                  onClick={() => handleViewMember(member)}
+                  title="Xem chi tiết"
+                >
+                  <Eye size={16} strokeWidth={2} color="currentColor" />
+                </button>
+                <button
                   className="action-btn edit"
                   onClick={() => handleEditMember(member)}
+                  title="Chỉnh sửa"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -446,6 +493,7 @@ const MembersRolesPage = () => {
                 <button
                   className="action-btn delete"
                   onClick={() => handleDeleteMember(member.id)}
+                  title="Xóa"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -486,7 +534,7 @@ const MembersRolesPage = () => {
               </div>
 
               <div className="form-group">
-                <label>Email</label>
+                <label>Email doanh nghiệp</label>
                 <div className="email-input-group">
                   <input
                     type="text"
@@ -499,12 +547,32 @@ const MembersRolesPage = () => {
               </div>
 
               <div className="form-group">
+                <label>Email cá nhân</label>
+                <input
+                  type="email"
+                  value={newMember.personalEmail}
+                  onChange={(e) => setNewMember({ ...newMember, personalEmail: e.target.value })}
+                  placeholder="example@gmail.com"
+                />
+              </div>
+
+              <div className="form-group">
                 <label>Số điện thoại</label>
                 <input
                   type="tel"
                   value={newMember.phone}
                   onChange={(e) => setNewMember({ ...newMember, phone: e.target.value })}
                   placeholder="Nhập số điện thoại"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Mật khẩu</label>
+                <input
+                  type="password"
+                  value={newMember.password}
+                  onChange={(e) => setNewMember({ ...newMember, password: e.target.value })}
+                  placeholder="Nhập mật khẩu"
                 />
               </div>
 
@@ -565,15 +633,24 @@ const MembersRolesPage = () => {
               </div>
 
               <div className="form-group">
-                <label>Email</label>
+                <label>Email doanh nghiệp</label>
                 <div className="email-input-group">
                   <input
                     type="text"
-                    value={selectedMember.email.split('@')[0]}
-                    onChange={(e) => setSelectedMember({ ...selectedMember, email: e.target.value + companyDomain })}
+                    value={selectedMember.companyEmail.split('@')[0]}
+                    onChange={(e) => setSelectedMember({ ...selectedMember, companyEmail: e.target.value + companyDomain })}
                   />
                   <span className="email-domain">{companyDomain}</span>
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label>Email cá nhân</label>
+                <input
+                  type="email"
+                  value={selectedMember.personalEmail}
+                  onChange={(e) => setSelectedMember({ ...selectedMember, personalEmail: e.target.value })}
+                />
               </div>
 
               <div className="form-group">
@@ -582,6 +659,15 @@ const MembersRolesPage = () => {
                   type="tel"
                   value={selectedMember.phone}
                   onChange={(e) => setSelectedMember({ ...selectedMember, phone: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Mật khẩu</label>
+                <input
+                  type="password"
+                  value={selectedMember.password}
+                  onChange={(e) => setSelectedMember({ ...selectedMember, password: e.target.value })}
                 />
               </div>
 
@@ -728,8 +814,10 @@ const MembersRolesPage = () => {
                 <div className="preview-header">
                   <div className="preview-col">Dòng</div>
                   <div className="preview-col">Tên</div>
-                  <div className="preview-col">Email</div>
+                  <div className="preview-col">Email DN</div>
+                  <div className="preview-col">Email cá nhân</div>
                   <div className="preview-col">Số điện thoại</div>
+                  <div className="preview-col">Mật khẩu</div>
                   <div className="preview-col">Vai trò</div>
                   <div className="preview-col">Trạng thái</div>
                 </div>
@@ -739,7 +827,9 @@ const MembersRolesPage = () => {
                     <div className="preview-col">{item.rowIndex}</div>
                     <div className="preview-col">{item.name}</div>
                     <div className="preview-col">{item.emailPrefix + companyDomain}</div>
+                    <div className="preview-col">{item.personalEmail}</div>
                     <div className="preview-col">{item.phone}</div>
+                    <div className="preview-col">{item.password}</div>
                     <div className="preview-col">{item.role}</div>
                     <div className="preview-col">
                       {item.isValid ? (
@@ -778,6 +868,13 @@ const MembersRolesPage = () => {
           </div>
         </div>
       )}
+
+      {/* User Detail Modal */}
+      <UserDetailModal
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
+        member={selectedMember}
+      />
 
       <style jsx>{`
         .members-roles-page {
@@ -1016,7 +1113,7 @@ const MembersRolesPage = () => {
 
         .table-header-row {
           display: grid;
-          grid-template-columns: 2fr 2fr 1.5fr 1fr 1fr 1fr 1fr;
+          grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1.5fr;
           gap: 16px;
           padding: 20px 24px;
           background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
@@ -1043,7 +1140,7 @@ const MembersRolesPage = () => {
 
         .table-row {
           display: grid;
-          grid-template-columns: 2fr 2fr 1.5fr 1fr 1fr 1fr 1fr;
+          grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1.5fr;
           gap: 16px;
           padding: 20px 24px;
           border-bottom: 1px solid #F1F5F9;
@@ -1217,6 +1314,18 @@ const MembersRolesPage = () => {
 
         .action-btn:hover::before {
           opacity: 1;
+        }
+
+        .action-btn.view {
+          background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
+          color: #16A34A;
+          box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
+        }
+
+        .action-btn.view:hover {
+          background: linear-gradient(135deg, #DCFCE7, #BBF7D0);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
         }
 
         .action-btn.edit {
@@ -1477,7 +1586,7 @@ const MembersRolesPage = () => {
 
         .preview-header {
           display: grid;
-          grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 1fr;
+          grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 1fr 1fr 1fr;
           gap: 12px;
           padding: 12px 16px;
           background: #F9F4EE;
@@ -1493,7 +1602,7 @@ const MembersRolesPage = () => {
 
         .preview-row {
           display: grid;
-          grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 1fr;
+          grid-template-columns: 60px 1fr 1.5fr 1fr 1fr 1fr 1fr 1fr;
           gap: 12px;
           padding: 12px 16px;
           border-bottom: 1px solid #F3F4F6;

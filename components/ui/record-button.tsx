@@ -7,9 +7,14 @@ import { toast } from "react-toastify";
 
 const RecordButton = () => {
   const call = useCall();
-  const { useIsCallRecordingInProgress, useLocalParticipant } =
-    useCallStateHooks();
+  const {
+    useIsCallRecordingInProgress,
+    useLocalParticipant,
+    useIsCallTranscribingInProgress,
+  } = useCallStateHooks();
+
   const isRecording = useIsCallRecordingInProgress();
+  const isTranscribing = useIsCallTranscribingInProgress();
   const localParticipant = useLocalParticipant();
   const [loading, setLoading] = useState(false);
 
@@ -26,19 +31,29 @@ const RecordButton = () => {
     return () => subs.forEach((off) => off());
   }, [call]);
 
-  const toggleRecording = useCallback(async () => {
+  const toggleRecordAndTranscript = useCallback(async () => {
     if (!call) return;
     setLoading(true);
     try {
       if (isRecording) {
-        await call.stopRecording();
-        toast.info("Dừng ghi hình!");
+        // stop both
+        await Promise.allSettled([
+          call.stopRecording(),
+          call.stopTranscription(),
+        ]);
+        toast.info("Đã dừng ghi hình và transcription!");
       } else {
-        await call.startRecording();
-        toast.success("Bắt đầu ghi hình!");
+        // start both
+        await Promise.allSettled([
+          call.startRecording(),
+          call.startTranscription(),
+        ]);
+        toast.success("Bắt đầu ghi hình + transcription!");
       }
     } catch (err) {
-      console.error("Record error", err);
+      console.error("Record/Transcript error", err);
+      toast.error("Lỗi khi bật/tắt ghi hình kèm transcription!");
+    } finally {
       setLoading(false);
     }
   }, [call, isRecording]);
@@ -47,9 +62,13 @@ const RecordButton = () => {
 
   return (
     <Button
-      onClick={toggleRecording}
+      onClick={toggleRecordAndTranscript}
       disabled={loading}
-      title={isRecording ? "Dừng ghi âm" : "Bắt đầu ghi âm"}
+      title={
+        isRecording
+          ? "Dừng ghi và transcription"
+          : "Bắt đầu ghi và transcription"
+      }
       className={`rounded-full p-4 cursor-pointer ${
         isRecording
           ? "bg-red-600 hover:bg-red-700"

@@ -224,14 +224,14 @@ const BusinessDashboard = () => {
   const stats = [
     {
       id: "revenue",
-      title: "Tổng Doanh Thu",
-      value: "$125,430",
-      change: "+12.5%",
+      title: "Tổng Số Dự Án",
+      value: "27",
+      change: "+3",
       changeType: "positive",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path
-            d="M12 2V22M17 5H9.5C8.57174 5 7.6815 5.36875 7.02513 6.02513C6.36875 6.6815 6 7.57174 6 8.5C6 9.42826 6.36875 10.3185 7.02513 10.9749C7.6815 11.6312 8.57174 12 9.5 12H14.5C15.4283 12 16.3185 12.3687 16.9749 13.0251C17.6312 13.6815 18 14.5717 18 15.5C18 16.4283 17.6312 17.3185 16.9749 17.9749C16.3185 18.6312 15.4283 19 14.5 19H6"
+            d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z"
             stroke="currentColor"
             strokeWidth="2"
             strokeLinecap="round"
@@ -501,12 +501,10 @@ const BusinessDashboard = () => {
                 <div className="tooltip-content">
                   <strong>{stat.title}</strong>
                   <br />
-                  Tăng {stat.change} so với{" "}
-                  {selectedPeriod === "week"
-                    ? "tuần trước"
-                    : selectedPeriod === "month"
-                    ? "tháng trước"
-                    : "quý trước"}
+                  {stat.id === "revenue" 
+                    ? `Tăng ${stat.change} dự án so với ${selectedPeriod === "week" ? "tuần trước" : selectedPeriod === "month" ? "tháng trước" : "quý trước"}`
+                    : `Tăng ${stat.change} so với ${selectedPeriod === "week" ? "tuần trước" : selectedPeriod === "month" ? "tháng trước" : "quý trước"}`
+                  }
                 </div>
               </div>
             )}

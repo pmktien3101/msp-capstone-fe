@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Member } from '@/types/member';
-import { Plus, Search, X } from 'lucide-react';
+import { Plus, Search, X, Trash2, Mail } from 'lucide-react';
 
 interface AddMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddMember: (member: Member) => void;
+  onRemoveMember: (memberId: string) => void;
   existingMembers: Member[];
 }
 
@@ -17,15 +18,12 @@ export function AddMemberModal({
   isOpen, 
   onClose, 
   onAddMember, 
+  onRemoveMember,
   existingMembers 
 }: AddMemberModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-  const [customMember, setCustomMember] = useState({
-    name: '',
-    email: '',
-    role: ''
-  });
+  const [newMemberEmail, setNewMemberEmail] = useState('');
 
   // Mock available users - in real app this would come from API
   const availableUsers: Member[] = [
@@ -86,18 +84,42 @@ export function AddMemberModal({
     handleClose();
   };
 
-  const handleAddCustomMember = () => {
-    if (!customMember.name || !customMember.email || !customMember.role) {
-      alert('Vui lòng điền đầy đủ thông tin!');
+  const handleAddNewMember = () => {
+    if (!newMemberEmail.trim()) {
+      alert('Vui lòng nhập email!');
       return;
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newMemberEmail)) {
+      alert('Vui lòng nhập email hợp lệ!');
+      return;
+    }
+
+    // Check if email already exists
+    const emailExists = existingMembers.some(member => 
+      member.email.toLowerCase() === newMemberEmail.toLowerCase()
+    );
+    
+    if (emailExists) {
+      alert('Email này đã tồn tại trong dự án!');
+      return;
+    }
+
+    // Generate name from email (before @)
+    const nameFromEmail = newMemberEmail.split('@')[0].replace(/[._-]/g, ' ');
+    const formattedName = nameFromEmail
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+
     const newMember: Member = {
-      id: `custom-${Date.now()}`,
-      name: customMember.name,
-      email: customMember.email,
-      role: customMember.role,
-      avatar: customMember.name.split(' ').map(n => n[0]).join('').toUpperCase()
+      id: `new-${Date.now()}`,
+      name: formattedName,
+      email: newMemberEmail,
+      role: 'Member', // Default role
+      avatar: formattedName.split(' ').map(n => n[0]).join('').toUpperCase()
     };
 
     onAddMember(newMember);
@@ -107,7 +129,7 @@ export function AddMemberModal({
   const handleClose = () => {
     setSearchQuery('');
     setSelectedMember(null);
-    setCustomMember({ name: '', email: '', role: '' });
+    setNewMemberEmail('');
     onClose();
   };
 
@@ -243,6 +265,110 @@ export function AddMemberModal({
             </div>
           </div>
 
+          {/* Current Members */}
+          {existingMembers.length > 0 && (
+            <div>
+              <h4
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#374151',
+                  margin: '0 0 12px 0'
+                }}
+              >
+                Thành viên hiện tại ({existingMembers.length})
+              </h4>
+              <div
+                style={{
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px'
+                }}
+              >
+                {existingMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px',
+                      borderBottom: '1px solid #f3f4f6',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f9fafb';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '40px',
+                        height: '40px',
+                        background: '#FF5E13',
+                        color: 'white',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '14px',
+                        fontWeight: 600
+                      }}
+                    >
+                      {member.avatar}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          fontWeight: 500,
+                          color: '#374151',
+                          fontSize: '14px'
+                        }}
+                      >
+                        {member.name}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '12px',
+                          color: '#6b7280'
+                        }}
+                      >
+                        {member.email} • {member.role}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onRemoveMember(member.id)}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        border: 'none',
+                        background: '#ef4444',
+                        color: 'white',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#dc2626';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#ef4444';
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Available Users */}
           {filteredUsers.length > 0 && (
             <div>
@@ -288,7 +414,7 @@ export function AddMemberModal({
                       style={{
                         width: '40px',
                         height: '40px',
-                        background: '#FF5E13',
+                        background: '#10b981',
                         color: 'white',
                         borderRadius: '50%',
                         display: 'flex',
@@ -319,7 +445,7 @@ export function AddMemberModal({
                         {user.email} • {user.role}
                       </div>
                     </div>
-                    <Plus size={16} style={{ color: '#6b7280' }} />
+                    <Plus size={16} style={{ color: '#10b981' }} />
                   </div>
                 ))}
               </div>
@@ -341,7 +467,7 @@ export function AddMemberModal({
             <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
           </div>
 
-          {/* Add Custom Member */}
+          {/* Add New Member by Email */}
           <div>
             <h4
               style={{
@@ -370,95 +496,47 @@ export function AddMemberModal({
                     marginBottom: '6px'
                   }}
                 >
-                  Tên <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <Input
-                  type="text"
-                  placeholder="Nhập tên thành viên"
-                  value={customMember.name}
-                  onChange={(e) => setCustomMember(prev => ({ ...prev, name: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    color: '#374151',
-                    marginBottom: '6px'
-                  }}
-                >
                   Email <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                <Input
-                  type="email"
-                  placeholder="Nhập email thành viên"
-                  value={customMember.email}
-                  onChange={(e) => setCustomMember(prev => ({ ...prev, email: e.target.value }))}
+                <div style={{ position: 'relative' }}>
+                  <Mail
+                    size={16}
+                    style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: '#6b7280'
+                    }}
+                  />
+                  <Input
+                    type="email"
+                    placeholder="Nhập email thành viên mới"
+                    value={newMemberEmail}
+                    onChange={(e) => setNewMemberEmail(e.target.value)}
+                    style={{
+                      width: '100%',
+                      paddingLeft: '40px',
+                      padding: '12px 12px 12px 40px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                <p
                   style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    color: '#374151',
-                    marginBottom: '6px'
-                  }}
-                >
-                  Vai trò <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <select
-                  value={customMember.role}
-                  onChange={(e) => setCustomMember(prev => ({ ...prev, role: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    background: 'white'
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    margin: '6px 0 0 0'
                   }}
                 >
-                  <option value="">Chọn vai trò</option>
-                  <option value="Project Manager">Project Manager</option>
-                  <option value="Developer">Developer</option>
-                  <option value="Designer">Designer</option>
-                  <option value="QA Tester">QA Tester</option>
-                  <option value="DevOps Engineer">DevOps Engineer</option>
-                  <option value="Business Analyst">Business Analyst</option>
-                  <option value="Product Manager">Product Manager</option>
-                  <option value="Frontend Developer">Frontend Developer</option>
-                  <option value="Backend Developer">Backend Developer</option>
-                  <option value="Full Stack Developer">Full Stack Developer</option>
-                  <option value="UI/UX Designer">UI/UX Designer</option>
-                  <option value="Data Analyst">Data Analyst</option>
-                  <option value="AI Engineer">AI Engineer</option>
-                  <option value="Tech Lead">Tech Lead</option>
-                  <option value="Team Lead">Team Lead</option>
-                </select>
+                  Tên và vai trò sẽ được tự động tạo từ email
+                </p>
               </div>
 
               <Button
-                onClick={handleAddCustomMember}
+                onClick={handleAddNewMember}
                 style={{
                   width: '100%',
                   padding: '12px',
