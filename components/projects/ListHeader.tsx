@@ -7,8 +7,6 @@ interface ListHeaderProps {
   onSearchChange: (query: string) => void;
   statusFilter: string;
   onStatusFilterChange: (status: string) => void;
-  assigneeFilter: string;
-  onAssigneeFilterChange: (assignee: string) => void;
   sortBy: string;
   onSortByChange: (sortBy: string) => void;
   sortOrder: 'asc' | 'desc';
@@ -20,8 +18,6 @@ export const ListHeader = ({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
-  assigneeFilter,
-  onAssigneeFilterChange,
   sortBy,
   onSortByChange,
   sortOrder,
@@ -29,7 +25,7 @@ export const ListHeader = ({
 }: ListHeaderProps) => {
   return (
     <div className="list-header">
-      <div className="header-left">
+      <div className="controls-container">
         <div className="search-container">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="search-icon">
             <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -37,15 +33,13 @@ export const ListHeader = ({
           </svg>
           <input 
             type="text" 
-            placeholder="Tìm kiếm tasks..."
+            placeholder="Tìm kiếm cột mốc..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="search-input"
           />
         </div>
-      </div>
 
-      <div className="header-center">
         <div className="filters">
           <select 
             value={statusFilter} 
@@ -53,40 +47,23 @@ export const ListHeader = ({
             className="filter-select"
           >
             <option value="all">Tất cả trạng thái</option>
-            <option value="todo">Cần làm</option>
-            <option value="in-progress">Đang làm</option>
-            <option value="review">Đang review</option>
-            <option value="done">Hoàn thành</option>
-          </select>
-
-          <select 
-            value={assigneeFilter} 
-            onChange={(e) => onAssigneeFilterChange(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">Tất cả</option>
-            <option value="unassigned">Chưa giao</option>
-            {mockMembers.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name} ({member.role})
-              </option>
-            ))}
+            <option value="pending">Kế hoạch</option>
+            <option value="in-progress">Đang thực hiện</option>
+            <option value="completed">Hoàn thành</option>
+            <option value="overdue">Quá hạn</option>
           </select>
         </div>
-      </div>
 
-      <div className="header-right">
         <div className="sort-controls">
           <select 
             value={sortBy} 
             onChange={(e) => onSortByChange(e.target.value)}
             className="sort-select"
           >
-            <option value="title">Sắp xếp theo tên</option>
-            <option value="status">Sắp xếp theo trạng thái</option>
-            <option value="assignee">Sắp xếp theo người thực hiện</option>
-            <option value="dueDate">Sắp xếp theo ngày hạn</option>
-            <option value="priority">Sắp xếp theo độ ưu tiên</option>
+            <option value="name">Sắp xếp theo tên</option>
+            <option value="dueDate">Sắp xếp theo ngày hết hạn</option>
+            <option value="progress">Sắp xếp theo tiến độ</option>
+            <option value="taskCount">Sắp xếp theo số công việc</option>
           </select>
 
           <button 
@@ -104,47 +81,50 @@ export const ListHeader = ({
           </button>
         </div>
 
-        <button className="header-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M7 12H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M10 18H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
+        <div className="header-actions">
+          <button className="header-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M3 6H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M7 12H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M10 18H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
 
-        <button className="header-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <circle cx="19" cy="12" r="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <circle cx="5" cy="12" r="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
+          <button className="header-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="19" cy="12" r="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="5" cy="12" r="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <style jsx>{`
         .list-header {
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          padding: 16px 0;
+          padding: 12px 0;
           background: white;
           border-bottom: 1px solid #e5e7eb;
-          gap: 16px;
         }
 
-        .header-left {
-          flex: 1;
-          max-width: 300px;
+        .controls-container {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
         }
 
         .search-container {
           position: relative;
-          width: 100%;
+          width: 300px;
+          flex-shrink: 0;
         }
 
         .search-icon {
           position: absolute;
-          left: 12px;
+          left: 10px;
           top: 50%;
           transform: translateY(-50%);
           color: #6b7280;
@@ -152,7 +132,7 @@ export const ListHeader = ({
 
         .search-input {
           width: 100%;
-          padding: 8px 12px 8px 40px;
+          padding: 6px 10px 6px 36px;
           border: 1px solid #d1d5db;
           border-radius: 6px;
           font-size: 14px;
@@ -167,18 +147,14 @@ export const ListHeader = ({
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .header-center {
-          display: flex;
-          align-items: center;
-        }
 
         .filters {
           display: flex;
-          gap: 12px;
+          gap: 8px;
         }
 
         .filter-select {
-          padding: 8px 12px;
+          padding: 6px 10px;
           border: 1px solid #d1d5db;
           border-radius: 6px;
           font-size: 14px;
@@ -194,21 +170,22 @@ export const ListHeader = ({
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .header-right {
+        .header-actions {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
+          margin-left: auto;
         }
 
         .sort-controls {
           display: flex;
           align-items: center;
-          gap: 8px;
-          margin-right: 8px;
+          gap: 6px;
+          margin-right: 6px;
         }
 
         .sort-select {
-          padding: 8px 12px;
+          padding: 6px 10px;
           border: 1px solid #d1d5db;
           border-radius: 6px;
           font-size: 14px;
@@ -225,8 +202,8 @@ export const ListHeader = ({
         }
 
         .sort-order-btn {
-          width: 36px;
-          height: 36px;
+          width: 32px;
+          height: 32px;
           border: 1px solid #d1d5db;
           border-radius: 6px;
           background: white;
@@ -245,8 +222,8 @@ export const ListHeader = ({
         }
 
         .header-btn {
-          width: 36px;
-          height: 36px;
+          width: 32px;
+          height: 32px;
           border: 1px solid #d1d5db;
           border-radius: 6px;
           background: white;
@@ -269,149 +246,154 @@ export const ListHeader = ({
         /* Tablet (768px - 1023px) */
         @media (max-width: 1023px) and (min-width: 769px) {
           .list-header {
-            padding: 14px 0;
-            gap: 14px;
+            padding: 10px 0;
+          }
+
+          .controls-container {
+            gap: 6px;
+          }
+
+          .search-container {
+            width: 250px;
           }
 
           .search-input {
-            padding: 7px 11px 7px 38px;
+            padding: 5px 9px 5px 34px;
             font-size: 13px;
           }
 
           .search-icon {
-            left: 11px;
+            left: 9px;
           }
 
           .filter-select {
-            padding: 7px 11px;
+            padding: 5px 9px;
             font-size: 13px;
           }
 
           .sort-select {
-            padding: 7px 11px;
+            padding: 5px 9px;
             font-size: 13px;
           }
 
           .sort-order-btn,
           .header-btn {
-            width: 34px;
-            height: 34px;
+            width: 30px;
+            height: 30px;
           }
         }
 
         /* Mobile Large (481px - 768px) */
         @media (max-width: 768px) and (min-width: 481px) {
           .list-header {
+            padding: 8px 0;
+          }
+
+          .controls-container {
             flex-direction: column;
             align-items: stretch;
-            gap: 12px;
-            padding: 12px 0;
+            gap: 8px;
           }
 
-          .header-left {
-            max-width: none;
-          }
-
-          .search-input {
-            padding: 8px 12px 8px 40px;
-            font-size: 14px;
-          }
-
-          .header-center {
-            justify-content: space-between;
-          }
-
-          .filters {
-            flex: 1;
-            gap: 10px;
-          }
-
-          .filter-select {
-            flex: 1;
-            padding: 8px 12px;
-            font-size: 14px;
-          }
-
-          .header-right {
-            justify-content: space-between;
-            gap: 6px;
-          }
-
-          .sort-controls {
-            gap: 6px;
-            margin-right: 6px;
-          }
-
-          .sort-select {
-            padding: 8px 12px;
-            font-size: 14px;
-          }
-
-          .sort-order-btn,
-          .header-btn {
-            width: 36px;
-            height: 36px;
-          }
-        }
-
-        /* Mobile Small (320px - 480px) */
-        @media (max-width: 480px) {
-          .list-header {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 10px;
-            padding: 10px 0;
-          }
-
-          .header-left {
-            max-width: none;
+          .search-container {
+            width: 100%;
           }
 
           .search-input {
             padding: 6px 10px 6px 36px;
-            font-size: 13px;
-          }
-
-          .search-icon {
-            left: 10px;
-            width: 14px;
-            height: 14px;
-          }
-
-          .header-center {
-            justify-content: space-between;
+            font-size: 14px;
           }
 
           .filters {
-            flex: 1;
-            gap: 8px;
+            gap: 6px;
           }
 
           .filter-select {
             flex: 1;
             padding: 6px 10px;
-            font-size: 13px;
-          }
-
-          .header-right {
-            justify-content: space-between;
-            gap: 4px;
+            font-size: 14px;
           }
 
           .sort-controls {
             gap: 4px;
-            margin-right: 4px;
           }
 
           .sort-select {
+            flex: 1;
             padding: 6px 10px;
-            font-size: 13px;
+            font-size: 14px;
+          }
+
+          .header-actions {
+            margin-left: 0;
+            justify-content: center;
+            gap: 4px;
           }
 
           .sort-order-btn,
           .header-btn {
             width: 32px;
             height: 32px;
+          }
+        }
+
+        /* Mobile Small (320px - 480px) */
+        @media (max-width: 480px) {
+          .list-header {
+            padding: 6px 0;
+          }
+
+          .controls-container {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
+          }
+
+          .search-container {
+            width: 100%;
+          }
+
+          .search-input {
+            padding: 5px 8px 5px 32px;
+            font-size: 13px;
+          }
+
+          .search-icon {
+            left: 8px;
+            width: 14px;
+            height: 14px;
+          }
+
+          .filters {
+            gap: 4px;
+          }
+
+          .filter-select {
+            flex: 1;
+            padding: 5px 8px;
+            font-size: 13px;
+          }
+
+          .sort-controls {
+            gap: 3px;
+          }
+
+          .sort-select {
+            flex: 1;
+            padding: 5px 8px;
+            font-size: 13px;
+          }
+
+          .header-actions {
+            margin-left: 0;
+            justify-content: center;
+            gap: 3px;
+          }
+
+          .sort-order-btn,
+          .header-btn {
+            width: 28px;
+            height: 28px;
           }
 
           .sort-order-btn svg,
