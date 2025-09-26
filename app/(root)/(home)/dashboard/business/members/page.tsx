@@ -77,11 +77,6 @@ const MembersRolesPage = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'Member' | 'ProjectManager'>('all');
@@ -95,8 +90,6 @@ const MembersRolesPage = () => {
     role: 'Member' as 'Member' | 'ProjectManager'
   });
 
-  // Company domain - trong thực tế sẽ lấy từ context hoặc props
-  const companyDomain = '@company.com';
 
   // Download Excel template
   const downloadTemplate = () => {

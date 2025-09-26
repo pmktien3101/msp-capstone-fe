@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import "@/app/styles/sign-up.scss";
 import { User, Eye, EyeOff } from "lucide-react";
@@ -345,7 +346,7 @@ export default function SignUpPage() {
 
             <div className="signin-link">
               <p>
-                Đã có tài khoản? <a href="/sign-in">Đăng nhập</a>
+                Đã có tài khoản? <Link href="/sign-in">Đăng nhập</Link>
               </p>
             </div>
           </form>

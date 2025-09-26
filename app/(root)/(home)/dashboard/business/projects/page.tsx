@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Project {
@@ -28,7 +28,7 @@ interface Project {
 
 const BusinessProjectsPage = () => {
   const router = useRouter();
-  const [projects, setProjects] = useState<Project[]>([
+  const [projects] = useState<Project[]>([
     {
       id: '1',
       name: 'Website Redesign',
