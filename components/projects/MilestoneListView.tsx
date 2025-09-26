@@ -9,10 +9,6 @@ import {
   Calendar,
   ChevronRight,
   CheckCircle,
-  Clock,
-  AlertCircle,
-  Play,
-  CheckCircle2,
   Target,
   Edit,
   X,
@@ -37,10 +33,24 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
 
   const [editedMilestone, setEditedMilestone] = useState(milestone);
   const [editedTasks, setEditedTasks] = useState(tasks);
+  const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: '',
+    description: '',
+    assignee: '',
+    startDate: '',
+    endDate: '',
+    status: 'todo',
+    selectedMilestones: [milestone.id] // Mặc định chọn milestone hiện tại
+  });
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
 
   const milestoneTasks = editedTasks.filter(task => 
     task.milestoneIds.includes(milestone.id)
   );
+
+  // Get all milestones for this project
+  const projectMilestones = mockMilestones.filter(m => m.projectId === milestone.projectId);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -119,6 +129,101 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
     }
   };
 
+  const handleCreateTask = () => {
+    if (!newTask.title.trim()) return;
+
+    const taskId = `task-${Date.now()}`;
+    const createdTask = {
+      id: taskId,
+      title: newTask.title,
+      description: newTask.description,
+      status: newTask.status,
+      assignee: newTask.assignee || null,
+      startDate: newTask.startDate || null,
+      endDate: newTask.endDate || null,
+      milestoneIds: [milestone.id],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    setEditedTasks(prev => [...prev, createdTask]);
+    setNewTask({
+      title: '',
+      description: '',
+      assignee: '',
+      startDate: '',
+      endDate: '',
+      status: 'todo',
+      selectedMilestones: [milestone.id]
+    });
+    setShowCreateTaskModal(false);
+  };
+
+  const handleCreateTaskInline = () => {
+    setIsCreatingTask(true);
+    setNewTask({
+      title: '',
+      description: '',
+      assignee: '',
+      startDate: '',
+      endDate: '',
+      status: 'todo',
+      selectedMilestones: [milestone.id]
+    });
+  };
+
+  const handleSaveTaskInline = () => {
+    if (!newTask.title.trim()) return;
+
+    const taskId = `task-${Date.now()}`;
+    const createdTask = {
+      id: taskId,
+      title: newTask.title,
+      description: newTask.description,
+      status: newTask.status,
+      assignee: newTask.assignee || null,
+      startDate: newTask.startDate || null,
+      endDate: newTask.endDate || null,
+      milestoneIds: newTask.selectedMilestones,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    setEditedTasks(prev => [...prev, createdTask]);
+    setIsCreatingTask(false);
+    setNewTask({
+      title: '',
+      description: '',
+      assignee: '',
+      startDate: '',
+      endDate: '',
+      status: 'todo',
+      selectedMilestones: [milestone.id]
+    });
+  };
+
+  const handleCancelTaskInline = () => {
+    setIsCreatingTask(false);
+    setNewTask({
+      title: '',
+      description: '',
+      assignee: '',
+      startDate: '',
+      endDate: '',
+      status: 'todo',
+      selectedMilestones: [milestone.id]
+    });
+  };
+
+  const handleMilestoneToggle = (milestoneId: string) => {
+    setNewTask(prev => ({
+      ...prev,
+      selectedMilestones: prev.selectedMilestones.includes(milestoneId)
+        ? prev.selectedMilestones.filter(id => id !== milestoneId)
+        : [...prev.selectedMilestones, milestoneId]
+    }));
+  };
+
   return (
     <div className="milestone-detail-overlay" onClick={onClose}>
       <div className="milestone-detail-panel" onClick={(e) => e.stopPropagation()}>
@@ -183,20 +288,121 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           <div className="tasks-section">
             <div className="tasks-header">
               <h4>Danh sách công việc</h4>
-              <button className="add-task-btn" onClick={() => console.log('Add new task to milestone:', milestone.id)}>
+              <button className="add-task-btn" onClick={handleCreateTaskInline}>
                 <Plus size={16} />
                 Thêm công việc
               </button>
             </div>
             <div className="tasks-list">
-              {milestoneTasks.length === 0 ? (
+              {/* Inline Task Creation */}
+              {isCreatingTask && (
+                <div className="task-item-compact task-item-creating">
+                  <div className="task-main-info">
+                    <div className="task-id-compact">NEW</div>
+                    <input
+                      type="text"
+                      value={newTask.title}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+                      className="task-title-input-compact"
+                      placeholder="Tên công việc..."
+                      autoFocus
+                    />
+                  </div>
+                  
+                  <div className="task-controls">
+                    <select
+                      value={newTask.status}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value }))}
+                      className="status-select-compact"
+                    >
+                      <option value="todo">Cần làm</option>
+                      <option value="in-progress">Đang làm</option>
+                      <option value="review">Đang kiểm tra</option>
+                      <option value="done">Hoàn thành</option>
+                    </select>
+                    
+                    <select
+                      value={newTask.assignee || ""}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, assignee: e.target.value }))}
+                      className="assignee-select-compact"
+                    >
+                      <option value="">Chưa phân công</option>
+                      {members.map(member => (
+                        <option key={member.id} value={member.id}>
+                          {member.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="task-dates-compact">
+                    <input
+                      type="date"
+                      value={newTask.startDate || ""}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, startDate: e.target.value }))}
+                      className="date-input-compact"
+                      placeholder="Bắt đầu"
+                    />
+                    <input
+                      type="date"
+                      value={newTask.endDate || ""}
+                      onChange={(e) => setNewTask(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="date-input-compact"
+                      placeholder="Kết thúc"
+                    />
+                  </div>
+
+                  <div className="task-milestones-compact">
+                    <div className="milestones-label">Cột mốc:</div>
+                    <div className="milestones-checkboxes">
+                      {projectMilestones.map(milestoneItem => (
+                        <label key={milestoneItem.id} className="milestone-checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={newTask.selectedMilestones.includes(milestoneItem.id)}
+                            onChange={() => handleMilestoneToggle(milestoneItem.id)}
+                            className="milestone-checkbox"
+                          />
+                          <span className="milestone-checkbox-text">{milestoneItem.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <textarea
+                    value={newTask.description}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                    className="task-description-input-compact"
+                    rows={1}
+                    placeholder="Mô tả công việc..."
+                  />
+
+                  <div className="task-actions-inline">
+                    <button 
+                      className="save-task-btn"
+                      onClick={handleSaveTaskInline}
+                      disabled={!newTask.title.trim()}
+                    >
+                      <CheckCircle size={16} />
+                    </button>
+                    <button 
+                      className="cancel-task-btn"
+                      onClick={handleCancelTaskInline}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {milestoneTasks.length === 0 && !isCreatingTask ? (
                 <div className="empty-tasks-state">
                   <div className="empty-tasks-icon">
                     <Target size={48} />
                   </div>
                   <h4>Chưa có công việc nào</h4>
                   <p>Cột mốc này chưa có công việc nào được gán. Hãy thêm công việc để bắt đầu quản lý tiến độ.</p>
-                  <button className="add-first-task-btn" onClick={() => console.log('Add first task to milestone:', milestone.id)}>
+                  <button className="add-first-task-btn" onClick={handleCreateTaskInline}>
                     <Plus size={16} />
                     Thêm công việc đầu tiên
                   </button>
@@ -288,6 +494,114 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           </div>
         </div>
       </div>
+
+      {/* Create Task Modal */}
+      {showCreateTaskModal && (
+        <div className="create-task-modal-overlay" onClick={() => setShowCreateTaskModal(false)}>
+          <div className="create-task-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Tạo công việc mới</h3>
+              <button className="close-btn" onClick={() => setShowCreateTaskModal(false)}>
+                ×
+              </button>
+            </div>
+
+            <div className="modal-content">
+              <div className="form-group">
+                <label>Tên công việc *</label>
+                <input
+                  type="text"
+                  value={newTask.title}
+                  onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Nhập tên công việc..."
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Mô tả</label>
+                <textarea
+                  value={newTask.description}
+                  onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Mô tả chi tiết công việc..."
+                  className="form-textarea"
+                  rows={3}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Người thực hiện</label>
+                  <select
+                    value={newTask.assignee}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, assignee: e.target.value }))}
+                    className="form-select"
+                  >
+                    <option value="">Chưa phân công</option>
+                    {members.map(member => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Trạng thái</label>
+                  <select
+                    value={newTask.status}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value }))}
+                    className="form-select"
+                  >
+                    <option value="todo">Cần làm</option>
+                    <option value="in-progress">Đang làm</option>
+                    <option value="review">Đang kiểm tra</option>
+                    <option value="done">Hoàn thành</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Ngày bắt đầu</label>
+                  <input
+                    type="date"
+                    value={newTask.startDate}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, startDate: e.target.value }))}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Ngày kết thúc</label>
+                  <input
+                    type="date"
+                    value={newTask.endDate}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, endDate: e.target.value }))}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="cancel-btn" 
+                onClick={() => setShowCreateTaskModal(false)}
+              >
+                Hủy
+              </button>
+              <button 
+                className="create-btn" 
+                onClick={handleCreateTask}
+                disabled={!newTask.title.trim()}
+              >
+                Tạo công việc
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .milestone-detail-overlay {
@@ -514,21 +828,21 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
         .add-task-btn {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 16px;
-          background: #10b981;
-          color: white;
-          border: none;
+          gap: 8px;
+          padding: 10px 20px;
+          background: transparent;
+          color: #FF5E13;
+          border: 1px solid #FF5E13;
           border-radius: 8px;
           font-size: 14px;
-          font-weight: 600;
+          font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
         }
 
         .add-task-btn:hover {
-          background: #059669;
-          transform: translateY(-1px);
+          background: #FF5E13;
+          color: white;
         }
 
         .tasks-list {
@@ -544,7 +858,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           padding: 12px;
           transition: all 0.2s ease;
           display: grid;
-          grid-template-columns: 1fr auto auto;
+          grid-template-columns: 1fr auto auto auto;
           gap: 12px;
           align-items: start;
         }
@@ -552,6 +866,57 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
         .task-item-compact:hover {
           border-color: #cbd5e1;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .task-item-creating {
+          border-color: #FF5E13;
+          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.15);
+        }
+
+        .task-actions-inline {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .save-task-btn, .cancel-task-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .save-task-btn {
+          background: #10b981;
+          color: white;
+        }
+
+        .save-task-btn:hover:not(:disabled) {
+          background: #059669;
+          transform: scale(1.05);
+        }
+
+        .save-task-btn:disabled {
+          background: #d1d5db;
+          color: #9ca3af;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .cancel-task-btn {
+          background: #ef4444;
+          color: white;
+        }
+
+        .cancel-task-btn:hover {
+          background: #dc2626;
+          transform: scale(1.05);
         }
 
         .task-main-info {
@@ -700,21 +1065,19 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           align-items: center;
           gap: 8px;
           padding: 12px 24px;
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          color: white;
-          border: none;
+          background: transparent;
+          color: #FF5E13;
+          border: 1px solid #FF5E13;
           border-radius: 8px;
           font-size: 14px;
-          font-weight: 600;
+          font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
-          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
         }
 
         .add-first-task-btn:hover {
-          background: linear-gradient(135deg, #059669 0%, #047857 100%);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+          background: #FF5E13;
+          color: white;
         }
 
         .task-header {
@@ -861,6 +1224,194 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           font-style: italic;
         }
 
+        /* Milestone Selection Styles */
+        .task-milestones-compact {
+          grid-column: 1 / -1;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 8px;
+          background: #f8fafc;
+          border-radius: 6px;
+          border: 1px solid #e2e8f0;
+        }
+
+        .milestones-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #374151;
+        }
+
+        .milestones-checkboxes {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .milestone-checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          cursor: pointer;
+          font-size: 11px;
+          color: #6b7280;
+          padding: 4px 8px;
+          border-radius: 4px;
+          transition: all 0.2s ease;
+        }
+
+        .milestone-checkbox-label:hover {
+          background: #e2e8f0;
+          color: #374151;
+        }
+
+        .milestone-checkbox {
+          width: 14px;
+          height: 14px;
+          accent-color: #FF5E13;
+        }
+
+        .milestone-checkbox-text {
+          white-space: nowrap;
+        }
+
+        /* Create Task Modal Styles */
+        .create-task-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 20px;
+        }
+
+        .create-task-modal {
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          width: 100%;
+          max-width: 600px;
+          max-height: 90vh;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px 24px;
+          border-bottom: 1px solid #e5e7eb;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .modal-header h3 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: #1e293b;
+        }
+
+        .modal-content {
+          flex: 1;
+          overflow-y: auto;
+          padding: 24px;
+        }
+
+        .form-group {
+          margin-bottom: 20px;
+        }
+
+        .form-group label {
+          display: block;
+          font-size: 14px;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 8px;
+        }
+
+        .form-input, .form-textarea, .form-select {
+          width: 100%;
+          padding: 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 14px;
+          background: white;
+          transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+          outline: none;
+          border-color: #FF5E13;
+          box-shadow: 0 0 0 3px rgba(255, 94, 19, 0.1);
+        }
+
+        .form-textarea {
+          resize: vertical;
+          font-family: inherit;
+        }
+
+        .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          padding: 20px 24px;
+          border-top: 1px solid #e5e7eb;
+          background: #f8fafc;
+        }
+
+        .cancel-btn {
+          padding: 10px 20px;
+          background: #f3f4f6;
+          color: #374151;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all 0.2s ease;
+        }
+
+        .cancel-btn:hover {
+          background: #e5e7eb;
+        }
+
+        .create-btn {
+          padding: 10px 20px;
+          background: transparent;
+          color: #FF5E13;
+          border: 1px solid #FF5E13;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all 0.2s ease;
+        }
+
+        .create-btn:hover:not(:disabled) {
+          background: #FF5E13;
+          color: white;
+        }
+
+        .create-btn:disabled {
+          background: #f3f4f6;
+          color: #9ca3af;
+          border-color: #d1d5db;
+          cursor: not-allowed;
+        }
+
         @media (max-width: 768px) {
           .milestone-detail-panel {
             margin: 10px;
@@ -891,6 +1442,29 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
             flex-direction: column;
             gap: 8px;
             align-items: flex-start;
+          }
+
+          .create-task-modal {
+            margin: 10px;
+            max-width: calc(100vw - 20px);
+          }
+
+          .form-row {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+
+          .modal-content {
+            padding: 20px;
+          }
+
+          .modal-footer {
+            padding: 16px 20px;
+            flex-direction: column;
+          }
+
+          .cancel-btn, .create-btn {
+            width: 100%;
           }
         }
       `}</style>
@@ -951,50 +1525,6 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
     return sortOrder === 'asc' ? comparison : -comparison;
   });
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Clock size={16} />;
-      case "in-progress":
-        return <Play size={16} />;
-      case "completed":
-        return <CheckCircle2 size={16} />;
-      case "overdue":
-        return <AlertCircle size={16} />;
-      default:
-        return <Clock size={16} />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "#6b7280";
-      case "in-progress":
-        return "#f59e0b";
-      case "completed":
-        return "#10b981";
-      case "overdue":
-        return "#ef4444";
-      default:
-        return "#6b7280";
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "Kế hoạch";
-      case "in-progress":
-        return "Đang thực hiện";
-      case "completed":
-        return "Hoàn thành";
-      case "overdue":
-        return "Quá hạn";
-      default:
-        return status;
-    }
-  };
 
   const calculateMilestoneProgress = (milestoneId: string) => {
     const milestoneTasks = mockTasks.filter(task => 
@@ -1042,7 +1572,6 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
           <div className="col-due-date">Ngày hết hạn</div>
           <div className="col-tasks">Công việc</div>
           <div className="col-progress">Tiến độ</div>
-          <div className="col-status">Trạng thái</div>
           <div className="col-actions">Thao tác</div>
         </div>
 
@@ -1081,19 +1610,6 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
                       ></div>
                     </div>
                     <div className="progress-text">{progress}%</div>
-                  </div>
-                </div>
-                <div className="col-status">
-                  <div 
-                    className="status-badge"
-                    style={{
-                      backgroundColor: `${getStatusColor(milestone.status)}20`,
-                      color: getStatusColor(milestone.status),
-                      borderColor: getStatusColor(milestone.status),
-                    }}
-                  >
-                    {getStatusIcon(milestone.status)}
-                    <span>{getStatusLabel(milestone.status)}</span>
                   </div>
                 </div>
                 <div className="col-actions">
@@ -1143,7 +1659,7 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
 
         .table-header {
           display: grid;
-          grid-template-columns: 300px 120px 150px 120px 120px 60px;
+          grid-template-columns: 1fr 120px 150px 120px 60px;
           gap: 16px;
           padding: 16px 24px;
           background: #f8fafc;
@@ -1163,7 +1679,7 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
 
         .table-row {
           display: grid;
-          grid-template-columns: 300px 120px 150px 120px 120px 60px;
+          grid-template-columns: 1fr 120px 150px 120px 60px;
           gap: 16px;
           padding: 20px 24px;
           border-bottom: 1px solid #f1f5f9;
@@ -1194,7 +1710,6 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          max-width: 280px;
         }
 
         .milestone-description {
@@ -1203,7 +1718,6 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          max-width: 280px;
         }
 
         .due-date {
@@ -1258,20 +1772,6 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
           white-space: nowrap;
         }
 
-        .status-badge {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 12px;
-          border-radius: 8px;
-          font-size: 12px;
-          font-weight: 600;
-          border: 1px solid;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          max-width: 100px;
-        }
 
         .col-actions {
           display: flex;
@@ -1329,8 +1829,7 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
 
           .col-due-date,
           .col-tasks,
-          .col-progress,
-          .col-status {
+          .col-progress {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1356,11 +1855,6 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
             color: #374151;
           }
 
-          .col-status::before {
-            content: "Trạng thái:";
-            font-weight: 600;
-            color: #374151;
-          }
 
           .col-actions {
             position: absolute;
