@@ -7,10 +7,8 @@ import { useUser } from "@/hooks/useUser";
 import { ListHeader } from "./ListHeader";
 import {
   Calendar,
-  ChevronRight,
   CheckCircle,
   Target,
-  Edit,
   X,
   Trash2,
   Plus,
@@ -29,8 +27,6 @@ interface MilestoneDetailPanelProps {
 }
 
 const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: MilestoneDetailPanelProps) => {
-  if (!isOpen) return null;
-
   const [editedMilestone, setEditedMilestone] = useState(milestone);
   const [editedTasks, setEditedTasks] = useState(tasks);
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
@@ -44,6 +40,8 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
     selectedMilestones: [milestone.id] // Mặc định chọn milestone hiện tại
   });
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+
+  if (!isOpen) return null;
 
   const milestoneTasks = editedTasks.filter(task => 
     task.milestoneIds.includes(milestone.id)
