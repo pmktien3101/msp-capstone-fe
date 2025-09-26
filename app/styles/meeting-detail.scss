@@ -417,6 +417,26 @@
         margin: 0;
         color: #374151;
         line-height: 1.6;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      .summary-loading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #6b7280;
+        font-style: italic;
+      }
+
+      .summary-error {
+        color: #dc2626;
+        font-style: italic;
+      }
+
+      .summary-empty {
+        color: #6b7280;
+        font-style: italic;
       }
     }
   }
@@ -514,40 +534,20 @@
           line-height: 1.4;
         }
 
-        .task-meta {
-          display: flex;
-          gap: 12px;
-          font-size: 11px;
+         .task-meta {
+           display: none; // Ẩn task-meta (assignee, deadline, priority)
+         }
+      }
 
-          .assignee {
-            color: #FF5E13;
-            font-weight: 500;
-          }
+      .task-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
 
-          .deadline {
-            color: #6b7280;
-          }
-
-          .priority {
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 500;
-
-            &.high {
-              background: #fee2e2;
-              color: #dc2626;
-            }
-
-            &.medium {
-              background: #fef3c7;
-              color: #d97706;
-            }
-
-            &.low {
-              background: #d1fae5;
-              color: #059669;
-            }
-          }
+        .edit-btn, .save-btn {
+          font-size: 12px;
+          padding: 6px 12px;
+          height: auto;
         }
       }
 
