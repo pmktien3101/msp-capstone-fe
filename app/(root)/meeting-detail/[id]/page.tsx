@@ -21,6 +21,9 @@ import {
   Calendar,
   User,
   Flag,
+  Trash2,
+  Copy,
+  Check,
 } from "lucide-react";
 import "@/app/styles/meeting-detail.scss";
 import { useGetCallById } from "@/hooks/useGetCallById";
@@ -59,6 +62,9 @@ export default function MeetingDetailPage() {
   const [summary, setSummary] = useState<string>("");
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{isOpen: boolean, taskId: string | null}>({isOpen: false, taskId: null});
+  const [isTaskCreated, setIsTaskCreated] = useState<{[key: string]: boolean}>({});
 
   // Khi đã join thì chuyển sang hiển thị MeetingRoom
   useEffect(() => {
@@ -265,7 +271,7 @@ export default function MeetingDetailPage() {
       }, 500); // Delay 500ms để user thấy kết quả
     } catch (error) {
       console.error("Error generating tasks:", error);
-      alert("Có lỗi xảy ra khi tạo task. Vui lòng thử lại.");
+      alert("Có lỗi xảy ra khi tạo To-do list. Vui lòng thử lại.");
     } finally {
       setIsGeneratingTasks(false);
     }
@@ -291,6 +297,31 @@ export default function MeetingDetailPage() {
     setEditingTaskId(null);
     setEditedTask(null);
   };
+
+  // Xử lý mở modal xác nhận xóa task
+  const handleOpenDeleteModal = (taskId: string) => {
+    setDeleteConfirmModal({isOpen: true, taskId});
+  };
+
+  // Xử lý xóa task
+  const handleDeleteTask = () => {
+    if (deleteConfirmModal.taskId) {
+      setGeneratedTasks(prev => prev.filter(task => task.id !== deleteConfirmModal.taskId));
+      setDeleteConfirmModal({isOpen: false, taskId: null});
+    }
+  };
+
+  // Xử lý hủy xóa task
+  const handleCancelDelete = () => {
+    setDeleteConfirmModal({isOpen: false, taskId: null});
+  };
+
+  // Xử lý tạo task từ todo
+  const handleCreateTask = (taskId: string) => {
+    setIsTaskCreated(prev => ({...prev, [taskId]: true}));
+  };
+
+
 
   // Xử lý thêm task vào project
   const handleAddTasksToProject = async () => {
@@ -873,46 +904,36 @@ export default function MeetingDetailPage() {
                                 rows={3}
                               />
                               <div className="edit-meta">
-                                <select
-                                  value={editedTask?.assignee || ""}
-                                  onChange={(e) =>
-                                    setEditedTask({
-                                      ...editedTask,
-                                      assignee: e.target.value,
-                                    })
-                                  }
-                                  className="edit-select"
-                                >
-                                  <option value="member-2">Nguyễn Văn A</option>
-                                  <option value="member-3">Trần Thị B</option>
-                                  <option value="member-4">Lê Văn C</option>
-                                  <option value="member-5">Phạm Thị D</option>
-                                </select>
-                                <select
-                                  value={editedTask?.priority || ""}
-                                  onChange={(e) =>
-                                    setEditedTask({
-                                      ...editedTask,
-                                      priority: e.target.value,
-                                    })
-                                  }
-                                  className="edit-select"
-                                >
-                                  <option value="low">Low</option>
-                                  <option value="medium">Medium</option>
-                                  <option value="high">High</option>
-                                </select>
-                                <input
-                                  type="date"
-                                  value={editedTask?.endDate || ""}
-                                  onChange={(e) =>
-                                    setEditedTask({
-                                      ...editedTask,
-                                      endDate: e.target.value,
-                                    })
-                                  }
-                                  className="edit-date"
-                                />
+                                <div className="date-inputs">
+                                  <div className="date-field">
+                                    <label>Ngày bắt đầu:</label>
+                                    <input
+                                      type="date"
+                                      value={editedTask?.startDate || ""}
+                                      onChange={(e) =>
+                                        setEditedTask({
+                                          ...editedTask,
+                                          startDate: e.target.value,
+                                        })
+                                      }
+                                      className="edit-date"
+                                    />
+                                  </div>
+                                  <div className="date-field">
+                                    <label>Ngày kết thúc:</label>
+                                    <input
+                                      type="date"
+                                      value={editedTask?.endDate || ""}
+                                      onChange={(e) =>
+                                        setEditedTask({
+                                          ...editedTask,
+                                          endDate: e.target.value,
+                                        })
+                                      }
+                                      className="edit-date"
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             </div>
                             <div className="edit-actions">
@@ -937,37 +958,17 @@ export default function MeetingDetailPage() {
                         ) : (
                           <>
                             <div className="task-info">
-                              <h5>{task.title}</h5>
+                              <h5>
+                                <span className="task-number">{generatedTasks.indexOf(task) + 1}</span>
+                                {task.title}
+                                {isTaskCreated[task.id] && (
+                                  <span className="task-status-badge created">
+                                    <Check size={12} />
+                                    Đã tạo task
+                                  </span>
+                                )}
+                              </h5>
                               <p>{task.description}</p>
-                              <div className="task-meta">
-                                <span className="assignee">
-                                  <User size={12} />
-                                  {task.assignee === "member-2"
-                                    ? "Nguyễn Văn A"
-                                    : task.assignee === "member-3"
-                                    ? "Trần Thị B"
-                                    : task.assignee === "member-4"
-                                    ? "Lê Văn C"
-                                    : task.assignee === "member-5"
-                                    ? "Phạm Thị D"
-                                    : "Chưa giao"}
-                                </span>
-                                <span className="deadline">
-                                  <Calendar size={12} />
-                                  Hạn:{" "}
-                                  {new Date(task.endDate).toLocaleDateString(
-                                    "vi-VN"
-                                  )}
-                                </span>
-                                <span className={`priority ${task.priority}`}>
-                                  <Flag size={12} />
-                                  {task.priority === "high"
-                                    ? "High"
-                                    : task.priority === "medium"
-                                    ? "Medium"
-                                    : "Low"}
-                                </span>
-                              </div>
                             </div>
                             <div className="task-actions">
                               <Button
@@ -978,6 +979,26 @@ export default function MeetingDetailPage() {
                               >
                                 <Edit size={14} />
                                 Chỉnh sửa
+                              </Button>
+                              {!isTaskCreated[task.id] && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCreateTask(task.id)}
+                                  className="create-task-btn"
+                                >
+                                  <Plus size={14} />
+                                  Tạo task
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenDeleteModal(task.id)}
+                                className="delete-btn"
+                              >
+                                <Trash2 size={14} />
+                                Xóa
                               </Button>
                             </div>
                           </>
@@ -1138,6 +1159,40 @@ export default function MeetingDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmModal.isOpen && (
+        <div className="delete-modal-overlay">
+          <div className="delete-modal">
+            <div className="delete-modal-header">
+              <div className="delete-icon">
+                <Trash2 size={24} />
+              </div>
+              <h3>Xác nhận xóa task</h3>
+            </div>
+            <div className="delete-modal-content">
+              <p>Bạn có chắc chắn muốn xóa To-do này không?</p>
+              <p className="delete-warning">Hành động này không thể hoàn tác.</p>
+            </div>
+            <div className="delete-modal-actions">
+              <Button
+                variant="outline"
+                onClick={handleCancelDelete}
+                className="cancel-btn"
+              >
+                Hủy
+              </Button>
+              <Button
+                onClick={handleDeleteTask}
+                className="confirm-delete-btn"
+              >
+                <Trash2 size={16} />
+                Xóa task
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .mock-recording {
@@ -1500,6 +1555,7 @@ export default function MeetingDetailPage() {
           display: flex;
           gap: 8px;
           align-items: center;
+          flex-wrap: wrap;
         }
 
         .edit-btn {
@@ -1509,6 +1565,41 @@ export default function MeetingDetailPage() {
 
         .edit-btn:hover {
           background: #ff8c42;
+          color: white;
+        }
+
+        .complete-btn {
+          border-color: #10b981;
+          color: #10b981;
+        }
+
+        .complete-btn:hover {
+          background: #10b981;
+          color: white;
+        }
+
+        .complete-btn.completed {
+          background: #10b981;
+          color: white;
+        }
+
+        .copy-btn {
+          border-color: #3b82f6;
+          color: #3b82f6;
+        }
+
+        .copy-btn:hover {
+          background: #3b82f6;
+          color: white;
+        }
+
+        .delete-btn {
+          border-color: #ef4444;
+          color: #ef4444;
+        }
+
+        .delete-btn:hover {
+          background: #ef4444;
           color: white;
         }
 
@@ -1549,14 +1640,44 @@ export default function MeetingDetailPage() {
 
         .edit-meta {
           display: flex;
-          gap: 12px;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .date-inputs {
+          display: flex;
+          gap: 16px;
           flex-wrap: wrap;
         }
 
-        .edit-select,
-        .edit-date {
+        .date-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
           flex: 1;
-          min-width: 120px;
+          min-width: 150px;
+        }
+
+        .date-field label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #374151;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .edit-date {
+          padding: 8px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 14px;
+          transition: border-color 0.2s;
+        }
+
+        .edit-date:focus {
+          outline: none;
+          border-color: #ff8c42;
+          box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
         }
 
         .edit-actions {
@@ -1867,6 +1988,158 @@ export default function MeetingDetailPage() {
             flex-direction: column;
             align-items: flex-start;
           }
+        }
+
+        .task-number {
+          display: inline-block;
+          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+          color: white;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          text-align: center;
+          line-height: 24px;
+          font-size: 12px;
+          font-weight: 700;
+          margin-right: 12px;
+          flex-shrink: 0;
+          box-shadow: 0 2px 4px rgba(255, 140, 66, 0.3);
+        }
+
+        /* Delete Confirmation Modal */
+        .delete-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          backdrop-filter: blur(4px);
+        }
+
+        .delete-modal {
+          background: white;
+          border-radius: 16px;
+          padding: 24px;
+          max-width: 400px;
+          width: 90%;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+
+        .delete-modal-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .delete-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          border-radius: 12px;
+          color: white;
+          box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .delete-modal-header h3 {
+          margin: 0;
+          font-size: 20px;
+          font-weight: 700;
+          color: #1e293b;
+        }
+
+        .delete-modal-content {
+          margin-bottom: 24px;
+        }
+
+        .delete-modal-content p {
+          margin: 0 0 8px 0;
+          color: #64748b;
+          line-height: 1.5;
+        }
+
+        .delete-warning {
+          color: #ef4444 !important;
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .delete-modal-actions {
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+        }
+
+        .cancel-btn {
+          border-color: #d1d5db;
+          color: #6b7280;
+        }
+
+        .cancel-btn:hover {
+          background: #f9fafb;
+          border-color: #9ca3af;
+        }
+
+        .confirm-delete-btn {
+          background: #ef4444;
+          border-color: #ef4444;
+          color: white;
+        }
+
+        .confirm-delete-btn:hover {
+          background: #dc2626;
+          border-color: #dc2626;
+        }
+
+        /* Task Status Badge */
+        .task-status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          margin-left: 12px;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .task-status-badge.created {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Create Task Button */
+        .create-task-btn {
+          border-color: #8b5cf6;
+          color: #8b5cf6;
+        }
+
+        .create-task-btn:hover {
+          background: #8b5cf6;
+          color: white;
         }
       `}</style>
     </div>
