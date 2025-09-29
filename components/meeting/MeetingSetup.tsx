@@ -10,6 +10,7 @@ import { Button } from "../ui/button";
 import { Filter, Mic, MicOff, Video, VideoOff, X } from "lucide-react";
 import { Call } from "@stream-io/video-react-sdk";
 import { toast } from "react-toastify";
+import { useUser } from "@/hooks/useUser";
 
 interface MeetingSetupProps {
   setIsSetupComplete: (value: boolean) => void;
@@ -25,6 +26,14 @@ const MeetingSetup = ({
   const hookCall = useCall();
   const call = callProp ?? hookCall;
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
+  const { userId } = useUser();
+  const [canJoin, setCanJoin] = useState(false);
+
+  // Add this useEffect to check permissions
+  useEffect(() => {
+    const participants = call?.state?.custom?.participants || [];
+    setCanJoin(participants.includes(userId));
+  }, [call?.state?.custom?.participants, userId]);
 
   if (!call) throw new Error("Call not found in MeetingSetup");
 
@@ -50,13 +59,23 @@ const MeetingSetup = ({
     });
   }, [call.state?.startsAt, call.state?.endedAt]);
 
-  // Hàm xử lý join với check giờ
+  // Hàm xử lý join với check giờ và participants
   const handleJoin = async () => {
     const now = new Date();
     const startsAt = call.state?.startsAt
       ? new Date(call.state.startsAt)
       : null;
     const endedAt = call.state?.endedAt ? new Date(call.state?.endedAt) : null;
+
+    // Check if user is in participants list
+    const participants = call.state?.custom?.participants || [];
+    if (!participants.includes(userId)) {
+      toast.error("Bạn không được phép tham gia cuộc họp này", {
+        autoClose: 5000,
+      });
+      return;
+    }
+
     if (endedAt) {
       toast.error("Cuộc họp đã kết thúc", { autoClose: 5000 });
       return;
@@ -143,9 +162,15 @@ const MeetingSetup = ({
           </div>
           <Button
             onClick={handleJoin}
-            className="rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 py-3 cursor-pointer text-white font-medium mt-auto shadow-md transition-all transform hover:scale-105"
+            disabled={!canJoin}
+            className={`rounded-full py-3 cursor-pointer text-white font-medium mt-auto shadow-md transition-all transform
+              ${
+                canJoin
+                  ? "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 hover:scale-105"
+                  : "bg-gray-400 cursor-not-allowed"
+              }`}
           >
-            Tham gia ngay
+            {canJoin ? "Tham gia ngay" : "Không có quyền tham gia"}
           </Button>
         </div>
       </div>

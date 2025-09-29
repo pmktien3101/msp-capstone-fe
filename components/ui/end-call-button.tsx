@@ -23,10 +23,11 @@ const EndCallButton = () => {
     try {
       await call.camera?.disable();
       await call.microphone?.disable();
-      await call.endCall(); // end cho tất cả
+      await call.endCall();
     } catch (err) {
       console.warn("Error ending call", err);
     } finally {
+      setIsProcessing(false);
       router.push(`/meeting-detail/${call.id}`);
     }
   };
@@ -37,10 +38,11 @@ const EndCallButton = () => {
     try {
       await call.camera?.disable();
       await call.microphone?.disable();
-      await call.leave(); // rời call cho participant này
+      await call.leave();
     } catch (err) {
       console.warn("Error leaving call", err);
     } finally {
+      setIsProcessing(false);
       router.push(`/meeting-detail/${call.id}`);
     }
   };

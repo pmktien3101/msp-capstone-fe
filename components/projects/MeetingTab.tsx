@@ -33,7 +33,6 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   >("all");
   const { role } = useUser();
   const isMember = role === "Member";
-
   const allMeetings = useMemo(() => {
     return [...upcomingCalls, ...inProgressCalls, ...endedCalls].filter(
       (meeting: any) => meeting.state?.custom?.projectId === project.id
@@ -366,7 +365,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                   </div>
                   <div className="col-actions flex items-center gap-2 cursor-pointer">
                     <button
-                      className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                      className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
                       title="Xem chi tiết"
                       onClick={() => handleView(call)}
                     >
@@ -376,7 +375,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       !(statusInfo.label === "Kết thúc") &&
                       !isMember && (
                         <button
-                          className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                          className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
                           title="Cập nhật"
                           onClick={() => handleEdit(call)}
                         >
@@ -385,7 +384,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       )}
                     {!isMember && (
                       <button
-                        className="p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                        className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
                         title="Xóa"
                         onClick={() => handleDelete(call)}
                       >
