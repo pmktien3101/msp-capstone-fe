@@ -21,6 +21,9 @@ import {
   Calendar,
   User,
   Flag,
+  Trash2,
+  Copy,
+  Check,
 } from "lucide-react";
 import "@/app/styles/meeting-detail.scss";
 import { useGetCallById } from "@/hooks/useGetCallById";
@@ -53,6 +56,15 @@ export default function MeetingDetailPage() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editedTask, setEditedTask] = useState<any>(null);
   const [isAddingToProject, setIsAddingToProject] = useState(false);
+  const [transcriptions, setTranscriptions] = useState<any[]>([]);
+  const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(false);
+  const [transcriptionsError, setTranscriptionsError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<string>("");
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{isOpen: boolean, taskId: string | null}>({isOpen: false, taskId: null});
+  const [isTaskCreated, setIsTaskCreated] = useState<{[key: string]: boolean}>({});
 
   // Khi đã join thì chuyển sang hiển thị MeetingRoom
   useEffect(() => {
@@ -80,6 +92,73 @@ export default function MeetingDetailPage() {
       loadRecordings();
     }
   }, [activeTab, call]);
+
+  // Fetch transcriptions when switching to recording tab
+  useEffect(() => {
+    const loadTranscriptions = async () => {
+      if (!call?.id) return;
+      setIsLoadingTranscriptions(true);
+      setTranscriptionsError(null);
+      try {
+        const response = await fetch(`https://localhost:7213/api/stream/call/default/${call.id}/transcriptions`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setTranscriptions(data || []);
+      } catch (e: any) {
+        console.error("Failed to fetch transcriptions", e);
+        setTranscriptionsError("Không tải được transcript");
+      } finally {
+        setIsLoadingTranscriptions(false);
+      }
+    };
+    if (activeTab === "recording") {
+      loadTranscriptions();
+    }
+  }, [activeTab, call]);
+
+  // Generate summary when transcriptions are loaded
+  useEffect(() => {
+    const generateSummary = async () => {
+      if (transcriptions.length === 0) return;
+      
+      setIsLoadingSummary(true);
+      setSummaryError(null);
+      try {
+        // Format transcriptions into text
+        const formattedText = transcriptions
+          .map(item => `${getSpeakerName(item.speakerId)}: ${item.text}`)
+          .join('\n');
+
+        const response = await fetch('https://localhost:5000/api/Summarize/summary', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            text: formattedText
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        setSummary(result.data?.summary || "Không thể tạo tóm tắt");
+      } catch (e: any) {
+        console.error("Failed to generate summary", e);
+        setSummaryError("Không thể tạo tóm tắt");
+      } finally {
+        setIsLoadingSummary(false);
+      }
+    };
+
+    if (transcriptions.length > 0) {
+      generateSummary();
+    }
+  }, [transcriptions]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -116,78 +195,75 @@ export default function MeetingDetailPage() {
     return hours > 0 ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`;
   };
 
+  // Format timestamp from milliseconds to MM:SS
+  const formatTimestamp = (timestamp: number) => {
+    const seconds = Math.floor(timestamp / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+  };
+
+  // Get speaker name from speakerId
+  const getSpeakerName = (speakerId: string) => {
+    // Map speakerId to actual names - you can customize this based on your data
+    const speakerMap: { [key: string]: string } = {
+      "1": "Nguyễn Văn A",
+      "2": "Trần Thị B", 
+      "3": "Lê Văn C",
+      "4": "Phạm Thị D",
+      "5": "Hoàng Văn E"
+    };
+    return speakerMap[speakerId] || `Speaker ${speakerId}`;
+  };
+
   // Xử lý tạo task từ AI dựa trên transcript
   const handleGenerateTasks = async () => {
+    if (transcriptions.length === 0) {
+      alert("Chưa có transcript để tạo task. Vui lòng chờ transcript được tải.");
+      return;
+    }
+
     setIsGeneratingTasks(true);
     try {
-      // Simulate AI processing - trong thực tế sẽ gọi API AI
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Format transcriptions into text without quotes or newlines
+      const formattedText = transcriptions
+        .map(item => `${getSpeakerName(item.speakerId)}: ${item.text}`)
+        .join(' ');
 
-      // Mock data dựa trên transcript với cấu trúc đúng theo mockData
-      const mockTasks = [
-        {
-          id: "AI-1",
-          title: "Implement Stripe payment gateway integration",
-          description:
-            "Integrate Stripe API for checkout process as discussed in meeting",
-          milestoneIds: [],
-          status: "todo",
-          priority: "high",
-          assignee: "member-4", // Lê Văn C
-          startDate: "2024-02-10",
-          endDate: "2024-02-15",
+      const response = await fetch('https://localhost:5000/api/Summarize/create-todolist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          id: "AI-2",
-          title: "Design mobile-first dashboard UI",
-          description:
-            "Create wireframe and implement dashboard redesign focusing on mobile experience",
-          milestoneIds: [],
-          status: "todo",
-          priority: "medium",
-          assignee: "member-3", // Trần Thị B
-          startDate: "2024-02-15",
-          endDate: "2024-02-20",
-        },
-        {
-          id: "AI-3",
-          title: "Setup automated testing for payment module",
-          description:
-            "Implement automated testing with 80% coverage for critical payment paths",
-          milestoneIds: [],
-          status: "todo",
-          priority: "high",
-          assignee: "member-4", // Lê Văn C
-          startDate: "2024-02-12",
-          endDate: "2024-02-18",
-        },
-        {
-          id: "AI-4",
-          title: "Implement user profile management",
-          description:
-            "Develop user profile management features that can run parallel with payment development",
-          milestoneIds: [],
-          status: "todo",
-          priority: "medium",
-          assignee: "member-3", // Trần Thị B
-          startDate: "2024-02-20",
-          endDate: "2024-02-25",
-        },
-        {
-          id: "AI-5",
-          title: "Setup CI/CD pipeline and staging environment",
-          description:
-            "Prepare staging environment and database migration scripts for testing",
-          milestoneIds: [],
-          status: "todo",
-          priority: "medium",
-          assignee: "member-4", // Lê Văn C
-          startDate: "2024-02-18",
-          endDate: "2024-02-22",
-        },
-      ];
+        body: JSON.stringify({
+          text: formattedText
+        })
+      });
 
-      setGeneratedTasks(mockTasks);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Get the summary from result.data.summary
+      const summaryText = result.data?.summary || "";
+      
+      // Split by lines and create task objects
+      const taskLines = summaryText.split('\n').filter((line: string) => line.trim() !== '');
+      const generatedTasks = taskLines.map((taskText: string, index: number) => ({
+        id: `AI-${index + 1}`,
+        title: taskText.trim().replace(/^[-•]\s*/, ''), // Remove leading dash or bullet point
+        description: `To-do list được tạo từ AI dựa trên cuộc họp`,
+        milestoneIds: [],
+        status: "todo",
+        priority: "medium",
+        assignee: "",
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+      }));
+
+      setGeneratedTasks(generatedTasks);
 
       // Tự động chuyển sang tab Tasks sau khi tạo xong
       setTimeout(() => {
@@ -195,7 +271,7 @@ export default function MeetingDetailPage() {
       }, 500); // Delay 500ms để user thấy kết quả
     } catch (error) {
       console.error("Error generating tasks:", error);
-      alert("Có lỗi xảy ra khi tạo task. Vui lòng thử lại.");
+      alert("Có lỗi xảy ra khi tạo To-do list. Vui lòng thử lại.");
     } finally {
       setIsGeneratingTasks(false);
     }
@@ -221,6 +297,31 @@ export default function MeetingDetailPage() {
     setEditingTaskId(null);
     setEditedTask(null);
   };
+
+  // Xử lý mở modal xác nhận xóa task
+  const handleOpenDeleteModal = (taskId: string) => {
+    setDeleteConfirmModal({isOpen: true, taskId});
+  };
+
+  // Xử lý xóa task
+  const handleDeleteTask = () => {
+    if (deleteConfirmModal.taskId) {
+      setGeneratedTasks(prev => prev.filter(task => task.id !== deleteConfirmModal.taskId));
+      setDeleteConfirmModal({isOpen: false, taskId: null});
+    }
+  };
+
+  // Xử lý hủy xóa task
+  const handleCancelDelete = () => {
+    setDeleteConfirmModal({isOpen: false, taskId: null});
+  };
+
+  // Xử lý tạo task từ todo
+  const handleCreateTask = (taskId: string) => {
+    setIsTaskCreated(prev => ({...prev, [taskId]: true}));
+  };
+
+
 
   // Xử lý thêm task vào project
   const handleAddTasksToProject = async () => {
@@ -383,7 +484,7 @@ export default function MeetingDetailPage() {
           onClick={() => setActiveTab("tasks")}
         >
           <CheckSquare size={16} />
-          To-do & Tasks
+          To-do List
         </button>
         <button
           className={`tab ${activeTab === "comments" ? "active" : ""}`}
@@ -662,185 +763,33 @@ export default function MeetingDetailPage() {
 
               <div className="transcript">
                 <h4>Transcript</h4>
-                <div
-                  className={`transcript-content ${
-                    isTranscriptExpanded ? "expanded" : ""
-                  }`}
-                  onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
-                >
-                  <div className="transcript-item">
-                    <span className="timestamp">00:05</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Chào mọi người, chúng ta
-                      bắt đầu cuộc họp sprint planning hôm nay. Tôi hy vọng mọi
-                      người đã chuẩn bị sẵn sàng cho việc lập kế hoạch sprint
-                      mới.
-                    </div>
+                {isLoadingTranscriptions && (
+                  <div className="transcript-loading">Đang tải transcript...</div>
+                )}
+                {transcriptionsError && !isLoadingTranscriptions && (
+                  <div className="transcript-error">{transcriptionsError}</div>
+                )}
+                {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length === 0 && (
+                  <div className="transcript-empty">Chưa có transcript cho cuộc họp này</div>
+                )}
+                {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length > 0 && (
+                  <div
+                    className={`transcript-content ${
+                      isTranscriptExpanded ? "expanded" : ""
+                    }`}
+                    onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
+                  >
+                    {transcriptions.map((item, index) => (
+                      <div key={index} className="transcript-item">
+                        <span className="timestamp">{formatTimestamp(item.startTs)}</span>
+                        <div className="transcript-text">
+                          <strong>{getSpeakerName(item.speakerId)}:</strong> {item.text}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">00:15</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Tôi đã chuẩn bị danh sách các
-                      task cho sprint này. Có tổng cộng 15 user stories cần được
-                      implement, bao gồm cả tính năng authentication và
-                      dashboard mới.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">00:30</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Chúng ta cần ưu tiên tính năng
-                      thanh toán trước. Đây là tính năng core của ứng dụng và
-                      khách hàng đang chờ đợi rất nhiều.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">00:45</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Đồng ý với Lê Văn C. Tôi
-                      nghĩ chúng ta nên dành 60% effort cho payment module trong
-                      sprint này. Còn lại 40% cho các tính năng phụ trợ.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">01:00</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Về mặt technical, tôi đã
-                      research và thấy chúng ta có thể integrate với Stripe API.
-                      Nó sẽ giúp giảm thiểu rủi ro và tăng tốc độ development.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">01:15</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tuyệt vời! Tôi sẽ bắt đầu
-                      implement payment flow từ ngày mai. Ước tính sẽ mất khoảng
-                      3-4 ngày để hoàn thành basic flow.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">01:30</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Còn về phần UI/UX, chúng ta
-                      cần thiết kế lại dashboard để user experience tốt hơn.
-                      Trần Thị B, bạn có thể handle phần này không?
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">01:45</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Được rồi, tôi sẽ làm
-                      wireframe cho dashboard mới. Tôi nghĩ chúng ta nên focus
-                      vào mobile-first design vì 70% user sử dụng mobile.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">02:00</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Về phần testing, chúng ta cần
-                      đảm bảo coverage ít nhất 80% cho payment module. Tôi sẽ
-                      setup automated testing cho critical paths.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">02:15</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Tốt! Bây giờ chúng ta cần
-                      thảo luận về timeline. Sprint này sẽ kéo dài 2 tuần,
-                      deadline là ngày 15/02. Mọi người có thấy timeline này
-                      realistic không?
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">02:30</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Tôi nghĩ timeline này hơi
-                      tight, đặc biệt là với payment integration. Có thể chúng
-                      ta cần thêm 1 tuần buffer để đảm bảo quality.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">02:45</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tôi đồng ý với Trần Thị B.
-                      Payment là tính năng nhạy cảm, chúng ta không thể rush.
-                      Tôi suggest extend deadline đến 22/02.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">03:00</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Được rồi, tôi sẽ discuss
-                      với management về việc extend deadline. Trong khi đó,
-                      chúng ta bắt đầu implement những phần không phụ thuộc vào
-                      payment.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">03:15</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Tôi sẽ bắt đầu với user
-                      profile management và notification system. Những tính năng
-                      này có thể develop parallel với payment.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">03:30</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tôi sẽ setup CI/CD pipeline và
-                      database migration scripts. Cũng cần prepare staging
-                      environment cho testing.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">03:45</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Perfect! Chúng ta cũng cần
-                      schedule daily standup meetings để track progress. Tôi
-                      suggest 9:00 AM mỗi ngày.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">04:00</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Đồng ý! Tôi cũng suggest
-                      chúng ta nên có weekly demo để stakeholders có thể review
-                      progress và provide feedback.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">04:15</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Tuyệt vời! Tôi sẽ prepare demo
-                      environment và schedule weekly demo vào thứ 6 hàng tuần.
-                      Có gì khác cần thảo luận không?
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">04:30</span>
-                    <div className="transcript-text">
-                      <strong>Nguyễn Văn A:</strong> Tôi nghĩ chúng ta đã cover
-                      hết các điểm chính. Cảm ơn mọi người đã tham gia cuộc họp.
-                      Chúng ta sẽ bắt đầu implement từ ngày mai. Good luck!
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">04:35</span>
-                    <div className="transcript-text">
-                      <strong>Trần Thị B:</strong> Cảm ơn! Tôi sẽ gửi meeting
-                      notes và action items cho mọi người trong vòng 1 giờ.
-                    </div>
-                  </div>
-                  <div className="transcript-item">
-                    <span className="timestamp">04:40</span>
-                    <div className="transcript-text">
-                      <strong>Lê Văn C:</strong> Perfect! Tôi sẽ update project
-                      timeline và tạo tasks trong Jira. Hẹn gặp lại mọi người
-                      vào standup ngày mai.
-                    </div>
-                  </div>
-                </div>
-                {!isTranscriptExpanded && (
+                )}
+                {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length > 0 && !isTranscriptExpanded && (
                   <div className="transcript-expand-hint">
                     <span>Click để xem toàn bộ transcript</span>
                   </div>
@@ -875,18 +824,32 @@ export default function MeetingDetailPage() {
                       ) : (
                         <>
                           <Plus size={16} />
-                          Tạo task từ cuộc họp
+                          Tạo To-do list từ cuộc họp
                         </>
                       )}
                     </Button>
                   </div>
                 </div>
                 <div className="summary-content">
-                  <p>
-                    Cuộc họp tập trung vào việc lập kế hoạch cho Sprint 3 với
-                    các tính năng chính: thanh toán, quản lý sản phẩm, và báo
-                    cáo. Team đã thống nhất về timeline và phân công công việc.
-                  </p>
+                  {isLoadingSummary && (
+                    <div className="summary-loading">
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Đang tạo tóm tắt...</span>
+                    </div>
+                  )}
+                  {summaryError && !isLoadingSummary && (
+                    <div className="summary-error">
+                      <p>{summaryError}</p>
+                    </div>
+                  )}
+                  {!isLoadingSummary && !summaryError && !summary && (
+                    <div className="summary-empty">
+                      <p>Chưa có transcript để tạo tóm tắt</p>
+                    </div>
+                  )}
+                  {!isLoadingSummary && !summaryError && summary && (
+                    <p>{summary}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -896,7 +859,7 @@ export default function MeetingDetailPage() {
         {activeTab === "tasks" && !showJoinFlow && (
           <div className="tasks-section">
             <div className="tasks-header">
-              <h3>To-do & Tasks</h3>
+              <h3>To-do list</h3>
             </div>
 
             <div className="tasks-content">
@@ -906,7 +869,7 @@ export default function MeetingDetailPage() {
                   <div className="ai-tasks-header">
                     <div className="ai-tasks-title">
                       <Sparkles size={16} />
-                      <h4>Task được tạo từ AI</h4>
+                      <h4>To-do list được tạo từ AI</h4>
                       <span className="ai-badge">AI Generated</span>
                     </div>
                   </div>
@@ -941,46 +904,36 @@ export default function MeetingDetailPage() {
                                 rows={3}
                               />
                               <div className="edit-meta">
-                                <select
-                                  value={editedTask?.assignee || ""}
-                                  onChange={(e) =>
-                                    setEditedTask({
-                                      ...editedTask,
-                                      assignee: e.target.value,
-                                    })
-                                  }
-                                  className="edit-select"
-                                >
-                                  <option value="member-2">Nguyễn Văn A</option>
-                                  <option value="member-3">Trần Thị B</option>
-                                  <option value="member-4">Lê Văn C</option>
-                                  <option value="member-5">Phạm Thị D</option>
-                                </select>
-                                <select
-                                  value={editedTask?.priority || ""}
-                                  onChange={(e) =>
-                                    setEditedTask({
-                                      ...editedTask,
-                                      priority: e.target.value,
-                                    })
-                                  }
-                                  className="edit-select"
-                                >
-                                  <option value="low">Low</option>
-                                  <option value="medium">Medium</option>
-                                  <option value="high">High</option>
-                                </select>
-                                <input
-                                  type="date"
-                                  value={editedTask?.endDate || ""}
-                                  onChange={(e) =>
-                                    setEditedTask({
-                                      ...editedTask,
-                                      endDate: e.target.value,
-                                    })
-                                  }
-                                  className="edit-date"
-                                />
+                                <div className="date-inputs">
+                                  <div className="date-field">
+                                    <label>Ngày bắt đầu:</label>
+                                    <input
+                                      type="date"
+                                      value={editedTask?.startDate || ""}
+                                      onChange={(e) =>
+                                        setEditedTask({
+                                          ...editedTask,
+                                          startDate: e.target.value,
+                                        })
+                                      }
+                                      className="edit-date"
+                                    />
+                                  </div>
+                                  <div className="date-field">
+                                    <label>Ngày kết thúc:</label>
+                                    <input
+                                      type="date"
+                                      value={editedTask?.endDate || ""}
+                                      onChange={(e) =>
+                                        setEditedTask({
+                                          ...editedTask,
+                                          endDate: e.target.value,
+                                        })
+                                      }
+                                      className="edit-date"
+                                    />
+                                  </div>
+                                </div>
                               </div>
                             </div>
                             <div className="edit-actions">
@@ -1005,37 +958,17 @@ export default function MeetingDetailPage() {
                         ) : (
                           <>
                             <div className="task-info">
-                              <h5>{task.title}</h5>
+                              <h5>
+                                <span className="task-number">{generatedTasks.indexOf(task) + 1}</span>
+                                {task.title}
+                                {isTaskCreated[task.id] && (
+                                  <span className="task-status-badge created">
+                                    <Check size={12} />
+                                    Đã tạo task
+                                  </span>
+                                )}
+                              </h5>
                               <p>{task.description}</p>
-                              <div className="task-meta">
-                                <span className="assignee">
-                                  <User size={12} />
-                                  {task.assignee === "member-2"
-                                    ? "Nguyễn Văn A"
-                                    : task.assignee === "member-3"
-                                    ? "Trần Thị B"
-                                    : task.assignee === "member-4"
-                                    ? "Lê Văn C"
-                                    : task.assignee === "member-5"
-                                    ? "Phạm Thị D"
-                                    : "Chưa giao"}
-                                </span>
-                                <span className="deadline">
-                                  <Calendar size={12} />
-                                  Hạn:{" "}
-                                  {new Date(task.endDate).toLocaleDateString(
-                                    "vi-VN"
-                                  )}
-                                </span>
-                                <span className={`priority ${task.priority}`}>
-                                  <Flag size={12} />
-                                  {task.priority === "high"
-                                    ? "High"
-                                    : task.priority === "medium"
-                                    ? "Medium"
-                                    : "Low"}
-                                </span>
-                              </div>
                             </div>
                             <div className="task-actions">
                               <Button
@@ -1046,6 +979,26 @@ export default function MeetingDetailPage() {
                               >
                                 <Edit size={14} />
                                 Chỉnh sửa
+                              </Button>
+                              {!isTaskCreated[task.id] && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCreateTask(task.id)}
+                                  className="create-task-btn"
+                                >
+                                  <Plus size={14} />
+                                  Tạo task
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenDeleteModal(task.id)}
+                                className="delete-btn"
+                              >
+                                <Trash2 size={14} />
+                                Xóa
                               </Button>
                             </div>
                           </>
@@ -1074,7 +1027,7 @@ export default function MeetingDetailPage() {
                         ) : (
                           <>
                             <Plus size={16} />
-                            Thêm các task vào project
+                            Thêm các To-do vào project
                           </>
                         )}
                       </Button>
@@ -1206,6 +1159,40 @@ export default function MeetingDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmModal.isOpen && (
+        <div className="delete-modal-overlay">
+          <div className="delete-modal">
+            <div className="delete-modal-header">
+              <div className="delete-icon">
+                <Trash2 size={24} />
+              </div>
+              <h3>Xác nhận xóa task</h3>
+            </div>
+            <div className="delete-modal-content">
+              <p>Bạn có chắc chắn muốn xóa To-do này không?</p>
+              <p className="delete-warning">Hành động này không thể hoàn tác.</p>
+            </div>
+            <div className="delete-modal-actions">
+              <Button
+                variant="outline"
+                onClick={handleCancelDelete}
+                className="cancel-btn"
+              >
+                Hủy
+              </Button>
+              <Button
+                onClick={handleDeleteTask}
+                className="confirm-delete-btn"
+              >
+                <Trash2 size={16} />
+                Xóa task
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .mock-recording {
@@ -1568,6 +1555,7 @@ export default function MeetingDetailPage() {
           display: flex;
           gap: 8px;
           align-items: center;
+          flex-wrap: wrap;
         }
 
         .edit-btn {
@@ -1577,6 +1565,41 @@ export default function MeetingDetailPage() {
 
         .edit-btn:hover {
           background: #ff8c42;
+          color: white;
+        }
+
+        .complete-btn {
+          border-color: #10b981;
+          color: #10b981;
+        }
+
+        .complete-btn:hover {
+          background: #10b981;
+          color: white;
+        }
+
+        .complete-btn.completed {
+          background: #10b981;
+          color: white;
+        }
+
+        .copy-btn {
+          border-color: #3b82f6;
+          color: #3b82f6;
+        }
+
+        .copy-btn:hover {
+          background: #3b82f6;
+          color: white;
+        }
+
+        .delete-btn {
+          border-color: #ef4444;
+          color: #ef4444;
+        }
+
+        .delete-btn:hover {
+          background: #ef4444;
           color: white;
         }
 
@@ -1617,14 +1640,44 @@ export default function MeetingDetailPage() {
 
         .edit-meta {
           display: flex;
-          gap: 12px;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .date-inputs {
+          display: flex;
+          gap: 16px;
           flex-wrap: wrap;
         }
 
-        .edit-select,
-        .edit-date {
+        .date-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
           flex: 1;
-          min-width: 120px;
+          min-width: 150px;
+        }
+
+        .date-field label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #374151;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .edit-date {
+          padding: 8px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 14px;
+          transition: border-color 0.2s;
+        }
+
+        .edit-date:focus {
+          outline: none;
+          border-color: #ff8c42;
+          box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
         }
 
         .edit-actions {
@@ -1935,6 +1988,158 @@ export default function MeetingDetailPage() {
             flex-direction: column;
             align-items: flex-start;
           }
+        }
+
+        .task-number {
+          display: inline-block;
+          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+          color: white;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          text-align: center;
+          line-height: 24px;
+          font-size: 12px;
+          font-weight: 700;
+          margin-right: 12px;
+          flex-shrink: 0;
+          box-shadow: 0 2px 4px rgba(255, 140, 66, 0.3);
+        }
+
+        /* Delete Confirmation Modal */
+        .delete-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          backdrop-filter: blur(4px);
+        }
+
+        .delete-modal {
+          background: white;
+          border-radius: 16px;
+          padding: 24px;
+          max-width: 400px;
+          width: 90%;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+
+        .delete-modal-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .delete-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 48px;
+          height: 48px;
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          border-radius: 12px;
+          color: white;
+          box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .delete-modal-header h3 {
+          margin: 0;
+          font-size: 20px;
+          font-weight: 700;
+          color: #1e293b;
+        }
+
+        .delete-modal-content {
+          margin-bottom: 24px;
+        }
+
+        .delete-modal-content p {
+          margin: 0 0 8px 0;
+          color: #64748b;
+          line-height: 1.5;
+        }
+
+        .delete-warning {
+          color: #ef4444 !important;
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .delete-modal-actions {
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+        }
+
+        .cancel-btn {
+          border-color: #d1d5db;
+          color: #6b7280;
+        }
+
+        .cancel-btn:hover {
+          background: #f9fafb;
+          border-color: #9ca3af;
+        }
+
+        .confirm-delete-btn {
+          background: #ef4444;
+          border-color: #ef4444;
+          color: white;
+        }
+
+        .confirm-delete-btn:hover {
+          background: #dc2626;
+          border-color: #dc2626;
+        }
+
+        /* Task Status Badge */
+        .task-status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          margin-left: 12px;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .task-status-badge.created {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Create Task Button */
+        .create-task-btn {
+          border-color: #8b5cf6;
+          color: #8b5cf6;
+        }
+
+        .create-task-btn:hover {
+          background: #8b5cf6;
+          color: white;
         }
       `}</style>
     </div>

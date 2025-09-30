@@ -33,49 +33,25 @@ const Sidebar = () => {
       )
     },
     {
-      id: 'companies',
-      label: 'Companies',
+      id: 'business-owners',
+      label: 'Business Owners',
       route: '/dashboard/admin/companies',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M3 21H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M5 21V7L13 2L21 7V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M19 21V12H13V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M9 9H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M9 13H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M9 17H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M8 3.13C7.13959 3.35031 6.37698 3.85071 5.83236 4.55232C5.28774 5.25392 4.99219 6.11683 4.99219 7.005C4.99219 7.89318 5.28774 8.75608 5.83236 9.45769C6.37698 10.1593 7.13959 10.6597 8 10.88" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       )
     },
-    {
-      id: 'features',
-      label: 'Features',
-      route: '/dashboard/admin/features',
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      )
-    },
-    {
-      id: 'plans',
-      label: 'Plans & Subscription',
-      route: '/dashboard/admin/plans',
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M20 7L9 12L20 17V7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M4 5H16V19H4V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      )
-    }
   ];
 
   // Business Owner menu items
   const businessOwnerSidebarItems: SidebarItem[] = [
     {
       id: 'business-dashboard',
-      label: 'Dashboard',
+      label: 'Tổng quan',
       route: '/dashboard/business',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -85,7 +61,7 @@ const Sidebar = () => {
     },
     {
       id: 'members-roles',
-      label: 'Members / Roles',
+      label: 'Thành viên',
       route: '/dashboard/business/members',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -97,16 +73,17 @@ const Sidebar = () => {
       )
     },
     {
-      id: 'subscription-billing',
-      label: 'Subscription / Billing',
-      route: '/dashboard/business/subscription',
+      id: 'projects',
+      label: 'Dự án',
+      route: '/dashboard/business/projects',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M20 7L9 12L20 17V7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M4 5H16V19H4V5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       )
-    }
+    },
   ];
 
   // PM menu items

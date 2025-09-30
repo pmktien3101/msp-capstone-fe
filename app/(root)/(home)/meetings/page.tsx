@@ -1,12 +1,18 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@/hooks/useUser';
-import { mockMeetings, mockProject, mockMilestones, mockProjects, mockMembers } from '@/constants/mockData';
-import { CreateMeetingModal } from '@/components/projects/modals/CreateMeetingModal';
-import { UpdateMeetingModal } from '@/components/projects/modals/UpdateMeetingModal';
-import { DeleteMeetingModal } from '@/components/modals/DeleteMeetingModal';
+import React, { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/hooks/useUser";
+import {
+  mockMeetings,
+  mockProject,
+  mockMilestones,
+  mockProjects,
+  mockMembers,
+} from "@/constants/mockData";
+import { CreateMeetingModal } from "@/components/projects/modals/CreateMeetingModal";
+// import { UpdateMeetingModal } from "@/components/projects/modals/UpdateMeetingModal";
+import { DeleteMeetingModal } from "@/components/modals/DeleteMeetingModal";
 import {
   Search,
   Filter,
@@ -19,8 +25,8 @@ import {
   Plus,
   Edit,
   Trash2,
-  MoreVertical
-} from 'lucide-react';
+  MoreVertical,
+} from "lucide-react";
 
 interface Meeting {
   id: string;
@@ -38,11 +44,11 @@ interface Meeting {
 const MeetingsPage = () => {
   const { role } = useUser();
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProject, setSelectedProject] = useState('all');
-  const [selectedMilestone, setSelectedMilestone] = useState('all');
-  const [selectedStatus, setSelectedStatus] = useState('all');
-  const [selectedDate, setSelectedDate] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProject, setSelectedProject] = useState("all");
+  const [selectedMilestone, setSelectedMilestone] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedDate, setSelectedDate] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -55,45 +61,64 @@ const MeetingsPage = () => {
   // Filter meetings based on search and filters
   const filteredMeetings = useMemo(() => {
     return meetings.filter((meeting: any) => {
-      const matchesSearch = meeting?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch =
+        meeting?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         meeting?.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesProject = selectedProject === 'all' || meeting.projectId === selectedProject;
+      const matchesProject =
+        selectedProject === "all" || meeting.projectId === selectedProject;
 
-      const matchesMilestone = selectedMilestone === 'all' ||
+      const matchesMilestone =
+        selectedMilestone === "all" ||
         (meeting.milestoneId && meeting.milestoneId === selectedMilestone) ||
-        (!meeting.milestoneId && selectedMilestone === 'no-milestone');
+        (!meeting.milestoneId && selectedMilestone === "no-milestone");
 
-      const matchesStatus = selectedStatus === 'all' || meeting.status === selectedStatus;
+      const matchesStatus =
+        selectedStatus === "all" || meeting.status === selectedStatus;
 
-      const meetingDate = new Date(meeting.startTime).toISOString().split('T')[0];
+      const meetingDate = new Date(meeting.startTime)
+        .toISOString()
+        .split("T")[0];
       const matchesDate = !selectedDate || meetingDate === selectedDate;
 
-      return matchesSearch && matchesProject && matchesMilestone && matchesStatus && matchesDate;
+      return (
+        matchesSearch &&
+        matchesProject &&
+        matchesMilestone &&
+        matchesStatus &&
+        matchesDate
+      );
     });
-  }, [meetings, searchTerm, selectedProject, selectedMilestone, selectedStatus, selectedDate]);
+  }, [
+    meetings,
+    searchTerm,
+    selectedProject,
+    selectedMilestone,
+    selectedStatus,
+    selectedDate,
+  ]);
 
   const getProjectName = (projectId: string) => {
-    const project = mockProjects.find(p => p.id === projectId);
-    return project ? project.name : 'Không xác định';
+    const project = mockProjects.find((p) => p.id === projectId);
+    return project ? project.name : "Không xác định";
   };
 
   const getMilestoneName = (milestoneId?: string) => {
-    if (!milestoneId) return 'Không có milestone';
-    const milestone = mockMilestones.find(m => m.id === milestoneId);
-    return milestone ? milestone.name : 'Không xác định';
+    if (!milestoneId) return "Không có milestone";
+    const milestone = mockMilestones.find((m) => m.id === milestoneId);
+    return milestone ? milestone.name : "Không xác định";
   };
 
   const getStatusLabel = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'scheduled':
-        return 'Đã lên lịch';
+      case "scheduled":
+        return "Đã lên lịch";
       // case 'upcoming':
       //   return 'Sắp diễn ra';
       // case 'completed':
       //   return 'Đã hoàn thành';
-      case 'finished':
-        return 'Đã hoàn thành';
+      case "finished":
+        return "Đã hoàn thành";
       // case 'canceled':
       //   return 'Đã hủy';
       // case 'in-progress':
@@ -111,20 +136,20 @@ const MeetingsPage = () => {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'scheduled':
-      case 'upcoming':
-        return 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300';
-      case 'completed':
-      case 'finished':
-        return 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300';
-      case 'cancelled':
-      case 'canceled':
-        return 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300';
-      case 'in-progress':
-      case 'ongoing':
-        return 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border border-yellow-300';
+      case "scheduled":
+      case "upcoming":
+        return "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300";
+      case "completed":
+      case "finished":
+        return "bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300";
+      case "cancelled":
+      case "canceled":
+        return "bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300";
+      case "in-progress":
+      case "ongoing":
+        return "bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border border-yellow-300";
       default:
-        return 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300';
+        return "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300";
     }
   };
 
@@ -147,10 +172,10 @@ const MeetingsPage = () => {
   };
 
   const handleCreateMeeting = (meetingData: any) => {
-    console.log('Meeting created:', meetingData);
+    console.log("Meeting created:", meetingData);
 
     // Thêm meeting mới vào state
-    setMeetings(prevMeetings => [meetingData, ...prevMeetings]);
+    setMeetings((prevMeetings) => [meetingData, ...prevMeetings]);
 
     // Đóng modal
     setIsCreateModalOpen(false);
@@ -171,7 +196,9 @@ const MeetingsPage = () => {
   };
 
   const handleConfirmDelete = (meetingId: string) => {
-    setMeetings(prevMeetings => prevMeetings.filter(m => m.id !== meetingId));
+    setMeetings((prevMeetings) =>
+      prevMeetings.filter((m) => m.id !== meetingId)
+    );
     setIsDeleteModalOpen(false);
     setMeetingToDelete(null);
   };
@@ -182,13 +209,13 @@ const MeetingsPage = () => {
   };
 
   const handleUpdateMeeting = (updatedMeeting: any) => {
-    console.log('Meeting updated:', updatedMeeting);
-    
+    console.log("Meeting updated:", updatedMeeting);
+
     // Cập nhật meeting trong state
-    setMeetings(prevMeetings => 
-      prevMeetings.map(m => m.id === updatedMeeting.id ? updatedMeeting : m)
+    setMeetings((prevMeetings) =>
+      prevMeetings.map((m) => (m.id === updatedMeeting.id ? updatedMeeting : m))
     );
-    
+
     // Đóng modal
     setIsUpdateModalOpen(false);
     setSelectedMeeting(null);
@@ -217,11 +244,11 @@ const MeetingsPage = () => {
     };
 
     if (openDropdownId) {
-      document.addEventListener('click', handleClickOutside);
+      document.addEventListener("click", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('click', handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
     };
   }, [openDropdownId]);
 
@@ -236,12 +263,16 @@ const MeetingsPage = () => {
   }, []);
 
   // Redirect if not PM
-  if (role !== 'pm') {
+  if (role !== "pm") {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-600 mb-2">Không có quyền truy cập</h2>
-          <p className="text-gray-500">Chỉ Project Manager mới có thể xem trang này.</p>
+          <h2 className="text-2xl font-bold text-gray-600 mb-2">
+            Không có quyền truy cập
+          </h2>
+          <p className="text-gray-500">
+            Chỉ Project Manager mới có thể xem trang này.
+          </p>
         </div>
       </div>
     );
@@ -252,7 +283,9 @@ const MeetingsPage = () => {
       <div className="page-header">
         <div className="header-content">
           <h1 className="page-title">Danh sách cuộc Họp</h1>
-          <p className="page-subtitle">Quản lý và theo dõi các cuộc họp dự án</p>
+          <p className="page-subtitle">
+            Quản lý và theo dõi các cuộc họp dự án
+          </p>
         </div>
         <button className="create-meeting-btn" onClick={handleOpenCreateModal}>
           <Plus size={16} />
@@ -262,7 +295,9 @@ const MeetingsPage = () => {
 
       <div className="filters-section">
         <div className="search-bar">
-          <span className='search-icon'><Search size={20} /></span>
+          <span className="search-icon">
+            <Search size={20} />
+          </span>
           {/* <Search size={20} className="search-icon" /> */}
           <input
             type="text"
@@ -279,20 +314,32 @@ const MeetingsPage = () => {
         >
           <Filter size={16} />
           Bộ lọc
-          <ChevronDown size={16} className={`chevron ${showFilters ? 'rotated' : ''}`} />
+          <ChevronDown
+            size={16}
+            className={`chevron ${showFilters ? "rotated" : ""}`}
+          />
         </button>
 
         <button
           className="clear-filters-btn"
           onClick={() => {
-            setSearchTerm('');
-            setSelectedProject('all');
-            setSelectedMilestone('all');
-            setSelectedStatus('all');
-            setSelectedDate('');
+            setSearchTerm("");
+            setSelectedProject("all");
+            setSelectedMilestone("all");
+            setSelectedStatus("all");
+            setSelectedDate("");
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M3 6h18" />
             <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
             <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
@@ -334,7 +381,7 @@ const MeetingsPage = () => {
               >
                 <option value="all">Tất cả milestone</option>
                 <option value="no-milestone">Không có milestone</option>
-                {mockMilestones.map(milestone => (
+                {mockMilestones.map((milestone) => (
                   <option key={milestone.id} value={milestone.id}>
                     {milestone.name}
                   </option>
@@ -380,13 +427,13 @@ const MeetingsPage = () => {
           </div>
           <div className="stat-card">
             <div className="stat-number">
-              {filteredMeetings.filter(m => m.status === 'Scheduled').length}
+              {filteredMeetings.filter((m) => m.status === "Scheduled").length}
             </div>
             <div className="stat-label">Đã lên lịch</div>
           </div>
           <div className="stat-card">
             <div className="stat-number">
-              {filteredMeetings.filter(m => m.status === 'Finished').length}
+              {filteredMeetings.filter((m) => m.status === "Finished").length}
             </div>
             <div className="stat-label">Đã hoàn thành</div>
           </div>
@@ -395,23 +442,36 @@ const MeetingsPage = () => {
         <div className="meetings-list">
           {filteredMeetings.length === 0 ? (
             <div className="empty-state">
-              <span className='empty-icon'><Calendar size={48} /></span>
+              <span className="empty-icon">
+                <Calendar size={48} />
+              </span>
               <h3 className="empty-title">Không có cuộc họp nào</h3>
               <p className="empty-description">
-                {searchTerm || selectedProject !== 'all' || selectedMilestone !== 'all' ||
-                  selectedStatus !== 'all' || selectedDate
-                  ? 'Không tìm thấy cuộc họp phù hợp với bộ lọc.'
-                  : 'Chưa có cuộc họp nào được tạo.'}
+                {searchTerm ||
+                selectedProject !== "all" ||
+                selectedMilestone !== "all" ||
+                selectedStatus !== "all" ||
+                selectedDate
+                  ? "Không tìm thấy cuộc họp phù hợp với bộ lọc."
+                  : "Chưa có cuộc họp nào được tạo."}
               </p>
             </div>
           ) : (
             <div className="meetings-grid">
               {filteredMeetings.map((meeting: any) => (
-                <div key={meeting.id} className="meeting-card" onClick={() => handleCardClick(meeting.id)}>
+                <div
+                  key={meeting.id}
+                  className="meeting-card"
+                  onClick={() => handleCardClick(meeting.id)}
+                >
                   <div className="meeting-header">
                     <h3 className="meeting-title">{meeting.title}</h3>
                     <div className="flex items-center gap-2">
-                      <span className={`status-badge ${getStatusColor(meeting.status)}`}>
+                      <span
+                        className={`status-badge ${getStatusColor(
+                          meeting.status
+                        )}`}
+                      >
                         {getStatusLabel(meeting.status)}
                       </span>
                       <div className="relative">
@@ -449,7 +509,11 @@ const MeetingsPage = () => {
                   <div className="meeting-details">
                     <div className="detail-item">
                       <Calendar size={16} />
-                      <span>{new Date(meeting.startTime).toLocaleDateString('vi-VN')}</span>
+                      <span>
+                        {new Date(meeting.startTime).toLocaleDateString(
+                          "vi-VN"
+                        )}
+                      </span>
                     </div>
                     <div className="detail-item">
                       <Clock size={16} />
@@ -461,30 +525,47 @@ const MeetingsPage = () => {
                           hour: '2-digit', 
                           minute: '2-digit' 
                         })} */}
-                        {new Date(meeting.startTime).toLocaleTimeString('vi-VN', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        {new Date(meeting.startTime).toLocaleTimeString(
+                          "vi-VN",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
                       </span>
                     </div>
                     <div className="detail-item">
-                      {meeting.roomUrl ? <Video size={16} /> : <MapPin size={16} />}
-                      <span>{meeting.roomUrl ? 'Online' : 'Offline - ' + meeting.location}</span>
+                      {meeting.roomUrl ? (
+                        <Video size={16} />
+                      ) : (
+                        <MapPin size={16} />
+                      )}
+                      <span>
+                        {meeting.roomUrl
+                          ? "Online"
+                          : "Offline - " + meeting.location}
+                      </span>
                     </div>
                     <div className="detail-item">
                       <Users size={16} />
-                      <span>{meeting.participants?.length ?? 0} người tham gia</span>
+                      <span>
+                        {meeting.participants?.length ?? 0} người tham gia
+                      </span>
                     </div>
                   </div>
 
                   <div className="meeting-meta">
                     <div className="meta-item">
                       <span className="meta-label">Dự án:</span>
-                      <span className="meta-value">{getProjectName(meeting.projectId)}</span>
+                      <span className="meta-value">
+                        {getProjectName(meeting.projectId)}
+                      </span>
                     </div>
                     <div className="meta-item">
                       <span className="meta-label">Milestone:</span>
-                      <span className="meta-value">{getMilestoneName(meeting.milestoneId)}</span>
+                      <span className="meta-value">
+                        {getMilestoneName(meeting.milestoneId)}
+                      </span>
                     </div>
                     {meeting.roomUrl && (
                       <div className="meta-item">
@@ -513,7 +594,6 @@ const MeetingsPage = () => {
           position: relative;
         }
 
-
         .page-header {
           display: flex;
           justify-content: space-between;
@@ -527,7 +607,6 @@ const MeetingsPage = () => {
           position: relative;
           overflow: hidden;
         }
-
 
         .header-content {
           flex: 1;
@@ -570,13 +649,18 @@ const MeetingsPage = () => {
         }
 
         .create-meeting-btn::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+          );
           transition: left 0.5s;
         }
 
@@ -658,13 +742,18 @@ const MeetingsPage = () => {
         }
 
         .filter-toggle-btn::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 94, 19, 0.1), transparent);
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 94, 19, 0.1),
+            transparent
+          );
           transition: left 0.5s;
         }
 
@@ -697,13 +786,18 @@ const MeetingsPage = () => {
         }
 
         .clear-filters-btn::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.1), transparent);
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(239, 68, 68, 0.1),
+            transparent
+          );
           transition: left 0.5s;
         }
 
@@ -736,7 +830,6 @@ const MeetingsPage = () => {
           position: relative;
           overflow: hidden;
         }
-
 
         .filter-row {
           display: grid;
@@ -788,7 +881,6 @@ const MeetingsPage = () => {
           overflow: hidden;
         }
 
-
         .meetings-stats {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -806,7 +898,6 @@ const MeetingsPage = () => {
           overflow: hidden;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
 
         .stat-card:hover {
           transform: translateY(-4px);
@@ -849,7 +940,6 @@ const MeetingsPage = () => {
           overflow: hidden;
           box-sizing: border-box !important;
         }
-
 
         .meeting-card:hover {
           border-color: #ff5e13;
@@ -969,13 +1059,18 @@ const MeetingsPage = () => {
         }
 
         .status-badge::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent
+          );
           transition: left 0.5s;
         }
 
@@ -1042,24 +1137,24 @@ const MeetingsPage = () => {
           font-weight: 700;
         }
 
-         .meta-link {
-           color: #ff5e13;
-           text-decoration: none;
-           font-weight: 700;
-           padding: 6px 12px;
-           background: rgba(255, 94, 19, 0.1);
-           border-radius: 8px;
-           transition: all 0.2s ease;
-           border: none;
-           cursor: pointer;
-           font-size: 12px;
-         }
+        .meta-link {
+          color: #ff5e13;
+          text-decoration: none;
+          font-weight: 700;
+          padding: 6px 12px;
+          background: rgba(255, 94, 19, 0.1);
+          border-radius: 8px;
+          transition: all 0.2s ease;
+          border: none;
+          cursor: pointer;
+          font-size: 12px;
+        }
 
-         .meta-link:hover {
-           background: #ff5e13;
-           color: white;
-           transform: translateY(-1px);
-         }
+        .meta-link:hover {
+          background: #ff5e13;
+          color: white;
+          transform: translateY(-1px);
+        }
 
         .empty-state {
           text-align: center;
@@ -1202,14 +1297,15 @@ const MeetingsPage = () => {
         />
       )}
 
-      {isUpdateModalOpen && selectedMeeting && (
+      {/* {isUpdateModalOpen && selectedMeeting && (
+        
         <UpdateMeetingModal
           mockMeeting={selectedMeeting}
           onClose={handleCloseUpdateModal}
           onUpdated={handleUpdateMeeting}
           requireProjectSelection={true}
         />
-      )}
+      )} */}
 
       {isDeleteModalOpen && meetingToDelete && (
         <DeleteMeetingModal

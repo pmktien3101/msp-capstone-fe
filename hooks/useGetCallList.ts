@@ -32,13 +32,19 @@ export const useGetCall = () => {
 
   const now = new Date();
 
-  const endedCalls = calls.filter(({ state: { startsAt } }: Call) => {
-    return startsAt && new Date(startsAt) < now;
-  });
+  const endedCalls = calls.filter(
+    ({ state: { endedAt } }: Call) => endedAt && new Date(endedAt) <= now
+  );
 
-  const upcomingCalls = calls.filter(({ state: { startsAt } }: Call) => {
-    return startsAt && new Date(startsAt) > now;
-  });
+  const upcomingCalls = calls.filter(
+    ({ state: { startsAt, endedAt } }: Call) =>
+      startsAt && new Date(startsAt) > now && !endedAt
+  );
+
+  const inProgressCalls = calls.filter(
+    ({ state: { startsAt, endedAt } }: Call) =>
+      startsAt && new Date(startsAt) <= now && !endedAt
+  );
 
   const refetchCalls = loadCalls;
 
@@ -48,5 +54,6 @@ export const useGetCall = () => {
     endedCalls,
     upcomingCalls,
     refetchCalls,
+    inProgressCalls,
   };
 };

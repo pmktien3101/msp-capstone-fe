@@ -11,7 +11,11 @@ import { useUser } from "@/hooks/useUser";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { Member, Participant } from "@/types";
-import { mockMilestones, mockParticipants, mockProjects } from "@/constants/mockData";
+import {
+  mockMilestones,
+  mockParticipants,
+  mockProjects,
+} from "@/constants/mockData";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -22,8 +26,6 @@ const formSchema = z.object({
   participants: z
     .array(z.string())
     .min(1, "Vui lòng chọn ít nhất 1 người tham gia"),
-  meetingType: z.enum(["online", "offline"]),
-  location: z.string().optional(),
   projectId: z.string().min(1, "Vui lòng chọn dự án"),
   milestoneId: z.string().optional(),
 });
@@ -48,15 +50,12 @@ export default function MeetingForm({
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
     []
   );
-  const [meetingType, setMeetingType] = useState<"online" | "offline">(
-    "online"
-  );
   const [milestones, setMilestones] = useState<
     Array<{ id: string; name: string }>
   >([]);
-  const [projects, setProjects] = useState<
-    Array<{ id: string; name: string }>
-  >([]);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>(
+    []
+  );
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
     projectId || ""
   );
@@ -68,8 +67,6 @@ export default function MeetingForm({
       description: "",
       datetime: undefined,
       participants: [],
-      meetingType: "online",
-      location: "",
       projectId: projectId || "",
       milestoneId: "",
     },
@@ -84,7 +81,7 @@ export default function MeetingForm({
         toast.error("Không thể tải danh sách người tham gia");
       }
     };
-    
+
     const fetchProjects = async () => {
       try {
         setProjects(mockProjects);
@@ -99,7 +96,7 @@ export default function MeetingForm({
         // Nếu có projectId được chọn, filter milestones theo project đó
         if (selectedProjectId) {
           const projectMilestones = mockMilestones.filter(
-            milestone => milestone.projectId === selectedProjectId
+            (milestone) => milestone.projectId === selectedProjectId
           );
           setMilestones(projectMilestones);
         } else {
@@ -145,8 +142,6 @@ export default function MeetingForm({
     }
     try {
       const meetingId = crypto.randomUUID();
-
-      // Include all participants including the creator
       const allParticipants = [...new Set([userId, ...selectedParticipants])];
 
       const meetingData = {
@@ -155,54 +150,23 @@ export default function MeetingForm({
         scheduledAt: values.datetime.toISOString(),
         projectId: values.projectId || projectId,
         participants: allParticipants,
-        meetingType: values.meetingType,
-        location: values.location,
         milestoneId: values.milestoneId,
       };
 
-      if (values.meetingType === "online" && client) {
-        const call = client.call("default", meetingId);
-        if (!call) {
-          throw new Error("Failed to create call");
-        }
-
-        await call.getOrCreate({
-          data: {
-            custom: meetingData,
-            starts_at: values.datetime.toISOString(),
-            members: allParticipants.map((id) => ({ user_id: id })),
-          },
-        });
-        setCallDetails(call);
-        onCreated?.(call);
-      } else {
-        console.log("Creating offline meeting:", meetingData);
-        
-        // Tạo meeting object giống như mockData
-        const offlineMeeting = {
-          id: meetingId,
-          title: meetingData.title,
-          description: meetingData.description,
-          startTime: meetingData.scheduledAt,
-          endTime: new Date(new Date(meetingData.scheduledAt).getTime() + 60 * 60 * 1000).toISOString(), // +1 hour
-          status: "Scheduled",
-          roomUrl: null, // Offline meeting không có room URL
-          projectId: meetingData.projectId,
-          milestoneId: meetingData.milestoneId || null,
-          participates: meetingData.participants,
-          participants: meetingData.participants.map(id => {
-            const participant = mockParticipants.find(p => p.id === id);
-            return participant ? { id: participant.id, name: participant.email } : { id, name: "Unknown" };
-          }),
-          createdBy: userId,
-          location: meetingData.location,
-          meetingType: meetingData.meetingType
-        };
-        
-        toast.success("Đã tạo cuộc họp offline thành công!");
-        onCreated?.(offlineMeeting); // Trả data về trang gọi
-        onClose?.();
+      const call = client.call("default", meetingId);
+      if (!call) {
+        throw new Error("Failed to create call");
       }
+
+      await call.getOrCreate({
+        data: {
+          custom: meetingData,
+          starts_at: values.datetime.toISOString(),
+          members: allParticipants.map((id) => ({ user_id: id })),
+        },
+      });
+      setCallDetails(call);
+      onCreated?.(call);
     } catch (error) {
       console.error("Error creating meeting:", error);
       toast.error("Không thể tạo cuộc họp");
@@ -327,53 +291,6 @@ export default function MeetingForm({
                   )}
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">
-                  Loại cuộc họp
-                </label>
-                <div className="flex space-x-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="online"
-                      checked={meetingType === "online"}
-                      onChange={(e) => {
-                        setMeetingType("online");
-                        form.setValue("meetingType", "online");
-                      }}
-                      className="mr-2"
-                    />
-                    Online
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="offline"
-                      checked={meetingType === "offline"}
-                      onChange={(e) => {
-                        setMeetingType("offline");
-                        form.setValue("meetingType", "offline");
-                      }}
-                      className="mr-2"
-                    />
-                    Offline
-                  </label>
-                </div>
-              </div>
-              {meetingType === "offline" && (
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Địa điểm</label>
-                  <Input
-                    placeholder="Nhập địa điểm cuộc họp"
-                    {...form.register("location")}
-                  />
-                  {form.formState.errors.location && (
-                    <p className="text-sm text-red-500">
-                      {form.formState.errors.location.message}
-                    </p>
-                  )}
-                </div>
-              )}
               {requireProjectSelection && (
                 <div className="space-y-2">
                   <label className="block text-sm font-medium">

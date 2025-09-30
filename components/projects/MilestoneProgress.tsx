@@ -194,45 +194,9 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
               <div className="milestone-tasks">
                 <span>
                   {milestone.tasks.filter((task) => task.completed).length}/
-                  {milestone.tasks.length} công việc
+                  {milestone.tasks.length} công việc hoàn thành
                 </span>
               </div>
-            </div>
-
-            <div className="milestone-tasks-list">
-              {milestone.tasks.map((task) => (
-                <div key={task.id} className="task-item">
-                  <div
-                    className={`task-checkbox ${
-                      task.completed ? "completed" : ""
-                    }`}
-                  >
-                    {task.completed && (
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M9 12L11 14L15 10"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <span
-                    className={`task-title ${
-                      task.completed ? "completed" : ""
-                    }`}
-                  >
-                    {task.title}
-                  </span>
-                </div>
-              ))}
             </div>
           </div>
         ))}
@@ -406,44 +370,6 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
           gap: 4px;
         }
 
-        .milestone-tasks-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .task-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .task-checkbox {
-          width: 16px;
-          height: 16px;
-          border: 2px solid #d1d5db;
-          border-radius: 3px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .task-checkbox.completed {
-          background: #10b981;
-          border-color: #10b981;
-          color: white;
-        }
-
-        .task-title {
-          font-size: 13px;
-          color: #374151;
-        }
-
-        .task-title.completed {
-          text-decoration: line-through;
-          color: #9ca3af;
-        }
 
         @media (max-width: 768px) {
           .milestone-header {
