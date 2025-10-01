@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Video,
   FileText,
-  MessageSquare,
   Paperclip,
   CheckSquare,
   Play,
@@ -477,7 +476,7 @@ export default function MeetingDetailPage() {
           onClick={() => setActiveTab("recording")}
         >
           <Video size={16} />
-          Recording & Transcript
+          Bản ghi cuộc họp
         </button>
         <button
           className={`tab ${activeTab === "tasks" ? "active" : ""}`}
@@ -485,13 +484,6 @@ export default function MeetingDetailPage() {
         >
           <CheckSquare size={16} />
           To-do List
-        </button>
-        <button
-          className={`tab ${activeTab === "comments" ? "active" : ""}`}
-          onClick={() => setActiveTab("comments")}
-        >
-          <MessageSquare size={16} />
-          Bình luận
         </button>
         <button
           className={`tab ${activeTab === "attachments" ? "active" : ""}`}
@@ -964,7 +956,7 @@ export default function MeetingDetailPage() {
                                 {isTaskCreated[task.id] && (
                                   <span className="task-status-badge created">
                                     <Check size={12} />
-                                    Đã tạo task
+                                  Đã thêm công việc
                                   </span>
                                 )}
                               </h5>
@@ -988,7 +980,7 @@ export default function MeetingDetailPage() {
                                   className="create-task-btn"
                                 >
                                   <Plus size={14} />
-                                  Tạo task
+                                  Thêm công việc
                                 </Button>
                               )}
                               <Button
@@ -1039,7 +1031,7 @@ export default function MeetingDetailPage() {
           </div>
         )}
 
-        {activeTab === "comments" && !showJoinFlow && (
+        {/* {activeTab === "comments" && !showJoinFlow && (
           <div className="comments-section">
             <h3>Bình luận & Feedback</h3>
             <div className="comments-content">
@@ -1096,7 +1088,7 @@ export default function MeetingDetailPage() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
         {activeTab === "attachments" && !showJoinFlow && (
           <div className="attachments-section">
