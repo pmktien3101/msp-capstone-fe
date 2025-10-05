@@ -1,11 +1,13 @@
 "use client";
 
+import type React from "react";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import "@/app/styles/sign-up.scss";
-import { User, Eye, EyeOff } from "lucide-react";
+import { User, Eye, EyeOff, Users, Building2 } from "lucide-react";
 
 interface RegisterFormData {
   fullName: string;
@@ -14,13 +16,17 @@ interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
+  businessSector?: string; // Thêm trường ngành kinh doanh
 }
+
+type AccountType = "member" | "business";
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [accountType, setAccountType] = useState<AccountType>("member");
   const router = useRouter();
   const [registerForm, setRegisterForm] = useState<RegisterFormData>({
     fullName: "",
@@ -29,6 +35,7 @@ export default function SignUpPage() {
     email: "",
     password: "",
     confirmPassword: "",
+    businessSector: "",
   });
 
   // Check if user is already authenticated
@@ -96,15 +103,22 @@ export default function SignUpPage() {
     );
   }
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // TODO: Implement registration logic
+      // TODO: Implement registration logic based on accountType
       await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulated API call
-      console.log("Form submitted:", registerForm);
+      console.log("Form submitted:", { ...registerForm, accountType });
+
+      if (accountType === "member") {
+        // Member registration - direct activation
+        console.log("Member registration - activating immediately");
+      } else {
+        // Business registration - requires admin approval
+        console.log("Business registration - pending admin approval");
+      }
     } catch (error) {
       console.error("Registration error:", error);
     } finally {
@@ -123,74 +137,40 @@ export default function SignUpPage() {
     }));
   };
 
-
-
+  const businessSectors = [
+    "Công nghệ thông tin",
+    "Tài chính",
+    "Y tế",
+    "Giáo dục",
+    "Sản xuất",
+    "Thương mại",
+    "Dịch vụ",
+    "Khác",
+  ];
 
   const isFormValid = () => {
-    return (
+    const baseValid =
       registerForm.fullName &&
-      registerForm.organizationName &&
       registerForm.phone &&
       registerForm.email &&
       registerForm.password &&
       registerForm.confirmPassword &&
-      registerForm.password === registerForm.confirmPassword
-    );
+      registerForm.password === registerForm.confirmPassword;
+
+    // Business accounts also need organization name & business sector
+    if (accountType === "business") {
+      return (
+        baseValid &&
+        registerForm.organizationName &&
+        registerForm.businessSector
+      );
+    }
+
+    return baseValid;
   };
-
-  // Show redirect message if already authenticated
-  if (isCheckingAuth) {
-    return (
-      <div className="auth-checking">
-        <div className="loading-spinner"></div>
-        <p>Đang kiểm tra trạng thái đăng nhập...</p>
-        <style jsx>{`
-          .auth-checking {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background: linear-gradient(
-              135deg,
-              #f9f4ee 0%,
-              #fdf0d2 50%,
-              #ffdbbd 100%
-            );
-          }
-
-          .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #e5e7eb;
-            border-top: 4px solid #ff5e13;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 16px;
-          }
-
-          @keyframes spin {
-            0% {
-              transform: rotate(0deg);
-            }
-            100% {
-              transform: rotate(360deg);
-            }
-          }
-
-          p {
-            color: #6b7280;
-            font-size: 14px;
-            margin: 0;
-          }
-        `}</style>
-      </div>
-    );
-  }
 
   // If already authenticated, show redirect message
   if (isAuthenticated()) {
-    // return <RedirectMessage message="Bạn đã đăng nhập rồi, đang chuyển hướng đến dashboard..." />;
     return null; // Prevent rendering anything while redirecting
   }
 
@@ -205,6 +185,27 @@ export default function SignUpPage() {
             <h1>Đăng Ký Tài Khoản</h1>
             <p>Tạo tài khoản để sử dụng nền tảng</p>
           </div>
+        </div>
+
+        <div className="account-type-tabs">
+          <button
+            type="button"
+            className={`tab-button ${accountType === "member" ? "active" : ""}`}
+            onClick={() => setAccountType("member")}
+          >
+            <Users size={20} />
+            <span>Tài Khoản Cá Nhân</span>
+          </button>
+          <button
+            type="button"
+            className={`tab-button ${
+              accountType === "business" ? "active" : ""
+            }`}
+            onClick={() => setAccountType("business")}
+          >
+            <Building2 size={20} />
+            <span>Tài Khoản Doanh Nghiệp</span>
+          </button>
         </div>
 
         <div className="form-and-info-wrapper">
@@ -225,20 +226,45 @@ export default function SignUpPage() {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="organizationName">Tên Tổ Chức/Doanh Nghiệp *</label>
-                <div className="input-wrapper">
-                  <input
-                    type="text"
-                    id="organizationName"
-                    name="organizationName"
-                    placeholder="Nhập tên tổ chức/doanh nghiệp"
-                    value={registerForm.organizationName}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
+              {accountType === "business" && (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="organizationName">
+                      Tên Tổ Chức/Doanh Nghiệp *
+                    </label>
+                    <div className="input-wrapper">
+                      <input
+                        type="text"
+                        id="organizationName"
+                        name="organizationName"
+                        placeholder="Nhập tên tổ chức/doanh nghiệp"
+                        value={registerForm.organizationName}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="businessSector">Ngành Kinh Doanh *</label>
+                    <div className="input-wrapper">
+                      <select
+                        id="businessSector"
+                        name="businessSector"
+                        value={registerForm.businessSector}
+                        onChange={handleInputChange}
+                        required
+                      >
+                        <option value="">-- Chọn ngành --</option>
+                        {businessSectors.map((sector) => (
+                          <option key={sector} value={sector}>
+                            {sector}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="form-group">
                 <label htmlFor="phone">Số Điện Thoại *</label>
@@ -324,11 +350,12 @@ export default function SignUpPage() {
                     )}
                   </button>
                 </div>
-                {registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword && (
-                  <small className="form-error">
-                    Mật khẩu xác nhận không khớp
-                  </small>
-                )}
+                {registerForm.confirmPassword &&
+                  registerForm.password !== registerForm.confirmPassword && (
+                    <small className="form-error">
+                      Mật khẩu xác nhận không khớp
+                    </small>
+                  )}
               </div>
             </div>
 
@@ -353,29 +380,71 @@ export default function SignUpPage() {
 
           <div className="process-section">
             <h3 className="section-title">Quy Trình Đăng Ký</h3>
-            <div className="process-steps">
-              <div className="step-item">
-                <div className="step-number">1</div>
-                <div className="step-content">
-                  <h4>Điền thông tin</h4>
-                  <p>Điền đầy đủ thông tin người dùng và tên tổ chức/doanh nghiệp</p>
+            {accountType === "member" ? (
+              <div className="process-steps">
+                <div className="step-item">
+                  <div className="step-number">1</div>
+                  <div className="step-content">
+                    <h4>Điền thông tin</h4>
+                    <p>Điền đầy đủ thông tin cá nhân của bạn</p>
+                  </div>
+                </div>
+                <div className="step-item">
+                  <div className="step-number">2</div>
+                  <div className="step-content">
+                    <h4>Xác nhận email</h4>
+                    <p>Kiểm tra email và xác nhận tài khoản</p>
+                  </div>
+                </div>
+                <div className="step-item">
+                  <div className="step-number">3</div>
+                  <div className="step-content">
+                    <h4>Bắt đầu sử dụng</h4>
+                    <p>Đăng nhập và sử dụng ngay các tính năng của nền tảng</p>
+                  </div>
                 </div>
               </div>
-              <div className="step-item">
-                <div className="step-number">2</div>
-                <div className="step-content">
-                  <h4>Gửi thông tin & Xác nhận email</h4>
-                  <p>Gửi thông tin đăng ký và xác nhận email</p>
+            ) : (
+              <div className="process-steps">
+                <div className="step-item">
+                  <div className="step-number">1</div>
+                  <div className="step-content">
+                    <h4>Điền thông tin</h4>
+                    <p>
+                      Điền đầy đủ thông tin người dùng và tên tổ chức/doanh
+                      nghiệp
+                    </p>
+                  </div>
+                </div>
+                <div className="step-item">
+                  <div className="step-number">2</div>
+                  <div className="step-content">
+                    <h4>Gửi thông tin & Xác nhận email</h4>
+                    <p>Gửi thông tin đăng ký và xác nhận email</p>
+                  </div>
+                </div>
+                <div className="step-item">
+                  <div className="step-number">3</div>
+                  <div className="step-content">
+                    <h4>Chờ phê duyệt</h4>
+                    <p>
+                      Admin sẽ xem xét và phê duyệt tài khoản doanh nghiệp của
+                      bạn
+                    </p>
+                  </div>
+                </div>
+                <div className="step-item">
+                  <div className="step-number">4</div>
+                  <div className="step-content">
+                    <h4>Kích hoạt tài khoản</h4>
+                    <p>
+                      Sau khi được phê duyệt, bạn có thể đăng nhập và sử dụng
+                      nền tảng
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="step-item">
-                <div className="step-number">3</div>
-                <div className="step-content">
-                  <h4>Kích hoạt tài khoản</h4>
-                  <p>Xác nhận email thành công sẽ có thể dùng tài khoản đã đăng ký để sử dụng nền tảng</p>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
