@@ -54,7 +54,6 @@ export default function MeetingDetailPage() {
   const [generatedTasks, setGeneratedTasks] = useState<any[]>([]);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editedTask, setEditedTask] = useState<any>(null);
-  const [isAddingToProject, setIsAddingToProject] = useState(false);
   const [transcriptions, setTranscriptions] = useState<any[]>([]);
   const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(false);
   const [transcriptionsError, setTranscriptionsError] = useState<string | null>(null);
@@ -476,26 +475,6 @@ export default function MeetingDetailPage() {
 
 
 
-  // Xử lý thêm task vào project
-  const handleAddTasksToProject = async () => {
-    setIsAddingToProject(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Trong thực tế sẽ gọi API để thêm task vào project/milestone
-      console.log("Adding tasks to project:", generatedTasks);
-
-      // Clear generated tasks sau khi thêm thành công
-      setGeneratedTasks([]);
-      alert("Đã thêm thành công các task vào project!");
-    } catch (error) {
-      console.error("Error adding tasks to project:", error);
-      alert("Có lỗi xảy ra khi thêm task vào project. Vui lòng thử lại.");
-    } finally {
-      setIsAddingToProject(false);
-    }
-  };
 
   // Xử lý tải xuống recording (tải blob để đảm bảo đặt được tên file)
   const handleDownload = async (rec: CallRecording, fallbackIndex: number) => {
@@ -974,7 +953,7 @@ export default function MeetingDetailPage() {
                   <div className="ai-tasks-header">
                     <div className="ai-tasks-title">
                       <Sparkles size={16} />
-                      <h4>To-do list được tạo từ AI</h4>
+                      <h4>Danh sách To-do được tạo từ AI</h4>
                       <span className="ai-badge">AI Generated</span>
                     </div>
                   </div>
@@ -982,7 +961,7 @@ export default function MeetingDetailPage() {
                   {isGeneratingTasks && (
                     <div className="tasks-loading">
                       <Loader2 size={16} className="animate-spin" />
-                      <span>Đang tạo todo list...</span>
+                      <span>Đang tạo danh sách To-do...</span>
                     </div>
                   )}
                   
@@ -1251,32 +1230,6 @@ export default function MeetingDetailPage() {
                     ))}
                   </div>
 
-                  {generatedTasks.length > 0 && (
-                    <div className="ai-tasks-footer">
-                      <Button
-                        onClick={handleAddTasksToProject}
-                        disabled={isAddingToProject}
-                        className="add-to-project-btn"
-                        style={{
-                          backgroundColor: "white",
-                          border: "2px solid #ff8c42",
-                          color: "#ff8c42",
-                        }}
-                      >
-                        {isAddingToProject ? (
-                          <>
-                            <Loader2 size={16} className="animate-spin" />
-                            Đang thêm vào project...
-                          </>
-                        ) : (
-                          <>
-                            <Plus size={16} />
-                            Thêm các To-do vào project
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -1942,43 +1895,6 @@ export default function MeetingDetailPage() {
           border-color: #ff6b1a;
         }
 
-        .ai-tasks-footer {
-          margin-top: 20px;
-          padding-top: 20px;
-          border-top: 1px solid #f59e0b;
-          text-align: center;
-        }
-
-        .add-to-project-btn {
-          background: white;
-          border: 2px solid #ff8c42;
-          color: #ff8c42;
-          font-weight: 600;
-          padding: 12px 24px;
-          border-radius: 12px;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 8px rgba(255, 140, 66, 0.15);
-        }
-
-        .add-to-project-btn:hover:not(:disabled) {
-          background: #ff8c42 !important;
-          color: white !important;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 16px rgba(255, 140, 66, 0.3);
-        }
-
-        .add-to-project-btn:hover:not(:disabled) * {
-          color: white !important;
-        }
-
-        .add-to-project-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          transform: none;
-          background: white;
-          color: #ff8c42;
-          border-color: #ff8c42;
-        }
 
         .task-meta span {
           display: flex;
