@@ -6,8 +6,9 @@ import { Comment } from "@/types/comment";
 import { Member } from "@/types/member";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import Avatar from "@/components/ui/Avatar";
+import { Avatar } from "@/components/ui/Avatar";
 import { TaskComment } from "./TaskComment";
+import { AvatarImage } from "@radix-ui/react-avatar";
 
 interface TaskDetailModalProps {
   isOpen: boolean;
@@ -488,10 +489,9 @@ export function TaskDetailModal({
                       gap: "12px",
                     }}
                   >
-                    <Avatar
+                    <AvatarImage
                       src={task.assignedTo.avatar}
                       alt={task.assignedTo.name}
-                      size="sm"
                     />
                     <span
                       style={{
@@ -722,11 +722,7 @@ export function TaskDetailModal({
               marginBottom: "12px",
             }}
           >
-            <Avatar
-              src={currentUser.avatar}
-              alt={currentUser.name}
-              size="sm"
-            />
+            <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
             <Textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
