@@ -54,7 +54,6 @@ export default function MeetingDetailPage() {
   const [generatedTasks, setGeneratedTasks] = useState<any[]>([]);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editedTask, setEditedTask] = useState<any>(null);
-  const [isAddingToProject, setIsAddingToProject] = useState(false);
   const [transcriptions, setTranscriptions] = useState<any[]>([]);
   const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(false);
   const [transcriptionsError, setTranscriptionsError] = useState<string | null>(null);
@@ -117,12 +116,13 @@ export default function MeetingDetailPage() {
     }
   }, [activeTab, call]);
 
-  // Generate summary when transcriptions are loaded
+  // Generate summary and todo list when transcriptions are loaded
   useEffect(() => {
-    const generateSummary = async () => {
+    const generateSummaryAndTasks = async () => {
       if (transcriptions.length === 0) return;
       
       setIsLoadingSummary(true);
+      setIsGeneratingTasks(true);
       setSummaryError(null);
       try {
         // Format transcriptions into text
@@ -130,7 +130,8 @@ export default function MeetingDetailPage() {
           .map(item => `${getSpeakerName(item.speakerId)}: ${item.text}`)
           .join('\n');
 
-        const response = await fetch('https://localhost:5000/api/Summarize/summary', {
+        // Generate summary
+        const summaryResponse = await fetch('https://localhost:5000/api/Summarize/summary', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -140,22 +141,135 @@ export default function MeetingDetailPage() {
           })
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (!summaryResponse.ok) {
+          throw new Error(`HTTP error! status: ${summaryResponse.status}`);
         }
 
-        const result = await response.json();
-        setSummary(result.data?.summary || "Không thể tạo tóm tắt");
+        const summaryResult = await summaryResponse.json();
+        setSummary(summaryResult.data?.summary || "Không thể tạo tóm tắt");
+
+        // Generate todo list with participants info for better assignment
+        const participantsInfo = {
+          participants: participantEmails.map((email, index) => ({
+            id: `speaker_${index + 1}`,
+            name: email.split('@')[0], // Extract name from email
+            email: email,
+            displayName: email
+          })),
+          speakerMapping: {
+            "1": participantEmails[0]?.split('@')[0] || "Speaker 1",
+            "2": participantEmails[1]?.split('@')[0] || "Speaker 2", 
+            "3": participantEmails[2]?.split('@')[0] || "Speaker 3",
+            "4": participantEmails[3]?.split('@')[0] || "Speaker 4",
+            "5": participantEmails[4]?.split('@')[0] || "Speaker 5"
+          }
+        };
+
+        const requestBody = {
+          text: formattedText,
+          participants: participantsInfo.participants,
+          speakerMapping: participantsInfo.speakerMapping,
+          meetingInfo: {
+            title: call?.state?.custom?.title || call?.id || "Unknown Meeting",
+            description: description,
+            milestone: milestoneName
+          }
+        };
+
+        console.log("Sending to API:", requestBody);
+
+        const tasksResponse = await fetch('https://localhost:5000/api/Summarize/create-todolist', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        if (!tasksResponse.ok) {
+          throw new Error(`HTTP error! status: ${tasksResponse.status}`);
+        }
+
+        const tasksResult = await tasksResponse.json();
+        console.log("API Response:", tasksResult);
+        
+        // Parse the JSON string from result.data.summary
+        const summaryText = tasksResult.data?.summary || "";
+        console.log("Summary text:", summaryText);
+        
+        if (!summaryText) {
+          throw new Error("Không có dữ liệu summary từ API");
+        }
+        
+        // Extract JSON from the response (handle both ```json and `json formats)
+        let jsonString;
+        
+        // Try markdown code block format first
+        let jsonMatch = summaryText.match(/```json\n([\s\S]*?)\n```/);
+        if (jsonMatch) {
+          jsonString = jsonMatch[1];
+        } else {
+          // Try simple `json format
+          jsonMatch = summaryText.match(/`json\n([\s\S]*?)\n`/);
+          if (jsonMatch) {
+            jsonString = jsonMatch[1];
+          } else {
+            // Try without backticks - just look for JSON array
+            jsonMatch = summaryText.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+              jsonString = jsonMatch[0];
+            } else {
+              console.error("Could not find JSON in summary:", summaryText);
+              throw new Error("Không thể tìm thấy JSON trong response. Format không đúng.");
+            }
+          }
+        }
+        console.log("Extracted JSON string:", jsonString);
+        
+        let tasksArray;
+        try {
+          tasksArray = JSON.parse(jsonString);
+        } catch (parseError) {
+          console.error("JSON Parse Error:", parseError);
+          console.error("JSON String:", jsonString);
+          throw new Error("Không thể parse JSON từ response");
+        }
+        
+        if (!Array.isArray(tasksArray)) {
+          throw new Error("Dữ liệu trả về không phải là array");
+        }
+        
+        // Convert to our task format with intelligent assignee matching
+        const generatedTasks = tasksArray.map((task: any, index: number) => {
+          // Try to find best matching participant for assignee
+          const matchedEmail = findBestMatch(task.assignee || "", participantsInfo.participants);
+          
+          return {
+            id: `AI-${index + 1}`,
+            task: task.task || "",
+            assignee: matchedEmail || task.assignee || "",
+            startDate: task.startDate || "",
+            endDate: task.endDate || "",
+            priority: task.priority || "",
+            originalAssignee: task.assignee || "", // Keep original name for reference
+            isAutoMatched: !!matchedEmail, // Flag to show if it was auto-matched
+          };
+        });
+
+        console.log("Generated tasks:", generatedTasks);
+        setGeneratedTasks(generatedTasks);
+
       } catch (e: any) {
-        console.error("Failed to generate summary", e);
-        setSummaryError("Không thể tạo tóm tắt");
+        console.error("Failed to generate summary and tasks", e);
+        setSummaryError("Không thể tạo tóm tắt và todo list");
       } finally {
         setIsLoadingSummary(false);
+        setIsGeneratingTasks(false);
       }
     };
 
     if (transcriptions.length > 0) {
-      generateSummary();
+      generateSummaryAndTasks();
     }
   }, [transcriptions]);
 
@@ -215,66 +329,105 @@ export default function MeetingDetailPage() {
     return speakerMap[speakerId] || `Speaker ${speakerId}`;
   };
 
-  // Xử lý tạo task từ AI dựa trên transcript
-  const handleGenerateTasks = async () => {
-    if (transcriptions.length === 0) {
-      alert("Chưa có transcript để tạo task. Vui lòng chờ transcript được tải.");
-      return;
-    }
-
-    setIsGeneratingTasks(true);
+  // Format date to dd-mm-yyyy
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "Chưa rõ";
     try {
-      // Format transcriptions into text without quotes or newlines
-      const formattedText = transcriptions
-        .map(item => `${getSpeakerName(item.speakerId)}: ${item.text}`)
-        .join(' ');
-
-      const response = await fetch('https://localhost:5000/api/Summarize/create-todolist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: formattedText
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Chưa rõ";
       
-      // Get the summary from result.data.summary
-      const summaryText = result.data?.summary || "";
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
       
-      // Split by lines and create task objects
-      const taskLines = summaryText.split('\n').filter((line: string) => line.trim() !== '');
-      const generatedTasks = taskLines.map((taskText: string, index: number) => ({
-        id: `AI-${index + 1}`,
-        title: taskText.trim().replace(/^[-•]\s*/, ''), // Remove leading dash or bullet point
-        description: `To-do list được tạo từ AI dựa trên cuộc họp`,
-        milestoneIds: [],
-        status: "todo",
-        priority: "medium",
-        assignee: "",
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
-      }));
-
-      setGeneratedTasks(generatedTasks);
-
-      // Tự động chuyển sang tab Tasks sau khi tạo xong
-      setTimeout(() => {
-        setActiveTab("tasks");
-      }, 500); // Delay 500ms để user thấy kết quả
+      return `${day}-${month}-${year}`;
     } catch (error) {
-      console.error("Error generating tasks:", error);
-      alert("Có lỗi xảy ra khi tạo To-do list. Vui lòng thử lại.");
-    } finally {
-      setIsGeneratingTasks(false);
+      return "Chưa rõ";
     }
   };
+
+  // Function to find best matching participant by name similarity
+  const findBestMatch = (aiAssigneeName: string, participants: any[]) => {
+    if (!aiAssigneeName || !participants.length) return "";
+
+    const normalizedAiName = aiAssigneeName.toLowerCase().trim();
+    
+    // First try exact match
+    let bestMatch = participants.find(p => 
+      p.name.toLowerCase() === normalizedAiName ||
+      p.displayName.toLowerCase() === normalizedAiName
+    );
+    
+    if (bestMatch) return bestMatch.email;
+
+    // Then try partial match (contains)
+    bestMatch = participants.find(p => 
+      p.name.toLowerCase().includes(normalizedAiName) ||
+      normalizedAiName.includes(p.name.toLowerCase()) ||
+      p.displayName.toLowerCase().includes(normalizedAiName) ||
+      normalizedAiName.includes(p.displayName.toLowerCase())
+    );
+    
+    if (bestMatch) return bestMatch.email;
+
+    // Try matching first name or last name
+    const aiNameParts = normalizedAiName.split(/\s+/);
+    bestMatch = participants.find(p => {
+      const participantNameParts = p.name.toLowerCase().split(/\s+/);
+      return aiNameParts.some(part => 
+        participantNameParts.some((pPart: string) => 
+          part.length > 2 && pPart.length > 2 && 
+          (part.includes(pPart) || pPart.includes(part))
+        )
+      );
+    });
+    
+    if (bestMatch) return bestMatch.email;
+
+    // Try matching with email prefix
+    bestMatch = participants.find(p => {
+      const emailPrefix = p.email.split('@')[0].toLowerCase();
+      return emailPrefix.includes(normalizedAiName) || 
+             normalizedAiName.includes(emailPrefix);
+    });
+    
+    if (bestMatch) return bestMatch.email;
+
+    return ""; // No match found
+  };
+
+  // Convert date from dd-mm-yyyy to yyyy-mm-dd for input
+  const formatDateForInput = (dateString: string) => {
+    if (!dateString) return "";
+    try {
+      // If already in yyyy-mm-dd format, return as is
+      if (dateString.includes('-') && dateString.split('-')[0].length === 4) {
+        return dateString;
+      }
+      
+      // If in dd-mm-yyyy format, convert to yyyy-mm-dd
+      if (dateString.includes('-') && dateString.split('-')[0].length === 2) {
+        const parts = dateString.split('-');
+        if (parts.length === 3) {
+          const [day, month, year] = parts;
+          return `${year}-${month}-${day}`;
+        }
+      }
+      
+      // Try to parse as regular date
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "";
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      return "";
+    }
+  };
+
 
   // Xử lý chỉnh sửa task
   const handleEditTask = (task: any) => {
@@ -322,26 +475,6 @@ export default function MeetingDetailPage() {
 
 
 
-  // Xử lý thêm task vào project
-  const handleAddTasksToProject = async () => {
-    setIsAddingToProject(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Trong thực tế sẽ gọi API để thêm task vào project/milestone
-      console.log("Adding tasks to project:", generatedTasks);
-
-      // Clear generated tasks sau khi thêm thành công
-      setGeneratedTasks([]);
-      alert("Đã thêm thành công các task vào project!");
-    } catch (error) {
-      console.error("Error adding tasks to project:", error);
-      alert("Có lỗi xảy ra khi thêm task vào project. Vui lòng thử lại.");
-    } finally {
-      setIsAddingToProject(false);
-    }
-  };
 
   // Xử lý tải xuống recording (tải blob để đảm bảo đặt được tên file)
   const handleDownload = async (rec: CallRecording, fallbackIndex: number) => {
@@ -477,13 +610,6 @@ export default function MeetingDetailPage() {
         >
           <Video size={16} />
           Bản ghi cuộc họp
-        </button>
-        <button
-          className={`tab ${activeTab === "tasks" ? "active" : ""}`}
-          onClick={() => setActiveTab("tasks")}
-        >
-          <CheckSquare size={16} />
-          To-do List
         </button>
         <button
           className={`tab ${activeTab === "attachments" ? "active" : ""}`}
@@ -632,7 +758,7 @@ export default function MeetingDetailPage() {
 
         {activeTab === "recording" && (
           <div className="recording-section">
-            <h3>Recording & Transcript</h3>
+            <h3>Bản ghi cuộc họp & Lời thoại</h3>
             <div className="recording-content">
               <div className="recordings">
                 <h4>Bản ghi cuộc họp</h4>
@@ -797,30 +923,6 @@ export default function MeetingDetailPage() {
                     <h4>Tóm tắt AI</h4>
                     <div className="ai-badge">Powered by AI</div>
                   </div>
-                  <div className="ai-actions">
-                    <Button
-                      onClick={handleGenerateTasks}
-                      disabled={isGeneratingTasks}
-                      className="generate-tasks-btn"
-                      style={{
-                        backgroundColor: "white",
-                        border: "2px solid #ff8c42",
-                        color: "#ff8c42",
-                      }}
-                    >
-                      {isGeneratingTasks ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          Đang phân tích...
-                        </>
-                      ) : (
-                        <>
-                          <Plus size={16} />
-                          Tạo To-do list từ cuộc họp
-                        </>
-                      )}
-                    </Button>
-                  </div>
                 </div>
                 <div className="summary-content">
                   {isLoadingSummary && (
@@ -844,84 +946,198 @@ export default function MeetingDetailPage() {
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-        )}
 
-        {activeTab === "tasks" && !showJoinFlow && (
-          <div className="tasks-section">
-            <div className="tasks-header">
-              <h3>To-do list</h3>
-            </div>
-
-            <div className="tasks-content">
               {/* AI Generated Tasks */}
-              {generatedTasks.length > 0 && (
+              {(generatedTasks.length > 0 || isGeneratingTasks) && (
                 <div className="ai-generated-tasks">
                   <div className="ai-tasks-header">
                     <div className="ai-tasks-title">
                       <Sparkles size={16} />
-                      <h4>To-do list được tạo từ AI</h4>
+                      <h4>Danh sách To-do được tạo từ AI</h4>
                       <span className="ai-badge">AI Generated</span>
                     </div>
                   </div>
+                  
+                  {isGeneratingTasks && (
+                    <div className="tasks-loading">
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Đang tạo danh sách To-do...</span>
+                    </div>
+                  )}
+                  
                   <div className="task-list">
                     {generatedTasks.map((task) => (
-                      <div className="task-item ai-task" key={task.id}>
+                      <div 
+                        className="task-item ai-task enhanced-task clickable-task" 
+                        key={task.id}
+                        onClick={() => {
+                          if (editingTaskId !== task.id) {
+                            handleEditTask(task);
+                          }
+                        }}
+                      >
+                        <div className="task-header">
+                          <div className="task-number">{generatedTasks.indexOf(task) + 1}</div>
+                          <div className="task-title-section">
+                            <h5 className="task-title">{task.task}</h5>
+                            <div className="task-subtitle">
+                              {isTaskCreated[task.id] && (
+                                <span className="task-status-badge created">
+                                  <Check size={12} />
+                                  Đã thêm công việc
+                                </span>
+                              )}
+                              {editingTaskId !== task.id && (
+                                <span className="click-hint">
+                                  <Edit size={12} />
+                                  Click để chỉnh sửa
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="task-actions">
+                            {!isTaskCreated[task.id] && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCreateTask(task.id);
+                                }}
+                                className="create-task-btn"
+                              >
+                                <Plus size={14} />
+                                Thêm công việc
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenDeleteModal(task.id);
+                              }}
+                              className="delete-btn"
+                            >
+                              <Trash2 size={14} />
+                              Xóa
+                            </Button>
+                          </div>
+                        </div>
+
                         {editingTaskId === task.id ? (
-                          <div className="task-edit-form">
+                          <div className="task-edit-inline" onClick={(e) => e.stopPropagation()}>
                             <div className="edit-fields">
                               <input
                                 type="text"
-                                value={editedTask?.title || ""}
+                                value={editedTask?.task || ""}
                                 onChange={(e) =>
                                   setEditedTask({
                                     ...editedTask,
-                                    title: e.target.value,
+                                    task: e.target.value,
                                   })
                                 }
                                 className="edit-input"
-                                placeholder="Task title"
-                              />
-                              <textarea
-                                value={editedTask?.description || ""}
-                                onChange={(e) =>
-                                  setEditedTask({
-                                    ...editedTask,
-                                    description: e.target.value,
-                                  })
-                                }
-                                className="edit-textarea"
-                                placeholder="Task description"
-                                rows={3}
+                                placeholder="Nội dung công việc"
+                                autoFocus
                               />
                               <div className="edit-meta">
+                                <div className="meta-row">
+                                  <div className="meta-field">
+                                    <label>Người thực hiện:</label>
+                                    <select
+                                      value={editedTask?.assignee || ""}
+                                      onChange={(e) =>
+                                        setEditedTask({
+                                          ...editedTask,
+                                          assignee: e.target.value,
+                                        })
+                                      }
+                                      className="edit-select"
+                                    >
+                                      <option value="">Chưa rõ</option>
+                                      {participantEmails.map((email, idx) => (
+                                        <option key={idx} value={email}>
+                                          {email}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div className="meta-field">
+                                    <label>Độ ưu tiên:</label>
+                                    <select
+                                      value={editedTask?.priority || ""}
+                                      onChange={(e) =>
+                                        setEditedTask({
+                                          ...editedTask,
+                                          priority: e.target.value,
+                                        })
+                                      }
+                                      className="edit-select"
+                                    >
+                                      <option value="">Chưa rõ</option>
+                                      <option value="high">Cao</option>
+                                      <option value="medium">Trung bình</option>
+                                      <option value="low">Thấp</option>
+                                    </select>
+                                  </div>
+                                </div>
                                 <div className="date-inputs">
                                   <div className="date-field">
                                     <label>Ngày bắt đầu:</label>
                                     <input
-                                      type="date"
-                                      value={editedTask?.startDate || ""}
-                                      onChange={(e) =>
-                                        setEditedTask({
-                                          ...editedTask,
-                                          startDate: e.target.value,
-                                        })
-                                      }
+                                      type="text"
+                                      value={formatDate(editedTask?.startDate || "")}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        // Convert dd-mm-yyyy to yyyy-mm-dd for storage
+                                        if (value && value.includes('-') && value.split('-')[0].length === 2) {
+                                          const parts = value.split('-');
+                                          if (parts.length === 3) {
+                                            const [day, month, year] = parts;
+                                            const convertedDate = `${year}-${month}-${day}`;
+                                            setEditedTask({
+                                              ...editedTask,
+                                              startDate: convertedDate,
+                                            });
+                                          }
+                                        } else if (value === "") {
+                                          setEditedTask({
+                                            ...editedTask,
+                                            startDate: "",
+                                          });
+                                        }
+                                      }}
+                                      placeholder="dd-mm-yyyy"
                                       className="edit-date"
                                     />
                                   </div>
                                   <div className="date-field">
                                     <label>Ngày kết thúc:</label>
                                     <input
-                                      type="date"
-                                      value={editedTask?.endDate || ""}
-                                      onChange={(e) =>
-                                        setEditedTask({
-                                          ...editedTask,
-                                          endDate: e.target.value,
-                                        })
-                                      }
+                                      type="text"
+                                      value={formatDate(editedTask?.endDate || "")}
+                                      onChange={(e) => {
+                                        const value = e.target.value;
+                                        // Convert dd-mm-yyyy to yyyy-mm-dd for storage
+                                        if (value && value.includes('-') && value.split('-')[0].length === 2) {
+                                          const parts = value.split('-');
+                                          if (parts.length === 3) {
+                                            const [day, month, year] = parts;
+                                            const convertedDate = `${year}-${month}-${day}`;
+                                            setEditedTask({
+                                              ...editedTask,
+                                              endDate: convertedDate,
+                                            });
+                                          }
+                                        } else if (value === "") {
+                                          setEditedTask({
+                                            ...editedTask,
+                                            endDate: "",
+                                          });
+                                        }
+                                      }}
+                                      placeholder="dd-mm-yyyy"
                                       className="edit-date"
                                     />
                                   </div>
@@ -931,7 +1147,10 @@ export default function MeetingDetailPage() {
                             <div className="edit-actions">
                               <Button
                                 size="sm"
-                                onClick={handleSaveTask}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSaveTask();
+                                }}
                                 className="save-btn"
                               >
                                 <Save size={14} />
@@ -940,7 +1159,10 @@ export default function MeetingDetailPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={handleCancelEdit}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCancelEdit();
+                                }}
                               >
                                 <X size={14} />
                                 Hủy
@@ -948,88 +1170,72 @@ export default function MeetingDetailPage() {
                             </div>
                           </div>
                         ) : (
-                          <>
-                            <div className="task-info">
-                              <h5>
-                                <span className="task-number">{generatedTasks.indexOf(task) + 1}</span>
-                                {task.title}
-                                {isTaskCreated[task.id] && (
-                                  <span className="task-status-badge created">
-                                    <Check size={12} />
-                                  Đã thêm công việc
+                          <div className="task-details">
+                            <div className="detail-grid">
+                              <div className="detail-item">
+                                <div className="detail-icon">
+                                  <User size={16} />
+                                </div>
+                                <div className="detail-content">
+                                  <span className="detail-label">Người thực hiện</span>
+                                  <div className="assignee-info">
+                                    <span className="detail-value">{task.assignee || "Chưa rõ"}</span>
+                                    {task.isAutoMatched && (
+                                      <span className="auto-match-badge">
+                                        <Check size={12} />
+                                        Tự động gán
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="detail-item">
+                                <div className="detail-icon">
+                                  <Flag size={16} />
+                                </div>
+                                <div className="detail-content">
+                                  <span className="detail-label">Độ ưu tiên</span>
+                                  <span className={`detail-value priority-${task.priority || 'none'}`}>
+                                    {task.priority === 'high' ? 'Cao' : 
+                                     task.priority === 'medium' ? 'Trung bình' : 
+                                     task.priority === 'low' ? 'Thấp' : 'Chưa rõ'}
                                   </span>
-                                )}
-                              </h5>
-                              <p>{task.description}</p>
+                                </div>
+                              </div>
+                              
+                              <div className="detail-item">
+                                <div className="detail-icon">
+                                  <Calendar size={16} />
+                                </div>
+                                <div className="detail-content">
+                                  <span className="detail-label">Ngày bắt đầu</span>
+                                  <span className="detail-value">{formatDate(task.startDate)}</span>
+                                </div>
+                              </div>
+                              
+                              <div className="detail-item">
+                                <div className="detail-icon">
+                                  <Calendar size={16} />
+                                </div>
+                                <div className="detail-content">
+                                  <span className="detail-label">Ngày kết thúc</span>
+                                  <span className="detail-value">{formatDate(task.endDate)}</span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="task-actions">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditTask(task)}
-                                className="edit-btn"
-                              >
-                                <Edit size={14} />
-                                Chỉnh sửa
-                              </Button>
-                              {!isTaskCreated[task.id] && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleCreateTask(task.id)}
-                                  className="create-task-btn"
-                                >
-                                  <Plus size={14} />
-                                  Thêm công việc
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleOpenDeleteModal(task.id)}
-                                className="delete-btn"
-                              >
-                                <Trash2 size={14} />
-                                Xóa
-                              </Button>
-                            </div>
-                          </>
+                          </div>
                         )}
                       </div>
                     ))}
                   </div>
 
-                  {generatedTasks.length > 0 && (
-                    <div className="ai-tasks-footer">
-                      <Button
-                        onClick={handleAddTasksToProject}
-                        disabled={isAddingToProject}
-                        className="add-to-project-btn"
-                        style={{
-                          backgroundColor: "white",
-                          border: "2px solid #ff8c42",
-                          color: "#ff8c42",
-                        }}
-                      >
-                        {isAddingToProject ? (
-                          <>
-                            <Loader2 size={16} className="animate-spin" />
-                            Đang thêm vào project...
-                          </>
-                        ) : (
-                          <>
-                            <Plus size={16} />
-                            Thêm các To-do vào project
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
           </div>
         )}
+
 
         {/* {activeTab === "comments" && !showJoinFlow && (
           <div className="comments-section">
@@ -1689,43 +1895,6 @@ export default function MeetingDetailPage() {
           border-color: #ff6b1a;
         }
 
-        .ai-tasks-footer {
-          margin-top: 20px;
-          padding-top: 20px;
-          border-top: 1px solid #f59e0b;
-          text-align: center;
-        }
-
-        .add-to-project-btn {
-          background: white;
-          border: 2px solid #ff8c42;
-          color: #ff8c42;
-          font-weight: 600;
-          padding: 12px 24px;
-          border-radius: 12px;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 8px rgba(255, 140, 66, 0.15);
-        }
-
-        .add-to-project-btn:hover:not(:disabled) {
-          background: #ff8c42 !important;
-          color: white !important;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 16px rgba(255, 140, 66, 0.3);
-        }
-
-        .add-to-project-btn:hover:not(:disabled) * {
-          color: white !important;
-        }
-
-        .add-to-project-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          transform: none;
-          background: white;
-          color: #ff8c42;
-          border-color: #ff8c42;
-        }
 
         .task-meta span {
           display: flex;
@@ -2132,6 +2301,473 @@ export default function MeetingDetailPage() {
         .create-task-btn:hover {
           background: #8b5cf6;
           color: white;
+        }
+
+        /* Clickable Task */
+        .clickable-task {
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .clickable-task:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2);
+        }
+
+        .clickable-task:hover .task-header {
+          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+        }
+
+        .task-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 16px;
+        }
+
+        /* Tasks Loading */
+        .tasks-loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          padding: 24px;
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+          border: 1px solid #f59e0b;
+          border-radius: 12px;
+          color: #92400e;
+          font-weight: 600;
+        }
+
+        .edit-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .meta-row {
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .meta-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          flex: 1;
+          min-width: 150px;
+        }
+
+        .meta-field label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #374151;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .edit-select {
+          padding: 8px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 14px;
+          transition: border-color 0.2s;
+          background: white;
+        }
+
+        .edit-select:focus {
+          outline: none;
+          border-color: #ff8c42;
+          box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+        }
+
+        .task-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 12px;
+          padding: 12px;
+          background: #f8fafc;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+        }
+
+        .task-meta span {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          color: #64748b;
+        }
+
+        .task-meta strong {
+          color: #374151;
+          font-weight: 600;
+          min-width: 100px;
+        }
+
+        /* Enhanced Task Styles */
+        .enhanced-task {
+          background: white;
+          border: 2px solid #f59e0b;
+          border-radius: 16px;
+          padding: 0;
+          margin-bottom: 16px;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
+          transition: all 0.3s ease;
+          overflow: hidden;
+          position: relative;
+        }
+
+        .enhanced-task:hover {
+          border-color: #d97706;
+          box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2);
+          transform: translateY(-2px);
+        }
+
+        .task-header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 20px;
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+          border-bottom: 1px solid #f59e0b;
+        }
+
+        .task-number {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+          color: white;
+          border-radius: 50%;
+          font-size: 16px;
+          font-weight: 700;
+          box-shadow: 0 4px 8px rgba(255, 140, 66, 0.3);
+          flex-shrink: 0;
+        }
+
+        .task-title-section {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .task-title {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: #92400e;
+          line-height: 1.4;
+        }
+
+        .task-subtitle {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .click-hint {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          color: #64748b;
+          font-style: italic;
+          opacity: 0.8;
+          transition: all 0.3s ease;
+        }
+
+        .enhanced-task:hover .click-hint {
+          color: #ff8c42;
+          opacity: 1;
+        }
+
+        .enhanced-task:hover .click-hint svg {
+          color: #ff8c42;
+        }
+
+        .task-actions {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .task-details {
+          padding: 20px;
+          background: white;
+        }
+
+        .detail-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+        }
+
+        .detail-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          transition: all 0.3s ease;
+        }
+
+        .detail-item:hover {
+          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+          border-color: #ff8c42;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(255, 140, 66, 0.1);
+        }
+
+        .detail-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+          border-radius: 8px;
+          color: white;
+          flex-shrink: 0;
+        }
+
+        .detail-content {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          flex: 1;
+        }
+
+        .detail-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+          font-size: 14px;
+          font-weight: 500;
+          color: #1e293b;
+        }
+
+        .assignee-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .auto-match-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          padding: 2px 6px;
+          border-radius: 8px;
+          font-size: 10px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+
+        .priority-high {
+          color: #dc2626;
+          font-weight: 600;
+        }
+
+        .priority-medium {
+          color: #d97706;
+          font-weight: 600;
+        }
+
+        .priority-low {
+          color: #059669;
+          font-weight: 600;
+        }
+
+        .priority-none {
+          color: #6b7280;
+          font-style: italic;
+        }
+
+        .task-edit-inline {
+          padding: 20px;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border-top: 1px solid #e2e8f0;
+        }
+
+        .task-edit-inline .edit-fields {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+
+        .task-edit-inline .edit-input {
+          padding: 12px 16px;
+          border: 2px solid #ff8c42;
+          border-radius: 12px;
+          font-size: 16px;
+          font-weight: 500;
+          background: white;
+          transition: all 0.3s ease;
+        }
+
+        .task-edit-inline .edit-input:focus {
+          outline: none;
+          border-color: #ff6b1a;
+          box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.1);
+        }
+
+        .task-edit-inline .edit-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .task-edit-inline .meta-row {
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .task-edit-inline .meta-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          flex: 1;
+          min-width: 150px;
+        }
+
+        .task-edit-inline .meta-field label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #374151;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .task-edit-inline .edit-select {
+          padding: 10px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 14px;
+          background: white;
+          transition: border-color 0.2s;
+        }
+
+        .task-edit-inline .edit-select:focus {
+          outline: none;
+          border-color: #ff8c42;
+          box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+        }
+
+        .task-edit-inline .date-inputs {
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .task-edit-inline .date-field {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          flex: 1;
+          min-width: 150px;
+        }
+
+        .task-edit-inline .edit-date {
+          padding: 10px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 14px;
+          background: white;
+          transition: border-color 0.2s;
+        }
+
+        .task-edit-inline .edit-date:focus {
+          outline: none;
+          border-color: #ff8c42;
+          box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+        }
+
+        .task-edit-inline .edit-date::placeholder {
+          color: #9ca3af;
+          font-style: italic;
+        }
+
+        .task-edit-inline .edit-actions {
+          display: flex;
+          gap: 12px;
+          justify-content: flex-end;
+          padding-top: 16px;
+          border-top: 1px solid #e2e8f0;
+        }
+
+        @media (max-width: 768px) {
+          .task-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+            padding: 16px;
+          }
+
+          .task-title-section {
+            text-align: center;
+          }
+
+          .task-actions {
+            justify-content: center;
+            flex-wrap: wrap;
+          }
+
+          .detail-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+
+          .detail-item {
+            padding: 10px;
+          }
+
+          .task-edit-overlay {
+            padding: 16px;
+          }
+
+          .task-edit-inline {
+            padding: 16px;
+          }
+
+          .task-edit-inline .meta-row {
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .task-edit-inline .date-inputs {
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .task-edit-inline .edit-actions {
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .task-edit-inline .edit-actions button {
+            width: 100%;
+          }
         }
       `}</style>
     </div>

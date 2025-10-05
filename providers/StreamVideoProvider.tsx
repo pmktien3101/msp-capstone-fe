@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 import { useUser } from "@/hooks/useUser";
 import { tokenService } from "@/services/streamService";
 
-const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY || "";
-
+// const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY || "";
+const apiKey = "9tkscc7pwskt"
 export const StreamVideoProvider = ({
   children,
 }: {
