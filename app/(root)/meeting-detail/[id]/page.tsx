@@ -29,6 +29,10 @@ import { useGetCallById } from "@/hooks/useGetCallById";
 import { Call, CallRecording } from "@stream-io/video-react-sdk";
 import { mockMilestones, mockParticipants } from "@/constants/mockData";
 
+// Environment-configurable API bases
+const stripSlash = (s: string) => s.replace(/\/$/, "");
+const API_BASE = stripSlash(process.env.NEXT_PUBLIC_API_URL || "https://localhost:7129/api/v1");
+
 // Map Stream call state to a simplified status label
 const mapCallStatus = (call?: Call) => {
   if (!call) return "Unknown";
@@ -98,7 +102,7 @@ export default function MeetingDetailPage() {
       setIsLoadingTranscriptions(true);
       setTranscriptionsError(null);
       try {
-        const response = await fetch(`https://localhost:7213/api/stream/call/default/${call.id}/transcriptions`);
+        const response = await fetch(`${API_BASE}/stream/call/default/${call.id}/transcriptions`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -131,7 +135,7 @@ export default function MeetingDetailPage() {
           .join('\n');
 
         // Generate summary
-        const summaryResponse = await fetch('https://localhost:5000/api/Summarize/summary', {
+        const summaryResponse = await fetch(`${API_BASE}/Summarize/summary`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -178,7 +182,7 @@ export default function MeetingDetailPage() {
 
         console.log("Sending to API:", requestBody);
 
-        const tasksResponse = await fetch('https://localhost:5000/api/Summarize/create-todolist', {
+        const tasksResponse = await fetch(`${API_BASE}/Summarize/create-todolist`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
