@@ -6,7 +6,8 @@ class TokenService {
   private readonly baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7129/api/v1";
+    this.baseUrl =
+      process.env.NEXT_PUBLIC_API_URL || "https://localhost:7129/api/v1";
   }
 
   async getStreamToken(user: {
