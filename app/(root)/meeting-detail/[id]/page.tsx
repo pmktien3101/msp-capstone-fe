@@ -972,264 +972,186 @@ export default function MeetingDetailPage() {
                   <div className="task-list">
                     {generatedTasks.map((task) => (
                       <div 
-                        className="task-item ai-task enhanced-task clickable-task" 
+                        className="task-item ai-task enhanced-task" 
                         key={task.id}
-                        onClick={() => {
-                          if (editingTaskId !== task.id) {
-                            handleEditTask(task);
-                          }
-                        }}
                       >
                         <div className="task-header">
                           <div className="task-number">{generatedTasks.indexOf(task) + 1}</div>
-                          <div className="task-title-section">
-                            <h5 className="task-title">{task.task}</h5>
-                            <div className="task-subtitle">
-                              {isTaskCreated[task.id] && (
-                                <span className="task-status-badge created">
-                                  <Check size={12} />
-                                  Đã thêm công việc
-                                </span>
-                              )}
-                              {editingTaskId !== task.id && (
-                                <span className="click-hint">
-                                  <Edit size={12} />
-                                  Click để chỉnh sửa
-                                </span>
-                              )}
+                          <div className="task-content">
+                            {/* Tiêu đề - có thể chỉnh sửa trực tiếp */}
+                            <div className="task-field">
+                              <input
+                                type="text"
+                                value={task.task}
+                                onChange={(e) => {
+                                  const updatedTasks = generatedTasks.map(t => 
+                                    t.id === task.id ? { ...t, task: e.target.value } : t
+                                  );
+                                  setGeneratedTasks(updatedTasks);
+                                }}
+                                className="task-title-input"
+                                placeholder="Nhập tiêu đề công việc..."
+                              />
+                            </div>
+
+                            {/* Mô tả - có thể chỉnh sửa trực tiếp */}
+                            <div className="task-field">
+                              <textarea
+                                value={task.description || ""}
+                                onChange={(e) => {
+                                  const updatedTasks = generatedTasks.map(t => 
+                                    t.id === task.id ? { ...t, description: e.target.value } : t
+                                  );
+                                  setGeneratedTasks(updatedTasks);
+                                }}
+                                className="task-description-input"
+                                placeholder="Nhập mô tả công việc..."
+                                rows={2}
+                              />
+                            </div>
+
+                            {/* Thông tin chi tiết */}
+                            <div className="task-details-inline">
+                              {/* Người thực hiện với avatar */}
+                              <div className="detail-field">
+                                <div className="field-label">
+                                  <User size={14} />
+                                  <span>Người thực hiện</span>
+                                </div>
+                                <div className="assignee-field">
+                                  <div className="assignee-avatar">
+                                    {task.assignee ? (
+                                      <img 
+                                        src={`/avatars/avatar-${Math.floor(Math.random() * 4) + 1}.png`} 
+                                        alt={task.assignee}
+                                        className="avatar-img"
+                                      />
+                                    ) : (
+                                      <div className="avatar-placeholder">
+                                        <User size={12} />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <select
+                                    value={task.assignee || ""}
+                                    onChange={(e) => {
+                                      const updatedTasks = generatedTasks.map(t => 
+                                        t.id === task.id ? { ...t, assignee: e.target.value } : t
+                                      );
+                                      setGeneratedTasks(updatedTasks);
+                                    }}
+                                    className="assignee-select"
+                                  >
+                                    <option value="">Chưa giao</option>
+                                    {participantEmails.map((email, idx) => (
+                                      <option key={idx} value={email}>
+                                        {email}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+
+                              {/* Ngày bắt đầu */}
+                              <div className="detail-field">
+                                <div className="field-label">
+                                  <Calendar size={14} />
+                                  <span>Ngày bắt đầu</span>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={formatDate(task.startDate || "")}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value && value.includes('-') && value.split('-')[0].length === 2) {
+                                      const parts = value.split('-');
+                                      if (parts.length === 3) {
+                                        const [day, month, year] = parts;
+                                        const convertedDate = `${year}-${month}-${day}`;
+                                        const updatedTasks = generatedTasks.map(t => 
+                                          t.id === task.id ? { ...t, startDate: convertedDate } : t
+                                        );
+                                        setGeneratedTasks(updatedTasks);
+                                      }
+                                    } else if (value === "") {
+                                      const updatedTasks = generatedTasks.map(t => 
+                                        t.id === task.id ? { ...t, startDate: "" } : t
+                                      );
+                                      setGeneratedTasks(updatedTasks);
+                                    }
+                                  }}
+                                  placeholder="dd/mm/yyyy"
+                                  className="date-input"
+                                />
+                              </div>
+
+                              {/* Ngày kết thúc */}
+                              <div className="detail-field">
+                                <div className="field-label">
+                                  <Calendar size={14} />
+                                  <span>Ngày kết thúc</span>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={formatDate(task.endDate || "")}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    if (value && value.includes('-') && value.split('-')[0].length === 2) {
+                                      const parts = value.split('-');
+                                      if (parts.length === 3) {
+                                        const [day, month, year] = parts;
+                                        const convertedDate = `${year}-${month}-${day}`;
+                                        const updatedTasks = generatedTasks.map(t => 
+                                          t.id === task.id ? { ...t, endDate: convertedDate } : t
+                                        );
+                                        setGeneratedTasks(updatedTasks);
+                                      }
+                                    } else if (value === "") {
+                                      const updatedTasks = generatedTasks.map(t => 
+                                        t.id === task.id ? { ...t, endDate: "" } : t
+                                      );
+                                      setGeneratedTasks(updatedTasks);
+                                    }
+                                  }}
+                                  placeholder="dd/mm/yyyy"
+                                  className="date-input"
+                                />
+                              </div>
                             </div>
                           </div>
+
                           <div className="task-actions">
                             {!isTaskCreated[task.id] && (
+                              <div className="action-btn-wrapper" title="Thêm vào danh sách công việc">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCreateTask(task.id);
+                                  }}
+                                  className="create-task-btn icon-only"
+                                >
+                                  <Plus size={16} />
+                                </Button>
+                              </div>
+                            )}
+                            <div className="action-btn-wrapper" title="Xóa công việc">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleCreateTask(task.id);
+                                  handleOpenDeleteModal(task.id);
                                 }}
-                                className="create-task-btn"
+                                className="delete-btn icon-only"
                               >
-                                <Plus size={14} />
-                                Thêm công việc
+                                <Trash2 size={16} />
                               </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenDeleteModal(task.id);
-                              }}
-                              className="delete-btn"
-                            >
-                              <Trash2 size={14} />
-                              Xóa
-                            </Button>
+                            </div>
                           </div>
                         </div>
 
-                        {editingTaskId === task.id ? (
-                          <div className="task-edit-inline" onClick={(e) => e.stopPropagation()}>
-                            <div className="edit-fields">
-                              <input
-                                type="text"
-                                value={editedTask?.task || ""}
-                                onChange={(e) =>
-                                  setEditedTask({
-                                    ...editedTask,
-                                    task: e.target.value,
-                                  })
-                                }
-                                className="edit-input"
-                                placeholder="Nội dung công việc"
-                                autoFocus
-                              />
-                              <div className="edit-meta">
-                                <div className="meta-row">
-                                  <div className="meta-field">
-                                    <label>Người thực hiện:</label>
-                                    <select
-                                      value={editedTask?.assignee || ""}
-                                      onChange={(e) =>
-                                        setEditedTask({
-                                          ...editedTask,
-                                          assignee: e.target.value,
-                                        })
-                                      }
-                                      className="edit-select"
-                                    >
-                                      <option value="">Chưa rõ</option>
-                                      {participantEmails.map((email, idx) => (
-                                        <option key={idx} value={email}>
-                                          {email}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  <div className="meta-field">
-                                    <label>Độ ưu tiên:</label>
-                                    <select
-                                      value={editedTask?.priority || ""}
-                                      onChange={(e) =>
-                                        setEditedTask({
-                                          ...editedTask,
-                                          priority: e.target.value,
-                                        })
-                                      }
-                                      className="edit-select"
-                                    >
-                                      <option value="">Chưa rõ</option>
-                                      <option value="high">Cao</option>
-                                      <option value="medium">Trung bình</option>
-                                      <option value="low">Thấp</option>
-                                    </select>
-                                  </div>
-                                </div>
-                                <div className="date-inputs">
-                                  <div className="date-field">
-                                    <label>Ngày bắt đầu:</label>
-                                    <input
-                                      type="text"
-                                      value={formatDate(editedTask?.startDate || "")}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        // Convert dd-mm-yyyy to yyyy-mm-dd for storage
-                                        if (value && value.includes('-') && value.split('-')[0].length === 2) {
-                                          const parts = value.split('-');
-                                          if (parts.length === 3) {
-                                            const [day, month, year] = parts;
-                                            const convertedDate = `${year}-${month}-${day}`;
-                                            setEditedTask({
-                                              ...editedTask,
-                                              startDate: convertedDate,
-                                            });
-                                          }
-                                        } else if (value === "") {
-                                          setEditedTask({
-                                            ...editedTask,
-                                            startDate: "",
-                                          });
-                                        }
-                                      }}
-                                      placeholder="dd-mm-yyyy"
-                                      className="edit-date"
-                                    />
-                                  </div>
-                                  <div className="date-field">
-                                    <label>Ngày kết thúc:</label>
-                                    <input
-                                      type="text"
-                                      value={formatDate(editedTask?.endDate || "")}
-                                      onChange={(e) => {
-                                        const value = e.target.value;
-                                        // Convert dd-mm-yyyy to yyyy-mm-dd for storage
-                                        if (value && value.includes('-') && value.split('-')[0].length === 2) {
-                                          const parts = value.split('-');
-                                          if (parts.length === 3) {
-                                            const [day, month, year] = parts;
-                                            const convertedDate = `${year}-${month}-${day}`;
-                                            setEditedTask({
-                                              ...editedTask,
-                                              endDate: convertedDate,
-                                            });
-                                          }
-                                        } else if (value === "") {
-                                          setEditedTask({
-                                            ...editedTask,
-                                            endDate: "",
-                                          });
-                                        }
-                                      }}
-                                      placeholder="dd-mm-yyyy"
-                                      className="edit-date"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="edit-actions">
-                              <Button
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSaveTask();
-                                }}
-                                className="save-btn"
-                              >
-                                <Save size={14} />
-                                Lưu
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCancelEdit();
-                                }}
-                              >
-                                <X size={14} />
-                                Hủy
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="task-details">
-                            <div className="detail-grid">
-                              <div className="detail-item">
-                                <div className="detail-icon">
-                                  <User size={16} />
-                                </div>
-                                <div className="detail-content">
-                                  <span className="detail-label">Người thực hiện</span>
-                                  <div className="assignee-info">
-                                    <span className="detail-value">{task.assignee || "Chưa rõ"}</span>
-                                    {task.isAutoMatched && (
-                                      <span className="auto-match-badge">
-                                        <Check size={12} />
-                                        Tự động gán
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="detail-item">
-                                <div className="detail-icon">
-                                  <Flag size={16} />
-                                </div>
-                                <div className="detail-content">
-                                  <span className="detail-label">Độ ưu tiên</span>
-                                  <span className={`detail-value priority-${task.priority || 'none'}`}>
-                                    {task.priority === 'high' ? 'Cao' : 
-                                     task.priority === 'medium' ? 'Trung bình' : 
-                                     task.priority === 'low' ? 'Thấp' : 'Chưa rõ'}
-                                  </span>
-                                </div>
-                              </div>
-                              
-                              <div className="detail-item">
-                                <div className="detail-icon">
-                                  <Calendar size={16} />
-                                </div>
-                                <div className="detail-content">
-                                  <span className="detail-label">Ngày bắt đầu</span>
-                                  <span className="detail-value">{formatDate(task.startDate)}</span>
-                                </div>
-                              </div>
-                              
-                              <div className="detail-item">
-                                <div className="detail-icon">
-                                  <Calendar size={16} />
-                                </div>
-                                <div className="detail-content">
-                                  <span className="detail-label">Ngày kết thúc</span>
-                                  <span className="detail-value">{formatDate(task.endDate)}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
