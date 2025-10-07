@@ -616,9 +616,9 @@ const MembersRolesPage = () => {
             {sentInvites.length === 0 ? (
               <div style={{ padding: "24px" }}>Không có lời mời nào.</div>
             ) : (
-              sentInvites.map((invite) => (
+              sentInvites.map((inviteEmail) => (
                 <div
-                  key={invite.id}
+                  key={inviteEmail}
                   className="table-row"
                   style={{
                     display: "grid",
@@ -633,18 +633,18 @@ const MembersRolesPage = () => {
                   <div className="col-name">
                     <div className="member-info">
                       <div className="member-avatar">
-                        {invite.name.charAt(0).toUpperCase()}
+                        {inviteEmail.charAt(0).toUpperCase()}
                       </div>
                       <div className="member-details">
-                        <span className="member-name">{invite.name}</span>
+                        <span className="member-name">{inviteEmail}</span>
                         <span className="join-date">
-                          Tham gia: {invite.joinDate}
+                          {/* No joinDate for invites */}
                         </span>
                       </div>
                     </div>
                   </div>
                   <div className="col-email">
-                    <span className="email">{invite.email}</span>
+                    <span className="email">{inviteEmail}</span>
                   </div>
                   <div className="col-status">
                     <span className="status-badge">Đang chờ</span>
@@ -668,7 +668,7 @@ const MembersRolesPage = () => {
                       }}
                       onClick={() =>
                         setSentInvites(
-                          sentInvites.filter((i) => i.id !== invite.id)
+                          sentInvites.filter((i) => i !== inviteEmail)
                         )
                       }
                       title="Hủy lời mời"
