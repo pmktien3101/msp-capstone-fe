@@ -23,6 +23,7 @@ import {
   Trash2,
   Copy,
   Check,
+  CheckCircle,
 } from "lucide-react";
 import "@/app/styles/meeting-detail.scss";
 import { useGetCallById } from "@/hooks/useGetCallById";
@@ -913,7 +914,7 @@ export default function MeetingDetailPage() {
                 )}
                 {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length > 0 && !isTranscriptExpanded && (
                   <div className="transcript-expand-hint">
-                    <span>Click để xem toàn bộ transcript</span>
+                    <span>Click để xem toàn bộ lời thoại</span>
                   </div>
                 )}
               </div>
@@ -955,11 +956,21 @@ export default function MeetingDetailPage() {
               {(generatedTasks.length > 0 || isGeneratingTasks) && (
                 <div className="ai-generated-tasks">
                   <div className="ai-tasks-header">
-                    <div className="ai-tasks-title">
+                    {/* <div className="ai-tasks-title">
+                      <div className="ai-title-badge">   
                       <Sparkles size={16} />
-                      <h4>Danh sách To-do được tạo từ AI</h4>
+                        <span>Danh sách To-do được tạo từ AI</span>
+                      </div>
                       <span className="ai-badge">AI Generated</span>
+                    </div> */}
+                    <div className="ai-tasks-title">
+                    <div className="ai-icon">
+                      <Sparkles size={20} />
                     </div>
+                    <h4>Danh sách To-do được tạo từ AI</h4>
+                    <div className="ai-badge">AI Generated</div>
+                  </div>
+
                   </div>
                   
                   {isGeneratingTasks && (
@@ -970,15 +981,24 @@ export default function MeetingDetailPage() {
                   )}
                   
                   <div className="task-list">
-                    {generatedTasks.map((task) => (
+                    {generatedTasks.map((task, index) => {
+                      // Auto-assign assignee evenly
+                      const autoAssignedEmail = participantEmails[index % participantEmails.length];
+                      const currentAssignee = task.assignee || autoAssignedEmail;
+                      
+                      return (
                       <div 
                         className="task-item ai-task enhanced-task" 
                         key={task.id}
+                        data-task-id={task.id}
                       >
                         <div className="task-header">
+                          {/* Task Number */}
                           <div className="task-number">{generatedTasks.indexOf(task) + 1}</div>
+                          
+                          {/* Main Content */}
                           <div className="task-content">
-                            {/* Tiêu đề - có thể chỉnh sửa trực tiếp */}
+                            {/* Title Field */}
                             <div className="task-field">
                               <input
                                 type="text"
@@ -994,7 +1014,7 @@ export default function MeetingDetailPage() {
                               />
                             </div>
 
-                            {/* Mô tả - có thể chỉnh sửa trực tiếp */}
+                            {/* Description Field */}
                             <div className="task-field">
                               <textarea
                                 value={task.description || ""}
@@ -1005,20 +1025,29 @@ export default function MeetingDetailPage() {
                                   setGeneratedTasks(updatedTasks);
                                 }}
                                 className="task-description-input"
-                                placeholder="Nhập mô tả công việc..."
+                                placeholder="Mô tả công việc..."
                                 rows={2}
                               />
                             </div>
 
-                            {/* Thông tin chi tiết */}
-                            <div className="task-details-inline">
-                              {/* Người thực hiện với avatar */}
-                              <div className="detail-field assignee-field">
+                            {/* Details Row */}
+                            <div className="task-details-row">
+                              {/* Assignee Avatar */}
+                              <div 
+                                className="detail-field assignee-field"
+                                onClick={(e) => {
+                                  // Only focus if clicking on the avatar, not the select
+                                  if ((e.target as HTMLElement).closest('.assignee-avatar')) {
+                                    const select = document.querySelector(`[data-task-id="${task.id}"] .assignee-select`) as HTMLSelectElement;
+                                    select?.focus();
+                                  }
+                                }}
+                              >
                                 <div className="assignee-avatar">
-                                  {task.assignee ? (
+                                  {currentAssignee ? (
                                     <img 
-                                      src={`/avatars/avatar-${Math.floor(Math.random() * 4) + 1}.png`} 
-                                      alt={task.assignee}
+                                      src={`/avatars/avatar-${(index % 4) + 1}.png`} 
+                                      alt={currentAssignee}
                                       className="avatar-img"
                                     />
                                   ) : (
@@ -1027,11 +1056,13 @@ export default function MeetingDetailPage() {
                                     </div>
                                   )}
                                 </div>
+                                <div className="assignee-content" onClick={(e) => e.stopPropagation()}>
                                 <select
-                                  value={task.assignee || ""}
+                                    value={currentAssignee || ""}
                                   onChange={(e) => {
+                                    const newAssignee = e.target.value === "" ? null : e.target.value;
                                     const updatedTasks = generatedTasks.map(t => 
-                                      t.id === task.id ? { ...t, assignee: e.target.value } : t
+                                      t.id === task.id ? { ...t, assignee: newAssignee } : t
                                     );
                                     setGeneratedTasks(updatedTasks);
                                   }}
@@ -1044,13 +1075,25 @@ export default function MeetingDetailPage() {
                                     </option>
                                   ))}
                                 </select>
+                                </div>
                               </div>
 
-                              {/* Ngày bắt đầu */}
-                              <div className="detail-field date-field">
+                              {/* Start Date */}
+                              <div 
+                                className="detail-field date-field"
+                                onClick={(e) => {
+                                  // Only focus if clicking on the field itself, not the input
+                                  if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.date-icon')) {
+                                    const input = document.querySelector(`[data-task-id="${task.id}"] .date-picker[data-field="start"]`) as HTMLInputElement;
+                                    input?.focus();
+                                    input?.showPicker?.();
+                                  }
+                                }}
+                              >
                                 <div className="date-icon">
                                   <Calendar size={16} />
                                 </div>
+                                <div className="date-input-wrapper">
                                 <input
                                   type="date"
                                   value={task.startDate || ""}
@@ -1060,15 +1103,30 @@ export default function MeetingDetailPage() {
                                     );
                                     setGeneratedTasks(updatedTasks);
                                   }}
+                                    onClick={(e) => e.stopPropagation()}
                                   className="date-picker"
+                                    placeholder="dd/mm/yyyy"
+                                    data-field="start"
                                 />
+                                </div>
                               </div>
 
-                              {/* Ngày kết thúc */}
-                              <div className="detail-field date-field">
+                              {/* End Date */}
+                              <div 
+                                className="detail-field date-field"
+                                onClick={(e) => {
+                                  // Only focus if clicking on the field itself, not the input
+                                  if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.date-icon')) {
+                                    const input = document.querySelector(`[data-task-id="${task.id}"] .date-picker[data-field="end"]`) as HTMLInputElement;
+                                    input?.focus();
+                                    input?.showPicker?.();
+                                  }
+                                }}
+                              >
                                 <div className="date-icon">
                                   <Calendar size={16} />
                                 </div>
+                                <div className="date-input-wrapper">
                                 <input
                                   type="date"
                                   value={task.endDate || ""}
@@ -1078,24 +1136,19 @@ export default function MeetingDetailPage() {
                                     );
                                     setGeneratedTasks(updatedTasks);
                                   }}
+                                    onClick={(e) => e.stopPropagation()}
                                   className="date-picker"
+                                    placeholder="dd/mm/yyyy"
+                                    data-field="end"
                                 />
                               </div>
                             </div>
                           </div>
-
-                          {/* Status tag ở bên phải */}
-                          <div className="task-status">
-                            <span className={`status-badge status-${task.status || 'pending'}`}>
-                              {task.status === 'in-progress' ? 'In Progress' : 
-                               task.status === 'completed' ? 'Completed' : 
-                               task.status === 'review' ? 'Review' : 'Pending'}
-                            </span>
                           </div>
 
+                          {/* Action Buttons */}
                           <div className="task-actions">
-                            {!isTaskCreated[task.id] && (
-                              <div className="action-btn-wrapper" title="Thêm vào danh sách công việc">
+                            {!isTaskCreated[task.id] ? (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1103,13 +1156,17 @@ export default function MeetingDetailPage() {
                                     e.stopPropagation();
                                     handleCreateTask(task.id);
                                   }}
-                                  className="create-task-btn icon-only"
+                                className="create-task-btn"
+                                title="Thêm vào danh sách công việc"
                                 >
                                   <Plus size={16} />
                                 </Button>
-                              </div>
+                            ) : (
+                                <div className="task-added-indicator">
+                                  <CheckCircle size={16} />
+                                  <span>Đã thêm</span>
+                                </div>
                             )}
-                            <div className="action-btn-wrapper" title="Xóa công việc">
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1117,16 +1174,17 @@ export default function MeetingDetailPage() {
                                   e.stopPropagation();
                                   handleOpenDeleteModal(task.id);
                                 }}
-                                className="delete-btn icon-only"
+                              className="delete-btn"
+                              title="Xóa công việc"
                               >
                                 <Trash2 size={16} />
                               </Button>
-                            </div>
                           </div>
                         </div>
 
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                 </div>
@@ -1461,15 +1519,15 @@ export default function MeetingDetailPage() {
         }
 
         .ai-badge {
-          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
-          color: white;
+          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%) !important;
+          color: white !important;
           padding: 4px 12px;
           border-radius: 20px;
           font-size: 12px;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.5px;
-          box-shadow: 0 2px 4px rgba(255, 140, 66, 0.3);
+          box-shadow: 0 2px 4px rgba(255, 140, 66, 0.3) !important;
         }
 
         .summary-main {
@@ -1613,11 +1671,23 @@ export default function MeetingDetailPage() {
 
         .ai-generated-tasks {
           margin-bottom: 32px;
-          padding: 24px;
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-          border: 1px solid #f59e0b;
-          border-radius: 16px;
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+          padding: 28px;
+          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 50%, #ff8c42 100%);
+          border: 2px solid #ff8c42;
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(255, 140, 66, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .ai-generated-tasks::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #ff8c42, #ff6b1a, #ea580c);
         }
 
         .ai-tasks-header {
@@ -1627,33 +1697,221 @@ export default function MeetingDetailPage() {
         .ai-tasks-title {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 16px;
+          padding: 16px 20px;
+          background: rgba(255, 255, 255, 0.8);
+          border-radius: 12px;
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 140, 66, 0.3);
         }
 
-        .ai-tasks-title h4 {
+        .ai-title-badge {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+          color: white;
+          padding: 8px 16px;
+          border-radius: 20px;
+          font-size: 14px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          box-shadow: 0 2px 4px rgba(255, 140, 66, 0.3);
+        }
+
+        .ai-title-badge span {
           margin: 0;
-          font-size: 18px;
-          font-weight: 700;
-          color: #92400e;
+          font-size: 14px;
+          font-weight: 600;
+          color: white;
+        }
+
+        .ai-badge {
+          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%) !important;
+          color: white !important;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          box-shadow: 0 2px 4px rgba(255, 140, 66, 0.3) !important;
         }
 
         .ai-task {
           background: white;
-          border: 2px solid #f59e0b;
-          box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
+          border: 2px solid #ff8c42;
+          border-radius: 18px;
+          box-shadow: 0 4px 16px rgba(255, 140, 66, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .ai-task::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, #ff8c42, #ff6b1a, #ea580c);
         }
 
         .ai-task:hover {
-          border-color: #d97706;
-          box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+          /* No hover effect */
         }
 
         .task-actions {
           display: flex;
           gap: 8px;
-          align-items: center;
-          flex-wrap: wrap;
+          align-items: flex-start;
+          flex-shrink: 0;
+          margin-top: 2px;
         }
+
+        .task-actions button {
+          border-radius: 6px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          padding: 8px 12px;
+          min-width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid #d1d5db;
+          background: white;
+          color: #1f2937;
+        }
+
+        .task-actions button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Hover effects for specific buttons */
+        .task-actions button:has(svg[data-lucide="plus"]):hover {
+          background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+          border-color: #16a34a !important;
+          color: white !important;
+          box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4) !important;
+          transform: translateY(-2px) !important;
+        }
+
+        .task-actions button:has(svg[data-lucide="trash-2"]):hover {
+          background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+          border-color: #dc2626 !important;
+          color: white !important;
+          box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4) !important;
+          transform: translateY(-2px) !important;
+        }
+
+        .create-task-btn {
+          background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+          border-color: #16a34a !important;
+          color: white !important;
+          box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4) !important;
+        }
+
+        .create-task-btn:hover {
+          background: linear-gradient(135deg, #16a34a, #15803d) !important;
+          border-color: #15803d !important;
+          box-shadow: 0 8px 24px rgba(34, 197, 94, 0.5) !important;
+          transform: translateY(-2px);
+        }
+
+
+        .create-task-btn:focus {
+          background: linear-gradient(135deg, #16a34a, #15803d) !important;
+          border-color: #15803d !important;
+          box-shadow: 0 8px 24px rgba(34, 197, 94, 0.5) !important;
+        }
+
+        .delete-btn {
+          background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+          border-color: #dc2626 !important;
+          color: white !important;
+          box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4) !important;
+        }
+
+        .delete-btn:hover {
+          background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+          border-color: #b91c1c !important;
+          box-shadow: 0 8px 24px rgba(239, 68, 68, 0.5) !important;
+          transform: translateY(-2px);
+        }
+
+        .delete-btn:focus {
+          background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+          border-color: #b91c1c !important;
+          box-shadow: 0 8px 24px rgba(239, 68, 68, 0.5) !important;
+        }
+
+        /* Icon Colors */
+        .create-task-btn svg {
+          color: white !important;
+          stroke: white !important;
+        }
+
+        .delete-btn svg {
+          color: white !important;
+          stroke: white !important;
+        }
+
+        .task-actions button:has(svg[data-lucide="plus"]):hover svg {
+          color: white !important;
+          stroke: white !important;
+        }
+
+        .task-actions button:has(svg[data-lucide="trash-2"]):hover svg {
+          color: white !important;
+          stroke: white !important;
+        }
+
+        .create-task-btn:hover svg {
+          color: white !important;
+          stroke: white !important;
+        }
+
+        .delete-btn:hover svg {
+          color: white !important;
+          stroke: white !important;
+        }
+
+        .task-added-indicator {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          color: white;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+          animation: taskAddedPulse 0.6s ease-out;
+        }
+
+        @keyframes taskAddedPulse {
+          0% {
+            transform: scale(0.8);
+            opacity: 0;
+          }
+          50% {
+            transform: scale(1.05);
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+
+
+
+
 
         .edit-btn {
           border-color: #ff8c42;
@@ -1691,13 +1949,17 @@ export default function MeetingDetailPage() {
         }
 
         .delete-btn {
-          border-color: #ef4444;
-          color: #ef4444;
+          border-color: #dc2626 !important;
+          color: white !important;
+          background: linear-gradient(135deg, #ef4444, #dc2626) !important;
         }
 
         .delete-btn:hover {
-          background: #ef4444;
-          color: white;
+          background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+          border-color: #b91c1c !important;
+          color: white !important;
+          transform: translateY(-2px) !important;
+          box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4) !important;
         }
 
         .task-edit-form {
@@ -1744,15 +2006,61 @@ export default function MeetingDetailPage() {
         .date-inputs {
           display: flex;
           gap: 16px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
         }
 
         .date-field {
           display: flex;
-          flex-direction: column;
-          gap: 6px;
+          align-items: center;
+          gap: 10px;
           flex: 1;
           min-width: 150px;
+          padding: 10px 14px;
+          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          position: relative;
+        }
+
+        .assignee-field {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex: 1;
+          min-width: 170px;
+          padding: 10px 14px;
+          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          position: relative;
+        }
+
+        .date-field::before, .assignee-field::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.05));
+          border-radius: 10px;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+
+        .date-field:hover, .assignee-field:hover {
+          background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+          border-color: #f59e0b;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+          transform: translateY(-2px);
+        }
+
+        .date-field:hover::before, .assignee-field:hover::before {
+          opacity: 1;
         }
 
         .date-field label {
@@ -1877,7 +2185,7 @@ export default function MeetingDetailPage() {
 
         .participants {
           display: flex;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
           gap: 8px;
         }
 
@@ -2193,13 +2501,17 @@ export default function MeetingDetailPage() {
 
         /* Create Task Button */
         .create-task-btn {
-          border-color: #8b5cf6;
-          color: #8b5cf6;
+          border-color: #16a34a !important;
+          color: white !important;
+          background: linear-gradient(135deg, #22c55e, #16a34a) !important;
         }
 
         .create-task-btn:hover {
-          background: #8b5cf6;
-          color: white;
+          background: linear-gradient(135deg, #16a34a, #15803d) !important;
+          border-color: #15803d !important;
+          color: white !important;
+          transform: translateY(-2px) !important;
+          box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4) !important;
         }
 
         /* Clickable Task */
@@ -2247,7 +2559,7 @@ export default function MeetingDetailPage() {
         .meta-row {
           display: flex;
           gap: 16px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
         }
 
         .meta-field {
@@ -2310,43 +2622,538 @@ export default function MeetingDetailPage() {
         .enhanced-task {
           background: white;
           border: 2px solid #f59e0b;
-          border-radius: 16px;
+          border-radius: 20px;
           padding: 0;
-          margin-bottom: 16px;
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
-          transition: all 0.3s ease;
+          margin-bottom: 20px;
+          box-shadow: 0 6px 20px rgba(245, 158, 11, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05);
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           overflow: hidden;
           position: relative;
         }
 
+        .enhanced-task::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #f59e0b, #d97706, #b45309);
+        }
+
         .enhanced-task:hover {
-          border-color: #d97706;
-          box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2);
-          transform: translateY(-2px);
+          /* No hover effect */
         }
 
         .task-header {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 16px;
-          padding: 20px;
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-          border-bottom: 1px solid #f59e0b;
+          padding: 16px;
+          background: transparent;
+          border: 1px solid #e5e7eb;
+          position: relative;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          border-radius: 8px;
+          margin-bottom: 8px;
+        }
+
+        .task-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          padding: 2px 0;
+        }
+
+        .task-field {
+          width: 100%;
+          padding: 2px 0;
+        }
+
+        .task-details-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 20px;
+          align-items: stretch;
+          padding: 4px 0;
+          width: 100%;
+        }
+
+        .detail-field {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: white;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          transition: all 0.3s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          width: 100%;
+          min-height: 40px;
+          box-sizing: border-box;
+          cursor: pointer;
+        }
+
+        .detail-field:hover {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .assignee-field {
+          grid-column: 1;
+          min-width: 0;
+          width: 100%;
+        }
+
+        .date-field {
+          min-width: 0;
+          width: 100%;
+        }
+
+        .date-field:first-of-type {
+          grid-column: 2;
+        }
+
+        .date-field:last-of-type {
+          grid-column: 3;
+        }
+
+        .assignee-avatar {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          overflow: hidden;
+          flex-shrink: 0;
+          box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
+        }
+
+        .avatar-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .avatar-placeholder {
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, #1e3a8a, #3b82f6, #8b5cf6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
+        }
+
+        .assignee-content {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          gap: 4px;
+          width: 100%;
+          min-width: 0;
+        }
+
+        .assignee-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #1e3a8a;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 2px;
+        }
+
+        .assignee-select {
+          border: none;
+          background: transparent;
+          font-size: 15px;
+          font-weight: 500;
+          color: #1f2937;
+          outline: none;
+          flex: 1;
+          padding: 4px 6px;
+          line-height: 1.4;
+          cursor: pointer;
+          width: 100%;
+          z-index: 10;
+          position: relative;
+        }
+
+        .assignee-select:focus {
+          outline: 2px solid #3b82f6;
+          outline-offset: 2px;
+          border-radius: 4px;
+        }
+
+        .assignee-select option {
+          padding: 8px 12px;
+          background: white;
+          color: #1f2937;
+        }
+
+        .assignee-select option:hover {
+          background: #f3f4f6;
+        }
+
+        .date-icon {
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          flex-shrink: 0;
+          background: linear-gradient(135deg, #ff8c42, #ff6b1a);
+          border-radius: 8px;
+          padding: 4px;
+          box-shadow: 0 2px 6px rgba(255, 140, 66, 0.3);
+        }
+
+        .date-picker {
+          border: none;
+          background: transparent;
+          font-size: 15px;
+          font-weight: 500;
+          color: #1f2937;
+          outline: none;
+          flex: 1;
+          padding: 4px 30px 4px 6px;
+          line-height: 1.4;
+          position: relative;
+          cursor: pointer;
+          width: 100%;
+        }
+
+        .date-picker::placeholder {
+          color: #9ca3af;
+          font-style: italic;
+        }
+
+        .date-input-wrapper {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          gap: 4px;
+          width: 100%;
+          min-width: 0;
+        }
+
+        .date-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #1e3a8a;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 2px;
+        }
+
+        .date-picker::-webkit-calendar-picker-indicator {
+          opacity: 1;
+          position: absolute;
+          right: 8px;
+          width: 24px;
+          height: 24px;
+          cursor: pointer;
+          background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/%3e%3c/svg%3e") no-repeat center;
+          background-size: 18px 18px;
+          z-index: 2;
+        }
+
+        /* New Input Fields */
+        .task-title-input {
+          width: 100%;
+          padding: 12px 30px 12px 20px; /* Increased right padding */
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 15px;
+          font-weight: 500;
+          background: white;
+          color: #1f2937;
+          height: 44px;
+          transition: all 0.3s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          line-height: 1.4;
+        }
+
+        .task-title-input:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .task-description-input {
+          width: 100%;
+          padding: 12px 24px 12px 20px; /* Increased right padding */
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 400;
+          background: white;
+          color: #1f2937;
+          min-height: 60px;
+          resize: vertical;
+          transition: all 0.3s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          font-family: inherit;
+          line-height: 1.5;
+        }
+
+        .task-description-input:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Responsive Design for New Todo Layout */
+        @media (max-width: 768px) {
+          .task-header {
+            padding: 12px;
+            gap: 12px;
+            flex-direction: column;
+            border-radius: 6px;
+          }
+
+          .task-content {
+            gap: 8px;
+            padding: 2px 0;
+          }
+
+          .task-details-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            align-items: stretch;
+            padding: 2px 0;
+            width: 100%;
+          }
+
+          .detail-field {
+            min-width: auto;
+            width: 100%;
+            padding: 6px 10px;
+            gap: 8px;
+            min-height: 36px;
+            box-sizing: border-box;
+          }
+
+          .assignee-field, .date-field {
+            min-width: auto;
+            grid-column: 1;
+            width: 100%;
+          }
+
+          .date-field:first-of-type,
+          .date-field:last-of-type {
+            grid-column: 1;
+          }
+
+          .assignee-content,
+          .date-input-wrapper {
+            width: 100%;
+            min-width: 0;
+          }
+
+          .task-number {
+            width: 36px;
+            height: 36px;
+            font-size: 14px;
+            margin-top: 0;
+            align-self: flex-start;
+          }
+
+          .task-actions {
+            margin-top: 0;
+            justify-content: center;
+            gap: 10px;
+          }
+
+          .task-actions button {
+            min-width: 32px;
+            height: 32px;
+            padding: 6px 10px;
+          }
+
+          .task-title-input {
+            font-size: 14px;
+            padding: 10px 20px 10px 18px; /* Increased right padding for mobile */
+            height: 40px;
+            line-height: 1.4;
+          }
+
+          .task-description-input {
+            font-size: 13px;
+            padding: 10px 20px 10px 18px; /* Increased right padding for mobile */
+            min-height: 50px;
+            line-height: 1.5;
+          }
+
+          .assignee-avatar {
+            width: 24px;
+            height: 24px;
+          }
+
+          .date-icon {
+            width: 24px;
+            height: 24px;
+            padding: 3px;
+          }
+
+          .assignee-select, .date-picker {
+            font-size: 14px;
+            padding: 3px 5px;
+            line-height: 1.4;
+          }
+        }
+
+        .task-status {
+          display: flex;
+          align-items: center;
+        }
+
+        .status-badge {
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          white-space: nowrap;
+        }
+
+        .status-in-progress {
+          background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+          color: white;
+        }
+
+        .status-completed {
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+        }
+
+        .status-review {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          color: white;
+        }
+
+        .status-pending {
+          background: linear-gradient(135deg, #6b7280, #4b5563);
+          color: white;
+        }
+
+        .task-description-field {
+          width: 100%;
+          margin-top: 4px;
+        }
+
+        .task-details-horizontal {
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+          align-items: center;
+          margin-top: 8px;
+        }
+
+        .assignee-avatar {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f3f4f6;
+          border: 1px solid #e5e7eb;
+          flex-shrink: 0;
+        }
+
+        .avatar-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .avatar-placeholder {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #6b7280;
+        }
+
+        .assignee-select {
+          flex: 1;
+          border: none;
+          background: transparent;
+          font-size: 13px;
+          color: #374151;
+          outline: none;
+          cursor: pointer;
+        }
+
+        .date-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          background: linear-gradient(135deg, #ff8c42, #ff6b1a);
+          color: white;
+          border-radius: 8px;
+          box-shadow: 0 2px 6px rgba(255, 140, 66, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          flex-shrink: 0;
+        }
+
+        .date-picker {
+          flex: 1;
+          border: none;
+          background: transparent;
+          font-size: 13px;
+          color: #374151;
+          outline: none;
+          cursor: pointer;
+        }
+
+        .task-header::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #f59e0b, transparent);
         }
 
         .task-number {
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 40px;
-          height: 40px;
-          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+          width: 32px;
+          height: 32px;
+          background: #3b82f6;
           color: white;
           border-radius: 50%;
-          font-size: 16px;
-          font-weight: 700;
-          box-shadow: 0 4px 8px rgba(255, 140, 66, 0.3);
+          font-size: 14px;
+          font-weight: 600;
+          box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
           flex-shrink: 0;
+          border: 2px solid white;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+          margin-top: 2px;
+        }
+
+        .task-number::before {
+          content: '';
+          position: absolute;
+          top: -1px;
+          left: -1px;
+          right: -1px;
+          bottom: -1px;
+          background: linear-gradient(135deg, #ff8c42, #ff6b1a);
+          border-radius: 50%;
+          z-index: -1;
+          opacity: 0.2;
         }
 
         .task-title-section {
@@ -2368,7 +3175,7 @@ export default function MeetingDetailPage() {
           display: flex;
           align-items: center;
           gap: 12px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
         }
 
         .click-hint {
@@ -2395,12 +3202,13 @@ export default function MeetingDetailPage() {
           display: flex;
           gap: 8px;
           align-items: center;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
         }
 
         .task-details {
-          padding: 20px;
-          background: white;
+          padding: 24px;
+          background: linear-gradient(135deg, #fefefe 0%, #f8fafc 100%);
+          border-radius: 0 0 18px 18px;
         }
 
         .detail-grid {
@@ -2514,6 +3322,49 @@ export default function MeetingDetailPage() {
           margin-bottom: 16px;
         }
 
+        .task-title-input, .task-description-input {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 500;
+          background: white;
+          transition: all 0.3s ease;
+          resize: vertical;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+          min-height: 36px;
+          line-height: 1.4;
+        }
+
+        .task-title-input {
+          width: 100%;
+          padding: 10px 16px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          background: white;
+          transition: all 0.3s ease;
+          outline: none;
+          height: 40px;
+          line-height: 1.4;
+          font-family: inherit;
+        }
+
+        .task-title-input:focus {
+          border-color: #ff8c42;
+          box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+        }
+
+        .task-title-input:focus, .task-description-input:focus {
+          outline: none;
+          border-color: #ff8c42;
+          box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+        }
+
         .task-edit-inline .edit-input {
           padding: 12px 16px;
           border: 2px solid #ff8c42;
@@ -2539,7 +3390,7 @@ export default function MeetingDetailPage() {
         .task-edit-inline .meta-row {
           display: flex;
           gap: 16px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
         }
 
         .task-edit-inline .meta-field {
@@ -2576,7 +3427,7 @@ export default function MeetingDetailPage() {
         .task-edit-inline .date-inputs {
           display: flex;
           gap: 16px;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
         }
 
         .task-edit-inline .date-field {
@@ -2629,7 +3480,7 @@ export default function MeetingDetailPage() {
 
           .task-actions {
             justify-content: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
           }
 
           .detail-grid {
@@ -2666,6 +3517,68 @@ export default function MeetingDetailPage() {
 
           .task-edit-inline .edit-actions button {
             width: 100%;
+          }
+        }
+
+        @media (max-width: 1024px) {
+          .task-details-horizontal {
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .date-field, .assignee-field {
+            min-width: 100%;
+          }
+
+          .task-controls {
+            min-width: 150px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .task-header {
+            padding: 12px 16px;
+          }
+
+          .task-main-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+          }
+
+          .task-title-field {
+            order: 1;
+          }
+
+          .task-number {
+            order: 0;
+            align-self: flex-start;
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+          }
+
+          .task-actions {
+            order: 2;
+            justify-content: flex-end;
+            gap: 6px;
+          }
+
+          .task-actions button {
+            min-width: 32px;
+            height: 32px;
+            padding: 6px 8px;
+          }
+
+          .task-title-input {
+            font-size: 13px;
+            padding: 8px 12px;
+            height: 36px;
+          }
+
+          .task-title-field {
+            flex: 1;
+            min-width: 0;
           }
         }
       `}</style>
