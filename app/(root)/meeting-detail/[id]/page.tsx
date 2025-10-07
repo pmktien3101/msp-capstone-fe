@@ -1013,108 +1013,72 @@ export default function MeetingDetailPage() {
                             {/* Thông tin chi tiết */}
                             <div className="task-details-inline">
                               {/* Người thực hiện với avatar */}
-                              <div className="detail-field">
-                                <div className="field-label">
-                                  <User size={14} />
-                                  <span>Người thực hiện</span>
+                              <div className="detail-field assignee-field">
+                                <div className="assignee-avatar">
+                                  {task.assignee ? (
+                                    <img 
+                                      src={`/avatars/avatar-${Math.floor(Math.random() * 4) + 1}.png`} 
+                                      alt={task.assignee}
+                                      className="avatar-img"
+                                    />
+                                  ) : (
+                                    <div className="avatar-placeholder">
+                                      <User size={16} />
+                                    </div>
+                                  )}
                                 </div>
-                                <div className="assignee-field">
-                                  <div className="assignee-avatar">
-                                    {task.assignee ? (
-                                      <img 
-                                        src={`/avatars/avatar-${Math.floor(Math.random() * 4) + 1}.png`} 
-                                        alt={task.assignee}
-                                        className="avatar-img"
-                                      />
-                                    ) : (
-                                      <div className="avatar-placeholder">
-                                        <User size={12} />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <select
-                                    value={task.assignee || ""}
-                                    onChange={(e) => {
-                                      const updatedTasks = generatedTasks.map(t => 
-                                        t.id === task.id ? { ...t, assignee: e.target.value } : t
-                                      );
-                                      setGeneratedTasks(updatedTasks);
-                                    }}
-                                    className="assignee-select"
-                                  >
-                                    <option value="">Chưa giao</option>
-                                    {participantEmails.map((email, idx) => (
-                                      <option key={idx} value={email}>
-                                        {email}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
+                                <select
+                                  value={task.assignee || ""}
+                                  onChange={(e) => {
+                                    const updatedTasks = generatedTasks.map(t => 
+                                      t.id === task.id ? { ...t, assignee: e.target.value } : t
+                                    );
+                                    setGeneratedTasks(updatedTasks);
+                                  }}
+                                  className="assignee-select"
+                                >
+                                  <option value="">Chưa giao</option>
+                                  {participantEmails.map((email, idx) => (
+                                    <option key={idx} value={email}>
+                                      {email}
+                                    </option>
+                                  ))}
+                                </select>
                               </div>
 
                               {/* Ngày bắt đầu */}
-                              <div className="detail-field">
-                                <div className="field-label">
-                                  <Calendar size={14} />
-                                  <span>Ngày bắt đầu</span>
+                              <div className="detail-field date-field">
+                                <div className="date-icon">
+                                  <Calendar size={16} />
                                 </div>
                                 <input
-                                  type="text"
-                                  value={formatDate(task.startDate || "")}
+                                  type="date"
+                                  value={task.startDate || ""}
                                   onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (value && value.includes('-') && value.split('-')[0].length === 2) {
-                                      const parts = value.split('-');
-                                      if (parts.length === 3) {
-                                        const [day, month, year] = parts;
-                                        const convertedDate = `${year}-${month}-${day}`;
-                                        const updatedTasks = generatedTasks.map(t => 
-                                          t.id === task.id ? { ...t, startDate: convertedDate } : t
-                                        );
-                                        setGeneratedTasks(updatedTasks);
-                                      }
-                                    } else if (value === "") {
-                                      const updatedTasks = generatedTasks.map(t => 
-                                        t.id === task.id ? { ...t, startDate: "" } : t
-                                      );
-                                      setGeneratedTasks(updatedTasks);
-                                    }
+                                    const updatedTasks = generatedTasks.map(t => 
+                                      t.id === task.id ? { ...t, startDate: e.target.value } : t
+                                    );
+                                    setGeneratedTasks(updatedTasks);
                                   }}
-                                  placeholder="dd/mm/yyyy"
-                                  className="date-input"
+                                  className="date-picker"
                                 />
                               </div>
 
                               {/* Ngày kết thúc */}
-                              <div className="detail-field">
-                                <div className="field-label">
-                                  <Calendar size={14} />
-                                  <span>Ngày kết thúc</span>
+                              <div className="detail-field date-field">
+                                <div className="date-icon">
+                                  <Calendar size={16} />
                                 </div>
                                 <input
-                                  type="text"
-                                  value={formatDate(task.endDate || "")}
+                                  type="date"
+                                  value={task.endDate || ""}
                                   onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (value && value.includes('-') && value.split('-')[0].length === 2) {
-                                      const parts = value.split('-');
-                                      if (parts.length === 3) {
-                                        const [day, month, year] = parts;
-                                        const convertedDate = `${year}-${month}-${day}`;
-                                        const updatedTasks = generatedTasks.map(t => 
-                                          t.id === task.id ? { ...t, endDate: convertedDate } : t
-                                        );
-                                        setGeneratedTasks(updatedTasks);
-                                      }
-                                    } else if (value === "") {
-                                      const updatedTasks = generatedTasks.map(t => 
-                                        t.id === task.id ? { ...t, endDate: "" } : t
-                                      );
-                                      setGeneratedTasks(updatedTasks);
-                                    }
+                                    const updatedTasks = generatedTasks.map(t => 
+                                      t.id === task.id ? { ...t, endDate: e.target.value } : t
+                                    );
+                                    setGeneratedTasks(updatedTasks);
                                   }}
-                                  placeholder="dd/mm/yyyy"
-                                  className="date-input"
+                                  className="date-picker"
                                 />
                               </div>
                             </div>
