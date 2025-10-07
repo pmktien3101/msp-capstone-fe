@@ -16,7 +16,7 @@ interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  businessSector?: string; // Thêm trường ngành kinh doanh
+  // Đã bỏ businessSector
 }
 
 type AccountType = "member" | "business";
@@ -35,7 +35,7 @@ export default function SignUpPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    businessSector: "",
+    // Đã bỏ businessSector
   });
 
   // Check if user is already authenticated
@@ -137,16 +137,7 @@ export default function SignUpPage() {
     }));
   };
 
-  const businessSectors = [
-    "Công nghệ thông tin",
-    "Tài chính",
-    "Y tế",
-    "Giáo dục",
-    "Sản xuất",
-    "Thương mại",
-    "Dịch vụ",
-    "Khác",
-  ];
+  // Đã bỏ businessSectors
 
   const isFormValid = () => {
     const baseValid =
@@ -157,13 +148,9 @@ export default function SignUpPage() {
       registerForm.confirmPassword &&
       registerForm.password === registerForm.confirmPassword;
 
-    // Business accounts also need organization name & business sector
+    // Business accounts chỉ cần organizationName, không cần businessSector
     if (accountType === "business") {
-      return (
-        baseValid &&
-        registerForm.organizationName &&
-        registerForm.businessSector
-      );
+      return baseValid && registerForm.organizationName;
     }
 
     return baseValid;
@@ -227,44 +214,25 @@ export default function SignUpPage() {
               </div>
 
               {accountType === "business" && (
-                <>
-                  <div className="form-group">
-                    <label htmlFor="organizationName">
-                      Tên Tổ Chức/Doanh Nghiệp *
-                    </label>
-                    <div className="input-wrapper">
-                      <input
-                        type="text"
-                        id="organizationName"
-                        name="organizationName"
-                        placeholder="Nhập tên tổ chức/doanh nghiệp"
-                        value={registerForm.organizationName}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
+                <div className="form-group">
+                  <label htmlFor="organizationName">
+                    Tên Tổ Chức/Doanh Nghiệp *
+                  </label>
+                  <div className="input-wrapper">
+                    <input
+                      type="text"
+                      id="organizationName"
+                      name="organizationName"
+                      placeholder="Nhập tên tổ chức/doanh nghiệp"
+                      value={registerForm.organizationName}
+                      onChange={handleInputChange}
+                      required
+                    />
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="businessSector">Ngành Kinh Doanh *</label>
-                    <div className="input-wrapper">
-                      <select
-                        id="businessSector"
-                        name="businessSector"
-                        value={registerForm.businessSector}
-                        onChange={handleInputChange}
-                        required
-                      >
-                        <option value="">-- Chọn ngành --</option>
-                        {businessSectors.map((sector) => (
-                          <option key={sector} value={sector}>
-                            {sector}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </>
+                </div>
               )}
+
+              {/* Đã bỏ trường ngành kinh doanh */}
 
               <div className="form-group">
                 <label htmlFor="phone">Số Điện Thoại *</label>

@@ -2,8 +2,7 @@
 
 import { Eye } from "lucide-react";
 import UserDetailModal from "@/components/modals/UserDetailModal";
-import React, { useEffect, useState } from "react";
-import * as XLSX from "xlsx";
+import React, { useState } from "react";
 
 interface Member {
   id: string;
@@ -70,80 +69,16 @@ const MembersRolesPage = () => {
     },
   ]);
 
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<
     "all" | "Member" | "ProjectManager"
   >("all");
-  const [importedData, setImportedData] = useState<any[]>([]);
-
-  const [newMember, setNewMember] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    role: "Member" as "Member" | "ProjectManager",
-  });
-
-  // Giả sử đây là danh sách tất cả member trong hệ thống (thường lấy từ API)
-  const [allMembers, setAllMembers] = useState<Member[]>([
-    {
-      id: "1",
-      name: "Nguyễn Văn A",
-      email: "nguyenvana@company.com",
-      phone: "+84 123 456 789",
-      password: "password123",
-      role: "ProjectManager",
-      status: "active",
-      joinDate: "2024-01-15",
-      lastActive: "2024-12-20",
-      projects: 5,
-    },
-    {
-      id: "2",
-      name: "Trần Thị B",
-      email: "tranthib@company.com",
-      phone: "+84 987 654 321",
-      password: "password123",
-      role: "Member",
-      status: "active",
-      joinDate: "2024-02-20",
-      lastActive: "2024-12-19",
-      projects: 3,
-    },
-    {
-      id: "3",
-      name: "Lê Văn C",
-      email: "levanc@company.com",
-      phone: "+84 555 123 456",
-      password: "password123",
-      role: "Member",
-      status: "inactive",
-      joinDate: "2024-03-10",
-      lastActive: "2024-12-15",
-      projects: 2,
-    },
-    {
-      id: "4",
-      name: "Phạm Thị D",
-      email: "phamthid@company.com",
-      phone: "+84 111 222 333",
-      password: "password123",
-      role: "ProjectManager",
-      status: "active",
-      joinDate: "2024-04-05",
-      lastActive: "2024-12-20",
-      projects: 4,
-    },
-  ]);
-
-  const [selectedInviteMemberId, setSelectedInviteMemberId] =
-    useState<string>("");
+  const [inviteEmails, setInviteEmails] = useState<string[]>([]);
+  const [inviteInput, setInviteInput] = useState("");
 
   const [activeTab, setActiveTab] = useState<
     "members" | "requests" | "invites"
@@ -164,109 +99,7 @@ const MembersRolesPage = () => {
       projects: 0,
     },
   ]);
-  const [sentInvites, setSentInvites] = useState<Member[]>([
-    {
-      id: "6",
-      name: "Đặng Thị F",
-      email: "dangthif@company.com",
-      phone: "+84 333 444 555",
-      password: "password123",
-      role: "ProjectManager",
-      status: "inactive",
-      joinDate: "2024-09-02",
-      lastActive: "2024-09-11",
-      projects: 0,
-    },
-  ]);
-
-  // Download Excel template
-  const downloadTemplate = () => {
-    const templateData = [
-      {
-        Tên: "Nguyễn Văn A",
-        Email: "nguyenvana@company.com",
-        "Vai trò": "ProjectManager",
-      },
-      {
-        Tên: "Trần Thị B",
-        Email: "tranthib@company.com",
-        "Vai trò": "Member",
-      },
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Members");
-
-    ws["!cols"] = [
-      { wch: 20 }, // Tên
-      { wch: 30 }, // Email
-      { wch: 18 }, // Vai trò
-    ];
-
-    XLSX.writeFile(wb, "template_invite_members.xlsx");
-  };
-
-  // Handle file import
-  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target?.result as ArrayBuffer);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-      // Chỉ lấy Tên, Email, Vai trò, kiểm tra member có tồn tại trong hệ thống
-      const validatedData = jsonData.map((row: any, index: number) => {
-        const name = row["Tên"] || "";
-        const email = row["Email"] || "";
-        const role = row["Vai trò"] || "";
-
-        // Tìm member trong hệ thống
-        const found = allMembers.find(
-          (m) => m.email.toLowerCase() === email.toString().trim().toLowerCase()
-        );
-
-        return {
-          rowIndex: index + 2,
-          name: name.toString().trim(),
-          email: email.toString().trim(),
-          role: role.toString().trim(),
-          isValid: !!found && !members.some((bm) => bm.email === found.email),
-          errors: !found
-            ? ["Không tìm thấy thành viên trong hệ thống"]
-            : members.some((bm) => bm.email === found.email)
-            ? ["Thành viên đã có trong business"]
-            : [],
-          member: found,
-        };
-      });
-
-      setImportedData(validatedData);
-      setShowImportModal(false);
-      setShowPreviewModal(true);
-    };
-
-    reader.readAsArrayBuffer(file);
-  };
-
-  // Confirm import
-  const confirmImport = () => {
-    const validData = importedData.filter(
-      (item) => item.isValid && item.member
-    );
-
-    // Chỉ thêm member đã có trong hệ thống vào business
-    const invitedMembers: Member[] = validData.map((item) => item.member);
-
-    setMembers((prev) => [...prev, ...invitedMembers]);
-    setImportedData([]);
-    setShowPreviewModal(false);
-  };
+  const [sentInvites, setSentInvites] = useState<string[]>([]);
 
   const filteredMembers = members.filter((member) => {
     const matchesSearch =
@@ -325,59 +158,36 @@ const MembersRolesPage = () => {
     );
   };
 
-  useEffect(() => {
-    // Giả lập fetch API lấy allMembers, bạn thay bằng API thật nếu có
-    setAllMembers([
-      {
-        id: "1",
-        name: "Nguyễn Văn A",
-        email: "nguyenvana@company.com",
-        phone: "+84 123 456 789",
-        password: "password123",
-        role: "ProjectManager",
-        status: "active",
-        joinDate: "2024-01-15",
-        lastActive: "2024-12-20",
-        projects: 5,
-      },
-      {
-        id: "2",
-        name: "Trần Thị B",
-        email: "tranthib@company.com",
-        phone: "+84 987 654 321",
-        password: "password123",
-        role: "Member",
-        status: "active",
-        joinDate: "2024-02-20",
-        lastActive: "2024-12-19",
-        projects: 3,
-      },
-      {
-        id: "3",
-        name: "Lê Văn C",
-        email: "levanc@company.com",
-        phone: "+84 555 123 456",
-        password: "password123",
-        role: "Member",
-        status: "inactive",
-        joinDate: "2024-03-10",
-        lastActive: "2024-12-15",
-        projects: 2,
-      },
-      {
-        id: "4",
-        name: "Phạm Thị D",
-        email: "phamthid@company.com",
-        phone: "+84 111 222 333",
-        password: "password123",
-        role: "ProjectManager",
-        status: "active",
-        joinDate: "2024-04-05",
-        lastActive: "2024-12-20",
-        projects: 4,
-      },
-    ]);
-  }, []);
+  // Handle invite input (add email when press Enter or click Add)
+  const handleInviteInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if ((e.key === "Enter" || e.key === ",") && inviteInput.trim()) {
+      e.preventDefault();
+      addInviteEmail(inviteInput.trim());
+    }
+  };
+
+  const addInviteEmail = (email: string) => {
+    if (
+      email &&
+      !inviteEmails.includes(email) &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ) {
+      setInviteEmails([...inviteEmails, email]);
+      setInviteInput("");
+    }
+  };
+
+  const removeInviteEmail = (email: string) => {
+    setInviteEmails(inviteEmails.filter((e) => e !== email));
+  };
+
+  const handleSendInvites = () => {
+    setSentInvites([...sentInvites, ...inviteEmails]);
+    setInviteEmails([]);
+    setShowInviteModal(false);
+  };
 
   return (
     <div className="members-roles-page">
@@ -542,66 +352,8 @@ const MembersRolesPage = () => {
               </div>
               <div className="header-actions">
                 <button
-                  className="download-template-btn"
-                  onClick={downloadTemplate}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M7 10L12 15L17 10"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M12 15V3"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Tải Template
-                </button>
-                <button
-                  className="import-excel-btn"
-                  onClick={() => setShowImportModal(true)}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M17 8L12 3L7 8"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M12 3V15"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Import Excel
-                </button>
-                <button
                   className="add-member-btn"
-                  onClick={() => setShowAddModal(true)}
+                  onClick={() => setShowInviteModal(true)}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path
@@ -612,7 +364,7 @@ const MembersRolesPage = () => {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  Thêm Thành Viên
+                  Mời thành viên
                 </button>
               </div>
             </div>
@@ -931,15 +683,15 @@ const MembersRolesPage = () => {
         </div>
       )}
 
-      {/* Add Member Modal */}
-      {showAddModal && (
+      {/* Invite Member Modal */}
+      {showInviteModal && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h3>Thêm Thành Viên Mới</h3>
+              <h3>Mời thành viên mới</h3>
               <button
                 className="close-btn"
-                onClick={() => setShowAddModal(false)}
+                onClick={() => setShowInviteModal(false)}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path
@@ -953,45 +705,56 @@ const MembersRolesPage = () => {
               </button>
             </div>
             <div className="modal-body">
-              <div className="form-group full-width">
-                <label>Chọn thành viên từ hệ thống để gửi lời mời</label>
-                <select
-                  value={selectedInviteMemberId}
-                  onChange={(e) => setSelectedInviteMemberId(e.target.value)}
+              <label htmlFor="invite-email-input">
+                Nhập email thành viên cần mời, nhấn Enter để thêm
+              </label>
+              <div className="invite-input-group">
+                <input
+                  id="invite-email-input"
+                  type="email"
+                  placeholder="Nhập email cần mời..."
+                  value={inviteInput}
+                  onChange={(e) => setInviteInput(e.target.value)}
+                  onKeyDown={handleInviteInputKeyDown}
+                />
+                <button
+                  type="button"
+                  className="add-email-btn"
+                  onClick={() => addInviteEmail(inviteInput.trim())}
+                  disabled={!inviteInput.trim()}
                 >
-                  <option value="">-- Chọn thành viên --</option>
-                  {allMembers
-                    .filter((m) => !members.some((bm) => bm.id === m.id)) // loại bỏ member đã có trong business
-                    .map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.email})
-                      </option>
-                    ))}
-                </select>
+                  Thêm
+                </button>
+              </div>
+              <div className="invite-emails-list">
+                {inviteEmails.map((email) => (
+                  <span key={email} className="invite-email-label">
+                    {email}
+                    <button
+                      type="button"
+                      className="remove-email-btn"
+                      onClick={() => removeInviteEmail(email)}
+                      title="Xóa email"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
               </div>
             </div>
             <div className="modal-footer">
               <button
                 className="cancel-btn"
-                onClick={() => setShowAddModal(false)}
+                onClick={() => setShowInviteModal(false)}
               >
                 Hủy
               </button>
               <button
                 className="save-btn"
-                onClick={() => {
-                  const memberToInvite = allMembers.find(
-                    (m) => m.id === selectedInviteMemberId
-                  );
-                  if (memberToInvite) {
-                    setMembers([...members, memberToInvite]);
-                    setShowAddModal(false);
-                    setSelectedInviteMemberId("");
-                  }
-                }}
-                disabled={!selectedInviteMemberId}
+                onClick={handleSendInvites}
+                disabled={inviteEmails.length === 0}
               >
-                Gửi Lời Mời
+                Gửi lời mời ({inviteEmails.length})
               </button>
             </div>
           </div>
@@ -1104,213 +867,6 @@ const MembersRolesPage = () => {
                 onClick={() => setShowEditModal(false)}
               >
                 Hủy
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Import Excel Modal */}
-      {showImportModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Import Thành Viên từ Excel</h3>
-              <button
-                className="close-btn"
-                onClick={() => setShowImportModal(false)}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M18 6L6 18M6 6L18 18"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="import-instructions">
-                <h4>Hướng dẫn import:</h4>
-                <ol>
-                  <li>Tải template Excel mẫu bằng nút "Tải Template"</li>
-                  <li>Điền thông tin thành viên vào file Excel</li>
-                  <li>Chọn file Excel đã điền để import</li>
-                </ol>
-              </div>
-
-              <div className="file-upload-area">
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleFileImport}
-                  id="excel-file-input"
-                  style={{ display: "none" }}
-                />
-                <label htmlFor="excel-file-input" className="file-upload-label">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M14 2V8H20"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M16 13H8"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M16 17H8"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M10 9H8"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <span>Chọn file Excel để import</span>
-                  <small>Hỗ trợ file .xlsx, .xls</small>
-                </label>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                className="cancel-btn"
-                onClick={() => setShowImportModal(false)}
-              >
-                Hủy
-              </button>
-              <button
-                className="download-template-btn"
-                onClick={downloadTemplate}
-              >
-                Tải Template
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Preview Import Modal */}
-      {showPreviewModal && (
-        <div className="modal-overlay">
-          <div className="modal preview-modal">
-            <div className="modal-header">
-              <h3>Xem trước dữ liệu import</h3>
-              <button
-                className="close-btn"
-                onClick={() => setShowPreviewModal(false)}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M18 6L6 18M6 6L18 18"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="import-summary">
-                <div className="summary-item">
-                  <span className="label">Tổng số dòng:</span>
-                  <span className="value">{importedData.length}</span>
-                </div>
-                <div className="summary-item">
-                  <span className="label">Dữ liệu hợp lệ:</span>
-                  <span className="value valid">
-                    {importedData.filter((item) => item.isValid).length}
-                  </span>
-                </div>
-                <div className="summary-item">
-                  <span className="label">Dữ liệu lỗi:</span>
-                  <span className="value error">
-                    {importedData.filter((item) => !item.isValid).length}
-                  </span>
-                </div>
-              </div>
-
-              <div className="preview-table">
-                <div className="preview-header">
-                  <div className="preview-col">Dòng</div>
-                  <div className="preview-col">Tên</div>
-                  <div className="preview-col">Email</div>
-                  <div className="preview-col">Vai trò</div>
-                  <div className="preview-col">Trạng thái</div>
-                </div>
-
-                {importedData.map((item, index) => (
-                  <div
-                    key={index}
-                    className={`preview-row ${
-                      item.isValid ? "valid" : "error"
-                    }`}
-                  >
-                    <div className="preview-col">{item.rowIndex}</div>
-                    <div className="preview-col">{item.name}</div>
-                    <div className="preview-col">{item.email}</div>
-                    <div className="preview-col">{item.role}</div>
-                    <div className="preview-col">
-                      {item.isValid ? (
-                        <span className="status-valid">✓ Hợp lệ</span>
-                      ) : (
-                        <div className="status-error">
-                          <span>✗ Lỗi</span>
-                          <div className="error-details">
-                            {item.errors.map((error: string, i: number) => (
-                              <div key={i} className="error-item">
-                                {error}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                className="cancel-btn"
-                onClick={() => setShowPreviewModal(false)}
-              >
-                Hủy
-              </button>
-              <button
-                className="confirm-import-btn"
-                onClick={confirmImport}
-                disabled={
-                  importedData.filter((item) => item.isValid).length === 0
-                }
-              >
-                Import {importedData.filter((item) => item.isValid).length}{" "}
-                thành viên
               </button>
             </div>
           </div>
@@ -2318,6 +1874,59 @@ const MembersRolesPage = () => {
         .requests-table h3,
         .invites-table h3 {
           margin-bottom: 16px;
+        }
+
+        .invite-input-group {
+          display: flex;
+          gap: 8px;
+          margin-top: 12px;
+        }
+        .invite-input-group input {
+          flex: 1;
+          padding: 10px 12px;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          font-size: 14px;
+        }
+        .add-email-btn {
+          background: #ff5e13;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          padding: 0 16px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+        .add-email-btn:disabled {
+          background: #f3f4f6;
+          color: #787486;
+          cursor: not-allowed;
+        }
+        .invite-emails-list {
+          margin-top: 12px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .invite-email-label {
+          background: #f3f4f6;
+          color: #0d062d;
+          border-radius: 16px;
+          padding: 6px 16px;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .remove-email-btn {
+          background: none;
+          border: none;
+          color: #dc2626;
+          font-size: 18px;
+          cursor: pointer;
+          margin-left: 4px;
         }
       `}</style>
     </div>

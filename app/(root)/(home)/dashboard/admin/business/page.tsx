@@ -4,12 +4,12 @@ import { useState } from "react";
 import {
   Eye,
   Edit,
-  Pause,
   Trash2,
   X,
   Search,
   CheckCircle,
   XCircle,
+  UserX, // Thêm icon mới
 } from "lucide-react";
 
 interface BusinessOwner {
@@ -385,12 +385,12 @@ const AdminBusinessOwners = () => {
                   {businessOwner.status !== "inactive" && (
                     <button
                       className="action-btn deactivate"
-                      title="Vô hiệu hóa"
+                      title="Ngừng hoạt động"
                       onClick={() =>
                         handleDeactivateBusinessOwner(businessOwner)
                       }
                     >
-                      <Pause size={16} />
+                      <UserX size={16} />
                     </button>
                   )}
                 </div>
@@ -814,12 +814,12 @@ const AdminBusinessOwners = () => {
         }
 
         .action-btn.deactivate {
-          color: #f59e0b;
+          color: #f50b0b;
         }
 
         .action-btn.deactivate:hover {
-          background: #fef3c7;
-          color: #d97706;
+          background: #fed5c7;
+          color: #f50b0b;
         }
 
         .action-btn.delete {

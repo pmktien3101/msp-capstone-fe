@@ -1056,16 +1056,6 @@ const AdminDashboard = () => {
 
       {/* Charts Row 2 */}
       <div className="charts-row">
-        {/* Thống Kê Công Ty Theo Ngành */}
-        <div className="traffic-device">
-          <div className="section-header">
-            <h3>Thống Kê Công Ty Theo Ngành</h3>
-          </div>
-          <div className="device-chart">
-            <Bar data={industryData} options={industryOptions} />
-          </div>
-        </div>
-
         {/* Thống Kê Cuộc Họp Theo Thời Gian */}
         <div className="traffic-location">
           <div className="section-header">

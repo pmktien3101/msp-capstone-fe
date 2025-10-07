@@ -37,7 +37,7 @@ import {
 interface Business {
   id: string;
   name: string;
-  industry: string;
+  // industry: string; // Đã bỏ ngành
   memberCount: number;
   projectManagerCount: number;
   projectCount: number;
@@ -47,7 +47,7 @@ interface Business {
 interface BusinessInvitation {
   id: string;
   businessName: string;
-  businessIndustry: string;
+  // businessIndustry: string; // Đã bỏ ngành
   invitedBy: string;
   invitedAt: string;
   status: "pending";
@@ -56,7 +56,7 @@ interface BusinessInvitation {
 interface SearchResult {
   id: string;
   name: string;
-  industry: string;
+  // industry: string; // Đã bỏ ngành
   memberCount: number;
   description: string;
 }
@@ -74,7 +74,7 @@ export default function BusinessDashboard() {
   const [currentBusiness, setCurrentBusiness] = useState<Business | null>({
     id: "1",
     name: "Tech Innovations Vietnam",
-    industry: "Công nghệ thông tin",
+    // industry: "Công nghệ thông tin", // Đã bỏ ngành
     memberCount: 24,
     projectManagerCount: 5,
     projectCount: 12,
@@ -85,7 +85,7 @@ export default function BusinessDashboard() {
     {
       id: "1",
       businessName: "Digital Marketing Pro",
-      businessIndustry: "Marketing",
+      // businessIndustry: "Marketing", // Đã bỏ ngành
       invitedBy: "Nguyễn Văn A",
       invitedAt: "2024-01-15",
       status: "pending",
@@ -93,7 +93,7 @@ export default function BusinessDashboard() {
     {
       id: "2",
       businessName: "E-commerce Solutions",
-      businessIndustry: "Thương mại điện tử",
+      // businessIndustry: "Thương mại điện tử", // Đã bỏ ngành
       invitedBy: "Trần Thị B",
       invitedAt: "2024-01-14",
       status: "pending",
@@ -147,21 +147,21 @@ export default function BusinessDashboard() {
       {
         id: "1",
         name: "Startup Hub Vietnam",
-        industry: "Công nghệ",
+        // industry: "Công nghệ", // Đã bỏ ngành
         memberCount: 15,
         description: "Cộng đồng startup công nghệ hàng đầu Việt Nam",
       },
       {
         id: "2",
         name: "Creative Agency",
-        industry: "Thiết kế & Sáng tạo",
+        // industry: "Thiết kế & Sáng tạo", // Đã bỏ ngành
         memberCount: 30,
         description: "Agency chuyên về thiết kế và marketing sáng tạo",
       },
       {
         id: "3",
         name: "Finance Solutions",
-        industry: "Tài chính",
+        // industry: "Tài chính", // Đã bỏ ngành
         memberCount: 45,
         description: "Giải pháp tài chính doanh nghiệp",
       },
@@ -189,7 +189,7 @@ export default function BusinessDashboard() {
     const newRequest = {
       id: Date.now().toString(),
       name: business.name,
-      industry: business.industry,
+      industry: "", // Provide a default value or retrieve if available
       sentAt: new Date().toISOString().split("T")[0],
     };
     setSentJoinRequests([newRequest, ...sentJoinRequests]);
@@ -211,22 +211,6 @@ export default function BusinessDashboard() {
     setInviteEmail("");
     setInviteName("");
     console.log("[v0] Sent invitation to:", inviteEmail);
-  };
-
-  const handleSendJoinRequest = () => {
-    if (!requestBusinessName.trim() || !requestBusinessIndustry.trim()) return;
-    const newRequest = {
-      id: Date.now().toString(),
-      name: requestBusinessName,
-      industry: requestBusinessIndustry,
-      reason: requestReason,
-      sentAt: new Date().toISOString().split("T")[0],
-    };
-    setSentJoinRequests([newRequest, ...sentJoinRequests]);
-    setRequestBusinessName("");
-    setRequestBusinessIndustry("");
-    setRequestReason("");
-    console.log("[v0] Sent join request to:", requestBusinessName);
   };
 
   // Thêm hàm xử lý rời doanh nghiệp
@@ -267,92 +251,6 @@ export default function BusinessDashboard() {
                   Gửi Yêu Cầu Tham Gia
                 </TabsTrigger>
               </TabsList>
-
-              <Dialog
-                open={isSearchDialogOpen}
-                onOpenChange={setIsSearchDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="gap-2 bg-transparent">
-                    <Search className="h-4 w-4" />
-                    Tìm Kiếm Business
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Tìm Kiếm Business</DialogTitle>
-                    <DialogDescription>
-                      Tìm kiếm và xem thông tin các business khác trong hệ thống
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="space-y-4 mt-4">
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Tìm kiếm theo tên business, ngành nghề..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                          className="pl-9"
-                        />
-                      </div>
-                      <Button onClick={handleSearch}>Tìm Kiếm</Button>
-                    </div>
-
-                    {searchResults.length > 0 && (
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-semibold text-muted-foreground">
-                          Kết Quả Tìm Kiếm ({searchResults.length})
-                        </h3>
-                        {searchResults.map((business) => (
-                          <Card key={business.id}>
-                            <CardContent className="pt-4">
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="flex gap-3 flex-1">
-                                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                    <Building2 className="h-5 w-5 text-primary" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-semibold">
-                                      {business.name}
-                                    </h4>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
-                                      {business.industry} •{" "}
-                                      {business.memberCount} thành viên
-                                    </p>
-                                    <p className="text-sm mt-1.5">
-                                      {business.description}
-                                    </p>
-                                  </div>
-                                </div>
-                                {!currentBusiness && (
-                                  <Button
-                                    size="sm"
-                                    onClick={() =>
-                                      handleJoinBusiness(business.id)
-                                    }
-                                    className="bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
-                                  >
-                                    Gửi Yêu Cầu
-                                  </Button>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-
-                    {searchQuery && searchResults.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        Không tìm thấy kết quả phù hợp
-                      </div>
-                    )}
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
 
             <TabsContent value="my-business" className="space-y-6 mt-6">
@@ -370,9 +268,7 @@ export default function BusinessDashboard() {
                             <CardTitle className="text-2xl">
                               {currentBusiness.name}
                             </CardTitle>
-                            <CardDescription className="text-base mt-1">
-                              {currentBusiness.industry}
-                            </CardDescription>
+                            {/* Đã bỏ ngành */}
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-2">
@@ -465,7 +361,7 @@ export default function BusinessDashboard() {
                         <div className="relative flex-1">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
-                            placeholder="Tìm kiếm theo tên business, ngành nghề..."
+                            placeholder="Tìm kiếm theo tên business..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) =>
@@ -498,8 +394,8 @@ export default function BusinessDashboard() {
                                     {business.name}
                                   </h4>
                                   <p className="text-sm text-muted-foreground mt-1">
-                                    {business.industry} • {business.memberCount}{" "}
-                                    thành viên
+                                    {/* Đã bỏ ngành, chỉ hiện số thành viên */}
+                                    {business.memberCount} thành viên
                                   </p>
                                   <p className="text-sm mt-2">
                                     {business.description}
@@ -551,9 +447,7 @@ export default function BusinessDashboard() {
                                   Chờ phản hồi
                                 </Badge>
                               </div>
-                              <p className="text-sm text-muted-foreground">
-                                {invitation.businessIndustry}
-                              </p>
+                              {/* Đã bỏ ngành */}
                               <p className="text-sm mt-2">
                                 Được mời bởi{" "}
                                 <span className="font-medium">
@@ -638,9 +532,7 @@ export default function BusinessDashboard() {
                                   Chờ phản hồi
                                 </Badge>
                               </div>
-                              <p className="text-sm text-muted-foreground">
-                                {req.industry}
-                              </p>
+                              {/* Đã bỏ ngành */}
                               <p className="text-sm mt-2">
                                 Gửi lúc{" "}
                                 {new Date(req.sentAt).toLocaleDateString(
