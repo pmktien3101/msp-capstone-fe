@@ -1084,6 +1084,15 @@ export default function MeetingDetailPage() {
                             </div>
                           </div>
 
+                          {/* Status tag ở bên phải */}
+                          <div className="task-status">
+                            <span className={`status-badge status-${task.status || 'pending'}`}>
+                              {task.status === 'in-progress' ? 'In Progress' : 
+                               task.status === 'completed' ? 'Completed' : 
+                               task.status === 'review' ? 'Review' : 'Pending'}
+                            </span>
+                          </div>
+
                           <div className="task-actions">
                             {!isTaskCreated[task.id] && (
                               <div className="action-btn-wrapper" title="Thêm vào danh sách công việc">
