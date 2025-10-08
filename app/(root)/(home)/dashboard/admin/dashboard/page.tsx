@@ -668,51 +668,6 @@ const AdminDashboard = () => {
         </div>
 
         <div
-          className="stat-card purple interactive"
-          onMouseEnter={() => setHoveredBar("subscriptions")}
-          onMouseLeave={() => setHoveredBar(null)}
-        >
-          <div className="stat-header">
-            <div className="stat-label">Gói đăng ký</div>
-          </div>
-          <div className="stat-content">
-            <div className="stat-value">
-              {formatNumber(currentStats.subscriptions.current)}
-            </div>
-            <div className="stat-change">
-              <span className="change-text positive">
-                +{currentStats.subscriptions.change}%
-              </span>
-              <div className="change-icon up">↗</div>
-            </div>
-          </div>
-          {hoveredBar === "subscriptions" && (
-            <div className="tooltip">
-              <div className="tooltip-content">
-                <strong>
-                  Gói đăng ký{" "}
-                  {isCustomRange
-                    ? "khoảng thời gian tùy chỉnh"
-                    : timeFilterOptions.find(
-                        (opt) => opt.value === selectedTimeFilter
-                      )?.label}
-                </strong>
-                <br />
-                Tăng {currentStats.subscriptions.change}% so với{" "}
-                {isCustomRange
-                  ? "khoảng thời gian trước đó"
-                  : timeFilterOptions
-                      .find((opt) => opt.value === selectedTimeFilter)
-                      ?.label.replace("qua", "trước đó")}
-                <br />
-                Từ {formatNumber(currentStats.subscriptions.previous)} lên{" "}
-                {formatNumber(currentStats.subscriptions.current)}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div
           className="stat-card blue interactive"
           onMouseEnter={() => setHoveredBar("companies")}
           onMouseLeave={() => setHoveredBar(null)}
@@ -756,7 +711,52 @@ const AdminDashboard = () => {
             </div>
           )}
         </div>
-
+        {/* Thêm tổng người dùng ở đây */}
+        <div
+          className="stat-card blue interactive"
+          onMouseEnter={() => setHoveredBar("users")}
+          onMouseLeave={() => setHoveredBar(null)}
+        >
+          <div className="stat-header">
+            <div className="stat-label">Tổng người dùng</div>
+          </div>
+          <div className="stat-content">
+            <div className="stat-value">
+              {/* Giả sử dùng subscriptions.current làm số người dùng, bạn có thể thay bằng dữ liệu thật */}
+              {formatNumber(currentStats.subscriptions.current)}
+            </div>
+            <div className="stat-change">
+              <span className="change-text positive">
+                +{currentStats.subscriptions.change}%
+              </span>
+              <div className="change-icon up">↗</div>
+            </div>
+          </div>
+          {hoveredBar === "users" && (
+            <div className="tooltip">
+              <div className="tooltip-content">
+                <strong>
+                  Người dùng{" "}
+                  {isCustomRange
+                    ? "khoảng thời gian tùy chỉnh"
+                    : timeFilterOptions.find(
+                        (opt) => opt.value === selectedTimeFilter
+                      )?.label}
+                </strong>
+                <br />
+                Tăng {currentStats.subscriptions.change}% so với{" "}
+                {isCustomRange
+                  ? "khoảng thời gian trước đó"
+                  : timeFilterOptions
+                      .find((opt) => opt.value === selectedTimeFilter)
+                      ?.label.replace("qua", "trước đó")}
+                <br />
+                Từ {formatNumber(currentStats.subscriptions.previous)} lên{" "}
+                {formatNumber(currentStats.subscriptions.current)}
+              </div>
+            </div>
+          )}
+        </div>
         <div
           className="stat-card purple interactive"
           onMouseEnter={() => setHoveredBar("meetings")}
@@ -1056,16 +1056,6 @@ const AdminDashboard = () => {
 
       {/* Charts Row 2 */}
       <div className="charts-row">
-        {/* Thống Kê Công Ty Theo Ngành */}
-        <div className="traffic-device">
-          <div className="section-header">
-            <h3>Thống Kê Công Ty Theo Ngành</h3>
-          </div>
-          <div className="device-chart">
-            <Bar data={industryData} options={industryOptions} />
-          </div>
-        </div>
-
         {/* Thống Kê Cuộc Họp Theo Thời Gian */}
         <div className="traffic-location">
           <div className="section-header">
@@ -1122,7 +1112,7 @@ const AdminDashboard = () => {
         }
 
         .stat-card {
-          flex: 1 1 0;
+          flex: 1 1 1;
           min-width: 200px;
           padding: 24px;
           border-radius: 16px;

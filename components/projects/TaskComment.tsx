@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Comment } from '@/types/comment';
-import Avatar from '@/components/ui/Avatar';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { useState } from "react";
+import { Comment } from "@/types/comment";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { AvatarImage } from "@radix-ui/react-avatar";
 
 interface TaskCommentProps {
   comment: Comment;
@@ -15,17 +16,17 @@ interface TaskCommentProps {
   showReplies?: boolean;
 }
 
-export function TaskComment({ 
-  comment, 
-  onReply, 
-  onEdit, 
-  onDelete, 
+export function TaskComment({
+  comment,
+  onReply,
+  onEdit,
+  onDelete,
   currentUserId,
-  showReplies = true 
+  showReplies = true,
 }: TaskCommentProps) {
   const [isReplying, setIsReplying] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [replyContent, setReplyContent] = useState('');
+  const [replyContent, setReplyContent] = useState("");
   const [editContent, setEditContent] = useState(comment.content);
   const [showRepliesState, setShowRepliesState] = useState(showReplies);
 
@@ -36,7 +37,7 @@ export function TaskComment({
   const handleReply = () => {
     if (replyContent.trim() && onReply) {
       onReply(comment.id, replyContent.trim());
-      setReplyContent('');
+      setReplyContent("");
       setIsReplying(false);
     }
   };
@@ -49,7 +50,7 @@ export function TaskComment({
   };
 
   const handleDelete = () => {
-    if (onDelete && confirm('Bạn có chắc muốn xóa bình luận này?')) {
+    if (onDelete && confirm("Bạn có chắc muốn xóa bình luận này?")) {
       onDelete(comment.id);
     }
   };
@@ -57,16 +58,19 @@ export function TaskComment({
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+    const diffInHours = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+    );
+
     if (diffInHours < 1) {
-      return 'Vừa xong';
+      return "Vừa xong";
     } else if (diffInHours < 24) {
       return `${diffInHours} giờ trước`;
-    } else if (diffInHours < 168) { // 7 days
+    } else if (diffInHours < 168) {
+      // 7 days
       return `${Math.floor(diffInHours / 24)} ngày trước`;
     } else {
-      return date.toLocaleDateString('vi-VN');
+      return date.toLocaleDateString("vi-VN");
     }
   };
 
@@ -74,42 +78,68 @@ export function TaskComment({
     <div className="task-comment">
       <div className="comment-header">
         <div className="comment-author">
-          <Avatar 
-            src={comment.author.avatar} 
-            alt={comment.author.name}
-            size="sm"
-          />
+          <AvatarImage src={comment.author.avatar} alt={comment.author.name} />
           <div className="author-info">
             <span className="author-name">{comment.author.name}</span>
             <span className="comment-time">
               {formatDate(comment.createdAt)}
-              {comment.isEdited && ' (đã chỉnh sửa)'}
+              {comment.isEdited && " (đã chỉnh sửa)"}
             </span>
           </div>
         </div>
-        
+
         {canEdit && (
           <div className="comment-actions">
-            <button 
+            <button
               className="action-btn"
               onClick={() => setIsEditing(!isEditing)}
               title="Chỉnh sửa"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path
+                  d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </button>
             {canDelete && (
-              <button 
+              <button
                 className="action-btn delete"
                 onClick={handleDelete}
                 title="Xóa"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M3 6h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path
+                    d="M3 6h18"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </button>
             )}
@@ -127,9 +157,9 @@ export function TaskComment({
               className="edit-textarea"
             />
             <div className="edit-actions">
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => {
                   setIsEditing(false);
                   setEditContent(comment.content);
@@ -137,8 +167,8 @@ export function TaskComment({
               >
                 Hủy
               </Button>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={handleEdit}
                 disabled={!editContent.trim()}
               >
@@ -147,19 +177,23 @@ export function TaskComment({
             </div>
           </div>
         ) : (
-          <div className="comment-text">
-            {comment.content}
-          </div>
+          <div className="comment-text">{comment.content}</div>
         )}
       </div>
 
       <div className="comment-footer">
-        <button 
+        <button
           className="reply-btn"
           onClick={() => setIsReplying(!isReplying)}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path
+              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
           Trả lời
         </button>
@@ -174,18 +208,18 @@ export function TaskComment({
             className="reply-textarea"
           />
           <div className="reply-actions">
-            <Button 
-              size="sm" 
-              variant="outline" 
+            <Button
+              size="sm"
+              variant="outline"
               onClick={() => {
                 setIsReplying(false);
-                setReplyContent('');
+                setReplyContent("");
               }}
             >
               Hủy
             </Button>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={handleReply}
               disabled={!replyContent.trim()}
             >

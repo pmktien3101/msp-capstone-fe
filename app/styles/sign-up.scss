@@ -939,3 +939,71 @@ button:focus-visible {
   outline: 2px solid $primary-orange;
   outline-offset: 2px;
 }
+
+/* Added styles for account type tabs */
+.account-type-tabs {
+  display: flex;
+  gap: 12px;
+  margin: 0 auto 32px;
+  max-width: 500px;
+  padding: 0 20px;
+
+  .tab-button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 20px;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    svg {
+      transition: all 0.3s ease;
+    }
+
+    &:hover {
+      border-color: #ffa463;
+      color: #ff5e13;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 94, 19, 0.15);
+    }
+
+    &.active {
+      background: linear-gradient(135deg, #ff5e13 0%, #ffa463 100%);
+      border-color: #ff5e13;
+      color: white;
+      box-shadow: 0 4px 16px rgba(255, 94, 19, 0.3);
+
+      svg {
+        color: white;
+      }
+    }
+
+    @media (max-width: 640px) {
+      padding: 12px 16px;
+      font-size: 14px;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      span {
+        display: none;
+      }
+    }
+
+    @media (min-width: 641px) {
+      span {
+        display: inline;
+      }
+    }
+  }
+}
