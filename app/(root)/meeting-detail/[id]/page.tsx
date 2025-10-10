@@ -29,6 +29,7 @@ import "@/app/styles/meeting-detail.scss";
 import { useGetCallById } from "@/hooks/useGetCallById";
 import { Call, CallRecording } from "@stream-io/video-react-sdk";
 import { mockMilestones, mockParticipants } from "@/constants/mockData";
+import { toast } from "react-toastify";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -476,6 +477,7 @@ export default function MeetingDetailPage() {
   // Xử lý tạo task từ todo
   const handleCreateTask = (taskId: string) => {
     setIsTaskCreated(prev => ({...prev, [taskId]: true}));
+    toast.success("Đã thêm công việc vào dự án");
   };
 
   const handleAddAllTasks = () => {
@@ -488,7 +490,7 @@ export default function MeetingDetailPage() {
     setIsTaskCreated(prev => ({...prev, ...newTaskCreatedState}));
     
     // Show success message or notification
-    console.log("Đã thêm tất cả công việc vào dự án");
+    toast.success("Đã thêm tất cả công việc vào dự án");
   };
 
 
@@ -1013,6 +1015,7 @@ export default function MeetingDetailPage() {
                           <div className="task-content">
                             {/* Title Field */}
                             <div className="task-field">
+                              <label className="field-label">Tiêu đề</label>
                               <input
                                 type="text"
                                 value={task.task}
@@ -1029,6 +1032,7 @@ export default function MeetingDetailPage() {
 
                             {/* Description Field */}
                             <div className="task-field">
+                              <label className="field-label">Mô tả</label>
                               <textarea
                                 value={task.description || ""}
                                 onChange={(e) => {
@@ -1056,6 +1060,7 @@ export default function MeetingDetailPage() {
                                   }
                                 }}
                               >
+                                <label className="field-label">Người thực hiện</label>
                                 <div className="assignee-avatar">
                                   {currentAssignee ? (
                                     <img 
@@ -1103,6 +1108,7 @@ export default function MeetingDetailPage() {
                                   }
                                 }}
                               >
+                                <label className="field-label">Ngày bắt đầu</label>
                                 <div className="date-icon">
                                   <Calendar size={16} />
                                 </div>
@@ -1136,6 +1142,7 @@ export default function MeetingDetailPage() {
                                   }
                                 }}
                               >
+                                <label className="field-label">Ngày kết thúc</label>
                                 <div className="date-icon">
                                   <Calendar size={16} />
                                 </div>
@@ -1178,7 +1185,6 @@ export default function MeetingDetailPage() {
                             ) : (
                                 <div className="task-added-indicator">
                                   <CheckCircle size={16} />
-                                  <span>Đã thêm</span>
                                 </div>
                             )}
                               <Button
