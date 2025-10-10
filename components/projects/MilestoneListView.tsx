@@ -319,100 +319,120 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
             <div className="tasks-list">
               {/* Inline Task Creation */}
               {isCreatingTask && (
-                <div className="task-item-compact task-item-creating">
-                  <div className="task-main-info">
-                    <div className="task-id-compact">NEW</div>
-                    <input
-                      type="text"
-                      value={newTask.title}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
-                      className="task-title-input-compact"
-                      placeholder="Tên công việc..."
-                      autoFocus
-                    />
+                <div className="create-task-form">
+                  <div className="form-header">
+                    <h3>Tạo công việc mới</h3>
                   </div>
                   
-                  <div className="task-controls">
-                    <select
-                      value={newTask.status}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value }))}
-                      className="status-select-compact"
-                    >
-                      <option value="todo">Cần làm</option>
-                      <option value="in-progress">Đang làm</option>
-                      <option value="review">Đang kiểm tra</option>
-                      <option value="done">Hoàn thành</option>
-                    </select>
-                    
-                    <select
-                      value={newTask.assignee || ""}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, assignee: e.target.value }))}
-                      className="assignee-select-compact"
-                    >
-                      <option value="">Chưa phân công</option>
-                      {members.map(member => (
-                        <option key={member.id} value={member.id}>
-                          {member.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="task-dates-compact">
-                    <input
-                      type="date"
-                      value={newTask.startDate || ""}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, startDate: e.target.value }))}
-                      className="date-input-compact"
-                      placeholder="Bắt đầu"
-                    />
-                    <input
-                      type="date"
-                      value={newTask.endDate || ""}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, endDate: e.target.value }))}
-                      className="date-input-compact"
-                      placeholder="Kết thúc"
-                    />
-                  </div>
+                  <div className="form-content">
+                    <div className="form-group">
+                      <label>Tên công việc *</label>
+                      <input
+                        type="text"
+                        value={newTask.title}
+                        onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+                        className="form-input"
+                        placeholder="Nhập tên công việc..."
+                        autoFocus
+                      />
+                    </div>
 
-                  <div className="task-milestones-compact">
-                    <div className="milestones-label">Cột mốc:</div>
-                    <div className="milestones-checkboxes">
-                      {projectMilestones.map(milestoneItem => (
-                        <label key={milestoneItem.id} className="milestone-checkbox-label">
-                          <input
-                            type="checkbox"
-                            checked={newTask.selectedMilestones.includes(milestoneItem.id)}
-                            onChange={() => handleMilestoneToggle(milestoneItem.id)}
-                            className="milestone-checkbox"
-                          />
-                          <span className="milestone-checkbox-text">{milestoneItem.name}</span>
-                        </label>
-                      ))}
+                    <div className="form-group">
+                      <label>Mô tả</label>
+                      <textarea
+                        value={newTask.description}
+                        onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                        className="form-textarea"
+                        rows={3}
+                        placeholder="Mô tả chi tiết công việc..."
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Cột mốc</label>
+                      <div className="milestones-checkboxes">
+                        {projectMilestones.map(milestoneItem => (
+                          <label key={milestoneItem.id} className="milestone-checkbox-label">
+                            <input
+                              type="checkbox"
+                              checked={newTask.selectedMilestones.includes(milestoneItem.id)}
+                              onChange={() => handleMilestoneToggle(milestoneItem.id)}
+                              className="milestone-checkbox"
+                            />
+                            <span className="milestone-checkbox-text">{milestoneItem.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Người thực hiện</label>
+                        <select
+                          value={newTask.assignee || ""}
+                          onChange={(e) => setNewTask(prev => ({ ...prev, assignee: e.target.value }))}
+                          className="form-select"
+                        >
+                          <option value="">Chưa phân công</option>
+                          {members.map(member => (
+                            <option key={member.id} value={member.id}>
+                              {member.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Trạng thái</label>
+                        <select
+                          value={newTask.status}
+                          onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value }))}
+                          className="form-select"
+                        >
+                          <option value="todo">Cần làm</option>
+                          <option value="in-progress">Đang làm</option>
+                          <option value="review">Đang kiểm tra</option>
+                          <option value="done">Hoàn thành</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Ngày bắt đầu</label>
+                        <input
+                          type="date"
+                          value={newTask.startDate || ""}
+                          onChange={(e) => setNewTask(prev => ({ ...prev, startDate: e.target.value }))}
+                          className="form-input"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Ngày kết thúc</label>
+                        <input
+                          type="date"
+                          value={newTask.endDate || ""}
+                          onChange={(e) => setNewTask(prev => ({ ...prev, endDate: e.target.value }))}
+                          className="form-input"
+                        />
+                      </div>
                     </div>
                   </div>
-                  
-                  <textarea
-                    value={newTask.description}
-                    onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
-                    className="task-description-input-compact"
-                    rows={1}
-                    placeholder="Mô tả công việc..."
-                  />
 
-                  <div className="task-actions-inline">
+                  <div className="form-actions">
                     <button 
-                      className="save-task-btn"
-                      onClick={handleSaveTaskInline}
-                      disabled={!newTask.title.trim()}
+                      onClick={() => setIsCreatingTask(false)}
+                      className="cancel-btn"
                     >
-                      <CheckCircle size={16} />
+                      Hủy
                     </button>
                     <button 
-                      className="cancel-task-btn"
-                      onClick={handleCancelTaskInline}
+                      onClick={handleSaveTaskInline}
+                      disabled={!newTask.title.trim()}
+                      className="create-btn"
                     >
-                      <X size={16} />
+                      Tạo công việc
                     </button>
                   </div>
                 </div>
@@ -939,17 +959,42 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           opacity: 1;
         }
 
-        .task-item-creating {
-          border-color: #FF5E13;
-          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
-          box-shadow: 0 6px 20px rgba(255, 94, 19, 0.2);
-          transform: scale(1.02);
+        .create-task-form {
+          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+          border: 2px solid #e2e8f0;
+          border-radius: 12px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          margin-bottom: 20px;
+          overflow: hidden;
         }
 
-        .task-item-creating::before {
-          opacity: 1;
-          background: linear-gradient(180deg, #FF5E13 0%, #FF8C42 100%);
+        .form-header {
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          padding: 20px 24px;
+          border-bottom: 1px solid #e5e7eb;
         }
+
+        .form-header h3 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 700;
+          color: #1e293b;
+          letter-spacing: -0.025em;
+        }
+
+        .form-content {
+          padding: 24px;
+        }
+
+        .form-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          padding: 20px 24px;
+          border-top: 1px solid #e5e7eb;
+          background: #f8fafc;
+        }
+
 
         .task-actions-inline {
           display: flex;
@@ -2086,6 +2131,32 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
           .task-dates-compact {
             flex-direction: column;
             gap: 6px;
+            width: 100%;
+          }
+
+          .create-task-form {
+            margin-bottom: 16px;
+          }
+
+          .form-header {
+            padding: 16px 20px;
+          }
+
+          .form-header h3 {
+            font-size: 16px;
+          }
+
+          .form-content {
+            padding: 20px;
+          }
+
+          .form-actions {
+            padding: 16px 20px;
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .cancel-btn, .create-btn {
             width: 100%;
           }
 
