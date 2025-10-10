@@ -25,6 +25,8 @@ interface ProjectTabsProps {
   project: Project;
   onTaskClick?: (task: any) => void;
   onCreateTask?: () => void;
+  onDeleteTask?: (taskId: string) => void;
+  onEditTask?: (task: any) => void;
   onTabChange?: (activeTab: string) => void;
   initialActiveTab?: string;
 }
@@ -33,6 +35,8 @@ export const ProjectTabs = ({
   project,
   onTaskClick,
   onCreateTask,
+  onDeleteTask,
+  onEditTask,
   onTabChange,
   initialActiveTab = "summary",
 }: ProjectTabsProps) => {
@@ -103,6 +107,8 @@ export const ProjectTabs = ({
             project={project}
             onTaskClick={onTaskClick}
             onCreateTask={onCreateTask}
+            onDeleteTask={onDeleteTask}
+            onEditTask={onEditTask}
           />
         );
       case "list":

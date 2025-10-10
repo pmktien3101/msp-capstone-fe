@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { ProjectTabs } from '@/components/projects/ProjectTabs';
 import { DetailTaskModal } from '@/components/tasks/DetailTaskModal';
+import { CreateTaskModal } from '@/components/tasks/CreateTaskModal';
+import { DeleteTaskModal } from '@/components/tasks/DeleteTaskModal';
 import { CreateMilestoneModal } from '@/components/milestones/CreateMilestoneModal';
 import { Project } from '@/types/project';
 import { Task } from '@/types/milestone';
@@ -30,6 +32,11 @@ const ProjectDetailPage = () => {
   const [isAddManagerModalOpen, setIsAddManagerModalOpen] = useState(false);
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
   const [managerToRemove, setManagerToRemove] = useState<{ id: string; name: string } | null>(null);
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+  const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
   // Mock data for available project managers
   const availableProjectManagers = [
@@ -58,10 +65,58 @@ const ProjectDetailPage = () => {
   };
 
   const handleCreateTask = () => {
+    setIsCreateTaskModalOpen(true);
+  };
+
+  const handleCloseCreateTaskModal = () => {
+    setIsCreateTaskModalOpen(false);
+  };
+
+  const handleSubmitTask = (taskData: any) => {
     // Mock task creation - replace with actual API call
-    console.log('Creating new task for project:', projectId);
-    // In real implementation, this would open a create task modal or navigate to create task page
-    alert('Tính năng tạo task sẽ được triển khai!');
+    console.log('Creating new task:', taskData);
+    // In real implementation, this would call API to create task
+    alert('Tạo công việc thành công!');
+    setIsCreateTaskModalOpen(false);
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    // Find task to get title for confirmation
+    const task = mockTasks.find(t => t.id === taskId);
+    if (task) {
+      setTaskToDelete({ id: taskId, title: task.title });
+      setIsDeleteTaskModalOpen(true);
+    }
+  };
+
+  const confirmDeleteTask = () => {
+    if (taskToDelete) {
+      // Mock task deletion - replace with actual API call
+      console.log('Deleting task:', taskToDelete.id);
+      // In real implementation, this would call API to delete task
+      alert(`Đã xóa công việc: ${taskToDelete.title}`);
+      setTaskToDelete(null);
+      setIsDeleteTaskModalOpen(false);
+    }
+  };
+
+  const handleEditTask = (task: Task) => {
+    setTaskToEdit(task);
+    setIsEditTaskModalOpen(true);
+  };
+
+  const handleCloseEditTaskModal = () => {
+    setIsEditTaskModalOpen(false);
+    setTaskToEdit(null);
+  };
+
+  const handleUpdateTask = (taskData: any) => {
+    // Mock task update - replace with actual API call
+    console.log('Updating task:', taskData);
+    // In real implementation, this would call API to update task
+    alert('Cập nhật công việc thành công!');
+    setIsEditTaskModalOpen(false);
+    setTaskToEdit(null);
   };
 
   const handleCreateMilestone = () => {
@@ -271,6 +326,8 @@ const ProjectDetailPage = () => {
         project={project} 
         onTaskClick={handleTaskClick} 
         onCreateTask={handleCreateTask}
+        onDeleteTask={handleDeleteTask}
+        onEditTask={handleEditTask}
         onTabChange={handleTabChange}
         initialActiveTab={activeTab}
       />
@@ -309,6 +366,39 @@ const ProjectDetailPage = () => {
         availableManagers={availableProjectManagers}
         currentManagers={project?.projectManagers || []}
       />
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        isOpen={isCreateTaskModalOpen}
+        onClose={handleCloseCreateTaskModal}
+        onCreateTask={handleSubmitTask}
+        projectId={projectId}
+      />
+
+      {/* Edit Task Modal */}
+      {taskToEdit && (
+        <CreateTaskModal
+          isOpen={isEditTaskModalOpen}
+          onClose={handleCloseEditTaskModal}
+          onCreateTask={handleUpdateTask}
+          projectId={projectId}
+          taskToEdit={taskToEdit}
+        />
+      )}
+
+      {/* Delete Task Modal */}
+      {taskToDelete && (
+        <DeleteTaskModal
+          isOpen={isDeleteTaskModalOpen}
+          onClose={() => {
+            setIsDeleteTaskModalOpen(false);
+            setTaskToDelete(null);
+          }}
+          onConfirm={confirmDeleteTask}
+          taskTitle={taskToDelete.title}
+          taskId={taskToDelete.id}
+        />
+      )}
 
       {/* Confirm Remove Manager Dialog */}
       <ConfirmDialog

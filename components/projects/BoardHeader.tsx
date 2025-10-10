@@ -56,36 +56,13 @@ export const BoardHeader = ({
             onChange={(e) => onGroupByChange(e.target.value)}
             className="group-select"
           >
+            <option value="none">Không nhóm</option>
             <option value="status">Nhóm theo trạng thái</option>
             <option value="assignee">Nhóm theo người thực hiện</option>
             <option value="milestone">Nhóm theo cột mốc</option>
           </select>
         </div>
 
-        <button className="header-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M3 3V5H21V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M3 7H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M3 11H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M3 15H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M3 19H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-
-        <button className="header-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-
-        <button className="header-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <circle cx="19" cy="12" r="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <circle cx="5" cy="12" r="1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
       </div>
 
       <style jsx>{`
@@ -176,20 +153,31 @@ export const BoardHeader = ({
         }
 
         .group-select {
-          padding: 8px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
+          padding: 10px 16px;
+          border: 2px solid #e2e8f0;
+          border-radius: 10px;
           font-size: 14px;
-          background: white;
+          font-weight: 600;
+          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
           color: #374151;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.3s ease;
+          min-width: 180px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .group-select:focus {
           outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          border-color: #ea580c;
+          box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1), 0 4px 8px rgba(0, 0, 0, 0.1);
+          background: #ffffff;
+          transform: translateY(-1px);
+        }
+
+        .group-select:hover {
+          border-color: #ea580c;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .header-btn {
