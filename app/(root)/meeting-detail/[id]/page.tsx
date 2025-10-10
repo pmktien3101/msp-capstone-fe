@@ -478,6 +478,19 @@ export default function MeetingDetailPage() {
     setIsTaskCreated(prev => ({...prev, [taskId]: true}));
   };
 
+  const handleAddAllTasks = () => {
+    // Mark all tasks as created
+    const allTaskIds = generatedTasks.map(task => task.id);
+    const newTaskCreatedState = allTaskIds.reduce((acc, taskId) => {
+      acc[taskId] = true;
+      return acc;
+    }, {} as Record<string, boolean>);
+    setIsTaskCreated(prev => ({...prev, ...newTaskCreatedState}));
+    
+    // Show success message or notification
+    console.log("Đã thêm tất cả công việc vào dự án");
+  };
+
 
 
 
@@ -1157,9 +1170,10 @@ export default function MeetingDetailPage() {
                                     handleCreateTask(task.id);
                                   }}
                                 className="create-task-btn"
-                                title="Thêm vào danh sách công việc"
+                                title="Chuyển đổi thành công việc"
                                 >
                                   <Plus size={16} />
+                                  <span className="btn-label">Chuyển đổi thành công việc</span>
                                 </Button>
                             ) : (
                                 <div className="task-added-indicator">
@@ -1175,9 +1189,10 @@ export default function MeetingDetailPage() {
                                   handleOpenDeleteModal(task.id);
                                 }}
                               className="delete-btn"
-                              title="Xóa công việc"
+                              title="Xóa"
                               >
                                 <Trash2 size={16} />
+                                <span className="btn-label">Xóa</span>
                               </Button>
                           </div>
                         </div>
@@ -1186,6 +1201,21 @@ export default function MeetingDetailPage() {
                       );
                     })}
                   </div>
+
+                  {/* Add All Tasks Button */}
+                  {generatedTasks.length > 0 && (
+                    <div className="add-all-tasks-section">
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        onClick={handleAddAllTasks}
+                        className="add-all-tasks-btn"
+                      >
+                        <Plus size={20} />
+                        <span>Thêm tất cả công việc vào dự án</span>
+                      </Button>
+                    </div>
+                  )}
 
                 </div>
               )}
@@ -1881,6 +1911,49 @@ export default function MeetingDetailPage() {
           stroke: white !important;
         }
 
+        /* Button Labels */
+        .btn-label {
+          margin-left: 6px;
+          font-size: 12px;
+          font-weight: 500;
+        }
+
+        /* Add All Tasks Section */
+        .add-all-tasks-section {
+          margin-top: 24px;
+          padding: 20px;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          text-align: center;
+        }
+
+        .add-all-tasks-btn {
+          background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+          border-color: #2563eb !important;
+          color: white !important;
+          box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4) !important;
+          padding: 12px 24px;
+          font-size: 14px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: all 0.3s ease;
+        }
+
+        .add-all-tasks-btn:hover {
+          background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+          border-color: #1d4ed8 !important;
+          box-shadow: 0 8px 24px rgba(59, 130, 246, 0.5) !important;
+          transform: translateY(-2px);
+        }
+
+        .add-all-tasks-btn svg {
+          color: white !important;
+          stroke: white !important;
+        }
+
         .task-added-indicator {
           display: flex;
           align-items: center;
@@ -2355,6 +2428,23 @@ export default function MeetingDetailPage() {
           .participants {
             flex-direction: column;
             align-items: flex-start;
+          }
+
+          /* Button Labels Mobile */
+          .btn-label {
+            display: none;
+          }
+
+          /* Add All Tasks Mobile */
+          .add-all-tasks-section {
+            margin-top: 20px;
+            padding: 16px;
+          }
+
+          .add-all-tasks-btn {
+            padding: 10px 20px;
+            font-size: 13px;
+            width: 100%;
           }
         }
 
