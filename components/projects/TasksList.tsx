@@ -223,23 +223,39 @@ export const TasksList = ({ project }: TasksListProps) => {
         .tasks-list {
           background: white;
           border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 24px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          border-radius: 16px;
+          padding: 28px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          backdrop-filter: blur(10px);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .tasks-list::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #FF5E13 0%, #FF8C42 50%, #FFB366 100%);
+          border-radius: 16px 16px 0 0;
         }
 
         .section-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 24px;
+          margin-bottom: 28px;
+          padding-top: 8px;
         }
 
         .section-title h3 {
-          font-size: 16px;
-          font-weight: 600;
+          font-size: 18px;
+          font-weight: 700;
           color: #1f2937;
-          margin: 0 0 4px 0;
+          margin: 0 0 6px 0;
+          letter-spacing: -0.025em;
         }
 
         .section-title p {
@@ -304,18 +320,36 @@ export const TasksList = ({ project }: TasksListProps) => {
           display: grid;
           grid-template-columns: 1fr 140px 120px 100px;
           align-items: center;
-          gap: 16px;
-          padding: 16px;
-          background: #fafafa;
-          border: 1px solid #f3f4f6;
-          border-radius: 10px;
-          transition: all 0.2s ease;
+          gap: 20px;
+          padding: 20px;
+          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .task-item::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 4px;
+          height: 100%;
+          background: linear-gradient(180deg, #FF5E13 0%, #FF8C42 100%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
         }
 
         .task-item:hover {
-          border-color: #d1d5db;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-          transform: translateY(-1px);
+          border-color: #cbd5e1;
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+          transform: translateY(-2px);
+        }
+
+        .task-item:hover::before {
+          opacity: 1;
         }
 
         .task-content {

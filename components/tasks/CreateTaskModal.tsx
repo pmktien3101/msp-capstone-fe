@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Calendar, User, Flag, FileText, Layers } from "lucide-react";
 import { mockMembers, mockMilestones, mockProjects } from "@/constants/mockData";
 
@@ -11,6 +11,7 @@ interface CreateTaskModalProps {
   defaultStatus?: string;
   onCreateTask: (taskData: any) => void;
   projectId?: string; // Added projectId prop
+  taskToEdit?: any; // Added taskToEdit prop for editing
 }
 
 export const CreateTaskModal = ({ 
@@ -19,20 +20,37 @@ export const CreateTaskModal = ({
   milestoneId, 
   defaultStatus = "todo",
   onCreateTask,
-  projectId // Destructured projectId
+  projectId, // Destructured projectId
+  taskToEdit // Destructured taskToEdit
 }: CreateTaskModalProps) => {
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    milestoneIds: milestoneId ? [milestoneId] : [],
-    status: defaultStatus,
-    priority: "medium",
-    assignee: "",
-    startDate: "",
-    endDate: ""
+    title: taskToEdit?.title || "",
+    description: taskToEdit?.description || "",
+    milestoneIds: taskToEdit?.milestoneIds || (milestoneId ? [milestoneId] : []),
+    status: taskToEdit?.status || defaultStatus,
+    priority: taskToEdit?.priority || "medium",
+    assignee: taskToEdit?.assignee || "",
+    startDate: taskToEdit?.startDate || "",
+    endDate: taskToEdit?.endDate || ""
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Update form data when taskToEdit changes
+  useEffect(() => {
+    if (taskToEdit) {
+      setFormData({
+        title: taskToEdit.title || "",
+        description: taskToEdit.description || "",
+        milestoneIds: taskToEdit.milestoneIds || (milestoneId ? [milestoneId] : []),
+        status: taskToEdit.status || defaultStatus,
+        priority: taskToEdit.priority || "medium",
+        assignee: taskToEdit.assignee || "",
+        startDate: taskToEdit.startDate || "",
+        endDate: taskToEdit.endDate || ""
+      });
+    }
+  }, [taskToEdit, milestoneId, defaultStatus]);
 
   // Get milestones for the current project only
   const getProjectMilestones = () => {
@@ -148,7 +166,9 @@ export const CreateTaskModal = ({
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Tạo công việc mới</h2>
+          <h2 className="modal-title">
+            {taskToEdit ? "Chỉnh sửa công việc" : "Tạo công việc mới"}
+          </h2>
           <button className="close-btn" onClick={handleClose}>
             <X size={20} />
           </button>
@@ -205,7 +225,7 @@ export const CreateTaskModal = ({
                         if (e.target.checked) {
                           handleInputChange("milestoneIds", [...formData.milestoneIds, milestone.id]);
                         } else {
-                          handleInputChange("milestoneIds", formData.milestoneIds.filter(id => id !== milestone.id));
+                          handleInputChange("milestoneIds", formData.milestoneIds.filter((id: string) => id !== milestone.id));
                         }
                       }}
                     />
@@ -302,7 +322,7 @@ export const CreateTaskModal = ({
               Hủy
             </button>
             <button type="submit" className="btn-submit" form="task-form">
-              Tạo công việc
+              {taskToEdit ? "Cập nhật công việc" : "Tạo công việc"}
             </button>
           </div>
         </div>
