@@ -33,7 +33,7 @@ export const BoardHeader = ({
           </svg>
           <input 
             type="text" 
-            placeholder="Tìm kiếm bảng"
+            placeholder="Tìm kiếm công việc"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="search-input"
