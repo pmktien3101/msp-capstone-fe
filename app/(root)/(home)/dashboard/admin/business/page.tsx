@@ -19,9 +19,10 @@ interface BusinessOwner {
   phone: string;
   organizationName: string;
   status: "active" | "inactive" | "pending";
-  createdDate: string; // đổi tên từ joinDate
+  createdDate: string;
   packageName?: string;
-  packageExpireDate?: string; // ISO format
+  packageExpireDate?: string;
+  businessDocumentUrl?: string; // Thêm trường này
 }
 
 const AdminBusinessOwners = () => {
@@ -46,6 +47,8 @@ const AdminBusinessOwners = () => {
       createdDate: "2024-12-21",
       packageName: "Gói Cơ Bản",
       packageExpireDate: "2025-01-21",
+      businessDocumentUrl:
+        "https://via.placeholder.com/400x300?text=Giay+to+ABC", // ví dụ
     },
     {
       id: 7,
@@ -55,6 +58,8 @@ const AdminBusinessOwners = () => {
       organizationName: "Startup XYZ",
       status: "pending",
       createdDate: "2024-12-20",
+      businessDocumentUrl:
+        "https://via.placeholder.com/400x300?text=Giay+to+XYZ", // ví dụ
     },
     {
       id: 1,
@@ -316,7 +321,7 @@ const AdminBusinessOwners = () => {
         <div className="table-header">
           <div className="table-cell">Họ và tên</div>
           <div className="table-cell">Email</div>
-          <div className="table-cell">Số điện thoại</div>
+          {/* <div className="table-cell">Số điện thoại</div> */}
           <div className="table-cell">Tên tổ chức</div>
           <div className="table-cell">Trạng thái</div>
           <div className="table-cell">Ngày tạo tài khoản</div>
@@ -338,9 +343,9 @@ const AdminBusinessOwners = () => {
             <div className="table-cell" data-label="Email">
               {businessOwner.email}
             </div>
-            <div className="table-cell" data-label="Số điện thoại">
+            {/* <div className="table-cell" data-label="Số điện thoại">
               {businessOwner.phone}
-            </div>
+            </div> */}
             <div className="table-cell" data-label="Tên tổ chức">
               <span className="organization-badge">
                 {businessOwner.organizationName}
@@ -353,48 +358,50 @@ const AdminBusinessOwners = () => {
               {businessOwner.createdDate}
             </div>
             <div className="table-cell" data-label="Hành động">
-              {businessOwner.status === "pending" ? (
-                <div className="action-buttons">
-                  <button
-                    className="action-btn approve"
-                    title="Phê duyệt"
-                    onClick={() => handleApproveBusinessOwner(businessOwner)}
-                  >
-                    <CheckCircle size={16} />
-                  </button>
-                  <button
-                    className="action-btn reject"
-                    title="Từ chối"
-                    onClick={() => handleRejectBusinessOwner(businessOwner)}
-                  >
-                    <XCircle size={16} />
-                  </button>
-                </div>
-              ) : (
-                <div className="action-buttons">
-                  <button
-                    className="action-btn view"
-                    title="Xem chi tiết"
-                    onClick={() => handleViewBusinessOwner(businessOwner)}
-                  >
-                    <Eye size={16} />
-                  </button>
-                  <button className="action-btn edit" title="Chỉnh sửa">
-                    <Edit size={16} />
-                  </button>
-                  {businessOwner.status !== "inactive" && (
+              <div className="action-buttons">
+                <button
+                  className="action-btn view"
+                  title="Xem chi tiết"
+                  onClick={() => handleViewBusinessOwner(businessOwner)}
+                >
+                  <Eye size={16} />
+                </button>
+                {businessOwner.status === "pending" ? (
+                  <>
                     <button
-                      className="action-btn deactivate"
-                      title="Ngừng hoạt động"
-                      onClick={() =>
-                        handleDeactivateBusinessOwner(businessOwner)
-                      }
+                      className="action-btn approve"
+                      title="Phê duyệt"
+                      onClick={() => handleApproveBusinessOwner(businessOwner)}
                     >
-                      <UserX size={16} />
+                      <CheckCircle size={16} />
                     </button>
-                  )}
-                </div>
-              )}
+                    <button
+                      className="action-btn reject"
+                      title="Từ chối"
+                      onClick={() => handleRejectBusinessOwner(businessOwner)}
+                    >
+                      <XCircle size={16} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="action-btn edit" title="Chỉnh sửa">
+                      <Edit size={16} />
+                    </button>
+                    {businessOwner.status !== "inactive" && (
+                      <button
+                        className="action-btn deactivate"
+                        title="Ngừng hoạt động"
+                        onClick={() =>
+                          handleDeactivateBusinessOwner(businessOwner)
+                        }
+                      >
+                        <UserX size={16} />
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -517,7 +524,7 @@ const AdminBusinessOwners = () => {
       {/* Detail Modal */}
       {showDetailModal && selectedBusinessOwner && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content detail-modal">
             <div className="modal-header">
               <h3>Thông tin Business Owner</h3>
               <button
@@ -528,42 +535,108 @@ const AdminBusinessOwners = () => {
               </button>
             </div>
             <div className="modal-body">
-              <p>
-                <strong>Họ và tên:</strong> {selectedBusinessOwner.fullName}
-              </p>
-              <p>
-                <strong>Email:</strong> {selectedBusinessOwner.email}
-              </p>
-              <p>
-                <strong>Số điện thoại:</strong> {selectedBusinessOwner.phone}
-              </p>
-              <p>
-                <strong>Tổ chức:</strong>{" "}
-                {selectedBusinessOwner.organizationName}
-              </p>
-              <p>
-                <strong>Trạng thái:</strong>{" "}
-                {getStatusBadge(selectedBusinessOwner.status)}
-              </p>
-              <p>
-                <strong>Ngày tạo tài khoản:</strong>{" "}
-                {selectedBusinessOwner.createdDate}
-              </p>
-              <hr style={{ margin: "16px 0" }} />
-              <p>
-                <strong>Gói sử dụng:</strong>{" "}
-                {selectedBusinessOwner.packageName || "-"}
-              </p>
-              <p>
-                <strong>Ngày hết hạn:</strong>{" "}
-                {selectedBusinessOwner.packageExpireDate || "-"}
-              </p>
-              <p>
-                <strong>Số ngày còn hạn:</strong>{" "}
-                {getDaysLeft(selectedBusinessOwner.packageExpireDate)}
-              </p>
+              <div className="detail-modal-grid">
+                <div className="detail-modal-left">
+                  <div className="detail-avatar">
+                    {selectedBusinessOwner.fullName.charAt(0)}
+                  </div>
+                  <div className="detail-name">
+                    {selectedBusinessOwner.fullName}
+                  </div>
+                  <div className="detail-status">
+                    {getStatusBadge(selectedBusinessOwner.status)}
+                  </div>
+                </div>
+                <div className="detail-modal-right">
+                  <div className="detail-row">
+                    <span className="detail-label">Email:</span>
+                    <span className="detail-value">
+                      {selectedBusinessOwner.email}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Số điện thoại:</span>
+                    <span className="detail-value">
+                      {selectedBusinessOwner.phone}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Tên tổ chức:</span>
+                    <span className="detail-value">
+                      {selectedBusinessOwner.organizationName}
+                    </span>
+                  </div>
+                  {selectedBusinessOwner.businessDocumentUrl && (
+                    <div className="detail-row">
+                      <span className="detail-label">
+                        Giấy tờ doanh nghiệp:
+                      </span>
+                      <span className="detail-value">
+                        <a
+                          href={selectedBusinessOwner.businessDocumentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: "#3b82f6",
+                            textDecoration: "underline",
+                          }}
+                        >
+                          Xem giấy tờ
+                        </a>
+                      </span>
+                    </div>
+                  )}
+                  <div className="detail-row">
+                    <span className="detail-label">Ngày tạo tài khoản:</span>
+                    <span className="detail-value">
+                      {selectedBusinessOwner.createdDate}
+                    </span>
+                  </div>
+                  <hr style={{ margin: "16px 0" }} />
+                  <div className="detail-row">
+                    <span className="detail-label">Gói sử dụng:</span>
+                    <span className="detail-value">
+                      {selectedBusinessOwner.packageName || "-"}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Ngày hết hạn:</span>
+                    <span className="detail-value">
+                      {selectedBusinessOwner.packageExpireDate || "-"}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Số ngày còn hạn:</span>
+                    <span className="detail-value">
+                      {getDaysLeft(selectedBusinessOwner.packageExpireDate)}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="modal-footer">
+              {selectedBusinessOwner.status === "pending" && (
+                <>
+                  <button
+                    className="btn-reject"
+                    onClick={() => {
+                      setShowDetailModal(false);
+                      handleRejectBusinessOwner(selectedBusinessOwner);
+                    }}
+                  >
+                    Từ chối
+                  </button>
+                  <button
+                    className="btn-approve"
+                    onClick={() => {
+                      setShowDetailModal(false);
+                      handleApproveBusinessOwner(selectedBusinessOwner);
+                    }}
+                  >
+                    Phê duyệt
+                  </button>
+                </>
+              )}
               <button
                 className="btn-cancel"
                 onClick={() => setShowDetailModal(false)}
@@ -866,11 +939,15 @@ const AdminBusinessOwners = () => {
         .modal-content {
           background: white;
           border-radius: 12px;
-          max-width: 500px;
-          width: 90%;
+          max-width: 700px; /* tăng lên */
+          width: 98%; /* tăng lên */
           max-height: 90vh;
           overflow-y: auto;
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .detail-modal {
+          max-width: 700px; /* thêm dòng này nếu chưa có */
+          width: 98%;
         }
 
         .modal-header {
@@ -1147,6 +1224,80 @@ const AdminBusinessOwners = () => {
           .organization-badge {
             font-size: 10px;
             padding: 2px 6px;
+          }
+        }
+        .detail-modal-grid {
+          display: flex;
+          gap: 32px;
+          align-items: flex-start;
+          padding: 26px 0;
+        }
+        .detail-modal-left {
+          min-width: 120px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 12px;
+        }
+        .detail-avatar {
+          width: 56px;
+          height: 56px;
+          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: 700;
+          font-size: 28px;
+          margin-bottom: 4px;
+          box-shadow: 0 2px 8px rgba(255, 94, 19, 0.15);
+        }
+        .detail-name {
+          font-size: 18px;
+          font-weight: 600;
+          color: #0d062d;
+          text-align: center;
+        }
+        .detail-status {
+          margin-top: 4px;
+        }
+        .detail-modal-right {
+          flex: 1;
+          background: #f9f4ee;
+          border-radius: 12px;
+          padding: 18px 20px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+        .detail-label {
+          font-weight: 500;
+          color: #787486;
+          min-width: 120px;
+        }
+        .detail-value {
+          color: #0d062d;
+          font-weight: 500;
+          text-align: right;
+          word-break: break-word;
+        }
+        @media (max-width: 768px) {
+          .detail-modal-grid {
+            flex-direction: column;
+            gap: 16px;
+          }
+          .detail-modal-right {
+            padding: 12px;
+          }
+          .detail-avatar {
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
           }
         }
       `}</style>
