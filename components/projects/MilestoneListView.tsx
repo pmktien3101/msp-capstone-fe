@@ -12,6 +12,7 @@ import {
   X,
   Trash2,
   Plus,
+  Save,
 } from "lucide-react";
 
 interface MilestoneListViewProps {
@@ -40,6 +41,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
     selectedMilestones: [milestone.id] // Mặc định chọn milestone hiện tại
   });
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [editingTasks, setEditingTasks] = useState<Set<string>>(new Set());
 
   if (!isOpen) return null;
 
@@ -117,8 +119,31 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           : task
       )
     );
-    // Auto-save on change
+    // Mark task as being edited
+    setEditingTasks(prev => new Set(prev).add(taskId));
     console.log(`Updated task ${taskId} ${field}:`, value);
+  };
+
+  const handleSaveTask = (taskId: string) => {
+    // Here you would typically save to API
+    console.log(`Saving task ${taskId}`);
+    setEditingTasks(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(taskId);
+      return newSet;
+    });
+  };
+
+  const handleCancelEdit = (taskId: string) => {
+    // Reset task to original state
+    setEditedTasks(prev => prev.map(task => 
+      task.id === taskId ? tasks.find(t => t.id === taskId) || task : task
+    ));
+    setEditingTasks(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(taskId);
+      return newSet;
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent, callback: () => void) => {
@@ -411,7 +436,26 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
                   const isMultiMilestone = task.milestoneIds.length > 1;
                   
                   return (
-                    <div key={task.id} className="task-item-compact">
+                    <div key={task.id} className={`task-item-compact ${editingTasks.has(task.id) ? 'has-edit-actions' : ''}`}>
+                      {editingTasks.has(task.id) && (
+                        <div className="edit-actions-top">
+                          <button
+                            onClick={() => handleSaveTask(task.id)}
+                            className="save-btn"
+                            title="Lưu thay đổi"
+                          >
+                            <Save size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleCancelEdit(task.id)}
+                            className="edit-cancel-btn"
+                            title="Hủy thay đổi"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                      
                       <div className="task-main-info">
                         <div className="task-id-compact">{task.id}</div>
                         <input
@@ -423,8 +467,9 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
                           placeholder="Tên công việc..."
                         />
                         {isMultiMilestone && (
-                          <div className="multi-milestone-badge-compact">
-                            [{taskMilestoneNames.join(", ")}]
+                          <div className="multi-milestone-badge-compact" title={taskMilestoneNames.join(", ")}>
+                            <span className="milestone-count">+{task.milestoneIds.length}</span>
+                            <span className="milestone-text">milestones</span>
                           </div>
                         )}
                       </div>
@@ -846,30 +891,64 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
         .tasks-list {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 12px;
+          padding: 16px;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
         }
 
         .task-item-compact {
           background: white;
           border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          padding: 12px;
-          transition: all 0.2s ease;
+          border-radius: 10px;
+          padding: 16px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           display: grid;
           grid-template-columns: 1fr auto auto auto;
-          gap: 12px;
+          gap: 16px;
           align-items: start;
+          position: relative;
+          overflow: visible;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .task-item-compact.has-edit-actions {
+          padding-top: 50px;
+        }
+
+        .task-item-compact::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 3px;
+          height: 100%;
+          background: linear-gradient(180deg, #FF5E13 0%, #FF8C42 100%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
         }
 
         .task-item-compact:hover {
           border-color: #cbd5e1;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+          transform: translateY(-1px);
+        }
+
+        .task-item-compact:hover::before {
+          opacity: 1;
         }
 
         .task-item-creating {
           border-color: #FF5E13;
           background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.15);
+          box-shadow: 0 6px 20px rgba(255, 94, 19, 0.2);
+          transform: scale(1.02);
+        }
+
+        .task-item-creating::before {
+          opacity: 1;
+          background: linear-gradient(180deg, #FF5E13 0%, #FF8C42 100%);
         }
 
         .task-actions-inline {
@@ -922,14 +1001,21 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           align-items: center;
           gap: 8px;
           flex: 1;
+          min-width: 0;
+          overflow: hidden;
         }
 
         .task-id-compact {
-          font-size: 10px;
+          font-size: 11px;
           color: #ff8c42;
-          font-weight: 700;
+          font-weight: 800;
           letter-spacing: 0.5px;
           min-width: 60px;
+          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+          padding: 4px 8px;
+          border-radius: 6px;
+          text-align: center;
+          border: 1px solid #fed7aa;
         }
 
         .task-title-input-compact {
@@ -942,6 +1028,10 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           padding: 6px 8px;
           background: white;
           transition: border-color 0.2s ease;
+          min-width: 0;
+          max-width: calc(100% - 120px);
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .task-title-input-compact:focus {
@@ -955,9 +1045,31 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           color: white;
           font-size: 9px;
           font-weight: 600;
-          padding: 2px 6px;
-          border-radius: 4px;
+          padding: 4px 8px;
+          border-radius: 6px;
           white-space: nowrap;
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          max-width: 80px;
+          overflow: hidden;
+          cursor: help;
+          transition: all 0.2s ease;
+        }
+
+        .multi-milestone-badge-compact:hover {
+          background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+          transform: scale(1.05);
+        }
+
+        .milestone-count {
+          font-weight: 800;
+          font-size: 10px;
+        }
+
+        .milestone-text {
+          font-size: 8px;
+          opacity: 0.9;
         }
 
         .task-controls {
@@ -981,6 +1093,58 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           outline: none;
           border-color: #3b82f6;
           box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        .edit-actions-top {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: flex;
+          gap: 6px;
+          align-items: center;
+          z-index: 10;
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          padding: 4px 6px;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .save-btn, .edit-cancel-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+          backdrop-filter: blur(10px);
+        }
+
+        .save-btn {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+        }
+
+        .save-btn:hover {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .edit-cancel-btn {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
+        }
+
+        .edit-cancel-btn:hover {
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
         }
 
         .task-dates-compact {
@@ -1861,6 +2025,29 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
           }
         }
 
+        @media (max-width: 1024px) and (min-width: 769px) {
+          .task-item-compact {
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+          }
+
+          .task-main-info {
+            flex-wrap: wrap;
+            gap: 6px;
+          }
+
+          .task-title-input-compact {
+            max-width: calc(100% - 100px);
+            min-width: 200px;
+          }
+
+          .multi-milestone-badge-compact {
+            max-width: 70px;
+            font-size: 8px;
+            padding: 3px 6px;
+          }
+        }
+
         @media (max-width: 768px) {
           .milestone-name-input {
             font-size: 18px;
@@ -1876,6 +2063,18 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
             flex-direction: column;
             align-items: flex-start;
             gap: 6px;
+            width: 100%;
+          }
+
+          .task-title-input-compact {
+            max-width: 100%;
+            width: 100%;
+          }
+
+          .multi-milestone-badge-compact {
+            max-width: 100%;
+            width: fit-content;
+            margin-top: 4px;
           }
 
           .task-controls {
@@ -1888,6 +2087,22 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
             flex-direction: column;
             gap: 6px;
             width: 100%;
+          }
+
+          .edit-actions-top {
+            top: 8px;
+            right: 8px;
+            gap: 4px;
+            padding: 3px 5px;
+          }
+
+          .save-btn, .edit-cancel-btn {
+            width: 24px;
+            height: 24px;
+          }
+
+          .task-item-compact.has-edit-actions {
+            padding-top: 40px;
           }
 
           .status-select-compact, .assignee-select-compact {
