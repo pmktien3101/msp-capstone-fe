@@ -55,7 +55,7 @@ export const mockProjects = [
     startDate: "2024-01-01",
     endDate: "2024-03-31",
     progress: 45,
-    members: ["1", "2", "3", "4"],
+    members: ["member-1", "member-2", "member-3", "member-4"],
     milestones: ["milestone-1", "milestone-2", "milestone-3"],
     projectManagers: [
       { id: "1", name: "Nguyễn Văn A", email: "nguyenvana@company.com" },
