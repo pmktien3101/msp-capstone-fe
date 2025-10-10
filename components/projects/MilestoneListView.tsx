@@ -12,6 +12,7 @@ import {
   X,
   Trash2,
   Plus,
+  Save,
 } from "lucide-react";
 
 interface MilestoneListViewProps {
@@ -40,6 +41,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
     selectedMilestones: [milestone.id] // Mặc định chọn milestone hiện tại
   });
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [editingTasks, setEditingTasks] = useState<Set<string>>(new Set());
 
   if (!isOpen) return null;
 
@@ -117,8 +119,31 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           : task
       )
     );
-    // Auto-save on change
+    // Mark task as being edited
+    setEditingTasks(prev => new Set(prev).add(taskId));
     console.log(`Updated task ${taskId} ${field}:`, value);
+  };
+
+  const handleSaveTask = (taskId: string) => {
+    // Here you would typically save to API
+    console.log(`Saving task ${taskId}`);
+    setEditingTasks(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(taskId);
+      return newSet;
+    });
+  };
+
+  const handleCancelEdit = (taskId: string) => {
+    // Reset task to original state
+    setEditedTasks(prev => prev.map(task => 
+      task.id === taskId ? tasks.find(t => t.id === taskId) || task : task
+    ));
+    setEditingTasks(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(taskId);
+      return newSet;
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent, callback: () => void) => {
@@ -294,100 +319,120 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
             <div className="tasks-list">
               {/* Inline Task Creation */}
               {isCreatingTask && (
-                <div className="task-item-compact task-item-creating">
-                  <div className="task-main-info">
-                    <div className="task-id-compact">NEW</div>
-                    <input
-                      type="text"
-                      value={newTask.title}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
-                      className="task-title-input-compact"
-                      placeholder="Tên công việc..."
-                      autoFocus
-                    />
+                <div className="create-task-form">
+                  <div className="form-header">
+                    <h3>Tạo công việc mới</h3>
                   </div>
                   
-                  <div className="task-controls">
-                    <select
-                      value={newTask.status}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value }))}
-                      className="status-select-compact"
-                    >
-                      <option value="todo">Cần làm</option>
-                      <option value="in-progress">Đang làm</option>
-                      <option value="review">Đang kiểm tra</option>
-                      <option value="done">Hoàn thành</option>
-                    </select>
-                    
-                    <select
-                      value={newTask.assignee || ""}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, assignee: e.target.value }))}
-                      className="assignee-select-compact"
-                    >
-                      <option value="">Chưa phân công</option>
-                      {members.map(member => (
-                        <option key={member.id} value={member.id}>
-                          {member.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="task-dates-compact">
-                    <input
-                      type="date"
-                      value={newTask.startDate || ""}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, startDate: e.target.value }))}
-                      className="date-input-compact"
-                      placeholder="Bắt đầu"
-                    />
-                    <input
-                      type="date"
-                      value={newTask.endDate || ""}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, endDate: e.target.value }))}
-                      className="date-input-compact"
-                      placeholder="Kết thúc"
-                    />
-                  </div>
+                  <div className="form-content">
+                    <div className="form-group">
+                      <label>Tên công việc *</label>
+                      <input
+                        type="text"
+                        value={newTask.title}
+                        onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+                        className="form-input"
+                        placeholder="Nhập tên công việc..."
+                        autoFocus
+                      />
+                    </div>
 
-                  <div className="task-milestones-compact">
-                    <div className="milestones-label">Cột mốc:</div>
-                    <div className="milestones-checkboxes">
-                      {projectMilestones.map(milestoneItem => (
-                        <label key={milestoneItem.id} className="milestone-checkbox-label">
-                          <input
-                            type="checkbox"
-                            checked={newTask.selectedMilestones.includes(milestoneItem.id)}
-                            onChange={() => handleMilestoneToggle(milestoneItem.id)}
-                            className="milestone-checkbox"
-                          />
-                          <span className="milestone-checkbox-text">{milestoneItem.name}</span>
-                        </label>
-                      ))}
+                    <div className="form-group">
+                      <label>Mô tả</label>
+                      <textarea
+                        value={newTask.description}
+                        onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                        className="form-textarea"
+                        rows={3}
+                        placeholder="Mô tả chi tiết công việc..."
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Cột mốc</label>
+                      <div className="milestones-checkboxes">
+                        {projectMilestones.map(milestoneItem => (
+                          <label key={milestoneItem.id} className="milestone-checkbox-label">
+                            <input
+                              type="checkbox"
+                              checked={newTask.selectedMilestones.includes(milestoneItem.id)}
+                              onChange={() => handleMilestoneToggle(milestoneItem.id)}
+                              className="milestone-checkbox"
+                            />
+                            <span className="milestone-checkbox-text">{milestoneItem.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Người thực hiện</label>
+                        <select
+                          value={newTask.assignee || ""}
+                          onChange={(e) => setNewTask(prev => ({ ...prev, assignee: e.target.value }))}
+                          className="form-select"
+                        >
+                          <option value="">Chưa phân công</option>
+                          {members.map(member => (
+                            <option key={member.id} value={member.id}>
+                              {member.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Trạng thái</label>
+                        <select
+                          value={newTask.status}
+                          onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value }))}
+                          className="form-select"
+                        >
+                          <option value="todo">Cần làm</option>
+                          <option value="in-progress">Đang làm</option>
+                          <option value="review">Đang kiểm tra</option>
+                          <option value="done">Hoàn thành</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Ngày bắt đầu</label>
+                        <input
+                          type="date"
+                          value={newTask.startDate || ""}
+                          onChange={(e) => setNewTask(prev => ({ ...prev, startDate: e.target.value }))}
+                          className="form-input"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Ngày kết thúc</label>
+                        <input
+                          type="date"
+                          value={newTask.endDate || ""}
+                          onChange={(e) => setNewTask(prev => ({ ...prev, endDate: e.target.value }))}
+                          className="form-input"
+                        />
+                      </div>
                     </div>
                   </div>
-                  
-                  <textarea
-                    value={newTask.description}
-                    onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
-                    className="task-description-input-compact"
-                    rows={1}
-                    placeholder="Mô tả công việc..."
-                  />
 
-                  <div className="task-actions-inline">
+                  <div className="form-actions">
                     <button 
-                      className="save-task-btn"
-                      onClick={handleSaveTaskInline}
-                      disabled={!newTask.title.trim()}
+                      onClick={() => setIsCreatingTask(false)}
+                      className="cancel-btn"
                     >
-                      <CheckCircle size={16} />
+                      Hủy
                     </button>
                     <button 
-                      className="cancel-task-btn"
-                      onClick={handleCancelTaskInline}
+                      onClick={handleSaveTaskInline}
+                      disabled={!newTask.title.trim()}
+                      className="create-btn"
                     >
-                      <X size={16} />
+                      Tạo công việc
                     </button>
                   </div>
                 </div>
@@ -411,7 +456,26 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
                   const isMultiMilestone = task.milestoneIds.length > 1;
                   
                   return (
-                    <div key={task.id} className="task-item-compact">
+                    <div key={task.id} className={`task-item-compact ${editingTasks.has(task.id) ? 'has-edit-actions' : ''}`}>
+                      {editingTasks.has(task.id) && (
+                        <div className="edit-actions-top">
+                          <button
+                            onClick={() => handleSaveTask(task.id)}
+                            className="save-btn"
+                            title="Lưu thay đổi"
+                          >
+                            <Save size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleCancelEdit(task.id)}
+                            className="edit-cancel-btn"
+                            title="Hủy thay đổi"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                      
                       <div className="task-main-info">
                         <div className="task-id-compact">{task.id}</div>
                         <input
@@ -423,8 +487,9 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
                           placeholder="Tên công việc..."
                         />
                         {isMultiMilestone && (
-                          <div className="multi-milestone-badge-compact">
-                            [{taskMilestoneNames.join(", ")}]
+                          <div className="multi-milestone-badge-compact" title={taskMilestoneNames.join(", ")}>
+                            <span className="milestone-count">+{task.milestoneIds.length}</span>
+                            <span className="milestone-text">milestones</span>
                           </div>
                         )}
                       </div>
@@ -846,31 +911,90 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
         .tasks-list {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 12px;
+          padding: 16px;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
         }
 
         .task-item-compact {
           background: white;
           border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          padding: 12px;
-          transition: all 0.2s ease;
+          border-radius: 10px;
+          padding: 16px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           display: grid;
           grid-template-columns: 1fr auto auto auto;
-          gap: 12px;
+          gap: 16px;
           align-items: start;
+          position: relative;
+          overflow: visible;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .task-item-compact.has-edit-actions {
+          padding-top: 50px;
+        }
+
+        .task-item-compact::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 3px;
+          height: 100%;
+          background: linear-gradient(180deg, #FF5E13 0%, #FF8C42 100%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
         }
 
         .task-item-compact:hover {
           border-color: #cbd5e1;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+          transform: translateY(-1px);
         }
 
-        .task-item-creating {
-          border-color: #FF5E13;
-          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.15);
+        .task-item-compact:hover::before {
+          opacity: 1;
         }
+
+        .create-task-form {
+          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+          border: 2px solid #e2e8f0;
+          border-radius: 12px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          margin-bottom: 20px;
+          overflow: hidden;
+        }
+
+        .form-header {
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          padding: 20px 24px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .form-header h3 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 700;
+          color: #1e293b;
+          letter-spacing: -0.025em;
+        }
+
+        .form-content {
+          padding: 24px;
+        }
+
+        .form-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          padding: 20px 24px;
+          border-top: 1px solid #e5e7eb;
+          background: #f8fafc;
+        }
+
 
         .task-actions-inline {
           display: flex;
@@ -922,14 +1046,21 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           align-items: center;
           gap: 8px;
           flex: 1;
+          min-width: 0;
+          overflow: hidden;
         }
 
         .task-id-compact {
-          font-size: 10px;
+          font-size: 11px;
           color: #ff8c42;
-          font-weight: 700;
+          font-weight: 800;
           letter-spacing: 0.5px;
           min-width: 60px;
+          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+          padding: 4px 8px;
+          border-radius: 6px;
+          text-align: center;
+          border: 1px solid #fed7aa;
         }
 
         .task-title-input-compact {
@@ -942,6 +1073,10 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           padding: 6px 8px;
           background: white;
           transition: border-color 0.2s ease;
+          min-width: 0;
+          max-width: calc(100% - 120px);
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .task-title-input-compact:focus {
@@ -955,9 +1090,31 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           color: white;
           font-size: 9px;
           font-weight: 600;
-          padding: 2px 6px;
-          border-radius: 4px;
+          padding: 4px 8px;
+          border-radius: 6px;
           white-space: nowrap;
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          max-width: 80px;
+          overflow: hidden;
+          cursor: help;
+          transition: all 0.2s ease;
+        }
+
+        .multi-milestone-badge-compact:hover {
+          background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+          transform: scale(1.05);
+        }
+
+        .milestone-count {
+          font-weight: 800;
+          font-size: 10px;
+        }
+
+        .milestone-text {
+          font-size: 8px;
+          opacity: 0.9;
         }
 
         .task-controls {
@@ -981,6 +1138,58 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
           outline: none;
           border-color: #3b82f6;
           box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        .edit-actions-top {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: flex;
+          gap: 6px;
+          align-items: center;
+          z-index: 10;
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          padding: 4px 6px;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .save-btn, .edit-cancel-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+          backdrop-filter: blur(10px);
+        }
+
+        .save-btn {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+        }
+
+        .save-btn:hover {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .edit-cancel-btn {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
+        }
+
+        .edit-cancel-btn:hover {
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
         }
 
         .task-dates-compact {
@@ -1861,6 +2070,29 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
           }
         }
 
+        @media (max-width: 1024px) and (min-width: 769px) {
+          .task-item-compact {
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+          }
+
+          .task-main-info {
+            flex-wrap: wrap;
+            gap: 6px;
+          }
+
+          .task-title-input-compact {
+            max-width: calc(100% - 100px);
+            min-width: 200px;
+          }
+
+          .multi-milestone-badge-compact {
+            max-width: 70px;
+            font-size: 8px;
+            padding: 3px 6px;
+          }
+        }
+
         @media (max-width: 768px) {
           .milestone-name-input {
             font-size: 18px;
@@ -1876,6 +2108,18 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
             flex-direction: column;
             align-items: flex-start;
             gap: 6px;
+            width: 100%;
+          }
+
+          .task-title-input-compact {
+            max-width: 100%;
+            width: 100%;
+          }
+
+          .multi-milestone-badge-compact {
+            max-width: 100%;
+            width: fit-content;
+            margin-top: 4px;
           }
 
           .task-controls {
@@ -1888,6 +2132,48 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
             flex-direction: column;
             gap: 6px;
             width: 100%;
+          }
+
+          .create-task-form {
+            margin-bottom: 16px;
+          }
+
+          .form-header {
+            padding: 16px 20px;
+          }
+
+          .form-header h3 {
+            font-size: 16px;
+          }
+
+          .form-content {
+            padding: 20px;
+          }
+
+          .form-actions {
+            padding: 16px 20px;
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .cancel-btn, .create-btn {
+            width: 100%;
+          }
+
+          .edit-actions-top {
+            top: 8px;
+            right: 8px;
+            gap: 4px;
+            padding: 3px 5px;
+          }
+
+          .save-btn, .edit-cancel-btn {
+            width: 24px;
+            height: 24px;
+          }
+
+          .task-item-compact.has-edit-actions {
+            padding-top: 40px;
           }
 
           .status-select-compact, .assignee-select-compact {

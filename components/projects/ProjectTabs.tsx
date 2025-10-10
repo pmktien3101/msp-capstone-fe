@@ -10,6 +10,7 @@ import {
   Video,
   BarChart3,
   Settings,
+  Flag,
 } from "lucide-react";
 import { ProjectSummary } from "./ProjectSummary";
 import { ProjectBoard } from "./ProjectBoard";
@@ -18,6 +19,7 @@ import { ProjectList } from "./ProjectList";
 import { ProjectSettings } from "./ProjectSettings";
 import { MeetingTab } from "./MeetingTab";
 import { ProjectDocuments } from "./ProjectDocuments";
+import { BiTask } from "react-icons/bi";
 
 interface ProjectTabsProps {
   project: Project;
@@ -61,13 +63,13 @@ export const ProjectTabs = ({
     },
     {
       id: "board",
-      label: "Bảng",
-      icon: <Kanban size={20} />,
+      label: "Công việc",
+      icon: <BiTask size={20} />,
     },
     {
       id: "list",
-      label: "Danh sách",
-      icon: <List size={20} />,
+      label: "Cột mốc",
+      icon: <Flag size={20} />,
     },
     {
       id: "documents",
