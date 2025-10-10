@@ -220,6 +220,29 @@ const Sidebar = () => {
         </svg>
       ),
     },
+    {
+      id: "subscription-billing",
+      label: "Gói & Thanh toán",
+      route: "/dashboard/business/subscription",
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M20 7L9 12L20 17V7Z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M4 5H16V19H4V5Z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+    },
   ];
 
   // PM menu items
