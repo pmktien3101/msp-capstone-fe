@@ -1,17 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+
+interface ProjectManager {
+  id: string;
+  name: string;
+  email: string;
+}
 
 interface Project {
   id: string;
   name: string;
   description: string;
-  projectManager: {
-    id: string;
-    name: string;
-    email: string;
-  };
+  projectManagers: ProjectManager[]; // Changed from single to array
   status: 'active' | 'completed' | 'on-hold' | 'cancelled';
   startDate: string;
   endDate: string;
@@ -33,11 +35,18 @@ const BusinessProjectsPage = () => {
       id: '1',
       name: 'Website Redesign',
       description: 'Redesign company website with modern UI/UX',
-      projectManager: {
-        id: '1',
-        name: 'Nguyễn Văn A',
-        email: 'nguyenvana@company.com'
-      },
+      projectManagers: [
+        {
+          id: '1',
+          name: 'Nguyễn Văn A',
+          email: 'nguyenvana@company.com'
+        },
+        {
+          id: '2',
+          name: 'Trần Thị B',
+          email: 'tranthib@company.com'
+        }
+      ],
       status: 'active',
       startDate: '2024-01-15',
       endDate: '2024-03-15',
@@ -55,11 +64,13 @@ const BusinessProjectsPage = () => {
       id: '2',
       name: 'Mobile App Development',
       description: 'Develop mobile application for iOS and Android',
-      projectManager: {
-        id: '4',
-        name: 'Phạm Thị D',
-        email: 'phamthid@company.com'
-      },
+      projectManagers: [
+        {
+          id: '4',
+          name: 'Phạm Thị D',
+          email: 'phamthid@company.com'
+        }
+      ],
       status: 'active',
       startDate: '2024-02-01',
       endDate: '2024-05-01',
@@ -77,11 +88,18 @@ const BusinessProjectsPage = () => {
       id: '3',
       name: 'Database Migration',
       description: 'Migrate legacy database to new cloud infrastructure',
-      projectManager: {
-        id: '1',
-        name: 'Nguyễn Văn A',
-        email: 'nguyenvana@company.com'
-      },
+      projectManagers: [
+        {
+          id: '1',
+          name: 'Nguyễn Văn A',
+          email: 'nguyenvana@company.com'
+        },
+        {
+          id: '3',
+          name: 'Lê Văn C',
+          email: 'levanc@company.com'
+        }
+      ],
       status: 'completed',
       startDate: '2024-01-01',
       endDate: '2024-02-28',
@@ -99,11 +117,23 @@ const BusinessProjectsPage = () => {
       id: '4',
       name: 'API Integration',
       description: 'Integrate third-party APIs for payment processing',
-      projectManager: {
-        id: '4',
-        name: 'Phạm Thị D',
-        email: 'phamthid@company.com'
-      },
+      projectManagers: [
+        {
+          id: '4',
+          name: 'Phạm Thị D',
+          email: 'phamthid@company.com'
+        },
+        {
+          id: '2',
+          name: 'Trần Thị B',
+          email: 'tranthib@company.com'
+        },
+        {
+          id: '3',
+          name: 'Lê Văn C',
+          email: 'levanc@company.com'
+        }
+      ],
       status: 'on-hold',
       startDate: '2024-03-01',
       endDate: '2024-04-15',
@@ -121,11 +151,13 @@ const BusinessProjectsPage = () => {
       id: '5',
       name: 'Security Audit',
       description: 'Comprehensive security audit and vulnerability assessment',
-      projectManager: {
-        id: '1',
-        name: 'Nguyễn Văn A',
-        email: 'nguyenvana@company.com'
-      },
+      projectManagers: [
+        {
+          id: '1',
+          name: 'Nguyễn Văn A',
+          email: 'nguyenvana@company.com'
+        }
+      ],
       status: 'active',
       startDate: '2024-12-01',
       endDate: '2024-12-31',
@@ -147,14 +179,18 @@ const BusinessProjectsPage = () => {
 
   // Get unique project managers for filter
   const projectManagers = Array.from(
-    new Set(projects.map(p => p.projectManager.id))
-  ).map(id => projects.find(p => p.projectManager.id === id)?.projectManager).filter(Boolean);
+    new Map(
+      projects
+        .flatMap(p => p.projectManagers)
+        .map(pm => [pm.id, pm])
+    ).values()
+  );
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          project.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    const matchesPM = pmFilter === 'all' || project.projectManager.id === pmFilter;
+    const matchesPM = pmFilter === 'all' || project.projectManagers.some(pm => pm.id === pmFilter);
     
     return matchesSearch && matchesStatus && matchesPM;
   });
@@ -184,7 +220,6 @@ const BusinessProjectsPage = () => {
       </span>
     );
   };
-
 
   const getProgressColor = (progress: number) => {
     if (progress >= 80) return '#10B981';
@@ -285,7 +320,6 @@ const BusinessProjectsPage = () => {
           </select>
         </div>
 
-
         <div className="filter-group">
           <select
             value={pmFilter}
@@ -293,9 +327,7 @@ const BusinessProjectsPage = () => {
           >
             <option value="all">Tất cả PM</option>
             {projectManagers.map((pm) => (
-              <option key={pm?.id} value={pm?.id}>
-                {pm?.name}
-              </option>
+              <option key={pm.id} value={pm.id}>{pm.name}</option>
             ))}
           </select>
         </div>
@@ -313,7 +345,7 @@ const BusinessProjectsPage = () => {
         <div className="projects-table">
           <div className="table-header-row">
             <div className="col-project">Dự án</div>
-            <div className="col-pm">Project Manager</div>
+            <div className="col-pm">Project Managers</div>
             <div className="col-status">Trạng thái</div>
             <div className="col-progress">Tiến độ</div>
             <div className="col-members">Thành viên</div>
@@ -322,25 +354,38 @@ const BusinessProjectsPage = () => {
           </div>
 
           {filteredProjects.map((project) => (
-            <div key={project.id} className="table-row" onClick={() => handleProjectClick(project.id)}>
+            <div 
+              key={project.id} 
+              className="table-row"
+              onClick={() => handleProjectClick(project.id)}
+            >
               <div className="col-project">
                 <div className="project-info">
                   <div className="project-details">
-                    <span className="project-name">{project.name}</span>
-                    <span className="project-description">{project.description}</span>
+                    <div className="project-name">{project.name}</div>
+                    <div className="project-description">{project.description}</div>
                   </div>
                 </div>
               </div>
 
               <div className="col-pm">
-                <div className="pm-info">
-                  <div className="pm-avatar">
-                    {project.projectManager.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="pm-details">
-                    <span className="pm-name">{project.projectManager.name}</span>
-                    <span className="pm-email">{project.projectManager.email}</span>
-                  </div>
+                <div className="pm-list">
+                  {project.projectManagers.map((pm, index) => (
+                    <div key={pm.id} className="pm-item">
+                      <div className="pm-avatar">
+                        {pm.name.charAt(0)}
+                      </div>
+                      <div className="pm-details">
+                        <div className="pm-name">{pm.name}</div>
+                        <div className="pm-email">{pm.email}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {project.projectManagers.length > 2 && (
+                    <div className="pm-more">
+                      +{project.projectManagers.length - 2} PM khác
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -364,7 +409,7 @@ const BusinessProjectsPage = () => {
               </div>
 
               <div className="col-members">
-                <span className="member-count">{project.members} thành viên</span>
+                <span className="member-count">{project.members} người</span>
               </div>
 
               <div className="col-tasks">
@@ -377,8 +422,8 @@ const BusinessProjectsPage = () => {
 
               <div className="col-dates">
                 <div className="date-info">
-                  <span className="start-date">Bắt đầu: {project.startDate}</span>
-                  <span className="end-date">Kết thúc: {project.endDate}</span>
+                  <div className="start-date">Bắt đầu: {new Date(project.startDate).toLocaleDateString('vi-VN')}</div>
+                  <div className="end-date">Kết thúc: {new Date(project.endDate).toLocaleDateString('vi-VN')}</div>
                 </div>
               </div>
             </div>
@@ -390,14 +435,21 @@ const BusinessProjectsPage = () => {
         .business-projects-page {
           max-width: 1400px;
           margin: 0 auto;
-          padding: 24px;
+          padding: 32px;
+          background: #FAFAFA;
+          min-height: 100vh;
         }
 
         .page-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 32px;
+          margin-bottom: 40px;
+          padding: 24px 32px;
+          background: linear-gradient(135deg, #FFF4ED 0%, #FFE8D9 100%);
+          border-radius: 16px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          border: 1px solid #FFD4B8;
         }
 
         .header-content h1 {
@@ -415,26 +467,27 @@ const BusinessProjectsPage = () => {
 
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 16px;
-          margin-bottom: 32px;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 20px;
+          margin-bottom: 40px;
         }
 
         .stat-card {
           background: white;
-          border-radius: 12px;
-          padding: 20px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          border-radius: 16px;
+          padding: 24px;
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 16px;
+          border: 1px solid #F1F1F1;
         }
 
         .stat-icon {
-          width: 40px;
-          height: 40px;
-          background: #F9F4EE;
-          border-radius: 8px;
+          width: 56px;
+          height: 56px;
+          background: #FFF4ED;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -442,23 +495,25 @@ const BusinessProjectsPage = () => {
         }
 
         .stat-content h3 {
-          font-size: 12px;
+          font-size: 13px;
           color: #787486;
-          margin: 0 0 4px 0;
-          font-weight: 500;
+          margin: 0 0 6px 0;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .stat-number {
-          font-size: 24px;
-          font-weight: 700;
-          color: #0D062D;
+          font-size: 32px;
+          font-weight: 800;
+          color: #FF5E13;
           margin: 0;
         }
 
         .filters-section {
           display: flex;
           gap: 16px;
-          margin-bottom: 24px;
+          margin-bottom: 32px;
           flex-wrap: wrap;
         }
 
@@ -467,24 +522,37 @@ const BusinessProjectsPage = () => {
           flex: 1;
           min-width: 300px;
           background: white;
-          border-radius: 8px;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+          transition: all 0.3s ease;
+        }
+
+        .search-box:focus-within {
+          box-shadow: 0 4px 16px rgba(255, 94, 19, 0.1);
         }
 
         .search-box svg {
           position: absolute;
-          left: 12px;
+          left: 16px;
           top: 50%;
           transform: translateY(-50%);
           color: #787486;
+          transition: color 0.3s ease;
+        }
+
+        .search-box:focus-within svg {
+          color: #FF5E13;
         }
 
         .search-box input {
           width: 100%;
-          padding: 12px 12px 12px 44px;
+          padding: 14px 16px 14px 48px;
           border: 2px solid #E5E7EB;
-          border-radius: 8px;
+          border-radius: 12px;
           font-size: 14px;
-          transition: border-color 0.3s ease;
+          font-weight: 500;
+          transition: all 0.3s ease;
+          background: transparent;
         }
 
         .search-box input:focus {
@@ -492,28 +560,41 @@ const BusinessProjectsPage = () => {
           border-color: #FF5E13;
         }
 
+        .search-box input::placeholder {
+          color: #A0AEC0;
+        }
+
         .filter-group select {
-          padding: 12px 16px;
+          padding: 14px 20px;
           border: 2px solid #E5E7EB;
-          border-radius: 8px;
+          border-radius: 12px;
           font-size: 14px;
+          font-weight: 600;
           background: white;
+          color: #0D062D;
           cursor: pointer;
-          transition: border-color 0.3s ease;
-          min-width: 150px;
+          transition: all 0.3s ease;
+          min-width: 180px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .filter-group select:hover {
+          border-color: #FFD4B8;
+          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.08);
         }
 
         .filter-group select:focus {
           outline: none;
           border-color: #FF5E13;
+          box-shadow: 0 4px 16px rgba(255, 94, 19, 0.15);
         }
 
         .projects-table-container {
           background: white;
           border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
           overflow: hidden;
-          border: 1px solid #F1F5F9;
+          border: 1px solid #F1F1F1;
           position: relative;
         }
 
@@ -523,28 +604,28 @@ const BusinessProjectsPage = () => {
           top: 0;
           left: 0;
           right: 0;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, #FF5E13, transparent);
-          opacity: 0.3;
+          height: 3px;
+          background: linear-gradient(90deg, #FF5E13, #FF8C42, #FFA463);
         }
 
         .table-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 20px 24px;
-          border-bottom: 1px solid #F3F4F6;
+          padding: 24px 32px;
+          border-bottom: 2px solid #F8F9FA;
+          background: #FAFBFC;
         }
 
         .header-left {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 6px;
         }
 
         .table-header h3 {
-          font-size: 18px;
-          font-weight: 600;
+          font-size: 20px;
+          font-weight: 700;
           color: #0D062D;
           margin: 0;
         }
@@ -552,6 +633,7 @@ const BusinessProjectsPage = () => {
         .project-count {
           font-size: 14px;
           color: #787486;
+          font-weight: 600;
         }
 
         .projects-table {
@@ -561,55 +643,48 @@ const BusinessProjectsPage = () => {
         .table-header-row {
           display: grid;
           grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 1fr 1.5fr;
-          gap: 16px;
-          padding: 20px 24px;
-          background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+          gap: 20px;
+          padding: 18px 32px;
+          background: #FFF4ED;
           font-size: 12px;
           font-weight: 700;
-          color: #475569;
+          color: #FF5E13;
           text-transform: uppercase;
           letter-spacing: 0.8px;
-          border-bottom: 2px solid #E2E8F0;
-          position: relative;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        .table-header-row::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, #FF5E13, #FF8C42, #FFA463);
-          border-radius: 0 0 2px 2px;
+          border-bottom: 1px solid #FFE8D9;
         }
 
         .table-row {
           display: grid;
           grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 1fr 1.5fr;
-          gap: 16px;
-          padding: 20px 24px;
-          border-bottom: 1px solid #F1F5F9;
+          gap: 20px;
+          padding: 24px 32px;
+          border-bottom: 1px solid #F8F9FA;
           align-items: start;
           transition: all 0.3s ease;
           background: white;
           cursor: pointer;
+          position: relative;
+        }
+
+        .table-row::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 0;
+          background: #FF5E13;
+          transition: width 0.3s ease;
         }
 
         .table-row:hover {
-          background: linear-gradient(135deg, #FEF7F0 0%, #FFF5F0 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.08);
-          border-left: 3px solid #FF5E13;
+          background: #FFFBF8;
+          transform: translateX(4px);
         }
 
-        .table-row:nth-child(even) {
-          background: #FAFBFC;
-        }
-
-        .table-row:nth-child(even):hover {
-          background: linear-gradient(135deg, #FEF7F0 0%, #FFF5F0 100%);
+        .table-row:hover::before {
+          width: 3px;
         }
 
         .col-project {
@@ -628,7 +703,7 @@ const BusinessProjectsPage = () => {
         .project-details {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 4px;
         }
 
         .project-name {
@@ -643,10 +718,10 @@ const BusinessProjectsPage = () => {
         }
 
         .project-description {
-          font-size: 12px;
+          font-size: 13px;
           color: #64748B;
           font-weight: 500;
-          line-height: 1.3;
+          line-height: 1.4;
         }
 
         .col-pm {
@@ -655,42 +730,68 @@ const BusinessProjectsPage = () => {
           min-height: 40px;
         }
 
-        .pm-info {
+        .pm-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          width: 100%;
+        }
+
+        .pm-item {
           display: flex;
           align-items: center;
-          gap: 8px;
-          width: 100%;
+          gap: 10px;
         }
 
         .pm-avatar {
           width: 32px;
           height: 32px;
-          background: linear-gradient(135deg, #3B82F6, #1D4ED8);
-          color: white;
-          border-radius: 50%;
+          background: #FFF4ED;
+          color: #FF5E13;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 600;
-          font-size: 12px;
-          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+          font-weight: 700;
+          font-size: 13px;
+          border: 2px solid #FFE8D9;
+          flex-shrink: 0;
         }
 
         .pm-details {
           display: flex;
           flex-direction: column;
-          gap: 1px;
+          gap: 2px;
+          min-width: 0;
         }
 
         .pm-name {
           font-size: 13px;
           font-weight: 600;
           color: #0D062D;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .pm-email {
           font-size: 11px;
-          color: #64748B;
+          color: #94A3B8;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .pm-more {
+          font-size: 11px;
+          color: #FF5E13;
+          font-weight: 600;
+          padding: 6px 10px;
+          background: #FFF4ED;
+          border-radius: 6px;
+          display: inline-block;
+          margin-top: 4px;
+          border: 1px solid #FFE8D9;
         }
 
         .col-status {
@@ -700,12 +801,11 @@ const BusinessProjectsPage = () => {
         }
 
         .status-badge {
-          font-size: 10px;
+          font-size: 11px;
           font-weight: 600;
-          padding: 3px 6px;
-          border-radius: 4px;
+          padding: 6px 12px;
+          border-radius: 8px;
           display: inline-block;
-          transition: all 0.3s ease;
           white-space: nowrap;
           line-height: 1.2;
           max-width: 100%;
@@ -722,7 +822,7 @@ const BusinessProjectsPage = () => {
         .progress-container {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 12px;
           width: 100%;
         }
 
@@ -730,21 +830,21 @@ const BusinessProjectsPage = () => {
           flex: 1;
           height: 8px;
           background: #E5E7EB;
-          border-radius: 4px;
+          border-radius: 8px;
           overflow: hidden;
         }
 
         .progress-fill {
           height: 100%;
-          border-radius: 4px;
+          border-radius: 8px;
           transition: width 0.3s ease;
         }
 
         .progress-text {
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 600;
           color: #475569;
-          min-width: 35px;
+          min-width: 40px;
         }
 
         .col-members {
@@ -768,8 +868,8 @@ const BusinessProjectsPage = () => {
         .task-stats {
           display: flex;
           align-items: center;
-          gap: 2px;
-          font-size: 13px;
+          gap: 4px;
+          font-size: 14px;
           font-weight: 600;
         }
 
@@ -778,11 +878,11 @@ const BusinessProjectsPage = () => {
         }
 
         .task-separator {
-          color: #6B7280;
+          color: #94A3B8;
         }
 
         .task-total {
-          color: #475569;
+          color: #64748B;
         }
 
         .col-dates {
@@ -794,21 +894,21 @@ const BusinessProjectsPage = () => {
         .date-info {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 4px;
           width: 100%;
         }
 
         .start-date, .end-date {
-          font-size: 11px;
+          font-size: 12px;
           color: #64748B;
-          font-weight: 500;
+          font-weight: 600;
         }
 
         @media (max-width: 1200px) {
           .table-header-row,
           .table-row {
             grid-template-columns: 1fr;
-            gap: 8px;
+            gap: 12px;
           }
 
           .col-project,
@@ -821,22 +921,30 @@ const BusinessProjectsPage = () => {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
+            padding: 12px 0;
             border-bottom: 1px solid #F3F4F6;
           }
 
-          .col-project::before { content: "Dự án: "; font-weight: 600; }
-          .col-pm::before { content: "PM: "; font-weight: 600; }
-          .col-status::before { content: "Trạng thái: "; font-weight: 600; }
-          .col-progress::before { content: "Tiến độ: "; font-weight: 600; }
-          .col-members::before { content: "Thành viên: "; font-weight: 600; }
-          .col-tasks::before { content: "Tasks: "; font-weight: 600; }
-          .col-dates::before { content: "Thời gian: "; font-weight: 600; }
+          .col-project::before { content: "Dự án: "; font-weight: 700; color: #FF5E13; }
+          .col-pm::before { content: "PMs: "; font-weight: 700; color: #FF5E13; }
+          .col-status::before { content: "Trạng thái: "; font-weight: 700; color: #FF5E13; }
+          .col-progress::before { content: "Tiến độ: "; font-weight: 700; color: #FF5E13; }
+          .col-members::before { content: "Thành viên: "; font-weight: 700; color: #FF5E13; }
+          .col-tasks::before { content: "Tasks: "; font-weight: 700; color: #FF5E13; }
+          .col-dates::before { content: "Thời gian: "; font-weight: 700; color: #FF5E13; }
         }
 
         @media (max-width: 768px) {
           .business-projects-page {
             padding: 16px;
+          }
+
+          .page-header {
+            padding: 20px;
+          }
+
+          .header-content h1 {
+            font-size: 28px;
           }
 
           .filters-section {
@@ -849,6 +957,11 @@ const BusinessProjectsPage = () => {
 
           .stats-grid {
             grid-template-columns: 1fr;
+          }
+
+          .table-header,
+          .table-row {
+            padding: 16px 20px;
           }
         }
       `}</style>

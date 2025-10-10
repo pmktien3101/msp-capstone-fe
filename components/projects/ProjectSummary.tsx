@@ -37,13 +37,13 @@ export function ProjectSummary({ project }: ProjectSummaryProps) {
 
       {/* Main Content Grid */}
       <div className="summary-content">
-        {/* Left Column - Milestone (65-70%) */}
+        {/* Left Column */}
         <div className="summary-left">
           <MilestoneProgress project={project} />
           <TasksList project={project} />
         </div>
 
-        {/* Right Column - Other Cards */}
+        {/* Right Column */}
         <div className="summary-right">
           <StatusOverview project={project} stats={stats} />
           <TeamWorkload project={project} />
@@ -54,24 +54,65 @@ export function ProjectSummary({ project }: ProjectSummaryProps) {
       <style jsx>{`
         .project-summary {
           width: 100%;
+          padding: 4px;
         }
 
         .summary-content {
           display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 24px;
+          grid-template-columns: 1.8fr 1fr;
+          gap: 20px;
+          margin-top: 24px;
         }
 
         .summary-left,
         .summary-right {
           display: flex;
           flex-direction: column;
-          gap: 24px;
+          gap: 20px;
+        }
+
+        /* Card styling improvements */
+        .summary-left > :global(*),
+        .summary-right > :global(*) {
+          background: white;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          border: 1px solid #F1F5F9;
+          transition: box-shadow 0.2s ease;
+        }
+
+        .summary-left > :global(*):hover,
+        .summary-right > :global(*):hover {
+          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.08);
+        }
+
+        @media (max-width: 1200px) {
+          .summary-content {
+            grid-template-columns: 1.5fr 1fr;
+            gap: 16px;
+          }
         }
 
         @media (max-width: 1024px) {
           .summary-content {
             grid-template-columns: 1fr;
+            gap: 20px;
+          }
+
+          .summary-left,
+          .summary-right {
+            gap: 16px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .project-summary {
+            padding: 2px;
+          }
+
+          .summary-content {
+            gap: 16px;
+            margin-top: 20px;
           }
         }
       `}</style>
