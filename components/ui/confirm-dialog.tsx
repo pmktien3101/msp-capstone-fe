@@ -36,30 +36,30 @@ export function ConfirmDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-              <AlertTriangle size={20} className="text-red-600" />
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+              <AlertTriangle size={16} className="text-red-600" />
             </div>
             {title}
           </DialogTitle>
-          <DialogDescription className="pt-2">
+          <DialogDescription className="pt-1 text-sm">
             {description}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-2 pt-3">
           <Button
             variant="outline"
             onClick={onClose}
-            className="flex-1"
+            className="flex-1 h-9 text-sm"
           >
             {cancelText}
           </Button>
           <Button
             onClick={handleConfirm}
-            className="flex-1 bg-red-600 hover:bg-red-700"
+            className="flex-1 h-9 text-sm bg-red-600 hover:bg-red-700"
           >
             {confirmText}
           </Button>

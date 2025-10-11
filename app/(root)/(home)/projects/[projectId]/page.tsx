@@ -13,8 +13,6 @@ import { mockProjects, mockMembers, mockTasks, addMilestone } from '@/constants/
 import { Plus, Calendar, Users, Target } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import '@/app/styles/project-detail.scss';
-import { ProjectManagersSection } from '@/components/projects/ProjectManagersSection';
-import { AddProjectManagerModal } from '@/components/projects/AddProjectManagerModal';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const ProjectDetailPage = () => {
@@ -29,9 +27,6 @@ const ProjectDetailPage = () => {
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState("summary");
-  const [isAddManagerModalOpen, setIsAddManagerModalOpen] = useState(false);
-  const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
-  const [managerToRemove, setManagerToRemove] = useState<{ id: string; name: string } | null>(null);
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
   const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<{ id: string; title: string } | null>(null);
@@ -49,9 +44,6 @@ const ProjectDetailPage = () => {
 
   // Check if user has permission to create milestones
   const canCreateMilestone = role && role.toLowerCase() !== 'member';
-
-  // Check if user is business owner
-  const canManageProjectManagers = role?.toLowerCase() === 'businessowner';
 
   // Handlers
   const handleTaskClick = (task: Task) => {
@@ -146,51 +138,6 @@ const ProjectDetailPage = () => {
       console.error('Error creating milestone:', error);
       alert('Có lỗi xảy ra khi tạo cột mốc. Vui lòng thử lại!');
     }
-  };
-
-  const handleAddProjectManager = () => {
-    setIsAddManagerModalOpen(true);
-  };
-
-  const handleAddManagers = (managerIds: string[]) => {
-    if (!project) return;
-    
-    // Get selected managers
-    const newManagers = availableProjectManagers.filter(m => managerIds.includes(m.id));
-    
-    // Update project with new managers
-    const updatedProject = {
-      ...project,
-      projectManagers: [...(project.projectManagers || []), ...newManagers]
-    };
-    
-    setProject(updatedProject);
-    console.log('Added managers:', newManagers);
-    // In real app, call API to update project
-  };
-
-  const handleRemoveProjectManager = (managerId: string) => {
-    if (!project) return;
-    
-    const manager = project.projectManagers?.find(m => m.id === managerId);
-    if (manager) {
-      setManagerToRemove({ id: manager.id, name: manager.name });
-      setIsConfirmRemoveOpen(true);
-    }
-  };
-
-  const confirmRemoveManager = () => {
-    if (!project || !managerToRemove) return;
-    
-    const updatedProject = {
-      ...project,
-      projectManagers: project.projectManagers?.filter(m => m.id !== managerToRemove.id) || []
-    };
-    
-    setProject(updatedProject);
-    console.log('Removed manager:', managerToRemove.id);
-    setManagerToRemove(null);
-    // In real app, call API to update project
   };
 
   // Calculate project progress based on tasks for specific project
@@ -311,15 +258,6 @@ const ProjectDetailPage = () => {
           )}
         </div>
       </div>
-      {/* Project Managers Section */}
-      <div className="project-managers-wrapper">
-        <ProjectManagersSection
-          projectManagers={project?.projectManagers || []}
-          canManage={canManageProjectManagers}
-          onAddManager={handleAddProjectManager}
-          onRemoveManager={handleRemoveProjectManager}
-        />
-      </div>
 
       <ProjectTabs 
         key={refreshKey}
@@ -358,15 +296,6 @@ const ProjectDetailPage = () => {
         projectId={projectId}
       />
 
-      {/* Add Project Manager Modal */}
-      <AddProjectManagerModal
-        isOpen={isAddManagerModalOpen}
-        onClose={() => setIsAddManagerModalOpen(false)}
-        onAdd={handleAddManagers}
-        availableManagers={availableProjectManagers}
-        currentManagers={project?.projectManagers || []}
-      />
-
       {/* Create Task Modal */}
       <CreateTaskModal
         isOpen={isCreateTaskModalOpen}
@@ -401,7 +330,7 @@ const ProjectDetailPage = () => {
       )}
 
       {/* Confirm Remove Manager Dialog */}
-      <ConfirmDialog
+      {/* <ConfirmDialog
         isOpen={isConfirmRemoveOpen}
         onClose={() => {
           setIsConfirmRemoveOpen(false);
@@ -412,7 +341,7 @@ const ProjectDetailPage = () => {
         description={`Bạn có chắc chắn muốn xóa ${managerToRemove?.name} khỏi dự án này không? Hành động này không thể hoàn tác.`}
         confirmText="Xóa"
         cancelText="Hủy"
-      />
+      /> */}
     </div>
   );
 };

@@ -5,6 +5,9 @@ import { Project } from "@/types/project";
 import { Member } from "@/types/member";
 import { AddMemberModal } from "./modals/AddMemberModal";
 import { EditMemberModal } from "./modals/EditMemberModal";
+import { AddPMModal } from "./modals/AddPMModal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useUser } from "@/hooks/useUser";
 import { 
   Plus, 
   Edit, 
@@ -19,8 +22,16 @@ import {
   User,
   Mail,
   MessageSquare,
-  Paperclip
+  Paperclip,
+  UserCog
 } from "lucide-react";
+
+interface ProjectManager {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+}
 
 interface ProjectSettingsProps {
   project: Project;
@@ -68,8 +79,37 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
   });
 
   const [members, setMembers] = useState<Member[]>(project.members ?? []);
+  const [projectManagers, setProjectManagers] = useState<ProjectManager[]>(project.projectManagers ?? []);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showAddPMModal, setShowAddPMModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
+  
+  // Confirm dialog states
+  const [isConfirmDeleteMemberOpen, setIsConfirmDeleteMemberOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isConfirmDeletePMOpen, setIsConfirmDeletePMOpen] = useState(false);
+  const [pmToDelete, setPmToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const [isEditingBasicInfo, setIsEditingBasicInfo] = useState(false);
+  const [tempSettings, setTempSettings] = useState<Settings>({...settings});
+
+  // Mock available PMs
+  const availableProjectManagers: ProjectManager[] = [
+    { id: '1', name: 'Nguyễn Văn A', email: 'nguyenvana@company.com' },
+    { id: '2', name: 'Trần Thị B', email: 'tranthib@company.com' },
+    { id: '3', name: 'Lê Văn C', email: 'levanc@company.com' },
+    { id: '4', name: 'Phạm Thị D', email: 'phamthid@company.com' },
+    { id: '5', name: 'Hoàng Văn E', email: 'hoangvane@company.com' },
+  ];
+
+  // Get user role for permission checks
+  const { role } = useUser();
+  const userRole = role?.toLowerCase();
+
+  // Permission checks
+  const canEditBasicInfo = userRole === 'pm' || userRole === 'businessowner';
+  const canAddPM = userRole === 'businessowner';
+  const canAddMember = userRole === 'pm';
 
   const handleInputChange = (field: string, value: any) => {
     setSettings((prev) => ({
@@ -115,50 +155,119 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
   };
 
   const handleDeleteMember = (memberId: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa thành viên này?")) {
-      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+    const member = members.find(m => m.id === memberId);
+    if (member) {
+      setMemberToDelete({ id: member.id, name: member.name });
+      setIsConfirmDeleteMemberOpen(true);
     }
+  };
+
+  const confirmDeleteMember = () => {
+    if (memberToDelete) {
+      setMembers((prev) => prev.filter((m) => m.id !== memberToDelete.id));
+      setMemberToDelete(null);
+      console.log('Deleted member:', memberToDelete.id);
+      // In real app, call API to delete member
+    }
+  };
+
+  const handleAddPM = (pmIds: string[]) => {
+    const newPMs = availableProjectManagers.filter(pm => pmIds.includes(pm.id));
+    setProjectManagers(prev => [...prev, ...newPMs]);
+    setShowAddPMModal(false);
+  };
+
+  const handleRemovePM = (pmId: string) => {
+    const pm = projectManagers.find(p => p.id === pmId);
+    if (pm) {
+      setPmToDelete({ id: pm.id, name: pm.name });
+      setIsConfirmDeletePMOpen(true);
+    }
+  };
+
+  const confirmDeletePM = () => {
+    if (pmToDelete) {
+      setProjectManagers(prev => prev.filter(pm => pm.id !== pmToDelete.id));
+      setPmToDelete(null);
+      console.log('Deleted PM:', pmToDelete.id);
+      // In real app, call API to remove PM
+    }
+  };
+
+  const handleStartEdit = () => {
+    setTempSettings({...settings});
+    setIsEditingBasicInfo(true);
+  };
+
+  const handleCancelEdit = () => {
+    setTempSettings({...settings});
+    setIsEditingBasicInfo(false);
+  };
+
+  const handleSaveBasicInfo = () => {
+    setSettings(tempSettings);
+    setIsEditingBasicInfo(false);
+    console.log("Saving basic info:", tempSettings);
+    // TODO: Call API to save
+  };
+
+  const handleTempInputChange = (field: string, value: any) => {
+    setTempSettings((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   return (
     <div className="project-settings">
       <div className="settings-content">
         <div className="settings-section">
-            <div className="section-header">
-              <div className="section-icon">
-                <Settings size={16} color="white" />
-              </div>
-          <h4>Thông tin cơ bản</h4>
+          <div className="section-header">
+            <div className="section-icon">
+              <Settings size={16} color="white" />
+            </div>
+            <h4>Thông tin cơ bản</h4>
+            {!isEditingBasicInfo && canEditBasicInfo && (
+              <button
+                className="btn btn-secondary"
+                onClick={handleStartEdit}
+              >
+                <Edit size={14} />
+                Chỉnh sửa
+              </button>
+            )}
           </div>
           
           <div className="form-grid">
-          <div className="form-group full-width">
+            <div className="form-group full-width">
               <label className="form-label">
                 <User size={14} />
                 Tên dự án
               </label>
-            <input
-              type="text"
-              value={settings.name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              className="form-input"
+              <input
+                type="text"
+                value={isEditingBasicInfo ? tempSettings.name : settings.name}
+                onChange={(e) => handleTempInputChange("name", e.target.value)}
+                className="form-input"
                 placeholder="Nhập tên dự án"
-            />
-          </div>
+                disabled={!isEditingBasicInfo}
+              />
+            </div>
 
             <div className="form-group full-width">
               <label className="form-label">
                 <MessageSquare size={14} />
                 Mô tả
               </label>
-            <textarea
-              value={settings.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
-              className="form-textarea"
-              rows={3}
+              <textarea
+                value={isEditingBasicInfo ? tempSettings.description : settings.description}
+                onChange={(e) => handleTempInputChange("description", e.target.value)}
+                className="form-textarea"
+                rows={3}
                 placeholder="Mô tả chi tiết về dự án"
-            />
-          </div>
+                disabled={!isEditingBasicInfo}
+              />
+            </div>
 
             <div className="form-group">
               <label className="form-label">
@@ -166,9 +275,10 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
                 Trạng thái
               </label>
               <select
-                value={settings.status}
-                onChange={(e) => handleInputChange("status", e.target.value)}
+                value={isEditingBasicInfo ? tempSettings.status : settings.status}
+                onChange={(e) => handleTempInputChange("status", e.target.value)}
                 className="form-select"
+                disabled={!isEditingBasicInfo}
               >
                 <option value="planning">Đang lập kế hoạch</option>
                 <option value="active">Đang hoạt động</option>
@@ -184,12 +294,13 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
               </label>
               <input
                 type="text"
-                value={settings.manager}
-                onChange={(e) => handleInputChange("manager", e.target.value)}
+                value={isEditingBasicInfo ? tempSettings.manager : settings.manager}
+                onChange={(e) => handleTempInputChange("manager", e.target.value)}
                 className="form-input"
                 placeholder="Tên người quản lý"
+                disabled={!isEditingBasicInfo}
               />
-          </div>
+            </div>
 
             <div className="form-group">
               <label className="form-label">
@@ -198,9 +309,10 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
               </label>
               <input
                 type="date"
-                value={settings.startDate}
-                onChange={(e) => handleInputChange("startDate", e.target.value)}
+                value={isEditingBasicInfo ? tempSettings.startDate : settings.startDate}
+                onChange={(e) => handleTempInputChange("startDate", e.target.value)}
                 className="form-input"
+                disabled={!isEditingBasicInfo}
               />
             </div>
 
@@ -211,12 +323,33 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
               </label>
               <input
                 type="date"
-                value={settings.endDate}
-                onChange={(e) => handleInputChange("endDate", e.target.value)}
+                value={isEditingBasicInfo ? tempSettings.endDate : settings.endDate}
+                onChange={(e) => handleTempInputChange("endDate", e.target.value)}
                 className="form-input"
+                disabled={!isEditingBasicInfo}
               />
             </div>
           </div>
+
+          {/* Action buttons inside Basic Info card */}
+          {isEditingBasicInfo && (
+            <div className="card-actions">
+              <button 
+                className="btn btn-secondary"
+                onClick={handleCancelEdit}
+              >
+                <X size={14} />
+                Hủy
+              </button>
+              <button 
+                className="btn btn-primary"
+                onClick={handleSaveBasicInfo}
+              >
+                <Save size={14} />
+                Lưu thay đổi
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="settings-section">
@@ -375,16 +508,81 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         <div className="settings-section">
           <div className="section-header">
             <div className="section-icon">
+              <UserCog size={16} color="white" />
+            </div>
+            <h4>Project Managers ({projectManagers.length})</h4>
+            {canAddPM && (
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowAddPMModal(true)}
+              >
+                <Plus size={14} />
+                Thêm PM
+              </button>
+            )}
+          </div>
+          <div className="members-list">
+            {projectManagers.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">
+                  <UserCog size={40} color="#9CA3AF" />
+                </div>
+                <h5>Chưa có Project Manager nào</h5>
+                <p>Thêm Project Manager để quản lý dự án hiệu quả hơn!</p>
+                {canAddPM && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setShowAddPMModal(true)}
+                  >
+                    <Plus size={14} />
+                    Thêm PM đầu tiên
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="members-grid">
+                {projectManagers.map((pm) => (
+                  <div key={pm.id} className="member-card pm-card">
+                    <div className="pm-badge">PM</div>
+                    <div className="member-avatar">{pm.name.charAt(0)}</div>
+                    <div className="member-info">
+                      <div className="member-name">{pm.name}</div>
+                      <div className="member-role">Project Manager</div>
+                      <div className="member-email">{pm.email}</div>
+                    </div>
+                    {canAddPM && (
+                      <div className="member-actions">
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={() => handleRemovePM(pm.id)}
+                          title="Xóa PM"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <div className="section-header">
+            <div className="section-icon">
               <Users size={16} color="white" />
             </div>
             <h4>Thành viên dự án ({members.length})</h4>
-            <button
-              className="btn btn-primary"
-              onClick={() => setShowAddMemberModal(true)}
-            >
-              <Plus size={14} />
-              Thêm thành viên
-            </button>
+            {canAddMember && (
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowAddMemberModal(true)}
+              >
+                <Plus size={14} />
+                Thêm thành viên
+              </button>
+            )}
           </div>
           <div className="members-list">
             {members.length === 0 ? (
@@ -394,13 +592,15 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
                 </div>
                 <h5>Chưa có thành viên nào</h5>
                 <p>Hãy thêm thành viên đầu tiên để bắt đầu cộng tác!</p>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => setShowAddMemberModal(true)}
-                >
-                  <Plus size={14} />
-                  Thêm thành viên đầu tiên
-                </button>
+                {canAddMember && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setShowAddMemberModal(true)}
+                  >
+                    <Plus size={14} />
+                    Thêm thành viên đầu tiên
+                  </button>
+                )}
               </div>
             ) : (
               <div className="members-grid">
@@ -412,38 +612,29 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
                     <div className="member-role">{member.role}</div>
                     <div className="member-email">{member.email}</div>
                   </div>
-                  <div className="member-actions">
-                    <button
-                      className="btn btn-sm btn-secondary"
-                      onClick={() => handleEditMember(member)}
+                  {canAddMember && (
+                    <div className="member-actions">
+                      <button
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => handleEditMember(member)}
                         title="Chỉnh sửa thành viên"
                       >
                         <Edit size={12} />
-                    </button>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => handleDeleteMember(member.id)}
+                      </button>
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleDeleteMember(member.id)}
                         title="Xóa thành viên"
                       >
                         <Trash2 size={12} />
-                    </button>
+                      </button>
                     </div>
+                  )}
                   </div>
                 ))}
                 </div>
             )}
           </div>
-        </div>
-
-        <div className="settings-actions">
-          <button className="btn btn-secondary">
-            <X size={14} />
-            Hủy
-          </button>
-          <button className="btn btn-primary" onClick={handleSave}>
-            <Save size={14} />
-            Lưu thay đổi
-          </button>
         </div>
       </div>
 
@@ -464,157 +655,103 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         member={editingMember}
       />
 
+      {/* Add PM Modal */}
+      <AddPMModal
+        isOpen={showAddPMModal}
+        onClose={() => setShowAddPMModal(false)}
+        onAdd={handleAddPM}
+        availableManagers={availableProjectManagers.filter(
+          pm => !projectManagers.some(existing => existing.id === pm.id)
+        )}
+        currentManagers={projectManagers}
+      />
+
+      {/* Confirm Delete Member Dialog */}
+      <ConfirmDialog
+        isOpen={isConfirmDeleteMemberOpen}
+        onClose={() => {
+          setIsConfirmDeleteMemberOpen(false);
+          setMemberToDelete(null);
+        }}
+        onConfirm={confirmDeleteMember}
+        title="Xóa thành viên"
+        description={`Bạn có chắc chắn muốn xóa thành viên ${memberToDelete?.name} khỏi dự án này không? Hành động này không thể hoàn tác.`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+      />
+
+      {/* Confirm Delete PM Dialog */}
+      <ConfirmDialog
+        isOpen={isConfirmDeletePMOpen}
+        onClose={() => {
+          setIsConfirmDeletePMOpen(false);
+          setPmToDelete(null);
+        }}
+        onConfirm={confirmDeletePM}
+        title="Xóa Project Manager"
+        description={`Bạn có chắc chắn muốn xóa Project Manager ${pmToDelete?.name} khỏi dự án này không? Hành động này không thể hoàn tác.`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+      />
+
       <style jsx>{`
         .project-settings {
           width: 100%;
-          background: #f8fafc;
+          background: #FAFAFA;
           min-height: 100vh;
           padding: 20px;
         }
 
-        .settings-header {
-          margin-bottom: 40px;
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(20px);
-          border-radius: 24px;
-          padding: 32px;
-          box-shadow: 
-            0 20px 25px -5px rgba(0, 0, 0, 0.1),
-            0 10px 10px -5px rgba(0, 0, 0, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .settings-header::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 4px;
-          background: linear-gradient(90deg, #FF5E13, #FF8C42, #FFA463);
-        }
-
-        .header-content {
-          display: flex;
-          align-items: center;
-          gap: 24px;
-        }
-
-        .header-icon {
-          width: 64px;
-          height: 64px;
-          background: linear-gradient(135deg, #FF5E13, #FF8C42);
-          border-radius: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 
-            0 10px 25px rgba(255, 94, 19, 0.4),
-            0 0 0 1px rgba(255, 255, 255, 0.1);
-          position: relative;
-        }
-
-        .header-icon::after {
-          content: '';
-          position: absolute;
-          inset: -2px;
-          background: linear-gradient(135deg, #FF5E13, #FF8C42);
-          border-radius: 22px;
-          z-index: -1;
-          opacity: 0.3;
-          filter: blur(8px);
-        }
-
-        .header-text h3 {
-          font-size: 32px;
-          font-weight: 800;
-          color: #1f2937;
-          margin: 0 0 12px 0;
-          background: linear-gradient(135deg, #FF5E13, #FF8C42, #FFA463);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          letter-spacing: -0.025em;
-        }
-
-        .header-text p {
-          color: #6b7280;
-          margin: 0;
-          font-size: 18px;
-          font-weight: 500;
-        }
-
-        .project-name {
-          color: #FF5E13;
-          font-weight: 700;
-          background: linear-gradient(135deg, #FF5E13, #FF8C42);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
         .settings-content {
-          max-width: 1000px;
+          max-width: 1100px;
           margin: 0 auto;
         }
 
         .settings-section {
           margin-bottom: 20px;
           background: white;
-          border-radius: 16px;
+          border-radius: 10px;
           padding: 20px;
-          box-shadow: 
-            0 10px 15px -3px rgba(0, 0, 0, 0.1),
-            0 4px 6px -2px rgba(0, 0, 0, 0.05);
-          border: 1px solid #e2e8f0;
-          position: relative;
-          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+          border: 1px solid #E5E7EB;
+          transition: box-shadow 0.2s ease;
         }
 
-        .settings-section::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, #FF5E13, #FF8C42, #FFA463);
+        .settings-section:hover {
+          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.08);
         }
 
         .section-header {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
           margin-bottom: 20px;
           padding-bottom: 12px;
-          border-bottom: 2px solid rgba(255, 94, 19, 0.1);
+          border-bottom: 2px solid #FFF4ED;
         }
 
         .section-header h4 {
           font-size: 16px;
           font-weight: 700;
-          color: #1f2937;
+          color: #1F2937;
           margin: 0;
           flex: 1;
-          letter-spacing: -0.025em;
         }
 
         .section-icon {
           width: 28px;
           height: 28px;
           background: linear-gradient(135deg, #FF5E13, #FF8C42);
-          border-radius: 6px;
+          border-radius: 7px;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 3px 8px rgba(255, 94, 19, 0.3);
+          box-shadow: 0 2px 6px rgba(255, 94, 19, 0.25);
         }
 
         .form-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+          grid-template-columns: repeat(2, 1fr);
           gap: 16px;
         }
 
@@ -635,20 +772,18 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
           font-weight: 600;
           color: #374151;
           margin-bottom: 6px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
         }
 
         .form-input,
         .form-textarea,
         .form-select {
           width: 100%;
-          padding: 10px 14px;
-          border: 2px solid #e5e7eb;
-          border-radius: 10px;
+          padding: 10px 12px;
+          border: 2px solid #E5E7EB;
+          border-radius: 7px;
           font-size: 13px;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          background: #f8fafc;
+          transition: all 0.2s ease;
+          background: white;
           font-weight: 500;
         }
 
@@ -657,16 +792,21 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         .form-select:focus {
           outline: none;
           border-color: #FF5E13;
-          background: white;
-          box-shadow: 
-            0 0 0 4px rgba(255, 94, 19, 0.1),
-            0 10px 25px rgba(255, 94, 19, 0.15);
-          transform: translateY(-2px);
+          box-shadow: 0 0 0 3px rgba(255, 94, 19, 0.1);
         }
 
         .form-textarea {
           resize: vertical;
           min-height: 70px;
+        }
+
+        .form-input:disabled,
+        .form-textarea:disabled,
+        .form-select:disabled {
+          background: #F9FAFB;
+          color: #6B7280;
+          cursor: not-allowed;
+          border-color: #E5E7EB;
         }
 
         .checkbox-grid {
@@ -684,34 +824,15 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
           align-items: center;
           justify-content: space-between;
           padding: 12px;
-          background: #f8fafc;
-          border: 2px solid #e2e8f0;
-          border-radius: 10px;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .checkbox-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 94, 19, 0.1), transparent);
-          transition: left 0.6s ease;
+          background: #FAFBFC;
+          border: 2px solid #E5E7EB;
+          border-radius: 8px;
+          transition: all 0.2s ease;
         }
 
         .checkbox-card:hover {
-          border-color: #FF5E13;
-          background: #fff7ed;
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px rgba(255, 94, 19, 0.15);
-        }
-
-        .checkbox-card:hover::before {
-          left: 100%;
+          border-color: #FFD4B8;
+          background: #FFF4ED;
         }
 
         .checkbox-header {
@@ -746,10 +867,9 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
           left: 0;
           right: 0;
           bottom: 0;
-          background: linear-gradient(135deg, #cbd5e1, #94a3b8);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          background: #CBD5E1;
+          transition: all 0.3s ease;
           border-radius: 22px;
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .toggle-slider:before {
@@ -759,272 +879,201 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
           width: 16px;
           left: 3px;
           bottom: 3px;
-          background: linear-gradient(135deg, #ffffff, #f8fafc);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          background: white;
+          transition: all 0.3s ease;
           border-radius: 50%;
-          box-shadow: 
-            0 3px 6px rgba(0, 0, 0, 0.2),
-            0 0 0 1px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         input:checked + .toggle-slider {
           background: linear-gradient(135deg, #FF5E13, #FF8C42);
-          box-shadow: 
-            inset 0 2px 4px rgba(0, 0, 0, 0.1),
-            0 0 20px rgba(255, 94, 19, 0.3);
         }
 
         input:checked + .toggle-slider:before {
           transform: translateX(18px);
-          box-shadow: 
-            0 3px 8px rgba(0, 0, 0, 0.2),
-            0 0 0 1px rgba(255, 255, 255, 0.1);
         }
 
         .members-list {
-          margin-top: 16px;
+          margin-top: 12px;
         }
 
         .empty-state {
           text-align: center;
-          padding: 40px 24px;
-          background: #f8fafc;
-          border: 2px dashed #cbd5e1;
-          border-radius: 16px;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .empty-state::before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 200px;
-          height: 200px;
-          background: radial-gradient(circle, rgba(255, 94, 19, 0.05) 0%, transparent 70%);
-          transform: translate(-50%, -50%);
-          border-radius: 50%;
+          padding: 40px 20px;
+          background: #F9FAFB;
+          border: 2px dashed #D1D5DB;
+          border-radius: 10px;
         }
 
         .empty-icon {
-          margin-bottom: 16px;
-          position: relative;
-          z-index: 1;
+          margin-bottom: 12px;
+          color: #9CA3AF;
         }
 
         .empty-state h5 {
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 700;
           color: #374151;
-          margin: 0 0 8px 0;
-          position: relative;
-          z-index: 1;
+          margin: 0 0 6px 0;
         }
 
         .empty-state p {
-          color: #6b7280;
-          margin: 0 0 24px 0;
-          font-size: 14px;
-          position: relative;
-          z-index: 1;
+          color: #6B7280;
+          margin: 0 0 20px 0;
+          font-size: 13px;
         }
 
         .members-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 16px;
+          gap: 12px;
         }
 
         .member-card {
           display: flex;
           align-items: center;
-          gap: 14px;
-          padding: 14px;
-          background: #f8fafc;
-          border: 2px solid #e2e8f0;
-          border-radius: 14px;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .member-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 94, 19, 0.1), transparent);
-          transition: left 0.6s ease;
+          gap: 12px;
+          padding: 12px;
+          background: white;
+          border: 2px solid #E5E7EB;
+          border-radius: 10px;
+          transition: all 0.2s ease;
         }
 
         .member-card:hover {
-          border-color: #FF5E13;
-          background: #fff7ed;
-          transform: translateY(-6px);
-          box-shadow: 0 25px 50px rgba(255, 94, 19, 0.2);
+          border-color: #FFD4B8;
+          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.1);
         }
 
-        .member-card:hover::before {
-          left: 100%;
+        .pm-card {
+          border-color: #FFE8D9;
+          background: linear-gradient(135deg, #FFFBF8 0%, #FFFFFF 100%);
+        }
+
+        .pm-card:hover {
+          border-color: #FF5E13;
+        }
+
+        .pm-badge {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background: linear-gradient(135deg, #FF5E13, #FF8C42);
+          color: white;
+          padding: 3px 10px;
+          border-radius: 10px;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          box-shadow: 0 2px 6px rgba(255, 94, 19, 0.25);
         }
 
         .member-avatar {
-          width: 42px;
-          height: 42px;
+          width: 40px;
+          height: 40px;
           background: linear-gradient(135deg, #FF5E13, #FF8C42);
           color: white;
-          border-radius: 50%;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 16px;
-          font-weight: 800;
-          box-shadow: 
-            0 4px 16px rgba(255, 94, 19, 0.4),
-            0 0 0 2px rgba(255, 255, 255, 0.1);
-          position: relative;
-        }
-
-        .member-avatar::after {
-          content: '';
-          position: absolute;
-          inset: -3px;
-          background: linear-gradient(135deg, #FF5E13, #FF8C42);
-          border-radius: 50%;
-          z-index: -1;
-          opacity: 0.3;
-          filter: blur(8px);
+          font-weight: 700;
+          flex-shrink: 0;
+          box-shadow: 0 2px 6px rgba(255, 94, 19, 0.25);
         }
 
         .member-info {
           flex: 1;
+          min-width: 0;
         }
 
         .member-name {
           font-weight: 700;
-          color: #1f2937;
-          font-size: 15px;
+          color: #1F2937;
+          font-size: 14px;
           margin-bottom: 3px;
         }
 
         .member-role {
-          font-size: 12px;
+          font-size: 11px;
           color: #FF5E13;
           font-weight: 600;
           margin-bottom: 2px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
         }
 
         .member-email {
           font-size: 11px;
-          color: #6b7280;
+          color: #6B7280;
           font-weight: 500;
         }
 
         .member-actions {
           display: flex;
-          gap: 8px;
+          gap: 6px;
         }
 
         .btn {
           padding: 8px 14px;
-          border-radius: 8px;
+          border-radius: 7px;
           font-size: 12px;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.2s ease;
           border: none;
           display: flex;
           align-items: center;
           gap: 6px;
-          text-decoration: none;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .btn::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-          transition: left 0.6s ease;
-        }
-
-        .btn:hover::before {
-          left: 100%;
+          white-space: nowrap;
         }
 
         .btn-primary {
           background: linear-gradient(135deg, #FF5E13, #FF8C42);
           color: white;
-          box-shadow: 
-            0 8px 25px rgba(255, 94, 19, 0.4),
-            0 0 0 1px rgba(255, 255, 255, 0.1);
+          box-shadow: 0 2px 6px rgba(255, 94, 19, 0.25);
         }
 
         .btn-primary:hover {
-          transform: translateY(-3px);
-          box-shadow: 
-            0 15px 35px rgba(255, 94, 19, 0.5),
-            0 0 0 1px rgba(255, 255, 255, 0.2);
+          box-shadow: 0 4px 10px rgba(255, 94, 19, 0.35);
+          transform: translateY(-1px);
         }
 
         .btn-secondary {
-          background: #f1f5f9;
-          color: #475569;
-          border: 2px solid #e2e8f0;
+          background: #F3F4F6;
+          color: #4B5563;
+          border: 2px solid #E5E7EB;
         }
 
         .btn-secondary:hover {
-          background: #e2e8f0;
-          border-color: #cbd5e1;
-          transform: translateY(-2px);
+          background: #E5E7EB;
         }
 
         .btn-danger {
-          background: linear-gradient(135deg, #ef4444, #dc2626);
+          background: #EF4444;
           color: white;
-          box-shadow: 
-            0 8px 25px rgba(239, 68, 68, 0.4),
-            0 0 0 1px rgba(255, 255, 255, 0.1);
+          box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
         }
 
         .btn-danger:hover {
-          background: linear-gradient(135deg, #dc2626, #b91c1c);
-          transform: translateY(-3px);
-          box-shadow: 
-            0 15px 35px rgba(239, 68, 68, 0.5),
-            0 0 0 1px rgba(255, 255, 255, 0.2);
+          background: #DC2626;
+          box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
         }
 
         .btn-sm {
           padding: 6px 10px;
-          font-size: 10px;
+          font-size: 11px;
         }
 
-        .settings-actions {
+        .card-actions {
           display: flex;
-          gap: 16px;
+          gap: 10px;
           justify-content: flex-end;
-          margin-top: 24px;
-          padding-top: 20px;
-          border-top: 2px solid rgba(255, 94, 19, 0.1);
+          margin-top: 20px;
+          padding-top: 16px;
+          border-top: 2px solid #FFF4ED;
         }
 
-        @media (max-width: 768px) {
-          .project-settings {
-            padding: 16px;
-          }
-          
+        @media (max-width: 1024px) {
           .form-grid {
             grid-template-columns: 1fr;
           }
@@ -1036,15 +1085,20 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
           .members-grid {
             grid-template-columns: 1fr;
           }
-          
-          .settings-actions {
-            flex-direction: column;
+        }
+
+        @media (max-width: 768px) {
+          .project-settings {
+            padding: 16px;
           }
           
-          .header-content {
-            flex-direction: column;
-            text-align: center;
-            gap: 16px;
+          .settings-section {
+            padding: 16px;
+          }
+
+          .btn {
+            width: 100%;
+            justify-content: center;
           }
         }
       `}</style>

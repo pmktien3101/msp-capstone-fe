@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, UserPlus } from 'lucide-react';
+import { Search, UserCog } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,50 +19,47 @@ interface ProjectManager {
   avatar?: string;
 }
 
-interface AddProjectManagerModalProps {
+interface AddPMModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (managerIds: string[]) => void;
+  onAdd: (pmIds: string[]) => void;
   availableManagers: ProjectManager[];
   currentManagers: ProjectManager[];
 }
 
-export function AddProjectManagerModal({
+export function AddPMModal({
   isOpen,
   onClose,
   onAdd,
   availableManagers,
   currentManagers
-}: AddProjectManagerModalProps) {
+}: AddPMModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedManagers, setSelectedManagers] = useState<string[]>([]);
+  const [selectedPMs, setSelectedPMs] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isOpen) {
       setSearchTerm('');
-      setSelectedManagers([]);
+      setSelectedPMs([]);
     }
   }, [isOpen]);
 
-  const currentManagerIds = currentManagers.map(m => m.id);
-  const filteredManagers = availableManagers
-    .filter(m => !currentManagerIds.includes(m.id))
-    .filter(m => 
-      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const filteredManagers = availableManagers.filter(pm => 
+    pm.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    pm.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const toggleManager = (managerId: string) => {
-    setSelectedManagers(prev => 
-      prev.includes(managerId)
-        ? prev.filter(id => id !== managerId)
-        : [...prev, managerId]
+  const togglePM = (pmId: string) => {
+    setSelectedPMs(prev => 
+      prev.includes(pmId)
+        ? prev.filter(id => id !== pmId)
+        : [...prev, pmId]
     );
   };
 
   const handleAdd = () => {
-    if (selectedManagers.length > 0) {
-      onAdd(selectedManagers);
+    if (selectedPMs.length > 0) {
+      onAdd(selectedPMs);
       onClose();
     }
   };
@@ -73,7 +70,7 @@ export function AddProjectManagerModal({
         <DialogHeader className="pb-4 border-b border-orange-100">
           <DialogTitle className="flex items-center gap-3 text-xl font-bold">
             <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
-              <UserPlus size={20} className="text-white" />
+              <UserCog size={20} className="text-white" />
             </div>
             <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
               Thêm Project Manager
@@ -101,43 +98,44 @@ export function AddProjectManagerModal({
                 <p>Không tìm thấy Project Manager nào</p>
               </div>
             ) : (
-              filteredManagers.map((manager) => (
+              filteredManagers.map((pm) => (
                 <div
-                  key={manager.id}
-                  onClick={() => toggleManager(manager.id)}
+                  key={pm.id}
+                  onClick={() => togglePM(pm.id)}
                   className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                    selectedManagers.includes(manager.id)
+                    selectedPMs.includes(pm.id)
                       ? 'border-orange-500 bg-orange-50 shadow-md'
                       : 'border-gray-200 hover:border-orange-300 hover:bg-orange-50'
                   }`}
                 >
                   <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 text-white rounded-lg flex items-center justify-center font-bold flex-shrink-0 shadow-lg">
-                    {manager.avatar ? (
+                    {pm.avatar ? (
                       <img 
-                        src={manager.avatar} 
-                        alt={manager.name} 
+                        src={pm.avatar} 
+                        alt={pm.name} 
                         className="w-full h-full object-cover rounded-lg" 
                       />
                     ) : (
-                      <span>{manager.name.charAt(0)}</span>
+                      <span>{pm.name.charAt(0)}</span>
                     )}
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-gray-900 text-sm">
-                      {manager.name}
+                    <div className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+                      {pm.name}
+                      <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-bold rounded">PM</span>
                     </div>
                     <div className="text-xs text-gray-500 truncate">
-                      {manager.email}
+                      {pm.email}
                     </div>
                   </div>
                   
                   <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                    selectedManagers.includes(manager.id)
+                    selectedPMs.includes(pm.id)
                       ? 'bg-orange-500 border-orange-500 scale-110'
                       : 'border-gray-300'
                   }`}>
-                    {selectedManagers.includes(manager.id) && (
+                    {selectedPMs.includes(pm.id) && (
                       <svg 
                         width="16" 
                         height="16" 
@@ -171,11 +169,11 @@ export function AddProjectManagerModal({
           </Button>
           <Button
             onClick={handleAdd}
-            disabled={selectedManagers.length === 0}
+            disabled={selectedPMs.length === 0}
             className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
-            <UserPlus size={16} className="mr-2" />
-            Thêm {selectedManagers.length > 0 && `(${selectedManagers.length})`}
+            <UserCog size={16} className="mr-2" />
+            Thêm {selectedPMs.length > 0 && `(${selectedPMs.length})`}
           </Button>
         </div>
       </DialogContent>
