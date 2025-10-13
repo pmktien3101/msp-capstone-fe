@@ -113,6 +113,7 @@ export const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }: Create
           avatar: '/avatars/default.png'
         }
       ],
+      milestones: [], // Added - required by Project type
       progress: 0
     };
 

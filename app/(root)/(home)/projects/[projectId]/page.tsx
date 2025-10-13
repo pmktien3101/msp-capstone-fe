@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { ProjectTabs } from '@/components/projects/ProjectTabs';
 import { DetailTaskModal } from '@/components/tasks/DetailTaskModal';
+import { CreateTaskModal } from '@/components/tasks/CreateTaskModal';
+import { DeleteTaskModal } from '@/components/tasks/DeleteTaskModal';
 import { CreateMilestoneModal } from '@/components/milestones/CreateMilestoneModal';
 import { Project } from '@/types/project';
 import { Task } from '@/types/milestone';
@@ -11,6 +13,7 @@ import { mockProjects, mockMembers, mockTasks, addMilestone } from '@/constants/
 import { Plus, Calendar, Users, Target } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import '@/app/styles/project-detail.scss';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const ProjectDetailPage = () => {
   const params = useParams();
@@ -24,10 +27,23 @@ const ProjectDetailPage = () => {
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState("summary");
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+  const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+
+  // Mock data for available project managers
+  const availableProjectManagers = [
+    { id: '1', name: 'Nguyễn Văn A', email: 'nguyenvana@company.com' },
+    { id: '2', name: 'Trần Thị B', email: 'tranthib@company.com' },
+    { id: '3', name: 'Lê Văn C', email: 'levanc@company.com' },
+    { id: '4', name: 'Phạm Thị D', email: 'phamthid@company.com' },
+    { id: '5', name: 'Hoàng Văn E', email: 'hoangvane@company.com' },
+  ];
 
   // Check if user has permission to create milestones
   const canCreateMilestone = role && role.toLowerCase() !== 'member';
-
 
   // Handlers
   const handleTaskClick = (task: Task) => {
@@ -40,12 +56,59 @@ const ProjectDetailPage = () => {
     setSelectedTask(null);
   };
 
-
   const handleCreateTask = () => {
+    setIsCreateTaskModalOpen(true);
+  };
+
+  const handleCloseCreateTaskModal = () => {
+    setIsCreateTaskModalOpen(false);
+  };
+
+  const handleSubmitTask = (taskData: any) => {
     // Mock task creation - replace with actual API call
-    console.log('Creating new task for project:', projectId);
-    // In real implementation, this would open a create task modal or navigate to create task page
-    alert('Tính năng tạo task sẽ được triển khai!');
+    console.log('Creating new task:', taskData);
+    // In real implementation, this would call API to create task
+    alert('Tạo công việc thành công!');
+    setIsCreateTaskModalOpen(false);
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    // Find task to get title for confirmation
+    const task = mockTasks.find(t => t.id === taskId);
+    if (task) {
+      setTaskToDelete({ id: taskId, title: task.title });
+      setIsDeleteTaskModalOpen(true);
+    }
+  };
+
+  const confirmDeleteTask = () => {
+    if (taskToDelete) {
+      // Mock task deletion - replace with actual API call
+      console.log('Deleting task:', taskToDelete.id);
+      // In real implementation, this would call API to delete task
+      alert(`Đã xóa công việc: ${taskToDelete.title}`);
+      setTaskToDelete(null);
+      setIsDeleteTaskModalOpen(false);
+    }
+  };
+
+  const handleEditTask = (task: Task) => {
+    setTaskToEdit(task);
+    setIsEditTaskModalOpen(true);
+  };
+
+  const handleCloseEditTaskModal = () => {
+    setIsEditTaskModalOpen(false);
+    setTaskToEdit(null);
+  };
+
+  const handleUpdateTask = (taskData: any) => {
+    // Mock task update - replace with actual API call
+    console.log('Updating task:', taskData);
+    // In real implementation, this would call API to update task
+    alert('Cập nhật công việc thành công!');
+    setIsEditTaskModalOpen(false);
+    setTaskToEdit(null);
   };
 
   const handleCreateMilestone = () => {
@@ -76,7 +139,6 @@ const ProjectDetailPage = () => {
       alert('Có lỗi xảy ra khi tạo cột mốc. Vui lòng thử lại!');
     }
   };
-
 
   // Calculate project progress based on tasks for specific project
   const calculateProjectProgress = (projectId: string) => {
@@ -109,7 +171,7 @@ const ProjectDetailPage = () => {
         const projectWithMembers: Project = {
           ...currentMockProject,
           status: currentMockProject.status as "active" | "planning" | "on-hold" | "completed",
-          manager: mockMembers[0].name, // Quang Long as manager
+          manager: mockMembers[0].name,
           members: mockMembers.filter(member => 
             currentMockProject.members.includes(member.id)
           ).map(member => ({
@@ -119,7 +181,12 @@ const ProjectDetailPage = () => {
             role: member.role,
             avatar: member.avatar
           })),
-          progress: calculateProjectProgress(projectId) // Calculate real progress for this project
+          // Initialize with default project managers
+          projectManagers: [
+            { id: '1', name: 'Nguyễn Văn A', email: 'nguyenvana@company.com' },
+            { id: '2', name: 'Trần Thị B', email: 'tranthib@company.com' }
+          ],
+          progress: calculateProjectProgress(projectId)
         };
         setProject(projectWithMembers);
       } else {
@@ -197,6 +264,8 @@ const ProjectDetailPage = () => {
         project={project} 
         onTaskClick={handleTaskClick} 
         onCreateTask={handleCreateTask}
+        onDeleteTask={handleDeleteTask}
+        onEditTask={handleEditTask}
         onTabChange={handleTabChange}
         initialActiveTab={activeTab}
       />
@@ -226,6 +295,53 @@ const ProjectDetailPage = () => {
         onCreateMilestone={handleSubmitMilestone}
         projectId={projectId}
       />
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        isOpen={isCreateTaskModalOpen}
+        onClose={handleCloseCreateTaskModal}
+        onCreateTask={handleSubmitTask}
+        projectId={projectId}
+      />
+
+      {/* Edit Task Modal */}
+      {taskToEdit && (
+        <CreateTaskModal
+          isOpen={isEditTaskModalOpen}
+          onClose={handleCloseEditTaskModal}
+          onCreateTask={handleUpdateTask}
+          projectId={projectId}
+          taskToEdit={taskToEdit}
+        />
+      )}
+
+      {/* Delete Task Modal */}
+      {taskToDelete && (
+        <DeleteTaskModal
+          isOpen={isDeleteTaskModalOpen}
+          onClose={() => {
+            setIsDeleteTaskModalOpen(false);
+            setTaskToDelete(null);
+          }}
+          onConfirm={confirmDeleteTask}
+          taskTitle={taskToDelete.title}
+          taskId={taskToDelete.id}
+        />
+      )}
+
+      {/* Confirm Remove Manager Dialog */}
+      {/* <ConfirmDialog
+        isOpen={isConfirmRemoveOpen}
+        onClose={() => {
+          setIsConfirmRemoveOpen(false);
+          setManagerToRemove(null);
+        }}
+        onConfirm={confirmRemoveManager}
+        title="Xóa Project Manager"
+        description={`Bạn có chắc chắn muốn xóa ${managerToRemove?.name} khỏi dự án này không? Hành động này không thể hoàn tác.`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+      /> */}
     </div>
   );
 };

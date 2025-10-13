@@ -44,6 +44,7 @@ export default function MemberDashboardPage() {
           avatar: image || "/avatars/member.png",
         },
       ],
+      milestones: ["1", "2"], // Added
       progress: 75,
     },
     {
@@ -70,6 +71,7 @@ export default function MemberDashboardPage() {
           avatar: image || "/avatars/member.png",
         },
       ],
+      milestones: ["4", "5"], // Added
       progress: 45,
     },
   ];

@@ -1,21 +1,23 @@
+import { Member } from "./member";
+
+export interface ProjectManager {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
 export interface Project {
   id: string;
   name: string;
   description: string;
-  status: "planning" | "active" | "on-hold" | "completed";
+  status: "active" | "planning" | "on-hold" | "completed";
   startDate: string;
   endDate: string;
-  milestones?: string[];
-  meetings?: string[];
+  manager: string;
+  members: Member[];
+  projectManagers?: ProjectManager[];
   progress?: number;
-  members?: ProjectMember[];
-  manager?: string;
-}
-
-export interface ProjectMember {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  avatar: string;
+  milestones: string[];
+  meetings?: string[];
 }

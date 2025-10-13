@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ArrowLeft,
   Video,
@@ -24,11 +25,15 @@ import {
   Copy,
   Check,
   CheckCircle,
+  Edit3,
+  Target,
+  VoteIcon,
 } from "lucide-react";
 import "@/app/styles/meeting-detail.scss";
 import { useGetCallById } from "@/hooks/useGetCallById";
 import { Call, CallRecording } from "@stream-io/video-react-sdk";
 import { mockMilestones, mockParticipants } from "@/constants/mockData";
+import { toast } from "react-toastify";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -59,6 +64,7 @@ export default function MeetingDetailPage() {
   const [generatedTasks, setGeneratedTasks] = useState<any[]>([]);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editedTask, setEditedTask] = useState<any>(null);
+  const [editMode, setEditMode] = useState<{ [key: string]: boolean }>({});
   const [transcriptions, setTranscriptions] = useState<any[]>([]);
   const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(false);
   const [transcriptionsError, setTranscriptionsError] = useState<string | null>(null);
@@ -66,8 +72,10 @@ export default function MeetingDetailPage() {
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
-  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{isOpen: boolean, taskId: string | null}>({isOpen: false, taskId: null});
-  const [isTaskCreated, setIsTaskCreated] = useState<{[key: string]: boolean}>({});
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean, taskId: string | null }>({ isOpen: false, taskId: null });
+  const [isTaskCreated, setIsTaskCreated] = useState<{ [key: string]: boolean }>({});
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
+  const [convertConfirmModal, setConvertConfirmModal] = useState<{ isOpen: boolean, taskCount: number }>({ isOpen: false, taskCount: 0 });
 
   // Khi đã join thì chuyển sang hiển thị MeetingRoom
   useEffect(() => {
@@ -122,156 +130,156 @@ export default function MeetingDetailPage() {
   }, [activeTab, call]);
 
   // Generate summary and todo list when transcriptions are loaded
-  useEffect(() => {
-    const generateSummaryAndTasks = async () => {
-      if (transcriptions.length === 0) return;
-      
-      setIsLoadingSummary(true);
-      setIsGeneratingTasks(true);
-      setSummaryError(null);
-      try {
-        // Format transcriptions into text
-        const formattedText = transcriptions
-          .map(item => `${getSpeakerName(item.speakerId)}: ${item.text}`)
-          .join('\n');
+  const generateSummaryAndTasks = async () => {
+    if (transcriptions.length === 0) return;
 
-        // Generate summary
-        const summaryResponse = await fetch(`${API_BASE}/Summarize/summary`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text: formattedText
-          })
-        });
+    setIsLoadingSummary(true);
+    setIsGeneratingTasks(true);
+    setSummaryError(null);
+    try {
+      // Format transcriptions into text
+      const formattedText = transcriptions
+        .map(item => `${getSpeakerName(item.speakerId)}: ${item.text}`)
+        .join('\n');
 
-        if (!summaryResponse.ok) {
-          throw new Error(`HTTP error! status: ${summaryResponse.status}`);
+      // Generate summary
+      const summaryResponse = await fetch(`${API_BASE}/Summarize/summary`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: formattedText
+        })
+      });
+
+      if (!summaryResponse.ok) {
+        throw new Error(`HTTP error! status: ${summaryResponse.status}`);
+      }
+
+      const summaryResult = await summaryResponse.json();
+      setSummary(summaryResult.data?.summary || "Không thể tạo tóm tắt");
+
+      // Generate todo list with participants info for better assignment
+      const participantsInfo = {
+        participants: participantEmails.map((email, index) => ({
+          id: `speaker_${index + 1}`,
+          name: email.split('@')[0], // Extract name from email
+          email: email,
+          displayName: email
+        })),
+        speakerMapping: {
+          "1": participantEmails[0]?.split('@')[0] || "Speaker 1",
+          "2": participantEmails[1]?.split('@')[0] || "Speaker 2",
+          "3": participantEmails[2]?.split('@')[0] || "Speaker 3",
+          "4": participantEmails[3]?.split('@')[0] || "Speaker 4",
+          "5": participantEmails[4]?.split('@')[0] || "Speaker 5"
         }
+      };
 
-        const summaryResult = await summaryResponse.json();
-        setSummary(summaryResult.data?.summary || "Không thể tạo tóm tắt");
-
-        // Generate todo list with participants info for better assignment
-        const participantsInfo = {
-          participants: participantEmails.map((email, index) => ({
-            id: `speaker_${index + 1}`,
-            name: email.split('@')[0], // Extract name from email
-            email: email,
-            displayName: email
-          })),
-          speakerMapping: {
-            "1": participantEmails[0]?.split('@')[0] || "Speaker 1",
-            "2": participantEmails[1]?.split('@')[0] || "Speaker 2", 
-            "3": participantEmails[2]?.split('@')[0] || "Speaker 3",
-            "4": participantEmails[3]?.split('@')[0] || "Speaker 4",
-            "5": participantEmails[4]?.split('@')[0] || "Speaker 5"
-          }
-        };
-
-        const requestBody = {
-          text: formattedText,
-          participants: participantsInfo.participants,
-          speakerMapping: participantsInfo.speakerMapping,
-          meetingInfo: {
-            title: call?.state?.custom?.title || call?.id || "Unknown Meeting",
-            description: description,
-            milestone: milestoneName
-          }
-        };
-
-        console.log("Sending to API:", requestBody);
-
-        const tasksResponse = await fetch(`${API_BASE}/Summarize/create-todolist`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody)
-        });
-
-        if (!tasksResponse.ok) {
-          throw new Error(`HTTP error! status: ${tasksResponse.status}`);
+      const requestBody = {
+        text: formattedText,
+        participants: participantsInfo.participants,
+        speakerMapping: participantsInfo.speakerMapping,
+        meetingInfo: {
+          title: call?.state?.custom?.title || call?.id || "Unknown Meeting",
+          description: description,
+          milestone: milestoneName
         }
+      };
 
-        const tasksResult = await tasksResponse.json();
-        console.log("API Response:", tasksResult);
-        
-        // Parse the JSON string from result.data.summary
-        const summaryText = tasksResult.data?.summary || "";
-        console.log("Summary text:", summaryText);
-        
-        if (!summaryText) {
-          throw new Error("Không có dữ liệu summary từ API");
-        }
-        
-        // Extract JSON from the response (handle both ```json and `json formats)
-        let jsonString;
-        
-        // Try markdown code block format first
-        let jsonMatch = summaryText.match(/```json\n([\s\S]*?)\n```/);
+      console.log("Sending to API:", requestBody);
+
+      const tasksResponse = await fetch(`${API_BASE}/Summarize/create-todolist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!tasksResponse.ok) {
+        throw new Error(`HTTP error! status: ${tasksResponse.status}`);
+      }
+
+      const tasksResult = await tasksResponse.json();
+      console.log("API Response:", tasksResult);
+
+      // Parse the JSON string from result.data.summary
+      const summaryText = tasksResult.data?.summary || "";
+      console.log("Summary text:", summaryText);
+
+      if (!summaryText) {
+        throw new Error("Không có dữ liệu summary từ API");
+      }
+
+      // Extract JSON from the response (handle both ```json and `json formats)
+      let jsonString;
+
+      // Try markdown code block format first
+      let jsonMatch = summaryText.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        jsonString = jsonMatch[1];
+      } else {
+        // Try simple `json format
+        jsonMatch = summaryText.match(/`json\n([\s\S]*?)\n`/);
         if (jsonMatch) {
           jsonString = jsonMatch[1];
         } else {
-          // Try simple `json format
-          jsonMatch = summaryText.match(/`json\n([\s\S]*?)\n`/);
+          // Try without backticks - just look for JSON array
+          jsonMatch = summaryText.match(/\[[\s\S]*\]/);
           if (jsonMatch) {
-            jsonString = jsonMatch[1];
+            jsonString = jsonMatch[0];
           } else {
-            // Try without backticks - just look for JSON array
-            jsonMatch = summaryText.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-              jsonString = jsonMatch[0];
-            } else {
-              console.error("Could not find JSON in summary:", summaryText);
-              throw new Error("Không thể tìm thấy JSON trong response. Format không đúng.");
-            }
+            console.error("Could not find JSON in summary:", summaryText);
+            throw new Error("Không thể tìm thấy JSON trong response. Format không đúng.");
           }
         }
-        console.log("Extracted JSON string:", jsonString);
-        
-        let tasksArray;
-        try {
-          tasksArray = JSON.parse(jsonString);
-        } catch (parseError) {
-          console.error("JSON Parse Error:", parseError);
-          console.error("JSON String:", jsonString);
-          throw new Error("Không thể parse JSON từ response");
-        }
-        
-        if (!Array.isArray(tasksArray)) {
-          throw new Error("Dữ liệu trả về không phải là array");
-        }
-        
-        // Convert to our task format with intelligent assignee matching
-        const generatedTasks = tasksArray.map((task: any, index: number) => {
-          // Try to find best matching participant for assignee
-          const matchedEmail = findBestMatch(task.assignee || "", participantsInfo.participants);
-          
-          return {
-            id: `AI-${index + 1}`,
-            task: task.task || "",
-            assignee: matchedEmail || task.assignee || "",
-            startDate: task.startDate || "",
-            endDate: task.endDate || "",
-            priority: task.priority || "",
-            originalAssignee: task.assignee || "", // Keep original name for reference
-            isAutoMatched: !!matchedEmail, // Flag to show if it was auto-matched
-          };
-        });
-
-        console.log("Generated tasks:", generatedTasks);
-        setGeneratedTasks(generatedTasks);
-
-      } catch (e: any) {
-        console.error("Failed to generate summary and tasks", e);
-        setSummaryError("Không thể tạo tóm tắt và todo list");
-      } finally {
-        setIsLoadingSummary(false);
-        setIsGeneratingTasks(false);
       }
-    };
+      console.log("Extracted JSON string:", jsonString);
+
+      let tasksArray;
+      try {
+        tasksArray = JSON.parse(jsonString);
+      } catch (parseError) {
+        console.error("JSON Parse Error:", parseError);
+        console.error("JSON String:", jsonString);
+        throw new Error("Không thể parse JSON từ response");
+      }
+
+      if (!Array.isArray(tasksArray)) {
+        throw new Error("Dữ liệu trả về không phải là array");
+      }
+
+      // Convert to our task format with intelligent assignee matching
+      const generatedTasks = tasksArray.map((task: any, index: number) => {
+        // Try to find best matching participant for assignee
+        const matchedEmail = findBestMatch(task.assignee || "", participantsInfo.participants);
+
+        return {
+          id: `AI-${index + 1}`,
+          task: task.task || "",
+          assignee: matchedEmail || task.assignee || "",
+          startDate: task.startDate || "",
+          endDate: task.endDate || "",
+          priority: task.priority || "",
+          originalAssignee: task.assignee || "", // Keep original name for reference
+          isAutoMatched: !!matchedEmail, // Flag to show if it was auto-matched
+        };
+      });
+
+      console.log("Generated tasks:", generatedTasks);
+      setGeneratedTasks(generatedTasks);
+
+    } catch (e: any) {
+      console.error("Failed to generate summary and tasks", e);
+      setSummaryError("Không thể tạo tóm tắt và todo list");
+    } finally {
+      setIsLoadingSummary(false);
+      setIsGeneratingTasks(false);
+    }
+  };
+  useEffect(() => {
 
     if (transcriptions.length > 0) {
       generateSummaryAndTasks();
@@ -326,7 +334,7 @@ export default function MeetingDetailPage() {
     // Map speakerId to actual names - you can customize this based on your data
     const speakerMap: { [key: string]: string } = {
       "1": "Nguyễn Văn A",
-      "2": "Trần Thị B", 
+      "2": "Trần Thị B",
       "3": "Lê Văn C",
       "4": "Phạm Thị D",
       "5": "Hoàng Văn E"
@@ -340,11 +348,11 @@ export default function MeetingDetailPage() {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return "Chưa rõ";
-      
+
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
-      
+
       return `${day}-${month}-${year}`;
     } catch (error) {
       return "Chưa rõ";
@@ -356,46 +364,46 @@ export default function MeetingDetailPage() {
     if (!aiAssigneeName || !participants.length) return "";
 
     const normalizedAiName = aiAssigneeName.toLowerCase().trim();
-    
+
     // First try exact match
-    let bestMatch = participants.find(p => 
+    let bestMatch = participants.find(p =>
       p.name.toLowerCase() === normalizedAiName ||
       p.displayName.toLowerCase() === normalizedAiName
     );
-    
+
     if (bestMatch) return bestMatch.email;
 
     // Then try partial match (contains)
-    bestMatch = participants.find(p => 
+    bestMatch = participants.find(p =>
       p.name.toLowerCase().includes(normalizedAiName) ||
       normalizedAiName.includes(p.name.toLowerCase()) ||
       p.displayName.toLowerCase().includes(normalizedAiName) ||
       normalizedAiName.includes(p.displayName.toLowerCase())
     );
-    
+
     if (bestMatch) return bestMatch.email;
 
     // Try matching first name or last name
     const aiNameParts = normalizedAiName.split(/\s+/);
     bestMatch = participants.find(p => {
       const participantNameParts = p.name.toLowerCase().split(/\s+/);
-      return aiNameParts.some(part => 
-        participantNameParts.some((pPart: string) => 
-          part.length > 2 && pPart.length > 2 && 
+      return aiNameParts.some(part =>
+        participantNameParts.some((pPart: string) =>
+          part.length > 2 && pPart.length > 2 &&
           (part.includes(pPart) || pPart.includes(part))
         )
       );
     });
-    
+
     if (bestMatch) return bestMatch.email;
 
     // Try matching with email prefix
     bestMatch = participants.find(p => {
       const emailPrefix = p.email.split('@')[0].toLowerCase();
-      return emailPrefix.includes(normalizedAiName) || 
-             normalizedAiName.includes(emailPrefix);
+      return emailPrefix.includes(normalizedAiName) ||
+        normalizedAiName.includes(emailPrefix);
     });
-    
+
     if (bestMatch) return bestMatch.email;
 
     return ""; // No match found
@@ -409,7 +417,7 @@ export default function MeetingDetailPage() {
       if (dateString.includes('-') && dateString.split('-')[0].length === 4) {
         return dateString;
       }
-      
+
       // If in dd-mm-yyyy format, convert to yyyy-mm-dd
       if (dateString.includes('-') && dateString.split('-')[0].length === 2) {
         const parts = dateString.split('-');
@@ -418,15 +426,15 @@ export default function MeetingDetailPage() {
           return `${year}-${month}-${day}`;
         }
       }
-      
+
       // Try to parse as regular date
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return "";
-      
+
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
-      
+
       return `${year}-${month}-${day}`;
     } catch (error) {
       return "";
@@ -457,25 +465,66 @@ export default function MeetingDetailPage() {
 
   // Xử lý mở modal xác nhận xóa task
   const handleOpenDeleteModal = (taskId: string) => {
-    setDeleteConfirmModal({isOpen: true, taskId});
+    setDeleteConfirmModal({ isOpen: true, taskId });
   };
 
   // Xử lý xóa task
   const handleDeleteTask = () => {
     if (deleteConfirmModal.taskId) {
       setGeneratedTasks(prev => prev.filter(task => task.id !== deleteConfirmModal.taskId));
-      setDeleteConfirmModal({isOpen: false, taskId: null});
+      setDeleteConfirmModal({ isOpen: false, taskId: null });
     }
   };
 
   // Xử lý hủy xóa task
   const handleCancelDelete = () => {
-    setDeleteConfirmModal({isOpen: false, taskId: null});
+    setDeleteConfirmModal({ isOpen: false, taskId: null });
   };
 
   // Xử lý tạo task từ todo
   const handleCreateTask = (taskId: string) => {
-    setIsTaskCreated(prev => ({...prev, [taskId]: true}));
+    setIsTaskCreated(prev => ({ ...prev, [taskId]: true }));
+  };
+
+  // Xử lý select/deselect task
+  const handleSelectTask = (taskId: string) => {
+    setSelectedTasks(prev =>
+      prev.includes(taskId)
+        ? prev.filter(id => id !== taskId)
+        : [...prev, taskId]
+    );
+  };
+
+  // Xử lý select all tasks
+  const handleSelectAllTasks = () => {
+    if (selectedTasks.length === generatedTasks.length) {
+      setSelectedTasks([]);
+    } else {
+      setSelectedTasks(generatedTasks.map(task => task.id));
+    }
+  };
+
+  // Xử lý mở modal confirm convert
+  const handleOpenConvertModal = () => {
+    setConvertConfirmModal({ isOpen: true, taskCount: selectedTasks.length });
+  };
+
+  // Xử lý confirm convert
+  const handleConfirmConvert = () => {
+    // TODO: Implement convert logic
+    console.log("Converting tasks:", selectedTasks);
+
+    // Show success toast
+    toast.success(`${selectedTasks.length} công việc đã được tạo và phân công thành công cho các thành viên trong nhóm.`);
+
+    // Close modal and clear selection
+    setConvertConfirmModal({ isOpen: false, taskCount: 0 });
+    setSelectedTasks([]);
+  };
+
+  // Xử lý cancel convert
+  const handleCancelConvert = () => {
+    setConvertConfirmModal({ isOpen: false, taskCount: 0 });
   };
 
 
@@ -494,8 +543,8 @@ export default function MeetingDetailPage() {
       const extensionFromType = contentType.includes("mp4")
         ? "mp4"
         : contentType.includes("webm")
-        ? "webm"
-        : "mp4";
+          ? "webm"
+          : "mp4";
       const baseName =
         rec.filename
           ?.replace(/\s+/g, "-")
@@ -830,9 +879,9 @@ export default function MeetingDetailPage() {
                       const duration =
                         rec.start_time && rec.end_time
                           ? formatDuration(
-                              new Date(rec.end_time).getTime() -
-                                new Date(rec.start_time).getTime()
-                            )
+                            new Date(rec.end_time).getTime() -
+                            new Date(rec.start_time).getTime()
+                          )
                           : null;
                       return (
                         <div className="recording-item" key={rec.url || idx}>
@@ -897,9 +946,8 @@ export default function MeetingDetailPage() {
                 )}
                 {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length > 0 && (
                   <div
-                    className={`transcript-content ${
-                      isTranscriptExpanded ? "expanded" : ""
-                    }`}
+                    className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
+                      }`}
                     onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
                   >
                     {transcriptions.map((item, index) => (
@@ -956,235 +1004,284 @@ export default function MeetingDetailPage() {
               {(generatedTasks.length > 0 || isGeneratingTasks) && (
                 <div className="ai-generated-tasks">
                   <div className="ai-tasks-header">
-                    {/* <div className="ai-tasks-title">
-                      <div className="ai-title-badge">   
-                      <Sparkles size={16} />
-                        <span>Danh sách To-do được tạo từ AI</span>
-                      </div>
-                      <span className="ai-badge">AI Generated</span>
-                    </div> */}
                     <div className="ai-tasks-title">
-                    <div className="ai-icon">
-                      <Sparkles size={20} />
+                      <div className="ai-icon">
+                        <Sparkles size={18} />
+                      </div>
+                      <div className="title-content">
+                        <h4>Danh sách To-do từ AI</h4>
+                        <p className="draft-notice">
+                          <Edit3 size={12} />
+                          <span>Bản nháp - Cần xem xét và chỉnh sửa</span>
+                        </p>
+                      </div>
                     </div>
-                    <h4>Danh sách To-do được tạo từ AI</h4>
-                    <div className="ai-badge">AI Generated</div>
+                    {generatedTasks.length > 0 && (
+                      <label className="select-all-section">
+                        <Checkbox
+                          checked={selectedTasks.length === generatedTasks.length}
+                          onCheckedChange={handleSelectAllTasks}
+                          className="select-all-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                        />
+                        <span className="select-all-label">
+                          Chọn tất cả ({selectedTasks.length}/{generatedTasks.length})
+                        </span>
+                      </label>
+                    )}
                   </div>
 
-                  </div>
-                  
                   {isGeneratingTasks && (
                     <div className="tasks-loading">
                       <Loader2 size={16} className="animate-spin" />
                       <span>Đang tạo danh sách To-do...</span>
                     </div>
                   )}
-                  
+
                   <div className="task-list">
                     {generatedTasks.map((task, index) => {
                       // Auto-assign assignee evenly
-                      const autoAssignedEmail = participantEmails[index % participantEmails.length];
-                      const currentAssignee = task.assignee || autoAssignedEmail;
-                      
+                      const currentAssignee = task.assignee;
+
                       return (
-                      <div 
-                        className="task-item ai-task enhanced-task" 
-                        key={task.id}
-                        data-task-id={task.id}
-                      >
-                        <div className="task-header">
-                          {/* Task Number */}
-                          <div className="task-number">{generatedTasks.indexOf(task) + 1}</div>
-                          
-                          {/* Main Content */}
+                        <div
+                          className={`task-item ai-task ${selectedTasks.includes(task.id) ? 'selected' : ''} ${editMode[task.id] ? 'edit-mode' : ''}`}
+                          key={task.id}
+                          data-task-id={task.id}
+                          onClick={(e) => {
+                            // Don't select if in edit mode
+                            if (editMode[task.id]) return;
+
+                            // Don't select if clicking on action buttons or checkbox
+                            const target = e.target as HTMLElement;
+                            if (target.closest('.task-actions') || target.closest('.task-checkbox')) return;
+
+                            // Select/deselect the task
+                            handleSelectTask(task.id);
+                          }}
+                          style={{ cursor: editMode[task.id] ? 'default' : 'pointer' }}
+                        >
+                          <div className="task-checkbox">
+                            <Checkbox
+                              checked={selectedTasks.includes(task.id)}
+                              onCheckedChange={() => handleSelectTask(task.id)}
+                              className="task-select-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                            />
+                          </div>
+                          <div className="task-number">{index + 1}</div>
+
                           <div className="task-content">
-                            {/* Title Field */}
-                            <div className="task-field">
-                              <input
-                                type="text"
-                                value={task.task}
-                                onChange={(e) => {
-                                  const updatedTasks = generatedTasks.map(t => 
-                                    t.id === task.id ? { ...t, task: e.target.value } : t
-                                  );
-                                  setGeneratedTasks(updatedTasks);
-                                }}
-                                className="task-title-input"
-                                placeholder="Nhập tiêu đề công việc..."
-                              />
+                            <div className="task-title">
+                              <label className="detail-label"
+                                style={{ cursor: editMode[task.id] ? 'default' : 'pointer' }}
+                              >Tên công việc</label>
+                              {editMode[task.id] ? (
+                                <input
+                                  type="text"
+                                  value={task.task}
+                                  onChange={(e) => {
+                                    const updatedTasks = generatedTasks.map(t =>
+                                      t.id === task.id ? { ...t, task: e.target.value } : t
+                                    );
+                                    setGeneratedTasks(updatedTasks);
+                                  }}
+                                  className="task-title-input"
+                                  placeholder="Nhập tên công việc..."
+                                  autoFocus
+                                />
+                              ) : (
+                                <div className="task-title-display">
+                                  {task.task || "Nhập tên công việc..."}
+                                </div>
+                              )}
                             </div>
 
-                            {/* Description Field */}
-                            <div className="task-field">
-                              <textarea
-                                value={task.description || ""}
-                                onChange={(e) => {
-                                  const updatedTasks = generatedTasks.map(t => 
-                                    t.id === task.id ? { ...t, description: e.target.value } : t
-                                  );
-                                  setGeneratedTasks(updatedTasks);
-                                }}
-                                className="task-description-input"
-                                placeholder="Mô tả công việc..."
-                                rows={2}
-                              />
+                            <div className="task-description">
+                              <label className="detail-label"
+                                style={{ cursor: editMode[task.id] ? 'default' : 'pointer' }}
+                              >Mô tả công việc</label>
+                              {editMode[task.id] ? (
+                                <textarea
+                                  value={task.description || ""}
+                                  onChange={(e) => {
+                                    const updatedTasks = generatedTasks.map(t =>
+                                      t.id === task.id ? { ...t, description: e.target.value } : t
+                                    );
+                                    setGeneratedTasks(updatedTasks);
+                                  }}
+                                  className="task-description-input"
+                                  placeholder="Mô tả chi tiết công việc..."
+                                  rows={2}
+                                />
+                              ) : (
+                                <div className="task-description-display">
+                                  {task.description || "Mô tả chi tiết công việc..."}
+                                </div>
+                              )}
                             </div>
 
-                            {/* Details Row */}
-                            <div className="task-details-row">
-                              {/* Assignee Avatar */}
-                              <div 
-                                className="detail-field assignee-field"
-                                onClick={(e) => {
-                                  // Only focus if clicking on the avatar, not the select
-                                  if ((e.target as HTMLElement).closest('.assignee-avatar')) {
-                                    const select = document.querySelector(`[data-task-id="${task.id}"] .assignee-select`) as HTMLSelectElement;
-                                    select?.focus();
-                                  }
-                                }}
-                              >
-                                <div className="assignee-avatar">
-                                  {currentAssignee ? (
-                                    <img 
-                                      src={`/avatars/avatar-${(index % 4) + 1}.png`} 
-                                      alt={currentAssignee}
-                                      className="avatar-img"
+                            <div className="task-details">
+                              <div className="detail-item">
+                                <label className="detail-label">Ngày bắt đầu</label>
+                                <div className="detail-value">
+                                  <Calendar size={14} />
+                                  {editMode[task.id] ? (
+                                    <input
+                                      type="date"
+                                      value={task.startDate || ""}
+                                      onChange={(e) => {
+                                        const updatedTasks = generatedTasks.map(t =>
+                                          t.id === task.id ? { ...t, startDate: e.target.value } : t
+                                        );
+                                        setGeneratedTasks(updatedTasks);
+                                      }}
+                                      className="date-input"
                                     />
                                   ) : (
-                                    <div className="avatar-placeholder">
-                                      <User size={16} />
-                                    </div>
+                                    <span>{task.startDate || "--/--/----"}</span>
                                   )}
                                 </div>
-                                <div className="assignee-content" onClick={(e) => e.stopPropagation()}>
-                                <select
-                                    value={currentAssignee || ""}
-                                  onChange={(e) => {
-                                    const newAssignee = e.target.value === "" ? null : e.target.value;
-                                    const updatedTasks = generatedTasks.map(t => 
-                                      t.id === task.id ? { ...t, assignee: newAssignee } : t
-                                    );
-                                    setGeneratedTasks(updatedTasks);
-                                  }}
-                                  className="assignee-select"
-                                >
-                                  <option value="">Chưa giao</option>
-                                  {participantEmails.map((email, idx) => (
-                                    <option key={idx} value={email}>
-                                      {email}
-                                    </option>
-                                  ))}
-                                </select>
+                              </div>
+
+                              <div className="detail-item">
+                                <label className="detail-label">Ngày kết thúc</label>
+                                <div className="detail-value">
+                                  <Calendar size={14} />
+                                  {editMode[task.id] ? (
+                                    <input
+                                      type="date"
+                                      value={task.endDate || ""}
+                                      onChange={(e) => {
+                                        const updatedTasks = generatedTasks.map(t =>
+                                          t.id === task.id ? { ...t, endDate: e.target.value } : t
+                                        );
+                                        setGeneratedTasks(updatedTasks);
+                                      }}
+                                      className="date-input"
+                                    />
+                                  ) : (
+                                    <span>{task.endDate || "--/--/----"}</span>
+                                  )}
                                 </div>
                               </div>
 
-                              {/* Start Date */}
-                              <div 
-                                className="detail-field date-field"
-                                onClick={(e) => {
-                                  // Only focus if clicking on the field itself, not the input
-                                  if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.date-icon')) {
-                                    const input = document.querySelector(`[data-task-id="${task.id}"] .date-picker[data-field="start"]`) as HTMLInputElement;
-                                    input?.focus();
-                                    input?.showPicker?.();
-                                  }
-                                }}
-                              >
-                                <div className="date-icon">
-                                  <Calendar size={16} />
+                              <div className="detail-item">
+                                <label className="detail-label">Người phụ trách</label>
+                                <div className="detail-value">
+                                  <User size={14} />
+                                  {editMode[task.id] ? (
+                                    <select
+                                      value={currentAssignee || ""}
+                                      onChange={(e) => {
+                                        const newAssignee = e.target.value === "" ? null : e.target.value;
+                                        const updatedTasks = generatedTasks.map(t =>
+                                          t.id === task.id ? { ...t, assignee: newAssignee } : t
+                                        );
+                                        setGeneratedTasks(updatedTasks);
+                                      }}
+                                      className="assignee-select"
+                                    >
+                                      <option value="">Chưa được giao</option>
+                                      {participantEmails.map((email, idx) => (
+                                        <option key={idx} value={email}>
+                                          {email}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <span>{currentAssignee || "Chưa được giao"}</span>
+                                  )}
                                 </div>
-                                <div className="date-input-wrapper">
-                                <input
-                                  type="date"
-                                  value={task.startDate || ""}
-                                  onChange={(e) => {
-                                    const updatedTasks = generatedTasks.map(t => 
-                                      t.id === task.id ? { ...t, startDate: e.target.value } : t
-                                    );
-                                    setGeneratedTasks(updatedTasks);
-                                  }}
-                                    onClick={(e) => e.stopPropagation()}
-                                  className="date-picker"
-                                    placeholder="dd/mm/yyyy"
-                                    data-field="start"
-                                />
-                                </div>
-                              </div>
-
-                              {/* End Date */}
-                              <div 
-                                className="detail-field date-field"
-                                onClick={(e) => {
-                                  // Only focus if clicking on the field itself, not the input
-                                  if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.date-icon')) {
-                                    const input = document.querySelector(`[data-task-id="${task.id}"] .date-picker[data-field="end"]`) as HTMLInputElement;
-                                    input?.focus();
-                                    input?.showPicker?.();
-                                  }
-                                }}
-                              >
-                                <div className="date-icon">
-                                  <Calendar size={16} />
-                                </div>
-                                <div className="date-input-wrapper">
-                                <input
-                                  type="date"
-                                  value={task.endDate || ""}
-                                  onChange={(e) => {
-                                    const updatedTasks = generatedTasks.map(t => 
-                                      t.id === task.id ? { ...t, endDate: e.target.value } : t
-                                    );
-                                    setGeneratedTasks(updatedTasks);
-                                  }}
-                                    onClick={(e) => e.stopPropagation()}
-                                  className="date-picker"
-                                    placeholder="dd/mm/yyyy"
-                                    data-field="end"
-                                />
                               </div>
                             </div>
                           </div>
-                          </div>
 
-                          {/* Action Buttons */}
                           <div className="task-actions">
-                            {!isTaskCreated[task.id] ? (
+                            {editMode[task.id] ? (
+                              <>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleCreateTask(task.id);
+                                    setEditMode(prev => ({ ...prev, [task.id]: false }));
                                   }}
-                                className="create-task-btn"
-                                title="Thêm vào danh sách công việc"
+                                  className="save-btn"
+                                  title="Lưu"
                                 >
-                                  <Plus size={16} />
+                                  <Check size={16} />
                                 </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditMode(prev => ({ ...prev, [task.id]: false }));
+                                  }}
+                                  className="cancel-btn"
+                                  title="Hủy"
+                                >
+                                  <X size={16} />
+                                </Button>
+                              </>
                             ) : (
-                                <div className="task-added-indicator">
-                                  <CheckCircle size={16} />
-                                  <span>Đã thêm</span>
-                                </div>
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditMode(prev => ({ ...prev, [task.id]: true }));
+                                  }}
+                                  className="edit-btn"
+                                  title="Chỉnh sửa"
+                                >
+                                  <Edit size={16} />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenDeleteModal(task.id);
+                                  }}
+                                  className="delete-btn"
+                                  title="Xóa"
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              </>
                             )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenDeleteModal(task.id);
-                                }}
-                              className="delete-btn"
-                              title="Xóa công việc"
-                              >
-                                <Trash2 size={16} />
-                              </Button>
                           </div>
                         </div>
-
-                      </div>
                       );
                     })}
+                  </div>
+
+                  {/* Action buttons for the entire AI task list */}
+                  <div className="ai-tasks-actions">
+                    <Button
+                      onClick={handleOpenConvertModal}
+                      className="convert-all-btn"
+                      variant="default"
+                      disabled={selectedTasks.length === 0}
+                    >
+                      <Target size={16} />
+                      Chuyển đổi thành công việc chính thức
+                    </Button>
+
+                    <Button
+                      disabled={isGeneratingTasks}
+                      onClick={() => {
+                        // Handle regenerate AI tasks
+                        setGeneratedTasks([]);
+                        generateSummaryAndTasks();
+                      }}
+                      className="regenerate-btn"
+                      variant="outline"
+                    >
+                      <Sparkles size={16} />
+                      Tạo lại danh sách bằng AI
+                    </Button>
                   </div>
 
                 </div>
@@ -1347,6 +1444,40 @@ export default function MeetingDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Convert Confirmation Modal */}
+      {convertConfirmModal.isOpen && (
+        <div className="delete-modal-overlay">
+          <div className="delete-modal flex flex-col items-center text-center">
+            {/* Icon */}
+            <div className="mb-3 flex items-center justify-center">
+              <VoteIcon color="#10b981" size={60} />
+            </div>
+
+            {/* Title */}
+            <h3 className="text-lg font-semibold mb-2">Chuyển đổi thành Nhiệm vụ Chính thức?</h3>
+
+            {/* Content */}
+            <div className="delete-modal-content mb-4">
+              <p>
+                Bạn sắp chuyển đổi <strong>{convertConfirmModal.taskCount} việc cần làm</strong> do AI tạo thành công việc chính thức.
+                Những việc này sẽ được thêm vào trong dự án của bạn và các thành viên liên quan trong nhóm sẽ nhận được thông báo.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="delete-modal-actions flex gap-2">
+              <Button variant="outline" onClick={handleCancelConvert} className="cancel-btn">
+                Hủy
+              </Button>
+              <Button onClick={handleConfirmConvert} className="confirm-delete-btn" style={{ background: '#FF5E13' }}>
+                Xác nhận chuyển đổi
+              </Button>
+            </div>
+          </div>
+        </div>
+
       )}
 
       <style jsx>{`
@@ -1692,17 +1823,6 @@ export default function MeetingDetailPage() {
 
         .ai-tasks-header {
           margin-bottom: 20px;
-        }
-
-        .ai-tasks-title {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          padding: 16px 20px;
-          background: rgba(255, 255, 255, 0.8);
-          border-radius: 12px;
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 140, 66, 0.3);
         }
 
         .ai-title-badge {
@@ -2669,15 +2789,6 @@ export default function MeetingDetailPage() {
         .task-field {
           width: 100%;
           padding: 2px 0;
-        }
-
-        .task-details-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 20px;
-          align-items: stretch;
-          padding: 4px 0;
-          width: 100%;
         }
 
         .detail-field {

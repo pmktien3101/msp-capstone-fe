@@ -225,49 +225,220 @@
   }
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.project-managers-wrapper {
+  margin: 24px 0;
+  padding: 0 4px;
 }
 
-// Responsive design
-@media (max-width: 768px) {
-  .project-detail-page {
-    padding: 16px;
+// Enhanced card styles for project summary
+.project-summary {
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #F1F5F9;
+    transition: box-shadow 0.2s ease;
 
-    .project-header {
-      flex-direction: column;
-      gap: 12px;
-      padding: 12px;
+    &:hover {
+      box-shadow: 0 4px 12px rgba(255, 94, 19, 0.08);
+    }
+  }
 
-      .project-info {
-        .project-title-section {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 12px;
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #F1F5F9;
 
-          .project-title {
-            font-size: 29px;
-          }
-        }
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0D062D;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-        .project-meta {
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 12px;
-        }
-      }
+    .view-all {
+      font-size: 13px;
+      color: #FF5E13;
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.2s ease;
 
-      .project-actions {
-        width: 100%;
-        justify-content: center;
-
-        .create-milestone-btn {
-          width: 100%;
-          justify-content: center;
-        }
+      &:hover {
+        color: #E54D0F;
       }
     }
+  }
+
+  // Stats badges
+  .stat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    background: #FFF4ED;
+    color: #FF5E13;
+    border: 1px solid #FFE8D9;
+  }
+
+  // Progress bars
+  .progress-bar {
+    height: 8px;
+    background: #F1F5F9;
+    border-radius: 8px;
+    overflow: hidden;
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #FF5E13, #FF8C42);
+      border-radius: 8px;
+      transition: width 0.3s ease;
+    }
+  }
+
+  // List items
+  .list-item {
+    padding: 12px;
+    border-radius: 8px;
+    background: #FAFBFC;
+    border: 1px solid #F1F5F9;
+    transition: all 0.2s ease;
+    cursor: pointer;
+
+    &:hover {
+      background: #FFF4ED;
+      border-color: #FFD4B8;
+    }
+  }
+
+  // Avatar groups
+  .avatar-group {
+    display: flex;
+    align-items: center;
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #FF5E13;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      border: 2px solid white;
+      margin-left: -8px;
+
+      &:first-child {
+        margin-left: 0;
+      }
+    }
+
+    .avatar-more {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #F1F5F9;
+      color: #64748B;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      border: 2px solid white;
+      margin-left: -8px;
+    }
+  }
+
+  // Buttons
+  .btn-primary {
+    padding: 10px 16px;
+    background: #FF5E13;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #E54D0F;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .btn-secondary {
+    padding: 10px 16px;
+    background: #FFF4ED;
+    color: #FF5E13;
+    border: 1px solid #FFE8D9;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #FFE8D9;
+    }
+  }
+
+  // Icons
+  .icon-wrapper {
+    width: 40px;
+    height: 40px;
+    background: #FFF4ED;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FF5E13;
+  }
+
+  // Empty states
+  .empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: #94A3B8;
+
+    svg {
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    p {
+      font-size: 14px;
+      margin: 0;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 1024px) {
+  .project-managers-wrapper {
+    margin: 20px 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .project-managers-wrapper {
+    margin: 16px 0;
+    padding: 0 2px;
   }
 }
 

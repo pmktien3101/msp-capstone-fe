@@ -16,7 +16,7 @@ interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  // Đã bỏ businessSector
+  businessDocument?: File | null; // Thêm trường file
 }
 
 type AccountType = "member" | "business";
@@ -35,7 +35,7 @@ export default function SignUpPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    // Đã bỏ businessSector
+    businessDocument: null,
   });
 
   // Check if user is already authenticated
@@ -109,6 +109,17 @@ export default function SignUpPage() {
 
     try {
       // TODO: Implement registration logic based on accountType
+      const formData = new FormData();
+      formData.append("fullName", registerForm.fullName);
+      formData.append("organizationName", registerForm.organizationName);
+      formData.append("phone", registerForm.phone);
+      formData.append("email", registerForm.email);
+      formData.append("password", registerForm.password);
+      formData.append("accountType", accountType);
+      if (accountType === "business" && registerForm.businessDocument) {
+        formData.append("businessDocument", registerForm.businessDocument);
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulated API call
       console.log("Form submitted:", { ...registerForm, accountType });
 
@@ -137,7 +148,13 @@ export default function SignUpPage() {
     }));
   };
 
-  // Đã bỏ businessSectors
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setRegisterForm((prev) => ({
+      ...prev,
+      businessDocument: file,
+    }));
+  };
 
   const isFormValid = () => {
     const baseValid =
@@ -325,6 +342,51 @@ export default function SignUpPage() {
                     </small>
                   )}
               </div>
+
+              {accountType === "business" && (
+                <div className="form-group">
+                  <label htmlFor="businessDocument">Giấy tờ chứng minh*</label>
+                  <div
+                    className="input-wrapper"
+                    style={{ position: "relative" }}
+                  >
+                    <input
+                      type="file"
+                      id="businessDocument"
+                      name="businessDocument"
+                      accept="image/*,.pdf"
+                      onChange={handleFileChange}
+                      required
+                      style={{
+                        display: "none",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        document.getElementById("businessDocument")?.click()
+                      }
+                      className="custom-file-btn"
+                      style={{
+                        width: "100%",
+                        padding: "12px",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        background: "#fff",
+                        color: "#1a1a1a",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {registerForm.businessDocument
+                        ? `Đã chọn: ${registerForm.businessDocument.name}`
+                        : "Chọn tệp giấy tờ..."}
+                    </button>
+                  </div>
+                  {!registerForm.businessDocument && (
+                    <small style={{ color: "#888" }}>Chưa chọn tệp nào</small>
+                  )}
+                </div>
+              )}
             </div>
 
             <button

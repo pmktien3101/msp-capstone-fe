@@ -47,6 +47,7 @@ export default function DashboardPage() {
         email: member.email,
         avatar: `/avatars/${member.avatar.toLowerCase()}.png`
       })),
+      milestones: mockProject.milestones, // Added - required by Project type
       progress: calculateProjectProgress(mockProject.id)
     }));
 

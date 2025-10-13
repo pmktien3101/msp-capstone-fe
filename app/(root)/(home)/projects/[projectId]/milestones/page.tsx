@@ -8,7 +8,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { Member } from '@/types'
 import { Milestone, MilestoneFormData, Task } from '@/types/milestone'
-import { Project, ProjectMember } from '@/types/project'
+import { Project } from '@/types/project'
 import MilestoneModal from '@/components/modals/MilestoneModal'
 
 
@@ -46,7 +46,7 @@ const ProjectMilestonePage = () => {
     name: '',
     description: '',
     priority: 'medium' as const,
-    assignedTo: null as ProjectMember | null,
+    assignedTo: null as Member | null, // Changed from ProjectMember to Member
     dueDate: ''
   })
 
@@ -499,7 +499,7 @@ const projects: Project[] = [
         avatar: 'LC'
       }
     ],
-    
+    milestones: ['1', '2', '3'], // Added - required by Project type
   },
   {
     id: '2',
@@ -511,6 +511,7 @@ const projects: Project[] = [
     status: 'planning',
     progress: 15,
     members: [],
+    milestones: [], // Added - required by Project type
   }
 ]
 const mockMilestones: Record<string, Milestone[]> = {

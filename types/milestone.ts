@@ -1,5 +1,4 @@
 import { Member } from "./member";
-import { ProjectMember } from "./project";
 
 export interface MilestoneFormData {
   name: string;
@@ -36,7 +35,7 @@ export interface Task {
   status: "todo" | "in-progress" | "review" | "done" | string;
   priority?: string;
   assignee?: string | null;
-  assignedTo?: ProjectMember | null;
+  assignedTo?: Member | null; // Changed from ProjectMember to Member
   startDate?: string;
   endDate?: string;
   dueDate?: string;
