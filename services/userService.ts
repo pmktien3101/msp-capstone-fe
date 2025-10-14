@@ -29,7 +29,7 @@ export const userService = {
 
     async approveBusinessOwner(userId: string): Promise<{ success: boolean; message?: string; error?: string }> {
         try {
-            const response = await api.post(`/users/business-owners/${userId}/approve`);
+            const response = await api.post(`/users/approve-business-owner/${userId}`);
             
             if (response.data.success) {
                 return {
@@ -53,7 +53,7 @@ export const userService = {
 
     async rejectBusinessOwner(userId: string): Promise<{ success: boolean; message?: string; error?: string }> {
         try {
-            const response = await api.post(`/users/business-owners/${userId}/reject`);
+            const response = await api.post(`/users/reject-business-owner/${userId}`);
             
             if (response.data.success) {
                 return {
@@ -71,6 +71,30 @@ export const userService = {
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || 'Failed to reject business owner'
+            };
+        }
+    },
+
+    async toggleActive(userId: string): Promise<{ success: boolean; message?: string; error?: string }> {
+        try {
+            const response = await api.put(`/users/${userId}/toggle-active`);
+            
+            if (response.data.success) {
+                return {
+                    success: true,
+                    message: response.data.message
+                };
+            } else {
+                return {
+                    success: false,
+                    error: response.data.message || 'Failed to toggle active status'
+                };
+            }
+        } catch (error: any) {
+            console.error('Toggle active error:', error);
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Failed to toggle active status'
             };
         }
     }

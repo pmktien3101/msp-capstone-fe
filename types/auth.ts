@@ -62,14 +62,12 @@ export interface AuthState {
 export interface BusinessOwner {
     id: string;
     userName: string;
-    normalizedUserName: string;
     email: string;
-    normalizedEmail: string;
-    emailConfirmed: boolean;
     fullName: string;
     organization: string;
     businessLicense: string;
     isApproved: boolean;
+    isActive: boolean;
     createdAt: string;
     managedById?: string;
     managedBy?: any;
@@ -77,11 +75,6 @@ export interface BusinessOwner {
     notifications: any[];
     avatarUrl?: string;
     phoneNumber?: string;
-    phoneNumberConfirmed: boolean;
-    twoFactorEnabled: boolean;
-    lockoutEnd?: string;
-    lockoutEnabled: boolean;
-    accessFailedCount: number;
     packageName?: string;
     packageExpireDate?: string;
 }
