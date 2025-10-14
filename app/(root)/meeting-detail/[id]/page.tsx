@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -13,18 +13,13 @@ import {
   Play,
   Download,
   Sparkles,
-  Plus,
   Loader2,
   Edit,
-  Save,
   X,
   Calendar,
   User,
-  Flag,
   Trash2,
-  Copy,
   Check,
-  CheckCircle,
   Edit3,
   Target,
   VoteIcon,
@@ -34,6 +29,7 @@ import { useGetCallById } from "@/hooks/useGetCallById";
 import { Call, CallRecording } from "@stream-io/video-react-sdk";
 import { mockMilestones, mockParticipants } from "@/constants/mockData";
 import { toast } from "react-toastify";
+import { is } from "zod/v4/locales";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -53,8 +49,6 @@ export default function MeetingDetailPage() {
   const router = useRouter();
   const { call, isLoadingCall } = useGetCallById(params.id as string);
   const [activeTab, setActiveTab] = useState("overview");
-  const [showJoinFlow, setShowJoinFlow] = useState(false); // hiển thị phần join meeting
-  const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [recordings, setRecordings] = useState<CallRecording[]>([]);
   const [isLoadingRecordings, setIsLoadingRecordings] = useState(false);
   const [recordingsError, setRecordingsError] = useState<string | null>(null);
@@ -68,21 +62,21 @@ export default function MeetingDetailPage() {
   const [transcriptions, setTranscriptions] = useState<any[]>([]);
   const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(false);
   const [transcriptionsError, setTranscriptionsError] = useState<string | null>(null);
-  const [summary, setSummary] = useState<string>("");
+  // const [summary, setSummary] = useState<string>("");
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
-  const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean, taskId: string | null }>({ isOpen: false, taskId: null });
-  const [isTaskCreated, setIsTaskCreated] = useState<{ [key: string]: boolean }>({});
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [convertConfirmModal, setConvertConfirmModal] = useState<{ isOpen: boolean, taskCount: number }>({ isOpen: false, taskCount: 0 });
 
-  // Khi đã join thì chuyển sang hiển thị MeetingRoom
-  useEffect(() => {
-    if (isSetupComplete) {
-      // nothing else for now
-    }
-  }, [isSetupComplete]);
+  // State để lưu kết quả
+  const [improvedTranscript, setImprovedTranscript] = useState<any[]>([]);
+  const [summary, setSummary] = useState<string>('');
+  const [todoList, setTodoList] = useState<any[]>([]);
+  const [isProcessingMeetingAI, setIsProcessingMeetingAI] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+
   // Fetch recordings when switching to recording tab and call is available
   useEffect(() => {
     const loadRecordings = async () => {
@@ -116,6 +110,7 @@ export default function MeetingDetailPage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+        console.log("Transcriptions data:", data);
         setTranscriptions(data || []);
       } catch (e: any) {
         console.error("Failed to fetch transcriptions", e);
@@ -130,161 +125,232 @@ export default function MeetingDetailPage() {
   }, [activeTab, call]);
 
   // Generate summary and todo list when transcriptions are loaded
-  const generateSummaryAndTasks = async () => {
-    if (transcriptions.length === 0) return;
+  // const generateSummaryAndTasks = async () => {
+  //   if (transcriptions.length === 0) return;
 
-    setIsLoadingSummary(true);
-    setIsGeneratingTasks(true);
-    setSummaryError(null);
+  //   setIsLoadingSummary(true);
+  //   setIsGeneratingTasks(true);
+  //   setSummaryError(null);
+  //   try {
+  //     // Format transcriptions into text
+  //     const formattedText = transcriptions
+  //       .map(item => `${getSpeakerName(item.speakerId)}: ${item.text}`)
+  //       .join('\n');
+
+  //     // Generate summary
+  //     const summaryResponse = await fetch(`${API_BASE}/Summarize/summary`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         text: formattedText
+  //       })
+  //     });
+
+  //     if (!summaryResponse.ok) {
+  //       throw new Error(`HTTP error! status: ${summaryResponse.status}`);
+  //     }
+
+  //     const summaryResult = await summaryResponse.json();
+  //     setSummary(summaryResult.data?.summary || "Không thể tạo tóm tắt");
+
+  //     // Generate todo list with participants info for better assignment
+  //     const participantsInfo = {
+  //       participants: participantEmails.map((email, index) => ({
+  //         id: `speaker_${index + 1}`,
+  //         name: email.split('@')[0], // Extract name from email
+  //         email: email,
+  //         displayName: email
+  //       })),
+  //       speakerMapping: {
+  //         "1": participantEmails[0]?.split('@')[0] || "Speaker 1",
+  //         "2": participantEmails[1]?.split('@')[0] || "Speaker 2",
+  //         "3": participantEmails[2]?.split('@')[0] || "Speaker 3",
+  //         "4": participantEmails[3]?.split('@')[0] || "Speaker 4",
+  //         "5": participantEmails[4]?.split('@')[0] || "Speaker 5"
+  //       }
+  //     };
+
+  //     const requestBody = {
+  //       text: formattedText,
+  //       participants: participantsInfo.participants,
+  //       speakerMapping: participantsInfo.speakerMapping,
+  //       meetingInfo: {
+  //         title: call?.state?.custom?.title || call?.id || "Unknown Meeting",
+  //         description: description,
+  //         milestone: milestoneName
+  //       }
+  //     };
+
+  //     console.log("Sending to API:", requestBody);
+
+  //     const tasksResponse = await fetch(`${API_BASE}/Summarize/create-todolist`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify(requestBody)
+  //     });
+
+  //     if (!tasksResponse.ok) {
+  //       throw new Error(`HTTP error! status: ${tasksResponse.status}`);
+  //     }
+
+  //     const tasksResult = await tasksResponse.json();
+  //     console.log("API Response:", tasksResult);
+
+  //     // Parse the JSON string from result.data.summary
+  //     const summaryText = tasksResult.data?.summary || "";
+  //     console.log("Summary text:", summaryText);
+
+  //     if (!summaryText) {
+  //       throw new Error("Không có dữ liệu summary từ API");
+  //     }
+
+  //     // Extract JSON from the response (handle both ```json and `json formats)
+  //     let jsonString;
+
+  //     // Try markdown code block format first
+  //     let jsonMatch = summaryText.match(/```json\n([\s\S]*?)\n```/);
+  //     if (jsonMatch) {
+  //       jsonString = jsonMatch[1];
+  //     } else {
+  //       // Try simple `json format
+  //       jsonMatch = summaryText.match(/`json\n([\s\S]*?)\n`/);
+  //       if (jsonMatch) {
+  //         jsonString = jsonMatch[1];
+  //       } else {
+  //         // Try without backticks - just look for JSON array
+  //         jsonMatch = summaryText.match(/\[[\s\S]*\]/);
+  //         if (jsonMatch) {
+  //           jsonString = jsonMatch[0];
+  //         } else {
+  //           console.error("Could not find JSON in summary:", summaryText);
+  //           throw new Error("Không thể tìm thấy JSON trong response. Format không đúng.");
+  //         }
+  //       }
+  //     }
+  //     console.log("Extracted JSON string:", jsonString);
+
+  //     let tasksArray;
+  //     try {
+  //       tasksArray = JSON.parse(jsonString);
+  //     } catch (parseError) {
+  //       console.error("JSON Parse Error:", parseError);
+  //       console.error("JSON String:", jsonString);
+  //       throw new Error("Không thể parse JSON từ response");
+  //     }
+
+  //     if (!Array.isArray(tasksArray)) {
+  //       throw new Error("Dữ liệu trả về không phải là array");
+  //     }
+
+  //     // Convert to our task format with intelligent assignee matching
+  //     const generatedTasks = tasksArray.map((task: any, index: number) => {
+  //       // Try to find best matching participant for assignee
+  //       const matchedEmail = findBestMatch(task.assignee || "", participantsInfo.participants);
+
+  //       return {
+  //         id: `AI-${index + 1}`,
+  //         task: task.task || "",
+  //         assignee: matchedEmail || task.assignee || "",
+  //         startDate: task.startDate || "",
+  //         endDate: task.endDate || "",
+  //         priority: task.priority || "",
+  //         originalAssignee: task.assignee || "", // Keep original name for reference
+  //         isAutoMatched: !!matchedEmail, // Flag to show if it was auto-matched
+  //       };
+  //     });
+
+  //     console.log("Generated tasks:", generatedTasks);
+  //     setGeneratedTasks(generatedTasks);
+
+  //   } catch (e: any) {
+  //     console.error("Failed to generate summary and tasks", e);
+  //     setSummaryError("Không thể tạo tóm tắt và todo list");
+  //   } finally {
+  //     setIsLoadingSummary(false);
+  //     setIsGeneratingTasks(false);
+  //   }
+  // };
+
+  const hasProcessedRef = useRef(false);
+  // Định nghĩa async function xử lý video
+  const processVideo = async (recording: any, transcriptions: any) => {
+    setIsProcessingMeetingAI(true);
+    setError(null);
+
     try {
-      // Format transcriptions into text
-      const formattedText = transcriptions
-        .map(item => `${getSpeakerName(item.speakerId)}: ${item.text}`)
-        .join('\n');
-
-      // Generate summary
-      const summaryResponse = await fetch(`${API_BASE}/Summarize/summary`, {
+      const response = await fetch('/api/gemini/process-video', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: formattedText
-        })
+          videoUrl: recording.url, // Lấy URL từ recording object
+          transcriptSegments: transcriptions,
+        }),
       });
 
-      if (!summaryResponse.ok) {
-        throw new Error(`HTTP error! status: ${summaryResponse.status}`);
+      const data = await response.json();
+
+      console.log('GEMINI API Response:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to process video');
       }
 
-      const summaryResult = await summaryResponse.json();
-      setSummary(summaryResult.data?.summary || "Không thể tạo tóm tắt");
+      if (data.success) {
+        // Cập nhật state với kết quả
+        // setImprovedTranscript(data.data.improvedTranscript);
+        setImprovedTranscript(data.data.improvedTranscript);
+        setSummary(data.data.summary);
+        setTodoList(data.data.todoList);
 
-      // Generate todo list with participants info for better assignment
-      const participantsInfo = {
-        participants: participantEmails.map((email, index) => ({
-          id: `speaker_${index + 1}`,
-          name: email.split('@')[0], // Extract name from email
-          email: email,
-          displayName: email
-        })),
-        speakerMapping: {
-          "1": participantEmails[0]?.split('@')[0] || "Speaker 1",
-          "2": participantEmails[1]?.split('@')[0] || "Speaker 2",
-          "3": participantEmails[2]?.split('@')[0] || "Speaker 3",
-          "4": participantEmails[3]?.split('@')[0] || "Speaker 4",
-          "5": participantEmails[4]?.split('@')[0] || "Speaker 5"
-        }
-      };
-
-      const requestBody = {
-        text: formattedText,
-        participants: participantsInfo.participants,
-        speakerMapping: participantsInfo.speakerMapping,
-        meetingInfo: {
-          title: call?.state?.custom?.title || call?.id || "Unknown Meeting",
-          description: description,
-          milestone: milestoneName
-        }
-      };
-
-      console.log("Sending to API:", requestBody);
-
-      const tasksResponse = await fetch(`${API_BASE}/Summarize/create-todolist`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!tasksResponse.ok) {
-        throw new Error(`HTTP error! status: ${tasksResponse.status}`);
-      }
-
-      const tasksResult = await tasksResponse.json();
-      console.log("API Response:", tasksResult);
-
-      // Parse the JSON string from result.data.summary
-      const summaryText = tasksResult.data?.summary || "";
-      console.log("Summary text:", summaryText);
-
-      if (!summaryText) {
-        throw new Error("Không có dữ liệu summary từ API");
-      }
-
-      // Extract JSON from the response (handle both ```json and `json formats)
-      let jsonString;
-
-      // Try markdown code block format first
-      let jsonMatch = summaryText.match(/```json\n([\s\S]*?)\n```/);
-      if (jsonMatch) {
-        jsonString = jsonMatch[1];
+        console.log('Processing complete!', data.data);
       } else {
-        // Try simple `json format
-        jsonMatch = summaryText.match(/`json\n([\s\S]*?)\n`/);
-        if (jsonMatch) {
-          jsonString = jsonMatch[1];
-        } else {
-          // Try without backticks - just look for JSON array
-          jsonMatch = summaryText.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            jsonString = jsonMatch[0];
-          } else {
-            console.error("Could not find JSON in summary:", summaryText);
-            throw new Error("Không thể tìm thấy JSON trong response. Format không đúng.");
-          }
-        }
+        throw new Error(data.error || 'Unknown error');
       }
-      console.log("Extracted JSON string:", jsonString);
-
-      let tasksArray;
-      try {
-        tasksArray = JSON.parse(jsonString);
-      } catch (parseError) {
-        console.error("JSON Parse Error:", parseError);
-        console.error("JSON String:", jsonString);
-        throw new Error("Không thể parse JSON từ response");
-      }
-
-      if (!Array.isArray(tasksArray)) {
-        throw new Error("Dữ liệu trả về không phải là array");
-      }
-
-      // Convert to our task format with intelligent assignee matching
-      const generatedTasks = tasksArray.map((task: any, index: number) => {
-        // Try to find best matching participant for assignee
-        const matchedEmail = findBestMatch(task.assignee || "", participantsInfo.participants);
-
-        return {
-          id: `AI-${index + 1}`,
-          task: task.task || "",
-          assignee: matchedEmail || task.assignee || "",
-          startDate: task.startDate || "",
-          endDate: task.endDate || "",
-          priority: task.priority || "",
-          originalAssignee: task.assignee || "", // Keep original name for reference
-          isAutoMatched: !!matchedEmail, // Flag to show if it was auto-matched
-        };
-      });
-
-      console.log("Generated tasks:", generatedTasks);
-      setGeneratedTasks(generatedTasks);
-
-    } catch (e: any) {
-      console.error("Failed to generate summary and tasks", e);
-      setSummaryError("Không thể tạo tóm tắt và todo list");
+    } catch (err: any) {
+      console.error('Error processing video:', err);
+      setError(err.message || 'Không thể xử lý video. Vui lòng thử lại.');
     } finally {
-      setIsLoadingSummary(false);
-      setIsGeneratingTasks(false);
+      setIsProcessingMeetingAI(false);
     }
   };
-  useEffect(() => {
 
-    if (transcriptions.length > 0) {
-      generateSummaryAndTasks();
+  useEffect(() => {
+    console.log('🔄 useEffect triggered:', {
+      hasTranscriptions: !!transcriptions?.length,
+      hasRecording: !!recordings[0]?.url,
+      hasProcessed: hasProcessedRef.current
+    });
+
+    if (!transcriptions || transcriptions.length === 0 || !recordings[0]?.url) {
+      console.log('⏸️ Missing data');
+      return;
     }
-  }, [transcriptions]);
+
+    if (hasProcessedRef.current) {
+      console.log('⏸️ Already processed');
+      return;
+    }
+
+    console.log('▶️ Starting processVideo');
+    hasProcessedRef.current = true;
+    processVideo(recordings[0], transcriptions);
+  }, [transcriptions, recordings]);
+
+  useEffect(() => {
+    if (improvedTranscript && summary && todoList) {
+      console.log("✅ All data ready:", {
+        transcriptCount: improvedTranscript.length,
+        hasSummary: !!summary,
+        hasTodoList: !!todoList
+      });
+    }
+  }, [improvedTranscript, summary, todoList]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -337,7 +403,9 @@ export default function MeetingDetailPage() {
       "2": "Trần Thị B",
       "3": "Lê Văn C",
       "4": "Phạm Thị D",
-      "5": "Hoàng Văn E"
+      "5": "Hoàng Văn E",
+      "male-voice": "Giọng Nam Bên Ngoài",
+      "female-voice": "Giọng Nữ Bên Ngoài"
     };
     return speakerMap[speakerId] || `Speaker ${speakerId}`;
   };
@@ -481,11 +549,6 @@ export default function MeetingDetailPage() {
     setDeleteConfirmModal({ isOpen: false, taskId: null });
   };
 
-  // Xử lý tạo task từ todo
-  const handleCreateTask = (taskId: string) => {
-    setIsTaskCreated(prev => ({ ...prev, [taskId]: true }));
-  };
-
   // Xử lý select/deselect task
   const handleSelectTask = (taskId: string) => {
     setSelectedTasks(prev =>
@@ -497,10 +560,10 @@ export default function MeetingDetailPage() {
 
   // Xử lý select all tasks
   const handleSelectAllTasks = () => {
-    if (selectedTasks.length === generatedTasks.length) {
+    if (selectedTasks.length === todoList.length) {
       setSelectedTasks([]);
     } else {
-      setSelectedTasks(generatedTasks.map(task => task.id));
+      setSelectedTasks(todoList.map(todo => todo.id));
     }
   };
 
@@ -526,9 +589,6 @@ export default function MeetingDetailPage() {
   const handleCancelConvert = () => {
     setConvertConfirmModal({ isOpen: false, taskCount: 0 });
   };
-
-
-
 
   // Xử lý tải xuống recording (tải blob để đảm bảo đặt được tên file)
   const handleDownload = async (rec: CallRecording, fallbackIndex: number) => {
@@ -595,6 +655,7 @@ export default function MeetingDetailPage() {
     const participant = mockParticipants.find((p) => p.id === participantId);
     return participant ? participant.email : "Chưa gán email";
   };
+
   // Derived info từ call
   const status = mapCallStatus(call);
   const description =
@@ -676,7 +737,7 @@ export default function MeetingDetailPage() {
 
       {/* Content */}
       <div className="meeting-content">
-        {activeTab === "overview" && !showJoinFlow && (
+        {activeTab === "overview" && (
           <div className="overview-section">
             <div className="meeting-info">
               <h3>Thông tin cuộc họp</h3>
@@ -823,7 +884,7 @@ export default function MeetingDetailPage() {
                   {recordingsError && !isLoadingRecordings && (
                     <div className="recording-error">{recordingsError}</div>
                   )}
-                  {!isLoadingRecordings &&
+                  {/* {!isLoadingRecordings &&
                     !recordingsError &&
                     recordings.length === 0 && (
                       <div className="recording-item mock-recording">
@@ -867,7 +928,7 @@ export default function MeetingDetailPage() {
                           </Button>
                         </div>
                       </div>
-                    )}
+                    )} */}
                   {!isLoadingRecordings &&
                     !recordingsError &&
                     recordings.map((rec, idx) => {
@@ -944,13 +1005,28 @@ export default function MeetingDetailPage() {
                 {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length === 0 && (
                   <div className="transcript-empty">Chưa có transcript cho cuộc họp này</div>
                 )}
-                {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length > 0 && (
+                {isProcessingMeetingAI && (
+                  <div className="transcript-processing"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '16px',
+                      padding: '40px 20px',
+                      minHeight: '200px'
+                    }}>
+                    <Loader2 size={50} className="animate-spin" />
+                    <span>Đang tạo transcript của cuộc họp...</span>
+                  </div>
+                )}
+                {!isProcessingMeetingAI && improvedTranscript.length > 0 && (
                   <div
                     className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
                       }`}
                     onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
                   >
-                    {transcriptions.map((item, index) => (
+                    {improvedTranscript.map((item, index) => (
                       <div key={index} className="transcript-item">
                         <span className="timestamp">{formatTimestamp(item.startTs)}</span>
                         <div className="transcript-text">
@@ -960,7 +1036,7 @@ export default function MeetingDetailPage() {
                     ))}
                   </div>
                 )}
-                {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length > 0 && !isTranscriptExpanded && (
+                {!isProcessingMeetingAI && improvedTranscript.length > 0  && !isTranscriptExpanded && (
                   <div className="transcript-expand-hint">
                     <span>Click để xem toàn bộ lời thoại</span>
                   </div>
@@ -978,30 +1054,25 @@ export default function MeetingDetailPage() {
                   </div>
                 </div>
                 <div className="summary-content">
-                  {isLoadingSummary && (
+                  {isProcessingMeetingAI && (
                     <div className="summary-loading">
                       <Loader2 size={16} className="animate-spin" />
                       <span>Đang tạo tóm tắt...</span>
                     </div>
                   )}
-                  {summaryError && !isLoadingSummary && (
+                  {/* {summaryError && !isLoadingSummary && (
                     <div className="summary-error">
                       <p>{summaryError}</p>
                     </div>
-                  )}
-                  {!isLoadingSummary && !summaryError && !summary && (
-                    <div className="summary-empty">
-                      <p>Chưa có transcript để tạo tóm tắt</p>
-                    </div>
-                  )}
-                  {!isLoadingSummary && !summaryError && summary && (
+                  )} */}
+                  {!isProcessingMeetingAI && summary && (
                     <p>{summary}</p>
                   )}
                 </div>
               </div>
 
               {/* AI Generated Tasks */}
-              {(generatedTasks.length > 0 || isGeneratingTasks) && (
+              {(todoList.length > 0 || isProcessingMeetingAI) && (
                 <div className="ai-generated-tasks">
                   <div className="ai-tasks-header">
                     <div className="ai-tasks-title">
@@ -1016,21 +1087,21 @@ export default function MeetingDetailPage() {
                         </p>
                       </div>
                     </div>
-                    {generatedTasks.length > 0 && (
+                    {todoList.length > 0 && (
                       <label className="select-all-section">
                         <Checkbox
-                          checked={selectedTasks.length === generatedTasks.length}
+                          checked={selectedTasks.length === todoList.length}
                           onCheckedChange={handleSelectAllTasks}
                           className="select-all-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
                         />
                         <span className="select-all-label">
-                          Chọn tất cả ({selectedTasks.length}/{generatedTasks.length})
+                          Chọn tất cả ({selectedTasks.length}/{todoList.length})
                         </span>
                       </label>
                     )}
                   </div>
 
-                  {isGeneratingTasks && (
+                  {isProcessingMeetingAI && (
                     <div className="tasks-loading">
                       <Loader2 size={16} className="animate-spin" />
                       <span>Đang tạo danh sách To-do...</span>
@@ -1038,32 +1109,32 @@ export default function MeetingDetailPage() {
                   )}
 
                   <div className="task-list">
-                    {generatedTasks.map((task, index) => {
+                    {todoList.map((todo, index) => {
                       // Auto-assign assignee evenly
-                      const currentAssignee = task.assignee;
+                      const currentAssignee = todo.assigneeId;
 
                       return (
                         <div
-                          className={`task-item ai-task ${selectedTasks.includes(task.id) ? 'selected' : ''} ${editMode[task.id] ? 'edit-mode' : ''}`}
-                          key={task.id}
-                          data-task-id={task.id}
+                          className={`task-item ai-task ${selectedTasks.includes(todo.id) ? 'selected' : ''} ${editMode[todo.id] ? 'edit-mode' : ''}`}
+                          key={todo.id}
+                          data-task-id={todo.id}
                           onClick={(e) => {
                             // Don't select if in edit mode
-                            if (editMode[task.id]) return;
+                            if (editMode[todo.id]) return;
 
                             // Don't select if clicking on action buttons or checkbox
                             const target = e.target as HTMLElement;
                             if (target.closest('.task-actions') || target.closest('.task-checkbox')) return;
 
                             // Select/deselect the task
-                            handleSelectTask(task.id);
+                            handleSelectTask(todo.id);
                           }}
-                          style={{ cursor: editMode[task.id] ? 'default' : 'pointer' }}
+                          style={{ cursor: editMode[todo.id] ? 'default' : 'pointer' }}
                         >
                           <div className="task-checkbox">
                             <Checkbox
-                              checked={selectedTasks.includes(task.id)}
-                              onCheckedChange={() => handleSelectTask(task.id)}
+                              checked={selectedTasks.includes(todo.id)}
+                              onCheckedChange={() => handleSelectTask(todo.id)}
                               className="task-select-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
                             />
                           </div>
@@ -1072,17 +1143,17 @@ export default function MeetingDetailPage() {
                           <div className="task-content">
                             <div className="task-title">
                               <label className="detail-label"
-                                style={{ cursor: editMode[task.id] ? 'default' : 'pointer' }}
+                                style={{ cursor: editMode[todo.id] ? 'default' : 'pointer' }}
                               >Tên công việc</label>
-                              {editMode[task.id] ? (
+                              {editMode[todo.id] ? (
                                 <input
                                   type="text"
-                                  value={task.task}
+                                  value={todo.title || ""}
                                   onChange={(e) => {
-                                    const updatedTasks = generatedTasks.map(t =>
-                                      t.id === task.id ? { ...t, task: e.target.value } : t
+                                    const updatedTasks = todoList.map(t =>
+                                      t.id === todo.id ? { ...t, title: e.target.value } : t
                                     );
-                                    setGeneratedTasks(updatedTasks);
+                                    setTodoList(updatedTasks);
                                   }}
                                   className="task-title-input"
                                   placeholder="Nhập tên công việc..."
@@ -1090,21 +1161,21 @@ export default function MeetingDetailPage() {
                                 />
                               ) : (
                                 <div className="task-title-display">
-                                  {task.task || "Nhập tên công việc..."}
+                                  {todo.title || "Nhập tên công việc..."}
                                 </div>
                               )}
                             </div>
 
                             <div className="task-description">
                               <label className="detail-label"
-                                style={{ cursor: editMode[task.id] ? 'default' : 'pointer' }}
+                                style={{ cursor: editMode[todo.id] ? 'default' : 'pointer' }}
                               >Mô tả công việc</label>
-                              {editMode[task.id] ? (
+                              {editMode[todo.id] ? (
                                 <textarea
-                                  value={task.description || ""}
+                                  value={todo.description || ""}
                                   onChange={(e) => {
                                     const updatedTasks = generatedTasks.map(t =>
-                                      t.id === task.id ? { ...t, description: e.target.value } : t
+                                      t.id === todo.id ? { ...t, description: e.target.value } : t
                                     );
                                     setGeneratedTasks(updatedTasks);
                                   }}
@@ -1114,7 +1185,7 @@ export default function MeetingDetailPage() {
                                 />
                               ) : (
                                 <div className="task-description-display">
-                                  {task.description || "Mô tả chi tiết công việc..."}
+                                  {todo.description || "Mô tả chi tiết công việc..."}
                                 </div>
                               )}
                             </div>
@@ -1124,20 +1195,20 @@ export default function MeetingDetailPage() {
                                 <label className="detail-label">Ngày bắt đầu</label>
                                 <div className="detail-value">
                                   <Calendar size={14} />
-                                  {editMode[task.id] ? (
+                                  {editMode[todo.id] ? (
                                     <input
                                       type="date"
-                                      value={task.startDate || ""}
+                                      value={todo.startDate || ""}
                                       onChange={(e) => {
                                         const updatedTasks = generatedTasks.map(t =>
-                                          t.id === task.id ? { ...t, startDate: e.target.value } : t
+                                          t.id === todo.id ? { ...t, startDate: e.target.value } : t
                                         );
                                         setGeneratedTasks(updatedTasks);
                                       }}
                                       className="date-input"
                                     />
                                   ) : (
-                                    <span>{task.startDate || "--/--/----"}</span>
+                                    <span>{todo.startDate || "--/--/----"}</span>
                                   )}
                                 </div>
                               </div>
@@ -1146,20 +1217,20 @@ export default function MeetingDetailPage() {
                                 <label className="detail-label">Ngày kết thúc</label>
                                 <div className="detail-value">
                                   <Calendar size={14} />
-                                  {editMode[task.id] ? (
+                                  {editMode[todo.id] ? (
                                     <input
                                       type="date"
-                                      value={task.endDate || ""}
+                                      value={todo.endDate || ""}
                                       onChange={(e) => {
                                         const updatedTasks = generatedTasks.map(t =>
-                                          t.id === task.id ? { ...t, endDate: e.target.value } : t
+                                          t.id === todo.id ? { ...t, endDate: e.target.value } : t
                                         );
                                         setGeneratedTasks(updatedTasks);
                                       }}
                                       className="date-input"
                                     />
                                   ) : (
-                                    <span>{task.endDate || "--/--/----"}</span>
+                                    <span>{todo.endDate || "--/--/----"}</span>
                                   )}
                                 </div>
                               </div>
@@ -1168,13 +1239,13 @@ export default function MeetingDetailPage() {
                                 <label className="detail-label">Người phụ trách</label>
                                 <div className="detail-value">
                                   <User size={14} />
-                                  {editMode[task.id] ? (
+                                  {editMode[todo.id] ? (
                                     <select
                                       value={currentAssignee || ""}
                                       onChange={(e) => {
                                         const newAssignee = e.target.value === "" ? null : e.target.value;
                                         const updatedTasks = generatedTasks.map(t =>
-                                          t.id === task.id ? { ...t, assignee: newAssignee } : t
+                                          t.id === todo.id ? { ...t, assignee: newAssignee } : t
                                         );
                                         setGeneratedTasks(updatedTasks);
                                       }}
@@ -1196,14 +1267,14 @@ export default function MeetingDetailPage() {
                           </div>
 
                           <div className="task-actions">
-                            {editMode[task.id] ? (
+                            {editMode[todo.id] ? (
                               <>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setEditMode(prev => ({ ...prev, [task.id]: false }));
+                                    setEditMode(prev => ({ ...prev, [todo.id]: false }));
                                   }}
                                   className="save-btn"
                                   title="Lưu"
@@ -1215,7 +1286,7 @@ export default function MeetingDetailPage() {
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setEditMode(prev => ({ ...prev, [task.id]: false }));
+                                    setEditMode(prev => ({ ...prev, [todo.id]: false }));
                                   }}
                                   className="cancel-btn"
                                   title="Hủy"
@@ -1230,7 +1301,7 @@ export default function MeetingDetailPage() {
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setEditMode(prev => ({ ...prev, [task.id]: true }));
+                                    setEditMode(prev => ({ ...prev, [todo.id]: true }));
                                   }}
                                   className="edit-btn"
                                   title="Chỉnh sửa"
@@ -1242,7 +1313,7 @@ export default function MeetingDetailPage() {
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleOpenDeleteModal(task.id);
+                                    handleOpenDeleteModal(todo.id);
                                   }}
                                   className="delete-btn"
                                   title="Xóa"
@@ -1274,7 +1345,7 @@ export default function MeetingDetailPage() {
                       onClick={() => {
                         // Handle regenerate AI tasks
                         setGeneratedTasks([]);
-                        generateSummaryAndTasks();
+                        // generateSummaryAndTasks();
                       }}
                       className="regenerate-btn"
                       variant="outline"
@@ -1350,7 +1421,7 @@ export default function MeetingDetailPage() {
           </div>
         )} */}
 
-        {activeTab === "attachments" && !showJoinFlow && (
+        {activeTab === "attachments" && (
           <div className="attachments-section">
             <div className="attachments-header">
               <h3>Tài liệu & File đính kèm</h3>
