@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/Avatar";
 import { useUser } from "@/hooks/useUser";
+import { UserRole } from "@/lib/rbac";
 
 const Header = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -47,12 +48,14 @@ const Header = () => {
 
   const getRoleDisplayName = () => {
     switch (role) {
-      case "pm":
+      case UserRole.PROJECT_MANAGER:
         return "Project Manager";
-      case "AdminSystem":
-        return "System Administrator";
-      case "BusinessOwner":
+      case UserRole.ADMIN:
+        return "Administrator";
+      case UserRole.BUSINESS_OWNER:
         return "Business Owner";
+      case UserRole.MEMBER:
+        return "Team Member";
       default:
         return "User";
     }
