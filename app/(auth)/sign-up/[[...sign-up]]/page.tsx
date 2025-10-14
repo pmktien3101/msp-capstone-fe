@@ -8,12 +8,12 @@ import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import { authService } from "@/services/authService";
 import "@/app/styles/sign-up.scss";
-import { User, Eye, EyeOff, Users, Building2 } from "lucide-react";
+import { User, Eye, EyeOff, Users, Building2, CheckCircle, XCircle } from "lucide-react";
 
 interface RegisterFormData {
   fullName: string;
-  organizationName: string;
-  phone: string;
+  organization: string;
+  phoneNumber: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -28,11 +28,12 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [role, setRole] = useState<Role>("Member");
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
   const [registerForm, setRegisterForm] = useState<RegisterFormData>({
     fullName: "",
-    organizationName: "",
-    phone: "",
+    organization: "",
+    phoneNumber: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -99,6 +100,18 @@ export default function SignUpPage() {
             font-size: 14px;
             margin: 0;
           }
+
+
+          @keyframes slideDown {
+            from {
+              opacity: 0;
+              transform: translateY(-10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
         `}</style>
       </div>
     );
@@ -107,6 +120,19 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setMessage(null); // Clear previous messages
+
+    // Validate form before submitting
+    if (!isFormValid()) {
+      setMessage({ 
+        type: 'error', 
+        text: role === "BusinessOwner" 
+          ? "Vui lòng điền đầy đủ thông tin và chọn tệp giấy phép kinh doanh" 
+          : "Vui lòng điền đầy đủ thông tin" 
+      });
+      setIsLoading(false);
+      return;
+    }
 
     try {
       // Prepare registration data based on role
@@ -114,9 +140,10 @@ export default function SignUpPage() {
         fullName: registerForm.fullName,
         email: registerForm.email,
         password: registerForm.password,
+        phoneNumber: registerForm.phoneNumber,
         role: role,
         ...(role === "BusinessOwner" && {
-          organization: registerForm.organizationName,
+          organization: registerForm.organization,
           businessLicense: registerForm.businessLicense, // Gửi tên file dưới dạng string
         }),
       };
@@ -127,18 +154,19 @@ export default function SignUpPage() {
 
       if (result.success) {
         console.log("Registration successful:", result.message);
-        // Show success message from backend
-        alert(result.message || "Registration successful!");
-        // Redirect to sign-in page
-        router.push("/sign-in");
+        // Show success message
+        setMessage({ type: 'success', text: result.message || "Đăng ký thành công!" });
+        // Redirect to sign-in page after 2 seconds
+        setTimeout(() => {
+          router.push("/sign-in");
+        }, 2000);
       } else {
-        console.error("Registration failed:", result.error);
-        // Show error message to user
-        alert(result.error || "Registration failed. Please try again.");
+        // Show error message
+        setMessage({ type: 'error', text: result.error || "Đăng ký thất bại. Vui lòng thử lại." });
       }
     } catch (error) {
       console.error("Registration error:", error);
-      alert("An unexpected error occurred. Please try again.");
+      setMessage({ type: 'error', text: "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại." });
     } finally {
       setIsLoading(false);
     }
@@ -153,6 +181,11 @@ export default function SignUpPage() {
       [name]:
         type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
+    
+    // Clear message when user starts typing
+    if (message) {
+      setMessage(null);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,7 +199,7 @@ export default function SignUpPage() {
   const isFormValid = () => {
     const baseValid =
       registerForm.fullName &&
-      registerForm.phone &&
+      registerForm.phoneNumber &&
       registerForm.email &&
       registerForm.password &&
       registerForm.confirmPassword &&
@@ -174,7 +207,7 @@ export default function SignUpPage() {
 
     // Business accounts cần organizationName và businessLicense
     if (role === "BusinessOwner") {
-      return baseValid && registerForm.organizationName && registerForm.businessLicense;
+      return baseValid && registerForm.organization && registerForm.businessLicense;
     }
 
     return baseValid;
@@ -187,6 +220,67 @@ export default function SignUpPage() {
 
   return (
     <div className="register-container">
+      <style jsx>{`
+        .register-message {
+          padding: 16px 20px;
+          border-radius: 12px;
+          margin-bottom: 24px;
+          font-size: 16px;
+          font-weight: 600;
+          text-align: center;
+          animation: slideDown 0.4s ease-out;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          border: 2px solid;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .register-message::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, transparent, currentColor, transparent);
+          animation: shimmer 2s infinite;
+        }
+
+        .register-message-content {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .register-message.success {
+          background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+          color: #064e3b;
+          border-color: #10b981;
+        }
+
+        .register-message.error {
+          background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
+          color: #7f1d1d;
+          border-color: #ef4444;
+        }
+
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
       <div className="register-content">
         <div className="form-header">
           <div className="logo-container">
@@ -221,6 +315,20 @@ export default function SignUpPage() {
 
         <div className="form-and-info-wrapper">
           <form className="register-form" onSubmit={handleSubmit}>
+            {/* Message Display */}
+            {message && (
+              <div className={`register-message ${message.type === 'success' ? 'success' : 'error'}`}>
+                <div className="register-message-content">
+                  {message.type === 'success' ? (
+                    <CheckCircle size={20} />
+                  ) : (
+                    <XCircle size={20} />
+                  )}
+                  <span>{message.text}</span>
+                </div>
+              </div>
+            )}
+            
             <div className="form-grid">
               <div className="form-group">
                 <label htmlFor="fullName">Họ và Tên *</label>
@@ -243,15 +351,15 @@ export default function SignUpPage() {
                     Tên Tổ Chức/Doanh Nghiệp *
                   </label>
                   <div className="input-wrapper">
-                    <input
-                      type="text"
-                      id="organizationName"
-                      name="organizationName"
-                      placeholder="Nhập tên tổ chức/doanh nghiệp"
-                      value={registerForm.organizationName}
-                      onChange={handleInputChange}
-                      required
-                    />
+                  <input
+                    type="text"
+                    id="organizationName"
+                    name="organization"
+                    placeholder="Nhập tên tổ chức/doanh nghiệp"
+                    value={registerForm.organization}
+                    onChange={handleInputChange}
+                    required
+                  />
                   </div>
                 </div>
               )}
@@ -264,9 +372,9 @@ export default function SignUpPage() {
                   <input
                     type="tel"
                     id="phone"
-                    name="phone"
+                    name="phoneNumber"
                     placeholder="Nhập số điện thoại"
-                    value={registerForm.phone}
+                    value={registerForm.phoneNumber}
                     onChange={handleInputChange}
                     required
                   />
@@ -389,8 +497,10 @@ export default function SignUpPage() {
                          : "Chọn tệp giấy phép kinh doanh..."}
                      </button>
                    </div>
-                   {!registerForm.businessLicense && (
-                     <small style={{ color: "#888" }}>Chưa chọn tệp nào</small>
+                   {!registerForm.businessLicense && role === "BusinessOwner" && (
+                     <small style={{ color: "#ef4444", fontWeight: "500" }}>
+                       Vui lòng chọn tệp giấy phép kinh doanh
+                     </small>
                    )}
                  </div>
                )}
