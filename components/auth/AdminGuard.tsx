@@ -3,32 +3,53 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/useUser';
+import { isAuthenticated, getCurrentUser } from '@/lib/auth';
+import { UserRole } from '@/lib/rbac';
 
 interface AdminGuardProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  allowedRoles?: UserRole[];
 }
 
-const AdminGuard = ({ children, fallback }: AdminGuardProps) => {
+const AdminGuard = ({ 
+  children, 
+  fallback, 
+  allowedRoles = [UserRole.ADMIN] 
+}: AdminGuardProps) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const { role, userId, email } = useUser();
   const router = useRouter();
 
   useEffect(() => {
     const checkAdminAccess = () => {
-      if (role === 'AdminSystem') {
-        setIsAdmin(true);
+      const authenticated = isAuthenticated();
+      const user = getCurrentUser();
+      
+      if (!authenticated || !user) {
+        console.log('User not authenticated, redirecting to sign-in');
+        router.push('/sign-in');
+        setIsLoading(false);
+        return;
+      }
+      
+      const userRole = user.role as UserRole;
+      const hasAccess = allowedRoles.includes(userRole);
+      
+      if (hasAccess) {
+        setIsAuthorized(true);
       } else {
-        console.log('User is not admin, redirecting to dashboard');
+        console.log(`User role ${user.role} not authorized for admin access`);
         router.push('/dashboard');
       }
+      
       setIsLoading(false);
     };
 
     const timer = setTimeout(checkAdminAccess, 100);
     return () => clearTimeout(timer);
-  }, [role, router]);
+  }, [role, router, allowedRoles]);
 
   if (isLoading) {
     return fallback || (
@@ -70,8 +91,8 @@ const AdminGuard = ({ children, fallback }: AdminGuardProps) => {
     );
   }
 
-  if (!isAdmin) {
-    return null; // Will redirect to dashboard
+  if (!isAuthorized) {
+    return null; // Will redirect to appropriate page
   }
 
   return <>{children}</>;

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { ProjectSection } from "./ProjectSection";
 import { useUser } from "@/hooks/useUser";
+import { UserRole } from "@/lib/rbac";
 import { MdMoney } from "react-icons/md";
 
 interface SidebarItem {
@@ -441,15 +442,16 @@ const Sidebar = () => {
   // Get sidebar items based on role
   const getSidebarItems = () => {
     switch (role) {
-      case "AdminSystem":
+      case UserRole.ADMIN:
         return adminSidebarItems;
-      case "BusinessOwner":
+      case UserRole.BUSINESS_OWNER:
         return businessOwnerSidebarItems;
-      case "Member":
+      case UserRole.MEMBER:
         return memberSidebarItems;
-      case "pm":
-      default:
+      case UserRole.PROJECT_MANAGER:
         return pmSidebarItems;
+      default:
+        return memberSidebarItems;
     }
   };
 
@@ -518,8 +520,8 @@ const Sidebar = () => {
             </div>
           ))}
 
-          {/* Project Section - Only show for PM and Member (not admin or business owner) */}
-          {(role === "pm" || role === "Member") && (
+          {/* Project Section - Only show for ProjectManager and Member (not admin or business owner) */}
+          {(role === UserRole.PROJECT_MANAGER || role === UserRole.MEMBER) && (
             <ProjectSection
               isExpanded={isProjectSectionExpanded}
               onToggle={handleProjectSectionToggle}
