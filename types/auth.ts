@@ -82,6 +82,8 @@ export interface BusinessOwner {
     lockoutEnd?: string;
     lockoutEnabled: boolean;
     accessFailedCount: number;
+    packageName?: string;
+    packageExpireDate?: string;
 }
 
 export interface BusinessOwnersResponse {

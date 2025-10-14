@@ -263,20 +263,18 @@ const AdminBusinessOwners = () => {
         </div>
         <div className="stat-item">
           <span className="stat-number">
-            {businessOwners.filter((bo) => bo.status === "pending").length}
+            {businessOwners.filter((bo) => !bo.isApproved).length}
           </span>
           <span className="stat-label">Chờ duyệt</span>
         </div>
         <div className="stat-item">
           <span className="stat-number">
-            {businessOwners.filter((bo) => bo.status === "active").length}
+            {businessOwners.filter((bo) => bo.isApproved).length}
           </span>
           <span className="stat-label">Đang hoạt động</span>
         </div>
         <div className="stat-item">
-          <span className="stat-number">
-            {businessOwners.filter((bo) => bo.status === "inactive").length}
-          </span>
+          <span className="stat-number">0</span>
           <span className="stat-label">Ngừng hoạt động</span>
         </div>
       </div>
@@ -551,26 +549,26 @@ const AdminBusinessOwners = () => {
                   <div className="detail-row">
                     <span className="detail-label">Gói sử dụng:</span>
                     <span className="detail-value">
-                      {selectedBusinessOwner.packageName || "-"}
+                      {(selectedBusinessOwner as any).packageName || "-"}
                     </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Ngày hết hạn:</span>
                     <span className="detail-value">
-                      {selectedBusinessOwner.packageExpireDate || "-"}
+                      {(selectedBusinessOwner as any).packageExpireDate || "-"}
                     </span>
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Số ngày còn hạn:</span>
                     <span className="detail-value">
-                      {getDaysLeft(selectedBusinessOwner.packageExpireDate)}
+                      {getDaysLeft((selectedBusinessOwner as any).packageExpireDate)}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
             <div className="modal-footer">
-              {selectedBusinessOwner.status === "pending" && (
+              {!selectedBusinessOwner.isApproved && (
                 <>
                   <button
                     className="btn-reject"
