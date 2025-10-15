@@ -1,4 +1,4 @@
-import { GetUserResponse } from '@/types/user';
+import { GetUserResponse, ReAssignRoleRequest, ReAssignRoleResponse } from '@/types/user';
 import { api } from './api';
 import type { BusinessOwnersResponse, BusinessOwner, ApiResponse } from '@/types/auth';
 
@@ -128,6 +128,49 @@ export const userService = {
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || 'Failed to get members'
+            };
+        }
+    },
+
+    async reassignRole(
+        businessOwnerId: string,
+        userId: string,
+        newRole: string
+    ): Promise<{
+        success: boolean;
+        data?: ReAssignRoleResponse;
+        message?: string;
+        error?: string
+    }> {
+        try {
+            const requestBody: ReAssignRoleRequest = {
+                businessOwnerId,
+                userId,
+                newRole
+            };
+
+            const response = await api.put<ApiResponse<ReAssignRoleResponse>>(
+                '/users/re-assign-role',
+                requestBody
+            );
+
+            if (response.data.success && response.data.data) {
+                return {
+                    success: true,
+                    data: response.data.data,
+                    message: response.data.message || 'Role reassigned successfully'
+                };
+            } else {
+                return {
+                    success: false,
+                    error: response.data.message || 'Failed to reassign role'
+                };
+            }
+        } catch (error: any) {
+            console.error('Reassign role error:', error);
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Failed to reassign role'
             };
         }
     }

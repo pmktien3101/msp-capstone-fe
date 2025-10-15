@@ -15,3 +15,14 @@ export interface GetUserResponse {
     roleName: string;
     projects?: number | 0;
 }
+
+export interface ReAssignRoleRequest {
+    businessOwnerId: string;
+    userId: string;
+    newRole: string;
+}
+
+export interface ReAssignRoleResponse {
+    userId: string;
+    newRole: string;
+}
