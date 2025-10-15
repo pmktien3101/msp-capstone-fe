@@ -108,9 +108,27 @@ export const projectService = {
         try {
             console.log('Calling GET /projects...');
             const response = await api.get<ApiResponse<any>>('/projects');
-            console.log('Response from GET /projects:', response.data);
+            console.log('Full response:', response);
+            console.log('Response data:', response.data);
+            console.log('Response data type:', typeof response.data);
+            console.log('Response data.data:', response.data?.data);
             
-            if (response.data.success) {
+            // Handle case where response.data is the actual data (not wrapped in ApiResponse)
+            if (Array.isArray(response.data)) {
+                console.log('Response is direct array (no wrapper)');
+                return {
+                    success: true,
+                    data: {
+                        items: response.data,
+                        totalItems: response.data.length,
+                        pageIndex: 0,
+                        pageSize: response.data.length
+                    }
+                };
+            }
+            
+            // Handle standard ApiResponse format
+            if (response.data && response.data.success) {
                 // Check if response is paginated or direct array
                 if (response.data.data) {
                     // If it's already a PagingResponse
@@ -138,17 +156,31 @@ export const projectService = {
                 console.error('Invalid response format:', response.data);
                 return {
                     success: false,
-                    error: 'Invalid response format'
+                    error: 'Invalid response format from API'
                 };
-            } else {
+            } 
+            
+            // Handle error response
+            if (response.data && !response.data.success) {
+                console.error('API returned success: false', response.data);
                 return {
                     success: false,
                     error: response.data.message || 'Failed to fetch projects'
                 };
             }
+            
+            // Unknown format
+            console.error('Unknown response format:', response);
+            return {
+                success: false,
+                error: 'Unknown response format from API'
+            };
         } catch (error: any) {
             console.error('Get all projects error:', error);
             console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+            console.error('Error message:', error.message);
+            
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || 'Failed to fetch projects'
@@ -209,7 +241,9 @@ export const projectService = {
     // Add project member
     async addProjectMember(projectId: string, userId: string): Promise<{ success: boolean; data?: ProjectMember; error?: string }> {
         try {
+            console.log('addProjectMember - Request:', { projectId, userId });
             const response = await api.post<ApiResponse<ProjectMember>>('/projects/project-member', { projectId, userId });
+            console.log('addProjectMember - Response:', response.data);
             return {
                 success: response.data.success,
                 data: response.data.data,
@@ -217,6 +251,8 @@ export const projectService = {
             };
         } catch (error: any) {
             console.error('Add project member error:', error);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || 'Failed to add project member'
@@ -247,10 +283,17 @@ export const projectService = {
         try {
             const response = await api.get<ApiResponse<ProjectMember[]>>(`/projects/project-member/${projectId}`);
             
+            // Xử lý trường hợp project mới tạo chưa có members
             if (response.data.success && response.data.data) {
                 return {
                     success: true,
                     data: response.data.data
+                };
+            } else if (!response.data.success && response.data.message?.includes('No members found')) {
+                // Trả về mảng rỗng thay vì lỗi khi chưa có members
+                return {
+                    success: true,
+                    data: []
                 };
             } else {
                 return {

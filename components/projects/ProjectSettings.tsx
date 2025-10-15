@@ -557,6 +557,8 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
         onAddMember={handleAddMember}
         onRemoveMember={handleDeleteMember}
         existingMembers={members}
+        projectId={project.id}
+        ownerId={project.ownerId || project.owner?.userId || ''}
       />
 
       {/* Edit Member Modal */}

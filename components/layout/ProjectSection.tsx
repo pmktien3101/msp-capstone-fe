@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Project } from '@/types/project';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
 import { projectService } from '@/services/projectService';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -15,6 +16,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
   const router = useRouter();
   const pathname = usePathname();
   const { openCreateModal } = useProjectModal();
+  const { user, isAuthenticated } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllProjects, setShowAllProjects] = useState(false);
@@ -22,12 +24,20 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
   // Fetch projects from API
   useEffect(() => {
     const fetchProjects = async () => {
+      // Only fetch if user is authenticated
+      if (!isAuthenticated || !user) {
+        console.log('User not authenticated, skipping project fetch');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
+        console.log('Fetching projects for user:', user.userId);
         const result = await projectService.getAllProjects();
 
         if (result.success && result.data) {
-          console.log('Fetched projects:', result.data);
+          console.log('Fetched projects successfully:', result.data);
           setProjects(result.data.items);
         } else {
           console.error('Failed to fetch projects:', result.error);
@@ -42,7 +52,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
     };
 
     fetchProjects();
-  }, []);
+  }, [user, isAuthenticated]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

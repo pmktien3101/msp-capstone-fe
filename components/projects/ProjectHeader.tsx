@@ -9,8 +9,15 @@ export function ProjectHeader() {
   const { openCreateModal } = useProjectModal();
   const { role } = useUser();
 
-  // Check if user can create projects (not a member)
-  const canCreateProject = role !== 'Member';
+  // Check if user can create projects (ProjectManager or BusinessOwner)
+  const canCreateProject = role === 'ProjectManager' || role === 'BusinessOwner';
+
+  console.log('ProjectHeader - role:', role, 'canCreateProject:', canCreateProject);
+
+  const handleCreateClick = () => {
+    console.log('Create project button clicked!');
+    openCreateModal();
+  };
 
   return (
     <div className="page-header">
@@ -22,7 +29,7 @@ export function ProjectHeader() {
         <div className="header-actions">
           {canCreateProject && (
             <Button 
-              onClick={openCreateModal} 
+              onClick={handleCreateClick} 
               variant="default"
               style={{
                 background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',

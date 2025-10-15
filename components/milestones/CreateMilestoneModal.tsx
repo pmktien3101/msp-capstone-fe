@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { X, Calendar, FileText, Target } from "lucide-react";
 import { milestoneService } from "@/services/milestoneService";
-import { getCurrentUser } from "@/lib/auth";
-import { useUser } from "@/hooks/useUser";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CreateMilestoneModalProps {
   isOpen: boolean;
@@ -21,7 +20,7 @@ export const CreateMilestoneModal = ({
   onSuccess,
   projectId,
 }: CreateMilestoneModalProps) => {
-  const { userId: storeUserId } = useUser();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -87,48 +86,19 @@ export const CreateMilestoneModal = ({
     setIsSubmitting(true);
 
     try {
-      // Try to get userId from multiple sources
-      let userId = '';
-      
-      // Method 1: getCurrentUser from auth.ts (reads token + localStorage)
-      const currentUser = getCurrentUser();
-      console.log('getCurrentUser():', currentUser);
-      
-      if (currentUser?.userId) {
-        userId = currentUser.userId;
-      }
-      
-      // Method 2: Fallback to useUser store (zustand)
-      if (!userId && storeUserId) {
-        console.log('Using userId from store:', storeUserId);
-        userId = storeUserId;
-      }
-      
-      // Method 3: Direct localStorage check as last resort
-      if (!userId) {
-        try {
-          const userStorage = localStorage.getItem('user-storage');
-          if (userStorage) {
-            const parsed = JSON.parse(userStorage);
-            console.log('localStorage user-storage:', parsed);
-            userId = parsed.state?.userId || parsed.state?.user?.id || '';
-          }
-        } catch (e) {
-          console.error('Error parsing localStorage:', e);
-        }
-      }
-      
-      if (!userId) {
-        console.error('No userId found from any source');
+      // Get userId from useAuth hook
+      if (!user || !user.userId) {
+        console.error('No user found from useAuth');
         alert('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
         setIsSubmitting(false);
         return;
       }
 
-      console.log('Final userId to use:', userId);
+      console.log('User from useAuth:', user);
+      console.log('Using userId:', user.userId);
 
       const milestoneData = {
-        userId: userId,
+        userId: user.userId,
         projectId: projectId,
         name: formData.name.trim(),
         description: formData.description.trim(),

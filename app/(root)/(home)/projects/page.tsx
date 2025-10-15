@@ -8,6 +8,7 @@ import { CreateProjectModal } from '@/components/projects/modals/CreateProjectMo
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
 import { projectService } from '@/services/projectService';
+import { useAuth } from '@/hooks/useAuth';
 import '@/app/styles/projects.scss';
 import '@/app/styles/projects-table.scss';
 import { Project } from '@/types/project';
@@ -15,6 +16,7 @@ import { Project } from '@/types/project';
 const ProjectsPage = () => {
   const router = useRouter();
   const { isCreateModalOpen, closeCreateModal } = useProjectModal();
+  const { user, isAuthenticated } = useAuth();
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -23,22 +25,32 @@ const ProjectsPage = () => {
 
   // Fetch projects on component mount
   useEffect(() => {
-    fetchProjects();
-  }, []);
+    if (isAuthenticated && user) {
+      fetchProjects();
+    } else {
+      setLoading(false);
+      setError('Vui lòng đăng nhập để xem dự án');
+    }
+  }, [isAuthenticated, user]);
 
   const fetchProjects = async () => {
     try {
       setLoading(true);
+      setError('');
+      console.log('Fetching all projects...');
+      
       const result = await projectService.getAllProjects();
       
       if (result.success && result.data) {
+        console.log('Projects fetched successfully:', result.data.items);
         setProjects(result.data.items);
       } else {
+        console.error('Failed to fetch projects:', result.error);
         setError(result.error || 'Không thể tải danh sách dự án');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Fetch projects error:', error);
-      setError('Đã xảy ra lỗi khi tải dự án');
+      setError(error.message || 'Đã xảy ra lỗi khi tải dự án');
     } finally {
       setLoading(false);
     }
@@ -90,9 +102,12 @@ const ProjectsPage = () => {
     router.push(`/projects/${projectId}`);
   };
 
-  const handleCreateProject = (newProject: Project) => {
-    // Add new project to list
-    setProjects(prevProjects => [newProject, ...prevProjects]);
+  const handleCreateProject = async (newProject: Project) => {
+    console.log('New project created:', newProject);
+    
+    // Refresh projects list to get updated data from backend
+    await fetchProjects();
+    
     closeCreateModal();
   };
 

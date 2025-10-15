@@ -12,6 +12,7 @@ import { Task } from '@/types/milestone';
 import { mockTasks, addMilestone } from '@/constants/mockData';
 import { Plus, Calendar, Users, Target } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { useAuth } from '@/hooks/useAuth';
 import '@/app/styles/project-detail.scss';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { projectService } from '@/services/projectService';
@@ -22,6 +23,7 @@ const ProjectDetailPage = () => {
   const searchParams = useSearchParams();
   const projectId = params.projectId as string;
   const { role } = useUser();
+  const { user } = useAuth();
   const [project, setProject] = useState<any | null>(null); // Extended project with members
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -153,18 +155,64 @@ const ProjectDetailPage = () => {
       }
 
       try {
-        // Fetch all users first (for member lookup)
-        const usersResult = await userService.getAllUsers();
-        if (usersResult.success && usersResult.data) {
-          setAllUsers(usersResult.data);
+        // Validate projectId first
+        if (!projectId || projectId === 'undefined' || projectId === 'null') {
+          console.error('Invalid projectId:', projectId);
+          setError('ID dự án không hợp lệ');
+          setLoading(false);
+          return;
+        }
+
+        console.log('Fetching project with ID:', projectId);
+
+        // Check if user is authenticated and has userId
+        if (!user || !user.userId) {
+          console.error('User not authenticated');
+          setError('Vui lòng đăng nhập để xem dự án');
+          setLoading(false);
+          return;
+        }
+
+        // Fetch all users first (for member lookup) - only if user is BusinessOwner
+        if (user.role?.toLowerCase() === 'businessowner') {
+          try {
+            const usersResult = await userService.getMembersByBO(user.userId);
+            if (usersResult.success && usersResult.data) {
+              setAllUsers(usersResult.data);
+            } else {
+              console.warn('Failed to fetch members:', usersResult.error);
+              // Continue anyway, just with empty users list
+            }
+          } catch (err: any) {
+            console.warn('Error fetching members (403 expected for non-BO):', err);
+            // 403 is expected if user is not BusinessOwner, continue with empty list
+          }
         }
 
         // Fetch project details from API
         const result = await projectService.getProjectById(projectId);
         
         if (result.success && result.data) {
+          console.log('Project fetched successfully:', result.data);
+          
           // Fetch project members
-          const membersResult = await projectService.getProjectMembers(projectId);
+          let membersResult;
+          try {
+            membersResult = await projectService.getProjectMembers(projectId);
+            
+            if (membersResult.success && membersResult.data) {
+              if (membersResult.data.length === 0) {
+                console.log('Project has no members yet (newly created project)');
+              } else {
+                console.log('Members fetched:', membersResult.data);
+              }
+            } else {
+              console.warn('Failed to fetch members:', membersResult.error);
+            }
+          } catch (memberErr: any) {
+            console.error('Error fetching members:', memberErr);
+            membersResult = { success: true, data: [] };
+          }
           
           // Combine project data with members
           const projectWithMembers = {

@@ -25,6 +25,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FolderOpen, Calendar } from 'lucide-react';
 import { projectService } from '@/services/projectService';
 import { Project, CreateProjectRequest } from '@/types/project';
+import { useAuth } from "@/hooks/useAuth";
 
 const projectSchema = z.object({
   name: z.string().min(1, "Tên dự án là bắt buộc"),
@@ -43,28 +44,12 @@ interface CreateProjectModalProps {
   onCreateProject?: (project: Project) => void;
 }
 
-// Helper function to get user from localStorage
-const getUserFromLocalStorage = () => {
-  try {
-    const userDataStr = localStorage.getItem('user-storage');
-    if (userDataStr) {
-      const userData = JSON.parse(userDataStr);
-      // Check if data has state property
-      if (userData.state) {
-        return userData.state;
-      }
-      return userData;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error getting user from localStorage:', error);
-    return null;
-  }
-};
-
 export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateProjectModalProps) {
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
+  
+  console.log('CreateProjectModal render - isOpen:', isOpen, 'user:', user);
   
   const {
     register,
@@ -80,8 +65,6 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
   });
 
   const onSubmit = async (data: ProjectFormData) => {
-    const user = getUserFromLocalStorage();
-    
     if (!user?.userId) {
       setSubmitError('Không tìm thấy thông tin người dùng');
       return;
