@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Project } from "@/types/project";
+import { useState, useEffect } from "react";
+import { Project, ProjectMember } from "@/types/project";
 import { Member } from "@/types/member";
 import { AddMemberModal } from "./modals/AddMemberModal";
 import { EditMemberModal } from "./modals/EditMemberModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useUser } from "@/hooks/useUser";
+import { projectService } from "@/services/projectService";
 import { 
   Plus, 
   Edit, 
@@ -89,7 +90,8 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
     },
   });
 
-  const [members, setMembers] = useState<Member[]>((project as any).members ?? []);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   
@@ -108,6 +110,42 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
   const canEditBasicInfo = userRole === 'projectmanager' || userRole === 'businessowner';
   const canAddPM = userRole === 'businessowner';
   const canAddMember = userRole === 'projectmanager' || userRole === 'businessowner';
+
+  // Fetch project members from API
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!project.id) return;
+      
+      setIsLoadingMembers(true);
+      try {
+        const result = await projectService.getProjectMembers(project.id);
+        console.log('ProjectSettings - Fetched members:', result);
+        
+        if (result.success && result.data) {
+          // Transform ProjectMember[] to Member[]
+          // API returns: { id, projectId, userId, member: { id, fullName, email, role, ... }, joinedAt, leftAt }
+          const transformedMembers: Member[] = result.data
+            .filter((pm: any) => pm.member) // Only include items with member data
+            .map((pm: any) => ({
+              id: pm.member.id,
+              name: pm.member.fullName || 'Unknown',
+              email: pm.member.email || '',
+              role: pm.member.role || 'Member',
+              avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase()
+            }));
+          
+          console.log('ProjectSettings - Transformed members:', transformedMembers);
+          setMembers(transformedMembers);
+        }
+      } catch (error) {
+        console.error('Error fetching project members:', error);
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
+
+    fetchMembers();
+  }, [project.id]);
 
   const handleInputChange = (field: string, value: any) => {
     setSettings((prev) => ({
@@ -136,9 +174,27 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
     console.log("Saving members:", members);
   };
 
-  const handleAddMember = (member: Member) => {
-    setMembers((prev) => [...prev, member]);
+  const handleAddMember = async (member: Member) => {
     setShowAddMemberModal(false);
+    
+    // Re-fetch members from API to get latest data
+    try {
+      const result = await projectService.getProjectMembers(project.id);
+      if (result.success && result.data) {
+        const transformedMembers: Member[] = result.data
+          .filter((pm: any) => pm.member)
+          .map((pm: any) => ({
+            id: pm.member.id,
+            name: pm.member.fullName || 'Unknown',
+            email: pm.member.email || '',
+            role: pm.member.role || 'Member',
+            avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase()
+          }));
+        setMembers(transformedMembers);
+      }
+    } catch (error) {
+      console.error('Error refreshing members:', error);
+    }
   };
 
   const handleEditMember = (member: Member) => {
@@ -160,12 +216,31 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
     }
   };
 
-  const confirmDeleteMember = () => {
+  const confirmDeleteMember = async () => {
     if (memberToDelete) {
+      // Optimistically remove from UI
       setMembers((prev) => prev.filter((m) => m.id !== memberToDelete.id));
       setMemberToDelete(null);
       console.log('Deleted member:', memberToDelete.id);
-      // In real app, call API to delete member
+      
+      // Re-fetch to ensure sync with backend
+      try {
+        const result = await projectService.getProjectMembers(project.id);
+        if (result.success && result.data) {
+          const transformedMembers: Member[] = result.data
+            .filter((pm: any) => pm.member)
+            .map((pm: any) => ({
+              id: pm.member.id,
+              name: pm.member.fullName || 'Unknown',
+              email: pm.member.email || '',
+              role: pm.member.role || 'Member',
+              avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase()
+            }));
+          setMembers(transformedMembers);
+        }
+      } catch (error) {
+        console.error('Error refreshing members after delete:', error);
+      }
     }
   };
 
@@ -497,7 +572,14 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
             )}
           </div>
           <div className="members-list">
-            {members.length === 0 ? (
+            {isLoadingMembers ? (
+              <div className="empty-state">
+                <div className="empty-icon">
+                  <Users size={40} color="#9CA3AF" />
+                </div>
+                <h5>Đang tải thành viên...</h5>
+              </div>
+            ) : members.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">
                   <Users size={40} color="#9CA3AF" />
@@ -518,30 +600,30 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
               <div className="members-grid">
                 {members.map((member) => (
                   <div key={member.id} className="member-card">
-                  <div className="member-avatar">{member.avatar}</div>
-                  <div className="member-info">
-                    <div className="member-name">{member.name}</div>
-                    <div className="member-role">{member.role}</div>
-                    <div className="member-email">{member.email}</div>
-                  </div>
-                  {canAddMember && (
-                    <div className="member-actions">
-                      <button
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => handleEditMember(member)}
-                        title="Chỉnh sửa thành viên"
-                      >
-                        <Edit size={12} />
-                      </button>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDeleteMember(member.id)}
-                        title="Xóa thành viên"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                    <div className="member-avatar">{member.avatar}</div>
+                    <div className="member-info">
+                      <div className="member-name">{member.name}</div>
+                      <div className="member-role">{member.role}</div>
+                      <div className="member-email">{member.email}</div>
                     </div>
-                  )}
+                    {canAddMember && (
+                      <div className="member-actions">
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => handleEditMember(member)}
+                          title="Chỉnh sửa thành viên"
+                        >
+                          <Edit size={12} />
+                        </button>
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={() => handleDeleteMember(member.id)}
+                          title="Xóa thành viên"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
                 </div>

@@ -280,9 +280,9 @@ export const projectService = {
     },
 
     // Get project members
-    async getProjectMembers(projectId: string): Promise<{ success: boolean; data?: ProjectMemberResponse[]; error?: string }> {
+    async getProjectMembers(projectId: string): Promise<{ success: boolean; data?: ProjectMember[]; error?: string }> {
         try {
-            const response = await api.get<ApiResponse<ProjectMemberResponse[]>>(`/projects/project-member/${projectId}`);
+            const response = await api.get<ApiResponse<ProjectMember[]>>(`/projects/project-member/${projectId}`);
             
             if (response.data.success && response.data.data) {
                 return {
