@@ -218,7 +218,13 @@ const ProjectDetailPage = () => {
           const projectWithMembers = {
             ...result.data,
             members: membersResult.success && membersResult.data 
-              ? membersResult.data.map(pm => pm.member).filter(Boolean)
+              ? membersResult.data.map((memberResponse: any) => ({
+                  userId: memberResponse.id,
+                  fullName: memberResponse.fullName,
+                  email: memberResponse.email,
+                  role: memberResponse.roleName,
+                  image: memberResponse.avatarUrl || ''
+                }))
               : [],
             progress: 0, // TODO: Calculate from tasks/milestones
             manager: result.data.owner?.fullName || result.data.createdBy?.fullName || 'N/A',

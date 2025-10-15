@@ -9,6 +9,24 @@ export interface ProjectMember {
   leftAt?: string;
 }
 
+// Response from GET /projects/project-member/{projectId}
+export interface ProjectMemberResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string | null;
+  avatarUrl: string | null;
+  googleId: string | null;
+  organization: string | null;
+  managedBy: string;
+  managerName: string;
+  businessLicense: string | null;
+  isApproved: boolean;
+  isActive: boolean;
+  createdAt: string;
+  roleName: string;
+}
+
 export interface Project {
   id: string;
   name: string;

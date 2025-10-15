@@ -1,7 +1,8 @@
 import { api } from './api';
 import type { 
     Project, 
-    ProjectMember, 
+    ProjectMember,
+    ProjectMemberResponse,
     CreateProjectRequest,
     UpdateProjectRequest,
     CreateTaskRequest,
@@ -279,21 +280,14 @@ export const projectService = {
     },
 
     // Get project members
-    async getProjectMembers(projectId: string): Promise<{ success: boolean; data?: ProjectMember[]; error?: string }> {
+    async getProjectMembers(projectId: string): Promise<{ success: boolean; data?: ProjectMemberResponse[]; error?: string }> {
         try {
-            const response = await api.get<ApiResponse<ProjectMember[]>>(`/projects/project-member/${projectId}`);
+            const response = await api.get<ApiResponse<ProjectMemberResponse[]>>(`/projects/project-member/${projectId}`);
             
-            // Xử lý trường hợp project mới tạo chưa có members
             if (response.data.success && response.data.data) {
                 return {
                     success: true,
                     data: response.data.data
-                };
-            } else if (!response.data.success && response.data.message?.includes('No members found')) {
-                // Trả về mảng rỗng thay vì lỗi khi chưa có members
-                return {
-                    success: true,
-                    data: []
                 };
             } else {
                 return {
@@ -302,6 +296,17 @@ export const projectService = {
                 };
             }
         } catch (error: any) {
+            console.log('Get project members error:', error.response?.status, error.response?.data);
+            
+            // Handle 400/404 as empty result (no members found) - giống taskService
+            if (error.response?.status === 400 || error.response?.status === 404) {
+                console.log('No members found for project, returning empty array');
+                return {
+                    success: true,
+                    data: []
+                };
+            }
+            
             console.error('Get project members error:', error);
             return {
                 success: false,
@@ -310,39 +315,4 @@ export const projectService = {
         }
     },
 
-    // // Create task
-    // async createTask(data: CreateTaskRequest): Promise<{ success: boolean; data?: any; error?: string }> {
-    //     try {
-    //         const response = await api.post<ApiResponse>(' /projects/tasks', data);
-    //         return {
-    //             success: response.data.success,
-    //             data: response.data.data,
-    //             error: response.data.success ? undefined : response.data.message
-    //         };
-    //     } catch (error: any) {
-    //         console.error('Create task error:', error);
-    //         return {
-    //             success: false,
-    //             error: error.response?.data?.message || error.message || 'Failed to create task'
-    //         };
-    //     }
-    // },
-
-    // // Update task
-    // async updateTask(data: UpdateTaskRequest): Promise<{ success: boolean; data?: any; error?: string }> {
-    //     try {
-    //         const response = await api.put<ApiResponse>(' /projects/tasks', data);
-    //         return {
-    //             success: response.data.success,
-    //             data: response.data.data,
-    //             error: response.data.success ? undefined : response.data.message
-    //         };
-    //     } catch (error: any) {
-    //         console.error('Update task error:', error);
-    //         return {
-    //             success: false,
-    //             error: error.response?.data?.message || error.message || 'Failed to update task'
-    //         };
-    //     }
-    // }
 };
