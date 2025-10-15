@@ -1,4 +1,4 @@
-import { useAuth as useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useUser } from './useUser';
 import { hasPermission, hasRole, hasAnyRole, canManageProjects, canManageUsers, canManageMeetings, canManageTasks, canViewReports, isAdmin, isBusinessOwnerOrAdmin } from '@/lib/rbac';
 import { UserRole, Permission } from '@/lib/rbac';

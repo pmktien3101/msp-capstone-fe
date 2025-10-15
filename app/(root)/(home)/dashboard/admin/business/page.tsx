@@ -11,6 +11,7 @@ import {
   XCircle,
   UserX, // Thêm icon mới
 } from "lucide-react";
+import { toast } from "react-toastify";
 import { userService } from "@/services/userService";
 import type { BusinessOwner } from "@/types/auth";
 
@@ -34,7 +35,7 @@ const AdminBusinessOwners = () => {
       setIsLoading(true);
       try {
         const result = await userService.getBusinessOwners();
-        if (result.success && result.data) {
+        if (result.success && result.data) {  
           setBusinessOwners(result.data);
         } else {
           console.error("Failed to load business owners:", result.error);
@@ -48,6 +49,7 @@ const AdminBusinessOwners = () => {
 
     loadBusinessOwners();
   }, []);
+
 
 
   const filteredBusinessOwners = businessOwners.filter((businessOwner) => {
@@ -100,15 +102,26 @@ const AdminBusinessOwners = () => {
     }
   };
 
-  const confirmDeactivate = () => {
+  const confirmDeactivate = async () => {
     if (selectedBusinessOwner) {
-      setBusinessOwners(
-        businessOwners.map((bo) =>
-          bo.id === selectedBusinessOwner.id
-            ? { ...bo, status: "inactive" as const }
-            : bo
-        )
-      );
+      try {
+        const result = await userService.toggleActive(selectedBusinessOwner.id);
+        if (result.success) {
+          setBusinessOwners(
+            businessOwners.map((bo) =>
+              bo.id === selectedBusinessOwner.id
+                ? { ...bo, isActive: !bo.isActive }
+                : bo
+            )
+          );
+          toast.success(result.message || "Đã cập nhật trạng thái hoạt động thành công!");
+        } else {
+          toast.error(result.error || "Không thể cập nhật trạng thái hoạt động");
+        }
+      } catch (error) {
+        console.error("Error toggling active status:", error);
+        toast.error("Đã xảy ra lỗi khi cập nhật trạng thái hoạt động");
+      }
       setShowDeactivateModal(false);
       setSelectedBusinessOwner(null);
     }
@@ -126,13 +139,13 @@ const AdminBusinessOwners = () => {
                 : bo
             )
           );
-          alert(result.message || "Business owner approved successfully");
+          toast.success(result.message || "Đã phê duyệt tài khoản doanh nghiệp thành công!");
         } else {
-          alert(result.error || "Failed to approve business owner");
+          toast.error(result.error || "Không thể phê duyệt tài khoản doanh nghiệp");
         }
       } catch (error) {
         console.error("Error approving business owner:", error);
-        alert("An error occurred while approving business owner");
+        toast.error("Đã xảy ra lỗi khi phê duyệt tài khoản doanh nghiệp");
       }
       setShowApproveModal(false);
       setSelectedBusinessOwner(null);
@@ -147,13 +160,13 @@ const AdminBusinessOwners = () => {
           setBusinessOwners(
             businessOwners.filter((bo) => bo.id !== selectedBusinessOwner.id)
           );
-          alert(result.message || "Business owner rejected successfully");
+          toast.success(result.message || "Đã từ chối tài khoản doanh nghiệp thành công!");
         } else {
-          alert(result.error || "Failed to reject business owner");
+          toast.error(result.error || "Không thể từ chối tài khoản doanh nghiệp");
         }
       } catch (error) {
         console.error("Error rejecting business owner:", error);
-        alert("An error occurred while rejecting business owner");
+        toast.error("Đã xảy ra lỗi khi từ chối tài khoản doanh nghiệp");
       }
       setShowRejectModal(false);
       setSelectedBusinessOwner(null);
@@ -162,6 +175,7 @@ const AdminBusinessOwners = () => {
 
   const getStatusBadge = (businessOwner: BusinessOwner) => {
     const isApproved = businessOwner.isApproved;
+    const isActive = businessOwner.isActive;
     
     const statusConfig = {
       active: { color: "#D1FAE5", textColor: "#065F46", text: "Hoạt động" },
@@ -173,9 +187,14 @@ const AdminBusinessOwners = () => {
       pending: { color: "#FEF3C7", textColor: "#D97706", text: "Chờ duyệt" },
     };
 
-    const config = isApproved 
-      ? statusConfig.active 
-      : statusConfig.pending;
+    let config;
+    if (!isApproved) {
+      config = statusConfig.pending;
+    } else if (isActive) {
+      config = statusConfig.active;
+    } else {
+      config = statusConfig.inactive;
+    }
 
     return (
       <span
@@ -273,10 +292,12 @@ const AdminBusinessOwners = () => {
           </span>
           <span className="stat-label">Đang hoạt động</span>
         </div>
-        <div className="stat-item">
-          <span className="stat-number">0</span>
-          <span className="stat-label">Ngừng hoạt động</span>
-        </div>
+         <div className="stat-item">
+           <span className="stat-number">
+             {businessOwners.filter((bo) => bo.isApproved && !bo.isActive).length}
+           </span>
+           <span className="stat-label">Ngừng hoạt động</span>
+         </div>
       </div>
 
       {/* Business Owners Table */}
@@ -284,7 +305,7 @@ const AdminBusinessOwners = () => {
         <div className="table-header">
           <div className="table-cell">Họ và tên</div>
           <div className="table-cell">Email</div>
-          {/* <div className="table-cell">Số điện thoại</div> */}
+          <div className="table-cell">Số điện thoại</div>
           <div className="table-cell">Tên tổ chức</div>
           <div className="table-cell">Trạng thái</div>
           <div className="table-cell">Ngày tạo tài khoản</div>
@@ -306,9 +327,9 @@ const AdminBusinessOwners = () => {
             <div className="table-cell" data-label="Email">
               {businessOwner.email}
             </div>
-            {/* <div className="table-cell" data-label="Số điện thoại">
-              {businessOwner.phone}
-            </div> */}
+            <div className="table-cell" data-label="Số điện thoại">
+              {businessOwner.phoneNumber}
+            </div>
             <div className="table-cell" data-label="Tên tổ chức">
               <span className="organization-badge">
                 {businessOwner.organization}
@@ -346,67 +367,77 @@ const AdminBusinessOwners = () => {
                       <XCircle size={16} />
                     </button>
                   </>
-                ) : (
-                  <>
-                    <button className="action-btn edit" title="Chỉnh sửa">
-                      <Edit size={16} />
-                    </button>
-                    {businessOwner.isApproved && (
-                      <button
-                        className="action-btn deactivate"
-                        title="Ngừng hoạt động"
-                        onClick={() =>
-                          handleDeactivateBusinessOwner(businessOwner)
-                        }
-                      >
-                        <UserX size={16} />
-                      </button>
-                    )}
-                  </>
-                )}
+                 ) : (
+                   <>
+                     <button className="action-btn edit" title="Chỉnh sửa">
+                       <Edit size={16} />
+                     </button>
+                     {businessOwner.isApproved && (
+                       <button
+                         className={`action-btn ${businessOwner.isActive ? 'deactivate' : 'activate'}`}
+                         title={businessOwner.isActive ? "Ngừng hoạt động" : "Kích hoạt"}
+                         onClick={() =>
+                           handleDeactivateBusinessOwner(businessOwner)
+                         }
+                       >
+                         <UserX size={16} />
+                       </button>
+                     )}
+                   </>
+                 )}
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Deactivate Confirmation Modal */}
-      {showDeactivateModal && selectedBusinessOwner && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Xác nhận vô hiệu hóa Business Owner</h3>
-              <button
-                className="modal-close"
-                onClick={() => setShowDeactivateModal(false)}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <p>
-                Bạn có chắc chắn muốn vô hiệu hóa Business Owner{" "}
-                <strong>{selectedBusinessOwner.fullName}</strong>?
-              </p>
-              <p className="info-text">
-                Business Owner sẽ không thể truy cập hệ thống nhưng dữ liệu sẽ
-                được giữ lại.
-              </p>
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn-cancel"
-                onClick={() => setShowDeactivateModal(false)}
-              >
-                Hủy
-              </button>
-              <button className="btn-deactivate" onClick={confirmDeactivate}>
-                Vô hiệu hóa
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+       {/* Deactivate/Activate Confirmation Modal */}
+       {showDeactivateModal && selectedBusinessOwner && (
+         <div className="modal-overlay">
+           <div className="modal-content">
+             <div className="modal-header">
+               <h3>
+                 {selectedBusinessOwner.isActive 
+                   ? "Xác nhận vô hiệu hóa Business Owner" 
+                   : "Xác nhận kích hoạt Business Owner"
+                 }
+               </h3>
+               <button
+                 className="modal-close"
+                 onClick={() => setShowDeactivateModal(false)}
+               >
+                 <X size={20} />
+               </button>
+             </div>
+             <div className="modal-body">
+               <p>
+                 Bạn có chắc chắn muốn {selectedBusinessOwner.isActive ? "vô hiệu hóa" : "kích hoạt"} Business Owner{" "}
+                 <strong>{selectedBusinessOwner.fullName}</strong>?
+               </p>
+               <p className={selectedBusinessOwner.isActive ? "warning-text" : "info-text"}>
+                 {selectedBusinessOwner.isActive 
+                   ? "Business Owner sẽ không thể truy cập hệ thống nhưng dữ liệu sẽ được giữ lại."
+                   : "Business Owner sẽ có thể truy cập và sử dụng hệ thống trở lại."
+                 }
+               </p>
+             </div>
+             <div className="modal-footer">
+               <button
+                 className="btn-cancel"
+                 onClick={() => setShowDeactivateModal(false)}
+               >
+                 Hủy
+               </button>
+               <button 
+                 className={selectedBusinessOwner.isActive ? "btn-deactivate" : "btn-activate"} 
+                 onClick={confirmDeactivate}
+               >
+                 {selectedBusinessOwner.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
 
       {/* Approve Confirmation Modal */}
       {showApproveModal && selectedBusinessOwner && (
@@ -843,10 +874,19 @@ const AdminBusinessOwners = () => {
           color: #f50b0b;
         }
 
-        .action-btn.deactivate:hover {
-          background: #fed5c7;
-          color: #f50b0b;
-        }
+         .action-btn.deactivate:hover {
+           background: #fed5c7;
+           color: #f50b0b;
+         }
+
+         .action-btn.activate {
+           color: #10b981;
+         }
+
+         .action-btn.activate:hover {
+           background: #d1fae5;
+           color: #059669;
+         }
 
         .action-btn.delete {
           color: #ef4444;
@@ -1008,9 +1048,18 @@ const AdminBusinessOwners = () => {
           color: white;
         }
 
-        .btn-deactivate:hover {
-          background: #d97706;
-        }
+         .btn-deactivate:hover {
+           background: #d97706;
+         }
+
+         .btn-activate {
+           background: #10b981;
+           color: white;
+         }
+
+         .btn-activate:hover {
+           background: #059669;
+         }
 
         .btn-approve {
           background: #10b981;
