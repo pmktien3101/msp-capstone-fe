@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Project } from "@/types/project";
-import { mockTasks, mockMembers, mockMilestones } from "@/constants/mockData";
+import { MilestoneBackend } from "@/types/milestone";
+import { mockTasks, mockMembers } from "@/constants/mockData";
 import { useUser } from "@/hooks/useUser";
 import { ListHeader } from "./ListHeader";
+import { milestoneService } from "@/services/milestoneService";
 import {
   Calendar,
   CheckCircle,
@@ -20,14 +22,15 @@ interface MilestoneListViewProps {
 }
 
 interface MilestoneDetailPanelProps {
-  milestone: any;
+  milestone: MilestoneBackend;
   isOpen: boolean;
   onClose: () => void;
   tasks: any[];
   members: any[];
+  allMilestones?: MilestoneBackend[];
 }
 
-const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: MilestoneDetailPanelProps) => {
+const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allMilestones = [] }: MilestoneDetailPanelProps) => {
   const [editedMilestone, setEditedMilestone] = useState(milestone);
   const [editedTasks, setEditedTasks] = useState(tasks);
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false);
@@ -38,7 +41,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
     startDate: '',
     endDate: '',
     status: 'todo',
-    selectedMilestones: [milestone.id] // Mặc định chọn milestone hiện tại
+    selectedMilestones: [milestone.id.toString()] // Mặc định chọn milestone hiện tại
   });
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [editingTasks, setEditingTasks] = useState<Set<string>>(new Set());
@@ -46,11 +49,11 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
   if (!isOpen) return null;
 
   const milestoneTasks = editedTasks.filter(task => 
-    task.milestoneIds.includes(milestone.id)
+    task.milestoneIds?.includes(milestone.id.toString())
   );
 
   // Get all milestones for this project
-  const projectMilestones = mockMilestones.filter(m => m.projectId === milestone.projectId);
+  const projectMilestones = allMilestones;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -89,7 +92,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
 
   const getMilestoneNames = (milestoneIds: string[]) => {
     return milestoneIds.map(id => {
-      const milestone = mockMilestones.find(m => m.id === id);
+      const milestone = projectMilestones.find((m: MilestoneBackend) => m.id.toString() === id);
       return milestone ? milestone.name : id;
     });
   };
@@ -164,7 +167,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
       assignee: newTask.assignee || null,
       startDate: newTask.startDate || null,
       endDate: newTask.endDate || null,
-      milestoneIds: [milestone.id],
+      milestoneIds: [milestone.id.toString()],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -177,7 +180,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
       startDate: '',
       endDate: '',
       status: 'todo',
-      selectedMilestones: [milestone.id]
+      selectedMilestones: [milestone.id.toString()]
     });
     setShowCreateTaskModal(false);
   };
@@ -191,7 +194,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
       startDate: '',
       endDate: '',
       status: 'todo',
-      selectedMilestones: [milestone.id]
+      selectedMilestones: [milestone.id.toString()]
     });
   };
 
@@ -221,7 +224,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
       startDate: '',
       endDate: '',
       status: 'todo',
-      selectedMilestones: [milestone.id]
+      selectedMilestones: [milestone.id.toString()]
     });
   };
 
@@ -234,7 +237,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
       startDate: '',
       endDate: '',
       status: 'todo',
-      selectedMilestones: [milestone.id]
+      selectedMilestones: [milestone.id.toString()]
     });
   };
 
@@ -1681,33 +1684,51 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members }: Mi
 
 export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
   const { role } = useUser();
-  const [selectedMilestone, setSelectedMilestone] = useState<any>(null);
+  const [selectedMilestone, setSelectedMilestone] = useState<MilestoneBackend | null>(null);
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("dueDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [projectMilestones, setProjectMilestones] = useState<MilestoneBackend[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Get milestones for this project
-  const projectMilestones = mockMilestones.filter(milestone => 
-    milestone.projectId === project.id
-  );
+  // Fetch milestones from API
+  useEffect(() => {
+    const fetchMilestones = async () => {
+      if (!project.id) return;
+      
+      setIsLoading(true);
+      try {
+        const response = await milestoneService.getMilestonesByProjectId(project.id.toString());
+        if (response.success && response.data) {
+          setProjectMilestones(response.data);
+        } else {
+          console.error('Failed to fetch milestones:', response.error);
+          setProjectMilestones([]);
+        }
+      } catch (error) {
+        console.error('Error fetching milestones:', error);
+        setProjectMilestones([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Filter milestones based on search and filters
-  const filteredMilestones = projectMilestones.filter(milestone => {
+    fetchMilestones();
+  }, [project.id]);
+
+  // Filter milestones based on search
+  const filteredMilestones = projectMilestones.filter((milestone: MilestoneBackend) => {
     // Search filter
     const matchesSearch = searchQuery === '' || 
       milestone.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       milestone.description.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Status filter
-    const matchesStatus = statusFilter === 'all' || milestone.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   // Sort milestones
-  const sortedMilestones = [...filteredMilestones].sort((a, b) => {
+  const sortedMilestones = [...filteredMilestones].sort((a: MilestoneBackend, b: MilestoneBackend) => {
     let comparison = 0;
     
     switch (sortBy) {
@@ -1717,12 +1738,9 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
       case 'dueDate':
         comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         break;
-      case 'progress':
-        comparison = calculateMilestoneProgress(a.id) - calculateMilestoneProgress(b.id);
-        break;
       case 'taskCount':
-        const aTaskCount = mockTasks.filter(task => task.milestoneIds.includes(a.id)).length;
-        const bTaskCount = mockTasks.filter(task => task.milestoneIds.includes(b.id)).length;
+        const aTaskCount = mockTasks.filter(task => task.milestoneIds?.includes(a.id.toString())).length;
+        const bTaskCount = mockTasks.filter(task => task.milestoneIds?.includes(b.id.toString())).length;
         comparison = aTaskCount - bTaskCount;
         break;
       default:
@@ -1735,7 +1753,7 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
 
   const calculateMilestoneProgress = (milestoneId: string) => {
     const milestoneTasks = mockTasks.filter(task => 
-      task.milestoneIds.includes(milestoneId)
+      task.milestoneIds?.includes(milestoneId)
     );
     if (milestoneTasks.length === 0) return 0;
     const completedTasks = milestoneTasks.filter(task => task.status === "done").length;
@@ -1744,13 +1762,13 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
 
   const getTaskCount = (milestoneId: string) => {
     const milestoneTasks = mockTasks.filter(task => 
-      task.milestoneIds.includes(milestoneId)
+      task.milestoneIds?.includes(milestoneId)
     );
     const completedTasks = milestoneTasks.filter(task => task.status === "done").length;
     return `${milestoneTasks.length} công việc (${completedTasks} hoàn thành)`;
   };
 
-  const handleMilestoneClick = (milestone: any) => {
+  const handleMilestoneClick = (milestone: MilestoneBackend) => {
     setSelectedMilestone(milestone);
     setIsDetailPanelOpen(true);
   };
@@ -1760,13 +1778,36 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
     setSelectedMilestone(null);
   };
 
+  const handleDeleteMilestone = async (milestoneId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!confirm('Bạn có chắc chắn muốn xóa cột mốc này?')) {
+      return;
+    }
+
+    try {
+      const response = await milestoneService.deleteMilestone(milestoneId);
+      if (response.success) {
+        // Refresh milestones list
+        const updatedResponse = await milestoneService.getMilestonesByProjectId(project.id.toString());
+        if (updatedResponse.success && updatedResponse.data) {
+          setProjectMilestones(updatedResponse.data);
+        }
+        alert('Xóa cột mốc thành công!');
+      } else {
+        alert(`Lỗi: ${response.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting milestone:', error);
+      alert('Có lỗi xảy ra khi xóa cột mốc');
+    }
+  };
+
   return (
     <div className="milestone-list-view">
       <ListHeader
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
         sortBy={sortBy}
         onSortByChange={setSortBy}
         sortOrder={sortOrder}
@@ -1783,57 +1824,65 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
         </div>
 
         <div className="table-body">
-          {sortedMilestones.map((milestone) => {
-            const progress = calculateMilestoneProgress(milestone.id);
-            const taskCount = getTaskCount(milestone.id);
-            
-            return (
-              <div 
-                key={milestone.id} 
-                className="table-row"
-                onClick={() => handleMilestoneClick(milestone)}
-              >
-                <div className="col-milestone">
-                  <div className="milestone-details">
-                    <div className="milestone-name">{milestone.name}</div>
-                    <div className="milestone-description">{milestone.description}</div>
-                  </div>
-                </div>
-                <div className="col-due-date">
-                  <div className="due-date">
-                    <Calendar size={16} />
-                    <span>{new Date(milestone.dueDate).toLocaleDateString("vi-VN")}</span>
-                  </div>
-                </div>
-                <div className="col-tasks">
-                  <div className="task-count">{taskCount}</div>
-                </div>
-                <div className="col-progress">
-                  <div className="progress-container">
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill" 
-                        style={{ width: `${progress}%` }}
-                      ></div>
+          {isLoading ? (
+            <div className="loading-state">
+              <p>Đang tải cột mốc...</p>
+            </div>
+          ) : sortedMilestones.length === 0 ? (
+            <div className="empty-state">
+              <Target size={48} />
+              <p>Chưa có cột mốc nào</p>
+            </div>
+          ) : (
+            sortedMilestones.map((milestone) => {
+              const progress = calculateMilestoneProgress(milestone.id.toString());
+              const taskCount = getTaskCount(milestone.id.toString());
+              
+              return (
+                <div 
+                  key={milestone.id} 
+                  className="table-row"
+                  onClick={() => handleMilestoneClick(milestone)}
+                >
+                  <div className="col-milestone">
+                    <div className="milestone-details">
+                      <div className="milestone-name">{milestone.name}</div>
+                      <div className="milestone-description">{milestone.description}</div>
                     </div>
-                    <div className="progress-text">{progress}%</div>
+                  </div>
+                  <div className="col-due-date">
+                    <div className="due-date">
+                      <Calendar size={16} />
+                      <span>{new Date(milestone.dueDate).toLocaleDateString("vi-VN")}</span>
+                    </div>
+                  </div>
+                  <div className="col-tasks">
+                    <div className="task-count">{taskCount}</div>
+                  </div>
+                  <div className="col-progress">
+                    <div className="progress-container">
+                      <div className="progress-bar">
+                        <div 
+                          className="progress-fill" 
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                      <div className="progress-text">{progress}%</div>
+                    </div>
+                  </div>
+                  <div className="col-actions">
+                    <button 
+                      className="delete-milestone-btn-row"
+                      onClick={(e) => handleDeleteMilestone(milestone.id.toString(), e)}
+                      title="Xóa cột mốc"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
-                <div className="col-actions">
-                  <button 
-                    className="delete-milestone-btn-row"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log('Delete milestone:', milestone.id);
-                    }}
-                    title="Xóa cột mốc"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -1844,6 +1893,7 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
           onClose={handleCloseDetailPanel}
           tasks={mockTasks}
           members={mockMembers}
+          allMilestones={projectMilestones}
         />
       )}
 
@@ -1862,6 +1912,27 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
           flex: 1;
           overflow-y: auto;
           background: white;
+        }
+
+        .loading-state,
+        .empty-state {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 60px 20px;
+          text-align: center;
+          color: #64748b;
+        }
+
+        .loading-state p,
+        .empty-state p {
+          margin-top: 16px;
+          font-size: 16px;
+        }
+
+        .empty-state svg {
+          color: #94a3b8;
         }
 
         .table-header {

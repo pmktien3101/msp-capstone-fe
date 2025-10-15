@@ -22,8 +22,9 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FolderOpen, Calendar, PlayCircle, Pause, CheckCircle, Users, Search } from 'lucide-react';
-import { mockMembers } from '@/constants/mockData';
+import { FolderOpen, Calendar } from 'lucide-react';
+import { projectService } from '@/services/projectService';
+import { Project, CreateProjectRequest } from '@/types/project';
 
 const projectSchema = z.object({
   name: z.string().min(1, "Tên dự án là bắt buộc"),
@@ -39,12 +40,31 @@ type ProjectFormData = z.infer<typeof projectSchema>;
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateProject?: (projectData: ProjectFormData) => void;
+  onCreateProject?: (project: Project) => void;
 }
 
+// Helper function to get user from localStorage
+const getUserFromLocalStorage = () => {
+  try {
+    const userDataStr = localStorage.getItem('user-storage');
+    if (userDataStr) {
+      const userData = JSON.parse(userDataStr);
+      // Check if data has state property
+      if (userData.state) {
+        return userData.state;
+      }
+      return userData;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting user from localStorage:', error);
+    return null;
+  }
+};
+
 export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateProjectModalProps) {
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>('');
   
   const {
     register,
@@ -59,33 +79,57 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
     },
   });
 
-  const onSubmit = (data: ProjectFormData) => {
-    console.log(data);
-    // Handle project creation
-    if (onCreateProject) {
-      onCreateProject({
-        ...data,
-        members: selectedMembers
-      });
-    } else {
-      onClose();
+  const onSubmit = async (data: ProjectFormData) => {
+    const user = getUserFromLocalStorage();
+    
+    if (!user?.userId) {
+      setSubmitError('Không tìm thấy thông tin người dùng');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    try {
+      // Convert dates to ISO 8601 UTC format for PostgreSQL
+      const startDateUTC = data.startDate 
+        ? new Date(data.startDate + 'T00:00:00Z').toISOString()
+        : undefined;
+      
+      const endDateUTC = data.endDate 
+        ? new Date(data.endDate + 'T23:59:59Z').toISOString()
+        : undefined;
+
+      // Create project via API
+      const projectData: CreateProjectRequest = {
+        name: data.name,
+        description: data.description,
+        status: data.status,
+        startDate: startDateUTC,
+        endDate: endDateUTC,
+        createdById: user.userId
+      };
+
+      const result = await projectService.createProject(projectData);
+      
+      if (result.success && result.data) {
+        // Call parent callback with created project
+        if (onCreateProject) {
+          onCreateProject(result.data);
+        }
+        
+        // Close modal
+        onClose();
+      } else {
+        setSubmitError(result.error || 'Không thể tạo dự án');
+      }
+    } catch (error) {
+      console.error('Create project error:', error);
+      setSubmitError('Đã xảy ra lỗi khi tạo dự án');
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  const handleMemberToggle = (memberId: string) => {
-    setSelectedMembers(prev => 
-      prev.includes(memberId) 
-        ? prev.filter(id => id !== memberId)
-        : [...prev, memberId]
-    );
-  };
-
-  // Filter members based on search term
-  const filteredMembers = mockMembers.filter(member =>
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -98,6 +142,15 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+          {submitError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+              <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span className="text-sm text-red-600">{submitError}</span>
+            </div>
+          )}
+          
           <div className="space-y-4 flex-1 overflow-y-auto scrollbar-hide">
             <div>
               <Label htmlFor="name">Tên dự án *</Label>
@@ -163,10 +216,10 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
                       <SelectValue placeholder="Chọn trạng thái" />
                     </SelectTrigger>
                     <SelectContent className="z-[9999]" position="popper" side="bottom" align="start">
-                      <SelectItem value="planning">
+                      <SelectItem value="Chưa bắt đầu">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <Calendar size={16} />
-                          Lập kế hoạch
+                          Chưa bắt đầu
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -174,96 +227,6 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
                 )}
               />
               <p className="text-xs text-gray-500 mt-1">Trạng thái mặc định cho dự án mới</p>
-            </div>
-
-            <div>
-                <Label className="text-sm font-semibold text-gray-700 mb-3 block">Thành viên</Label>
-                
-                {/* Search input */}
-                <div className="relative mb-3">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                  <input
-                    type="text"
-                    placeholder="Tìm kiếm thành viên..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent focus:bg-white transition-all duration-200"
-                  />
-                </div>
-
-                {/* Members list */}
-                <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50/50">
-                  {filteredMembers.length > 0 ? (
-                    filteredMembers.map((member) => (
-                      <div 
-                        key={member.id} 
-                        className={`flex items-center space-x-3 p-2 rounded-lg transition-all duration-200 hover:bg-white hover:shadow-sm cursor-pointer ${
-                          selectedMembers.includes(member.id) 
-                            ? 'bg-orange-50 border border-orange-200' 
-                            : 'hover:border-gray-300'
-                        }`}
-                        onClick={() => handleMemberToggle(member.id)}
-                      >
-                        <div className="relative">
-                          <input
-                            type="checkbox"
-                            id={member.id}
-                            checked={selectedMembers.includes(member.id)}
-                            onChange={() => handleMemberToggle(member.id)}
-                            className="sr-only"
-                          />
-                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 ${
-                            selectedMembers.includes(member.id)
-                              ? 'bg-orange-500 border-orange-500'
-                              : 'border-gray-300 hover:border-orange-400'
-                          }`}>
-                            {selectedMembers.includes(member.id) && (
-                              <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2 flex-1 min-w-0">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-200 ${
-                            selectedMembers.includes(member.id)
-                              ? 'bg-orange-500 text-white shadow-md'
-                              : 'bg-gradient-to-br from-blue-400 to-purple-500 text-white shadow-sm'
-                          }`}>
-                            {member.avatar}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 truncate">{member.name}</div>
-                            <div className="text-xs text-gray-500 truncate">{member.role}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center text-gray-500 py-6">
-                      <Users className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm">Không tìm thấy thành viên</p>
-                    </div>
-                  )}
-                </div>
-                
-                {selectedMembers.length > 0 && (
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      <p className="text-sm text-gray-600 font-medium">
-                        Đã chọn {selectedMembers.length} thành viên
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedMembers([])}
-                      className="text-xs text-gray-500 hover:text-red-500 transition-colors duration-200"
-                    >
-                      Xóa tất cả
-                    </button>
-                  </div>
-                )}
             </div>
           </div>
 
@@ -296,27 +259,32 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
             </Button>
             <Button 
               type="submit"
+              disabled={isSubmitting}
               style={{
-                background: 'transparent',
-                color: '#FF5E13',
-                border: '1px solid #FF5E13',
+                background: isSubmitting ? '#d1d5db' : 'transparent',
+                color: isSubmitting ? '#9ca3af' : '#FF5E13',
+                border: `1px solid ${isSubmitting ? '#d1d5db' : '#FF5E13'}`,
                 borderRadius: '8px',
                 padding: '10px 20px',
-                cursor: 'pointer',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 fontSize: '14px',
                 fontWeight: 500,
                 transition: 'all 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#FF5E13';
-                e.currentTarget.style.color = 'white';
+                if (!isSubmitting) {
+                  e.currentTarget.style.background = '#FF5E13';
+                  e.currentTarget.style.color = 'white';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = '#FF5E13';
+                if (!isSubmitting) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = '#FF5E13';
+                }
               }}
             >
-              Tạo dự án
+              {isSubmitting ? 'Đang tạo...' : 'Tạo dự án'}
             </Button>
           </DialogFooter>
         </form>

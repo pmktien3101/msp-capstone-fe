@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProjectsTable } from '@/components/projects/ProjectsTable';
 import { EditProjectModal } from '@/components/projects/modals/EditProjectModal';
 import { CreateProjectModal } from '@/components/projects/modals/CreateProjectModal';
 import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
-import { mockProjects, mockMembers, mockTasks } from '@/constants/mockData';
+import { projectService } from '@/services/projectService';
 import '@/app/styles/projects.scss';
 import '@/app/styles/projects-table.scss';
 import { Project } from '@/types/project';
@@ -16,28 +16,36 @@ const ProjectsPage = () => {
   const router = useRouter();
   const { isCreateModalOpen, closeCreateModal } = useProjectModal();
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
-  const [showAddMeetingModal, setShowAddMeetingModal] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<any>(null);
-  
-  // State để quản lý danh sách projects
-  const [projects, setProjects] = useState<Project[]>(
-    mockProjects.map(project => ({
-      id: project.id,
-      name: project.name,
-      description: project.description,
-      status: project.status as 'active' | 'planning' | 'completed' | 'on-hold',
-      startDate: project.startDate,
-      endDate: project.endDate,
-      milestones: project.milestones,
-      meetings: project.meetings,
-      members: mockMembers.filter(member => project.members?.includes(member.id)),
-      manager: mockMembers.find(member => member.role === 'Project Manager')?.name || '',
-    }))
-  );
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
+
+  // Fetch projects on component mount
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const result = await projectService.getAllProjects();
+      
+      if (result.success && result.data) {
+        setProjects(result.data.items);
+      } else {
+        setError(result.error || 'Không thể tải danh sách dự án');
+      }
+    } catch (error) {
+      console.error('Fetch projects error:', error);
+      setError('Đã xảy ra lỗi khi tải dự án');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handlers
-
-  const handleEditProject = (project: any) => {
+  const handleEditProject = (project: Project) => {
     setSelectedProject(project);
     setShowEditProjectModal(true);
   };
@@ -47,80 +55,79 @@ const ProjectsPage = () => {
     setShowEditProjectModal(false);
   };
 
-  const handleUpdateProject = (updatedProjectData: any) => {
-    const selectedMembersData = mockMembers.filter(member => 
-      updatedProjectData.members?.includes(member.id)
-    );
-    
-    setProjects(prevProjects => 
-      prevProjects.map(project => 
-        project.id === selectedProject?.id 
-          ? {
-              ...project,
-              name: updatedProjectData.name,
-              description: updatedProjectData.description,
-              status: updatedProjectData.status,
-              startDate: updatedProjectData.startDate,
-              endDate: updatedProjectData.endDate,
-              members: selectedMembersData,
-              manager: selectedMembersData.find(member => member.role === 'Project Manager')?.name || selectedMembersData[0]?.name || '',
-            }
-          : project
-      )
-    );
-    setShowEditProjectModal(false);
-    setSelectedProject(null);
-  };
+  const handleUpdateProject = async (updatedProjectData: any) => {
+    if (!selectedProject) return;
 
-  const handleAddMeeting = (project: any) => {
-    setSelectedProject(project);
-    setShowAddMeetingModal(true);
-  };
+    try {
+      const result = await projectService.updateProject({
+        id: selectedProject.id,
+        name: updatedProjectData.name,
+        description: updatedProjectData.description,
+        status: updatedProjectData.status,
+        startDate: updatedProjectData.startDate,
+        endDate: updatedProjectData.endDate
+      });
 
-  const handleCloseMeeting = () => {
-    setSelectedProject(null);
-    setShowAddMeetingModal(false);
+      if (result.success && result.data) {
+        // Update local state
+        setProjects(prevProjects => 
+          prevProjects.map(project => 
+            project.id === selectedProject.id ? result.data! : project
+          )
+        );
+        setShowEditProjectModal(false);
+        setSelectedProject(null);
+      } else {
+        alert(result.error || 'Không thể cập nhật dự án');
+      }
+    } catch (error) {
+      console.error('Update project error:', error);
+      alert('Đã xảy ra lỗi khi cập nhật dự án');
+    }
   };
 
   const handleViewProject = (projectId: string) => {
     router.push(`/projects/${projectId}`);
   };
 
-  // Handler để tạo project mới
-  const handleCreateProject = (newProjectData: any) => {
-    const selectedMembersData = mockMembers.filter(member => 
-      newProjectData.members?.includes(member.id)
-    );
-    
-    const newProject: Project = {
-      id: Date.now().toString(), // Tạo ID đơn giản
-      name: newProjectData.name,
-      description: newProjectData.description,
-      status: newProjectData.status,
-      startDate: newProjectData.startDate,
-      endDate: newProjectData.endDate,
-      milestones: [],
-      meetings: [],
-      members: selectedMembersData,
-      manager: selectedMembersData.find(member => member.role === 'Project Manager')?.name || selectedMembersData[0]?.name || '',
-    };
-    
-    setProjects(prevProjects => [...prevProjects, newProject]);
+  const handleCreateProject = (newProject: Project) => {
+    // Add new project to list
+    setProjects(prevProjects => [newProject, ...prevProjects]);
     closeCreateModal();
   };
 
-  // Calculate progress based on tasks
-  const calculateProjectProgress = () => {
-    const completedTasks = mockTasks.filter(task => task.status === 'done').length;
-    const totalTasks = mockTasks.length;
-    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const handleAddMeeting = (project: Project) => {
+    // Navigate to meeting page or open meeting modal
+    router.push(`/meeting/new?projectId=${project.id}`);
   };
 
-  // Thêm progress cho mỗi project
-  const projectsWithProgress = projects.map(project => ({
-    ...project,
-    progress: calculateProjectProgress()
-  }));
+  if (loading) {
+    return (
+      <div className="projects-page">
+        <ProjectHeader />
+        <div className="projects-content">
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>Đang tải dự án...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="projects-page">
+        <ProjectHeader />
+        <div className="projects-content">
+          <div className="error-container">
+            <p className="error-message">{error}</p>
+            <button onClick={fetchProjects} className="retry-button">Thử lại</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="projects-page">
@@ -128,7 +135,7 @@ const ProjectsPage = () => {
       
       <div className="projects-content">
         <ProjectsTable 
-          projects={projectsWithProgress}
+          projects={projects}
           onEditProject={handleEditProject}
           onAddMeeting={handleAddMeeting}
           onViewProject={handleViewProject}

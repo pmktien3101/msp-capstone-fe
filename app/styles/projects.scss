@@ -3,6 +3,58 @@
   background-color: #F9F4EE;
   min-height: 100vh;
 
+  .loading-container,
+  .error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+  }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f4f6;
+    border-top: 4px solid #FF5E13;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .loading-container p {
+    color: #6b7280;
+    font-size: 14px;
+  }
+
+  .error-message {
+    color: #dc2626;
+    font-size: 14px;
+    margin-bottom: 1rem;
+  }
+
+  .retry-button {
+    padding: 8px 16px;
+    background: #FF5E13;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: #e54e0a;
+    }
+  }
+
   .page-header {
     margin-bottom: 2rem;
     padding: 1.5rem;

@@ -5,8 +5,8 @@ import { mockMembers } from '@/constants/mockData';
 interface ListHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  statusFilter: string;
-  onStatusFilterChange: (status: string) => void;
+  statusFilter?: string;
+  onStatusFilterChange?: (status: string) => void;
   sortBy: string;
   onSortByChange: (sortBy: string) => void;
   sortOrder: 'asc' | 'desc';
@@ -40,19 +40,21 @@ export const ListHeader = ({
           />
         </div>
 
-        <div className="filters">
-          <select 
-            value={statusFilter} 
-            onChange={(e) => onStatusFilterChange(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="pending">Kế hoạch</option>
-            <option value="in-progress">Đang thực hiện</option>
-            <option value="completed">Hoàn thành</option>
-            <option value="overdue">Quá hạn</option>
-          </select>
-        </div>
+        {statusFilter !== undefined && onStatusFilterChange && (
+          <div className="filters">
+            <select 
+              value={statusFilter} 
+              onChange={(e) => onStatusFilterChange(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="pending">Kế hoạch</option>
+              <option value="in-progress">Đang thực hiện</option>
+              <option value="completed">Hoàn thành</option>
+              <option value="overdue">Quá hạn</option>
+            </select>
+          </div>
+        )}
 
         <div className="sort-controls">
           <select 
