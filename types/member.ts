@@ -10,4 +10,5 @@ export interface Participant {
   role: string;
   image: string;
   email: string;
+  name: string;
 }

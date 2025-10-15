@@ -11,11 +11,8 @@ import { useUser } from "@/hooks/useUser";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { Member, Participant } from "@/types";
-import {
-  mockMilestones,
-  mockParticipants,
-  mockProjects,
-} from "@/constants/mockData";
+import { projectService } from "@/services/projectService";
+import { milestoneService } from "@/services/milestoneService";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -26,22 +23,45 @@ const formSchema = z.object({
   participants: z
     .array(z.string())
     .min(1, "Vui lòng chọn ít nhất 1 người tham gia"),
-  projectId: z.string().min(1, "Vui lòng chọn dự án"),
   milestoneId: z.string().optional(),
 });
 
 interface MeetingFormProps {
   onClose?: () => void;
   onCreated?: (call: Call | any) => void;
-  projectId?: string;
-  requireProjectSelection?: boolean;
+  projectId: string;
+}
+
+// Định nghĩa interface dựa trên API response
+interface ProjectMemberResponse {
+  id: string;
+  projectId: string;
+  userId: string;
+  member: {
+    id: string;
+    userName: string;
+    email: string;
+    fullName: string;
+    phoneNumber: string;
+    avatarUrl: string | null;
+    role: string;
+    createdAt: string;
+  };
+  joinedAt: string;
+  leftAt: string | null;
+}
+
+// Định nghĩa interface cho milestone
+interface Milestone {
+  id: string;
+  name: string;
+  projectId: string;
 }
 
 export default function MeetingForm({
   onClose,
   onCreated,
   projectId,
-  requireProjectSelection = false,
 }: MeetingFormProps) {
   const { userId } = useUser();
   const client = useStreamVideoClient();
@@ -50,15 +70,10 @@ export default function MeetingForm({
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
     []
   );
-  const [milestones, setMilestones] = useState<
-    Array<{ id: string; name: string }>
-  >([]);
-  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>(
-    []
-  );
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    projectId || ""
-  );
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+  const [isLoadingMilestones, setIsLoadingMilestones] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -67,53 +82,93 @@ export default function MeetingForm({
       description: "",
       datetime: undefined,
       participants: [],
-      projectId: projectId || "",
       milestoneId: "",
     },
   });
 
+  // Hàm convert ProjectMemberResponse sang Participant
+  const convertToParticipants = (
+    members: ProjectMemberResponse[]
+  ): Participant[] => {
+    return members
+      .filter((member) => member.member.role !== "ProjectManager")
+      .map((member) => ({
+        id: member.member.id,
+        role: member.member.role,
+        image: member.member.avatarUrl || "",
+        email: member.member.email,
+        name: member.member.fullName,
+      }));
+  };
+
+  // Hàm convert MilestoneBackend sang Milestone
+  const convertToMilestones = (milestones: any[]): Milestone[] => {
+    return milestones.map((milestone) => ({
+      id: milestone.id,
+      name: milestone.name,
+      projectId: milestone.projectId,
+    }));
+  };
+
   useEffect(() => {
-    const fetchParticipants = async () => {
-      try {
-        setParticipants(mockParticipants);
-      } catch (error) {
-        console.error("Error fetching participants:", error);
-        toast.error("Không thể tải danh sách người tham gia");
+    const loadParticipantsAndMilestones = async () => {
+      if (!projectId) {
+        toast.error("Không có projectId");
+        return;
       }
-    };
 
-    const fetchProjects = async () => {
-      try {
-        setProjects(mockProjects);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
-        toast.error("Không thể tải danh sách dự án");
-      }
-    };
+      setIsLoadingParticipants(true);
+      setIsLoadingMilestones(true);
 
-    const fetchMilestones = async () => {
       try {
-        // Nếu có projectId được chọn, filter milestones theo project đó
-        if (selectedProjectId) {
-          const projectMilestones = mockMilestones.filter(
-            (milestone) => milestone.projectId === selectedProjectId
+        // 1. Fetch project members từ API
+        const projectMembersResult = await projectService.getProjectMembers(
+          projectId
+        );
+
+        if (projectMembersResult.success && projectMembersResult.data) {
+          const convertedParticipants = convertToParticipants(
+            projectMembersResult.data as unknown as ProjectMemberResponse[]
           );
-          setMilestones(projectMilestones);
+          setParticipants(convertedParticipants);
         } else {
-          setMilestones(mockMilestones);
+          // Xử lý trường hợp không có members (trả về empty array theo logic service)
+          setParticipants([]);
         }
-      } catch (error) {
-        console.error("Error fetching milestones:", error);
-        toast.error("Không thể tải danh sách milestones");
+      } catch (error: any) {
+        console.error("Error loading participants:", error);
+        toast.error("Không thể tải danh sách thành viên dự án");
+        setParticipants([]);
+      } finally {
+        setIsLoadingParticipants(false);
+      }
+
+      try {
+        // 2. Fetch milestones từ API
+        const milestonesResult =
+          await milestoneService.getMilestonesByProjectId(projectId);
+
+        if (milestonesResult.success && milestonesResult.data) {
+          const convertedMilestones = convertToMilestones(
+            milestonesResult.data
+          );
+          setMilestones(convertedMilestones);
+        } else {
+          // Không throw error vì milestones là optional
+          console.warn("Could not load milestones:", milestonesResult.error);
+          setMilestones([]);
+        }
+      } catch (error: any) {
+        console.error("Error loading milestones:", error);
+        // Không hiển thị toast vì milestones là optional
+        setMilestones([]);
+      } finally {
+        setIsLoadingMilestones(false);
       }
     };
 
-    fetchParticipants();
-    if (requireProjectSelection) {
-      fetchProjects();
-    }
-    fetchMilestones();
-  }, [projectId, selectedProjectId, requireProjectSelection]);
+    loadParticipantsAndMilestones();
+  }, [projectId]);
 
   const handleParticipantChange = (participantId: string) => {
     setSelectedParticipants((prev) => {
@@ -124,12 +179,6 @@ export default function MeetingForm({
     });
   };
 
-  const handleProjectChange = (projectId: string) => {
-    setSelectedProjectId(projectId);
-    form.setValue("projectId", projectId);
-    // Reset milestone khi thay đổi project
-    form.setValue("milestoneId", "");
-  };
   useEffect(() => {
     form.setValue("participants", selectedParticipants, {
       shouldValidate: true,
@@ -138,21 +187,52 @@ export default function MeetingForm({
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!client || !userId) {
-      throw new Error("Stream client not initialized");
+      toast.error("Stream client chưa được khởi tạo");
+      return;
     }
+
+    setIsCreating(true);
+
     try {
       const meetingId = crypto.randomUUID();
       const allParticipants = [...new Set([userId, ...selectedParticipants])];
 
+      // 1. Tạo meeting trong database
       const meetingData = {
+        meetingId: meetingId,
+        createdById: userId,
+        projectId: projectId,
+        milestoneId: values.milestoneId || null,
         title: values.title,
         description: values.description,
-        scheduledAt: values.datetime.toISOString(),
-        projectId: values.projectId || projectId,
-        participants: allParticipants,
-        milestoneId: values.milestoneId,
+        startTime: values.datetime.toISOString(),
+        attendeeIds: allParticipants,
       };
 
+      // Gọi API tạo meeting trong database
+      const dbResponse = await fetch("https://localhost:7129/api/v1/meetings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(meetingData),
+      });
+
+      let dbResult;
+      try {
+        dbResult = await dbResponse.json();
+      } catch {
+        // Nếu không parse được JSON, có thể là lỗi server trả về HTML
+        throw new Error("API trả về dữ liệu không hợp lệ (không phải JSON)");
+      }
+
+      if (!dbResponse.ok || !dbResult.success) {
+        throw new Error(
+          dbResult?.message || "Không thể tạo meeting trong database"
+        );
+      }
+
+      // 2. Tạo call trong Stream
       const call = client.call("default", meetingId);
       if (!call) {
         throw new Error("Failed to create call");
@@ -165,15 +245,19 @@ export default function MeetingForm({
           members: allParticipants.map((id) => ({ user_id: id })),
         },
       });
+
       setCallDetails(call);
       onCreated?.(call);
-    } catch (error) {
+
+      toast.success("Tạo cuộc họp thành công!");
+    } catch (error: any) {
       console.error("Error creating meeting:", error);
-      toast.error("Không thể tạo cuộc họp");
+      toast.error(error.message || "Không thể tạo cuộc họp");
+    } finally {
+      setIsCreating(false);
     }
   }
 
-  // Build meeting link using env base URL or window origin as fallback
   const baseUrl =
     (typeof window !== "undefined" && window.location.origin) ||
     process.env.NEXT_PUBLIC_BASE_URL ||
@@ -186,12 +270,10 @@ export default function MeetingForm({
       role="dialog"
       aria-modal="true"
     >
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"
         onClick={onClose}
       />
-      {/* Modal panel */}
       <div className="relative w-full max-w-xl rounded-lg border bg-white shadow-xl p-6 animate-in fade-in zoom-in">
         <button
           onClick={onClose}
@@ -291,79 +373,69 @@ export default function MeetingForm({
                   )}
                 </div>
               </div>
-              {requireProjectSelection && (
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">
-                    Dự án <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedProjectId}
-                    onChange={(e) => handleProjectChange(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 p-2"
-                    required
-                  >
-                    <option value="">-- Chọn dự án --</option>
-                    {projects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </select>
-                  {form.formState.errors.projectId && (
-                    <p className="text-sm text-red-500">
-                      {form.formState.errors.projectId.message}
-                    </p>
-                  )}
-                </div>
-              )}
+
               <div className="space-y-2">
                 <label className="block text-sm font-medium">
                   Milestone (không bắt buộc)
                 </label>
-                <select
-                  {...form.register("milestoneId")}
-                  className="w-full rounded-md border border-gray-300 p-2"
-                  disabled={requireProjectSelection && !selectedProjectId}
-                >
-                  <option value="">-- Chọn milestone --</option>
-                  {milestones.map((milestone) => (
-                    <option key={milestone.id} value={milestone.id}>
-                      {milestone.name}
-                    </option>
-                  ))}
-                </select>
-                {requireProjectSelection && !selectedProjectId && (
-                  <p className="text-xs text-red-500">
-                    Vui lòng chọn dự án trước để xem milestones
-                  </p>
+                {isLoadingMilestones ? (
+                  <div className="text-sm text-gray-500">
+                    Đang tải danh sách milestones...
+                  </div>
+                ) : (
+                  <select
+                    {...form.register("milestoneId")}
+                    className="w-full rounded-md border border-gray-300 p-2"
+                  >
+                    <option value="">-- Chọn milestone --</option>
+                    {milestones.map((milestone) => (
+                      <option key={milestone.id} value={milestone.id}>
+                        {milestone.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
               </div>
               <div className="space-y-2">
                 <label className="block text-sm font-medium">
                   Người tham gia
                 </label>
-                <div className="max-h-40 overflow-y-auto border rounded-md p-2">
-                  {participants.map((participant) => (
-                    <div
-                      key={participant.id}
-                      className="flex items-center space-x-2 py-1"
-                    >
-                      <input
-                        type="checkbox"
-                        id={`participant-${participant.id}`}
-                        checked={selectedParticipants.includes(participant.id)}
-                        onChange={() => handleParticipantChange(participant.id)}
-                        className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                      />
-                      <label
-                        htmlFor={`participant-${participant.id}`}
-                        className="text-sm text-gray-700"
+                {isLoadingParticipants ? (
+                  <div className="text-sm text-gray-500">
+                    Đang tải danh sách thành viên...
+                  </div>
+                ) : participants.length === 0 ? (
+                  <div className="text-sm text-gray-500">
+                    Không có thành viên nào trong dự án
+                  </div>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+                    {participants.map((participant) => (
+                      <div
+                        key={participant.id}
+                        className="flex items-center space-x-2 py-1"
                       >
-                        ({participant.email}) - {participant.role}
-                      </label>
-                    </div>
-                  ))}
-                </div>
+                        <input
+                          type="checkbox"
+                          id={`participant-${participant.id}`}
+                          checked={selectedParticipants.includes(
+                            participant.id
+                          )}
+                          onChange={() =>
+                            handleParticipantChange(participant.id)
+                          }
+                          className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                        />
+                        <label
+                          htmlFor={`participant-${participant.id}`}
+                          className="text-sm text-gray-700"
+                        >
+                          {participant.email} - {participant.role}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {form.formState.errors.participants && (
                   <p className="text-sm text-red-500">
                     {form.formState.errors.participants.message}
@@ -379,17 +451,16 @@ export default function MeetingForm({
                 <Button
                   type="submit"
                   className="bg-orange-500 text-white cursor-pointer"
+                  disabled={isCreating || isLoadingParticipants}
                 >
-                  Tạo cuộc họp
+                  {isCreating ? "Đang tạo..." : "Tạo cuộc họp"}
                 </Button>
               </div>
             </form>
           )}
         </div>
-        {/* end inner content wrapper */}
       </div>
-      {/* end modal panel */}
-    </div> /* end overlay */
+    </div>
   );
 }
 

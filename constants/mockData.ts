@@ -759,18 +759,21 @@ export const mockParticipants: Participant[] = [
     email: "member1@example.com",
     image: "/avatar-3.png",
     role: "Member",
+    name: "Nguyen Van A",
   },
   {
     id: "5",
     email: "member2@example.com",
     image: "/avatar-1.png",
     role: "Member",
+    name: "Tran Thi B",
   },
   {
     id: "6",
     email: "member3@example.com",
     image: "/avatar-4.png",
     role: "Member",
+    name: "Le Van C",
   },
 ];
 
