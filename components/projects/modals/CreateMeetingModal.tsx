@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 import { Member, Participant } from "@/types";
 import { projectService } from "@/services/projectService";
 import { milestoneService } from "@/services/milestoneService";
+import { meetingService } from "@/services/meetingService";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -197,7 +198,7 @@ export default function MeetingForm({
       const meetingId = crypto.randomUUID();
       const allParticipants = [...new Set([userId, ...selectedParticipants])];
 
-      // 1. Tạo meeting trong database
+      // 1. Tạo meeting trong database qua meetingService
       const meetingData = {
         meetingId: meetingId,
         createdById: userId,
@@ -209,26 +210,11 @@ export default function MeetingForm({
         attendeeIds: allParticipants,
       };
 
-      // Gọi API tạo meeting trong database
-      const dbResponse = await fetch("https://localhost:7129/api/v1/meetings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(meetingData),
-      });
+      const dbResult = await meetingService.createMeeting(meetingData);
 
-      let dbResult;
-      try {
-        dbResult = await dbResponse.json();
-      } catch {
-        // Nếu không parse được JSON, có thể là lỗi server trả về HTML
-        throw new Error("API trả về dữ liệu không hợp lệ (không phải JSON)");
-      }
-
-      if (!dbResponse.ok || !dbResult.success) {
+      if (!dbResult.success) {
         throw new Error(
-          dbResult?.message || "Không thể tạo meeting trong database"
+          dbResult.error || "Không thể tạo meeting trong database"
         );
       }
 
