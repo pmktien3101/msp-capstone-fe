@@ -8,6 +8,7 @@ import "./globals.css";
 import "./styles/dashboard.scss";
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { UserProvider } from "@/contexts/UserContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,7 +41,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          {children}
+          <UserProvider>
+            {children}
+          </UserProvider>
         </AuthProvider>
         <ToastContainer
           position="top-right"

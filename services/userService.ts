@@ -1,4 +1,4 @@
-import { GetUserResponse, ReAssignRoleRequest, ReAssignRoleResponse } from '@/types/user';
+import { BusinessResponse, GetUserResponse, ReAssignRoleRequest, ReAssignRoleResponse } from '@/types/user';
 import { api } from './api';
 import type { BusinessOwnersResponse, BusinessOwner, ApiResponse } from '@/types/auth';
 
@@ -173,5 +173,93 @@ export const userService = {
                 error: error.response?.data?.message || error.message || 'Failed to reassign role'
             };
         }
+    },
+
+    async getUserDetailById(userId: string): Promise<{
+        success: boolean;
+        data?: GetUserResponse;
+        message?: string;
+        error?: string
+    }> {
+        try {
+            // ✅ Đúng endpoint: /users/detail/{id}
+            const response = await api.get<ApiResponse<GetUserResponse>>(
+                `/users/detail/${userId}`
+            );
+
+            if (response.data.success && response.data.data) {
+                return {
+                    success: true,
+                    data: response.data.data,
+                    message: response.data.message || 'User details fetched successfully'
+                };
+            }
+
+            return {
+                success: false,
+                error: response.data.message || 'Failed to fetch user details'
+            };
+        } catch (error: any) {
+            console.error('Get user details error:', error);
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Failed to fetch user details'
+            };
+        }
+    },
+
+    /**
+     * Get list of all businesses (for users without organization)
+     * Authorization: ProjectManager, Member
+     */
+    async getBusinessList(): Promise<{
+        success: boolean;
+        data?: BusinessResponse[];
+        message?: string;
+        error?: string
+    }> {
+        try {
+            const response = await api.get<ApiResponse<BusinessResponse[]>>('/users/business-list');
+            return {
+                success: response.data.success,
+                data: response.data.data ?? [],
+                message: response.data.message,
+            };
+        } catch (error: any) {
+            console.error('Get business list error:', error);
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Failed to get business list'
+            };
+        }
+    },
+
+    /**
+     * Get business detail by owner ID
+     * Authorization: Admin, BusinessOwner, ProjectManager, Member
+     */
+    async getBusinessDetail(ownerId: string): Promise<{
+        success: boolean;
+        data?: BusinessResponse;
+        message?: string;
+        error?: string
+    }> {
+        try {
+            const response = await api.get<ApiResponse<BusinessResponse>>(
+                `/users/business-detail/${ownerId}`
+            );
+            return {
+                success: response.data.success,
+                data: response.data.data ?? undefined,
+                message: response.data.message,
+            };
+        } catch (error: any) {
+            console.error('Get business detail error:', error);
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Failed to get business detail'
+            };
+        }
     }
+
 };
