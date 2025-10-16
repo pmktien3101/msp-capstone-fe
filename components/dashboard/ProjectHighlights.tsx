@@ -43,8 +43,9 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
   // Tính toán các dự án ưu tiên (dự án đang thực hiện có endDate gần nhất)
   const getPriorityProjects = () => {
     return projects
-      .filter(project => project.status === 'active') // Chỉ lấy dự án đang thực hiện
+      .filter(project => project.status === 'Đang hoạt động') // Chỉ lấy dự án đang thực hiện
       .sort((a, b) => {
+        if (!a.endDate || !b.endDate) return 0;
         const aEndDate = new Date(a.endDate);
         const bEndDate = new Date(b.endDate);
         return aEndDate.getTime() - bEndDate.getTime(); // Sắp xếp theo endDate gần nhất
@@ -72,7 +73,7 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
     
     // Lấy danh sách milestone của các dự án đang hoạt động
     const activeProjectIds = projects
-      .filter(project => project.status === 'active')
+      .filter(project => project.status === 'Đang hoạt động')
       .map(project => project.id);
     
     const activeMilestoneIds = mockMilestones
@@ -104,6 +105,7 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
   const { overdue, review } = getOverdueAndBlockedTasks();
 
   const getPriorityLevel = (project: Project) => {
+    if (!project.endDate) return 'medium';
     const now = new Date();
     const endDate = new Date(project.endDate);
     const daysUntilDeadline = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -162,6 +164,7 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
             ) : (
               priorityProjects.map(project => {
                 const priority = getPriorityLevel(project);
+                if (!project.endDate) return null;
                 const endDate = new Date(project.endDate);
                 const daysUntilDeadline = Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                 
@@ -175,7 +178,7 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
                           <Calendar size={14} />
                           {'Còn lại: ' + (daysUntilDeadline > 0 ? `${daysUntilDeadline} ngày` : 'Quá hạn')}
                         </span>
-                        <span className="progress">{project.progress}%</span>
+                        {/* <span className="progress">{project.progress}%</span> */}
                       </div>
                     </div>
                   </div>

@@ -1,7 +1,12 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
-import { mockTasks, mockMilestones, mockMembers } from '@/constants/mockData';
+import { milestoneService } from '@/services/milestoneService';
+import { taskService } from '@/services/taskService';
+import { projectService } from '@/services/projectService';
+import { GetTaskResponse } from '@/types/task';
+import { MilestoneBackend } from '@/types/milestone';
 
 interface OverviewCardsProps {
   project: Project;
@@ -16,25 +21,63 @@ interface OverviewCardsProps {
 }
 
 export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
-  // Filter data for this specific project
-  const projectMilestones = mockMilestones.filter(m => m.projectId === project.id);
-  const projectTasks = mockTasks.filter(task => 
-    task.milestoneIds.some(milestoneId => projectMilestones.some(m => m.id === milestoneId))
-  );
-  const projectMembers = mockMembers.filter(member => 
-    project.members?.some(m => m.id === member.id)
-  );
+  const [projectMilestones, setProjectMilestones] = useState<MilestoneBackend[]>([]);
+  const [projectTasks, setProjectTasks] = useState<GetTaskResponse[]>([]);
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const projectId = project?.id?.toString();
+
+  // Fetch data từ API
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!projectId) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const [milestonesRes, tasksRes, membersRes] = await Promise.all([
+          milestoneService.getMilestonesByProjectId(projectId),
+          taskService.getTasksByProjectId(projectId),
+          projectService.getProjectMembers(projectId)
+        ]);
+
+        if (milestonesRes.success && milestonesRes.data) {
+          setProjectMilestones(milestonesRes.data);
+        }
+
+        if (tasksRes.success && tasksRes.data) {
+          setProjectTasks(tasksRes.data.items || []);
+        }
+
+        if (membersRes.success && membersRes.data) {
+          setProjectMembers(membersRes.data);
+        }
+      } catch (error) {
+        console.error('[OverviewCards] Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [projectId]);
   
-  // Tính toán các số liệu mới
+  // Tính toán các số liệu từ API data
   const totalTasks = projectTasks.length;
-  const completedTasks = projectTasks.filter(task => task.status === 'done').length;
+  const completedTasks = projectTasks.filter(task => task.status === 'Hoàn thành').length;
   const completedPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   
   const totalMilestones = projectMilestones.length;
-  const completedMilestones = projectMilestones.filter(milestone => 
-    projectTasks.filter(task => task.milestoneIds?.includes(milestone.id))
-      .every(task => task.status === 'done')
-  ).length;
+  // Milestone hoàn thành khi tất cả tasks trong milestone đã hoàn thành
+  const completedMilestones = projectMilestones.filter(milestone => {
+    const milestoneTasks = projectTasks.filter(task => 
+      task.milestones && task.milestones.some(m => m.id === milestone.id)
+    );
+    return milestoneTasks.length > 0 && milestoneTasks.every(task => task.status === 'Hoàn thành');
+  }).length;
   
   const overviewData = [
     {

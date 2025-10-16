@@ -32,7 +32,7 @@ const projectSchema = z.object({
   description: z.string().min(1, "Mô tả là bắt buộc"),
   startDate: z.string().min(1, "Ngày bắt đầu là bắt buộc"),
   endDate: z.string().min(1, "Ngày kết thúc là bắt buộc"),
-  status: z.enum(["planning", "active", "on-hold", "completed"]).describe("Trạng thái"),
+  status: z.enum(["Chưa bắt đầu", "Đang hoạt động", "Tạm dừng", "Hoàn thành"]).describe("Trạng thái"),
   members: z.array(z.string()).optional(),
 });
 
@@ -59,7 +59,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
-      status: "planning",
+      status: "Chưa bắt đầu",
       members: [],
     },
   });

@@ -156,17 +156,18 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
                   <div className="project-info">
                     <h4>{project.name}</h4>
                     <div className="project-meta">
-                      <span className="progress">{project.progress}%</span>
-                      <span className="members">{project.members?.length ?? 0} thành viên</span>
+                      {/* <span className="progress">0%</span>
+                      <span className="members">0 thành viên</span> */}
+                      <span className="status-text">{project.status}</span>
                     </div>
                   </div>
                   <div className="project-status">
                     <div 
                       className="status-dot"
                       style={{ 
-                        backgroundColor: project.status === 'active' ? '#10b981' : 
-                                        project.status === 'completed' ? '#3b82f6' :
-                                        project.status === 'planning' ? '#f59e0b' : '#ef4444'
+                        backgroundColor: project.status === 'Đang hoạt động' ? '#10b981' : 
+                                        project.status === 'Hoàn thành' ? '#3b82f6' :
+                                        project.status === 'Chưa bắt đầu' ? '#f59e0b' : '#ef4444'
                       }}
                     />
                   </div>

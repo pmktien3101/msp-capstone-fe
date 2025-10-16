@@ -141,6 +141,17 @@ export const milestoneService = {
                 };
             }
         } catch (error: any) {
+            console.log('Get milestones by project error:', error.response?.status, error.response?.data);
+            
+            // Handle 400/404 as empty result (no milestones found)
+            if (error.response?.status === 400 || error.response?.status === 404) {
+                console.log('No milestones found for project, returning empty array');
+                return {
+                    success: true,
+                    data: []
+                };
+            }
+            
             console.error('Get milestones by project error:', error);
             return {
                 success: false,

@@ -48,12 +48,35 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
     assignee: '',
     startDate: '',
     endDate: '',
-    status: 'todo',
+    status: 'Chưa bắt đầu',
     selectedMilestones: [milestone.id.toString()] // Mặc định chọn milestone hiện tại
   });
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [editingTasks, setEditingTasks] = useState<Set<string>>(new Set());
   const [isSavingTask, setIsSavingTask] = useState(false);
+  const [isSavingMilestone, setIsSavingMilestone] = useState(false);
+
+  // Format date for input field (yyyy-MM-dd)
+  const formatDateForInput = (dateStr: string | undefined) => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return '';
+    }
+  };
+
+  // Update editedMilestone when milestone prop changes
+  useEffect(() => {
+    setEditedMilestone({
+      ...milestone,
+      dueDate: formatDateForInput(milestone.dueDate)
+    });
+  }, [milestone]);
 
   // Debug: Log members
   useEffect(() => {
@@ -92,13 +115,13 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "todo":
+      case "Chưa bắt đầu":
         return "#6b7280";
-      case "in-progress":
+      case "Đang làm":
         return "#f59e0b";
-      case "review":
-        return "#3b82f6";
-      case "done":
+      case "Tạm dừng":
+        return "#ef4444";
+      case "Hoàn thành":
         return "#10b981";
       default:
         return "#6b7280";
@@ -106,18 +129,8 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "todo":
-        return "Cần làm";
-      case "in-progress":
-        return "Đang làm";
-      case "review":
-        return "Đang review";
-      case "done":
-        return "Hoàn thành";
-      default:
-        return status;
-    }
+    // Status in DB: "Chưa bắt đầu", "Đang làm", "Tạm dừng", "Hoàn thành"
+    return status;
   };
 
   const getMemberName = (memberId: string) => {
@@ -163,8 +176,39 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
       ...prev,
       [field]: value
     }));
-    // Auto-save on change
-    console.log(`Updated milestone ${field}:`, value);
+  };
+
+  const handleSaveMilestone = async () => {
+    if (isSavingMilestone) return;
+
+    try {
+      setIsSavingMilestone(true);
+      console.log('Saving milestone:', editedMilestone);
+
+      const response = await milestoneService.updateMilestone({
+        id: editedMilestone.id.toString(),
+        name: editedMilestone.name,
+        description: editedMilestone.description || '',
+        dueDate: editedMilestone.dueDate
+      });
+
+      if (response.success) {
+        console.log('Milestone updated successfully');
+        alert('Cập nhật cột mốc thành công!');
+        // Optionally refresh milestone list
+        if (onTasksUpdated) {
+          onTasksUpdated();
+        }
+      } else {
+        console.error('Failed to update milestone:', response.error);
+        alert(`Lỗi: ${response.error || 'Không thể cập nhật cột mốc'}`);
+      }
+    } catch (error) {
+      console.error('Error saving milestone:', error);
+      alert('Có lỗi xảy ra khi lưu cột mốc. Vui lòng thử lại!');
+    } finally {
+      setIsSavingMilestone(false);
+    }
   };
 
   const handleTaskFieldChange = (taskId: string, field: string, value: any) => {
@@ -279,7 +323,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
           assignee: '',
           startDate: '',
           endDate: '',
-          status: 'todo',
+          status: 'Chưa bắt đầu',
           selectedMilestones: [milestone.id.toString()]
         });
         setShowCreateTaskModal(false);
@@ -307,7 +351,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
       assignee: '',
       startDate: '',
       endDate: '',
-      status: 'todo',
+      status: 'Chưa bắt đầu',
       selectedMilestones: [milestone.id.toString()]
     });
   };
@@ -346,7 +390,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
           assignee: '',
           startDate: '',
           endDate: '',
-          status: 'todo',
+          status: 'Chưa bắt đầu',
           selectedMilestones: [milestone.id.toString()]
         });
         
@@ -373,7 +417,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
       assignee: '',
       startDate: '',
       endDate: '',
-      status: 'todo',
+      status: 'Chưa bắt đầu',
       selectedMilestones: [milestone.id.toString()]
     });
   };
@@ -397,13 +441,23 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
               type="text"
               value={editedMilestone.name}
               onChange={(e) => handleMilestoneFieldChange('name', e.target.value)}
-              onKeyPress={(e) => handleKeyPress(e, () => console.log('Saved milestone name'))}
               className="milestone-name-input"
             />
           </div>
-          <button className="close-btn" onClick={onClose}>
-            ×
-          </button>
+          <div className="panel-header-actions">
+            <button 
+              className="save-milestone-btn" 
+              onClick={handleSaveMilestone}
+              disabled={isSavingMilestone}
+              title="Lưu thay đổi"
+            >
+              <Save size={16} />
+              {isSavingMilestone ? 'Đang lưu...' : 'Lưu'}
+            </button>
+            <button className="close-btn" onClick={onClose}>
+              ×
+            </button>
+          </div>
         </div>
 
 
@@ -412,7 +466,6 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
             <textarea
               value={editedMilestone.description}
               onChange={(e) => handleMilestoneFieldChange('description', e.target.value)}
-              onKeyPress={(e) => handleKeyPress(e, () => console.log('Saved milestone description'))}
               className="milestone-description-input"
               rows={3}
               placeholder="Mô tả cột mốc..."
@@ -424,7 +477,6 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
                   type="date"
                   value={editedMilestone.dueDate}
                   onChange={(e) => handleMilestoneFieldChange('dueDate', e.target.value)}
-                  onKeyPress={(e) => handleKeyPress(e, () => console.log('Saved milestone due date'))}
                   className="due-date-input"
                 />
               </div>
@@ -609,7 +661,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
                   </button>
                 </div>
               ) : (
-                !isLoadingTasks && !taskError && milestoneTasks.map((task) => {
+                !isLoadingTasks && !taskError && milestoneTasks.map((task, index) => {
                   const taskMilestoneNames = getMilestoneNames(task);
                   const taskMilestoneIds = getTaskMilestoneIds(task);
                   const isMultiMilestone = taskMilestoneIds.length > 1;
@@ -637,7 +689,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
                       )}
                       
                       <div className="task-main-info">
-                        <div className="task-id-compact">{task.id}</div>
+                        <div className="task-id-compact">{index + 1}</div>
                         <input
                           type="text"
                           value={task.title}
@@ -758,10 +810,10 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
                     onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value }))}
                     className="form-select"
                   >
-                    <option value="todo">Cần làm</option>
-                    <option value="in-progress">Đang làm</option>
-                    <option value="review">Đang kiểm tra</option>
-                    <option value="done">Hoàn thành</option>
+                    <option value="Chưa bắt đầu">Chưa bắt đầu</option>
+                    <option value="Đang làm">Đang làm</option>
+                    <option value="Tạm dừng">Tạm dừng</option>
+                    <option value="Hoàn thành">Hoàn thành</option>
                   </select>
                 </div>
               </div>
@@ -878,6 +930,39 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
+        .panel-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .save-milestone-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+        }
+
+        .save-milestone-btn:hover:not(:disabled) {
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .save-milestone-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
 
         .close-btn {
           width: 32px;
@@ -1979,7 +2064,7 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
   const [taskError, setTaskError] = useState<string>("");
 
   // State for project members (only Members role)
-  const [projectMembers, setProjectMembers] = useState<ProjectMemberResponse[]>([]);
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
   // Safety check: if no project, don't fetch anything
@@ -2029,13 +2114,22 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
         if (response.success && response.data) {
           console.log('[MilestoneListView] Raw members data:', response.data);
           
-          // Filter only members with roleName "Member"
-          // Backend returns: { id, fullName, email, roleName, ... }
-          const onlyMembers = response.data.filter((member: any) => member.roleName === 'Member');
-          console.log(`[MilestoneListView] Loaded ${onlyMembers.length} members (filtered from ${response.data.length} total)`);
-          console.log('[MilestoneListView] Filtered members:', onlyMembers);
+          // Filter only members with role "Member"
+          // Backend returns: { id, projectId, userId, member: { id, fullName, email, role, ... }, joinedAt, leftAt }
+          const transformedMembers = response.data
+            .filter((pm: any) => pm.member && pm.member.role === 'Member') // Filter by nested member.role
+            .map((pm: any) => ({
+              id: pm.member.id,
+              fullName: pm.member.fullName,
+              email: pm.member.email,
+              role: pm.member.role,
+              avatarUrl: pm.member.avatarUrl
+            }));
           
-          setProjectMembers(onlyMembers);
+          console.log(`[MilestoneListView] Loaded ${transformedMembers.length} members (filtered from ${response.data.length} total)`);
+          console.log('[MilestoneListView] Transformed members:', transformedMembers);
+          
+          setProjectMembers(transformedMembers);
         } else {
           console.error('[MilestoneListView] Failed to fetch members:', response.error);
           setProjectMembers([]);
@@ -2092,9 +2186,23 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
     
     setIsLoadingTasks(true);
     try {
+      // Refresh tasks for the selected milestone
       const response = await taskService.getTasksByMilestoneId(selectedMilestone.id);
       if (response.success && response.data) {
         setMilestoneTasks(response.data);
+      }
+
+      // Also refresh milestones list to get updated data
+      if (projectId) {
+        const milestonesResponse = await milestoneService.getMilestonesByProjectId(projectId);
+        if (milestonesResponse.success && milestonesResponse.data) {
+          setProjectMilestones(milestonesResponse.data);
+          // Update selectedMilestone with fresh data
+          const updatedMilestone = milestonesResponse.data.find(m => m.id === selectedMilestone.id);
+          if (updatedMilestone) {
+            setSelectedMilestone(updatedMilestone);
+          }
+        }
       }
     } catch (error) {
       console.error('Error refreshing tasks:', error);

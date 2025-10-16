@@ -34,12 +34,18 @@ const ProjectsPage = () => {
   }, [isAuthenticated, user]);
 
   const fetchProjects = async () => {
+    if (!user?.userId) {
+      setError('Không tìm thấy thông tin người dùng');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
-      console.log('Fetching all projects...');
+      console.log('Fetching projects for manager:', user.userId);
       
-      const result = await projectService.getAllProjects();
+      const result = await projectService.getProjectsByManagerId(user.userId);
       
       if (result.success && result.data) {
         console.log('Projects fetched successfully:', result.data.items);

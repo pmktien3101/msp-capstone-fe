@@ -23,9 +23,10 @@ export const ProjectVisualization = ({ projects }: ProjectVisualizationProps) =>
   const getResourceAllocation = () => {
     const memberWorkload = mockMembers.map(member => {
       const memberTasks = mockTasks.filter(task => task.assignee === member.id);
-      const memberProjects = projects.filter(project => 
-        project.members?.some(m => m.id === member.id)
-      );
+      // Comment out projects filter since members property doesn't exist
+      // const memberProjects = projects.filter(project => 
+      //   project.members?.some(m => m.id === member.id)
+      // );
       
       return {
         id: member.id,
@@ -33,7 +34,7 @@ export const ProjectVisualization = ({ projects }: ProjectVisualizationProps) =>
         role: member.role,
         avatar: member.avatar,
         taskCount: memberTasks.length,
-        projectCount: memberProjects.length,
+        projectCount: 0, // Set to 0 since we can't access project.members
         workload: memberTasks.length > 5 ? 'high' : memberTasks.length > 2 ? 'medium' : 'low'
       };
     });
@@ -41,19 +42,19 @@ export const ProjectVisualization = ({ projects }: ProjectVisualizationProps) =>
     return memberWorkload.sort((a, b) => b.taskCount - a.taskCount);
   };
 
-  // Tính toán progress distribution
-  const getProgressDistribution = () => {
-    const distribution = {
-      '0-25%': projects.filter(p => (p.progress ?? 0) >= 0 && (p.progress ?? 0) <= 25).length,
-      '26-50%': projects.filter(p => (p.progress ?? 0) > 25 && (p.progress ?? 0) <= 50).length,
-      '51-75%': projects.filter(p => (p.progress ?? 0) > 50 && (p.progress ?? 0) <= 75).length,
-      '76-100%': projects.filter(p => (p.progress ?? 0) > 75 && (p.progress ?? 0) <= 100).length,
-    };
-    return distribution;
-  };
+  // Tính toán progress distribution - comment out since progress doesn't exist
+  // const getProgressDistribution = () => {
+  //   const distribution = {
+  //     '0-25%': projects.filter(p => (p.progress ?? 0) >= 0 && (p.progress ?? 0) <= 25).length,
+  //     '26-50%': projects.filter(p => (p.progress ?? 0) > 25 && (p.progress ?? 0) <= 50).length,
+  //     '51-75%': projects.filter(p => (p.progress ?? 0) > 50 && (p.progress ?? 0) <= 75).length,
+  //     '76-100%': projects.filter(p => (p.progress ?? 0) > 75 && (p.progress ?? 0) <= 100).length,
+  //   };
+  //   return distribution;
+  // };
 
   const resourceData = getResourceAllocation();
-  const progressDistribution = getProgressDistribution();
+  // const progressDistribution = getProgressDistribution();
 
   const getWorkloadColor = (workload: string) => {
     switch (workload) {
@@ -106,17 +107,17 @@ export const ProjectVisualization = ({ projects }: ProjectVisualizationProps) =>
                   <div key={project.id} className="progress-item">
                     <div className="progress-header">
                       <span className="project-name">{project.name}</span>
-                      <span className="progress-percentage">{project.progress}%</span>
+                      {/* <span className="progress-percentage">0%</span> */}
                     </div>
-                    <div className="progress-bar-container">
+                    {/* <div className="progress-bar-container">
                       <div 
                         className="progress-bar-fill"
-                        style={{ width: `${project.progress}%` }}
+                        style={{ width: `0%` }}
                       />
-                    </div>
+                    </div> */}
                     <div className="progress-details">
-                      <span>{project.members?.length} thành viên</span>
-                      <span>{new Date(project.endDate).toLocaleDateString('vi-VN')}</span>
+                      {/* <span>0 thành viên</span> */}
+                      <span>{project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : '-'}</span>
                     </div>
                   </div>
                 ))}

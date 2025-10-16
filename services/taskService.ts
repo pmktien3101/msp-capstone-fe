@@ -169,6 +169,22 @@ export const taskService = {
                 };
             }
         } catch (error: any) {
+            console.log('Get tasks by project error:', error.response?.status, error.response?.data);
+            
+            // Handle 400/404 as empty result (no tasks found)
+            if (error.response?.status === 400 || error.response?.status === 404) {
+                console.log('No tasks found for project, returning empty result');
+                return {
+                    success: true,
+                    data: {
+                        items: [],
+                        totalItems: 0,
+                        pageIndex: params?.pageIndex || 0,
+                        pageSize: params?.pageSize || 10
+                    }
+                };
+            }
+            
             console.error('Get tasks by project error:', error);
             console.error('Error response:', error.response?.data);
             return {
@@ -204,6 +220,22 @@ export const taskService = {
                 };
             }
         } catch (error: any) {
+            console.log('Get tasks by user error:', error.response?.status, error.response?.data);
+            
+            // Handle 400/404 as empty result (no tasks found)
+            if (error.response?.status === 400 || error.response?.status === 404) {
+                console.log('No tasks found for user, returning empty result');
+                return {
+                    success: true,
+                    data: {
+                        items: [],
+                        totalItems: 0,
+                        pageIndex: params?.pageIndex || 0,
+                        pageSize: params?.pageSize || 10
+                    }
+                };
+            }
+            
             console.error('Get tasks by user error:', error);
             console.error('Error response:', error.response?.data);
             return {

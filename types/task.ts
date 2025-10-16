@@ -15,7 +15,7 @@ export interface TaskMilestoneResponse {
 export interface GetTaskResponse {
   id: string;
   projectId: string;
-  userId: string;
+  userId?: string;
   title: string;
   description?: string;
   status: string;
@@ -30,7 +30,7 @@ export interface GetTaskResponse {
 // Create Task Request
 export interface CreateTaskRequest {
   projectId: string;
-  userId: string;
+  userId?: string;
   title: string;
   description?: string;
   status: string;
@@ -43,7 +43,7 @@ export interface CreateTaskRequest {
 export interface UpdateTaskRequest {
   id: string;
   projectId: string;
-  userId: string;
+  userId?: string;
   title: string;
   description?: string;
   status: string;
@@ -78,7 +78,7 @@ export interface TaskFormData {
   title: string;
   description?: string;
   status: string;
-  userId: string;
+  userId?: string;
   startDate?: string;
   endDate?: string;
   milestoneIds?: string[];

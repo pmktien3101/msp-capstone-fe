@@ -17,6 +17,7 @@ import '@/app/styles/project-detail.scss';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { projectService } from '@/services/projectService';
 import { userService } from '@/services/userService';
+import { taskService } from '@/services/taskService';
 
 const ProjectDetailPage = () => {
   const params = useParams();
@@ -66,31 +67,72 @@ const ProjectDetailPage = () => {
     setIsCreateTaskModalOpen(false);
   };
 
-  const handleSubmitTask = (taskData: any) => {
-    // Mock task creation - replace with actual API call
-    console.log('Creating new task:', taskData);
-    // In real implementation, this would call API to create task
-    alert('Tạo công việc thành công!');
-    setIsCreateTaskModalOpen(false);
-  };
+  const handleSubmitTask = async (taskData: any) => {
+    try {
+      if (!user?.userId) {
+        alert('Không tìm thấy thông tin người dùng');
+        return;
+      }
 
-  const handleDeleteTask = (taskId: string) => {
-    // Find task to get title for confirmation
-    const task = mockTasks.find(t => t.id === taskId);
-    if (task) {
-      setTaskToDelete({ id: taskId, title: task.title });
-      setIsDeleteTaskModalOpen(true);
+      console.log('Creating new task:', taskData);
+      
+      // Prepare request data
+      const requestData = {
+        projectId: projectId,
+        userId: taskData.assignee || undefined, // Only include userId if assignee is selected
+        title: taskData.title,
+        description: taskData.description || '',
+        status: taskData.status || 'Chưa bắt đầu',
+        startDate: taskData.startDate || undefined,
+        endDate: taskData.endDate || undefined,
+        milestoneIds: taskData.milestoneIds || []
+      };
+
+      const response = await taskService.createTask(requestData);
+      
+      if (response.success) {
+        alert('Tạo công việc thành công!');
+        setIsCreateTaskModalOpen(false);
+        // Trigger refresh
+        setRefreshKey(prev => prev + 1);
+      } else {
+        alert(`Lỗi: ${response.error || 'Không thể tạo công việc'}`);
+      }
+    } catch (error: any) {
+      console.error('Error creating task:', error);
+      alert('Có lỗi xảy ra khi tạo công việc. Vui lòng thử lại!');
     }
   };
 
-  const confirmDeleteTask = () => {
-    if (taskToDelete) {
-      // Mock task deletion - replace with actual API call
+  const handleDeleteTask = (taskId: string, taskTitle?: string) => {
+    // Set task to delete for confirmation modal
+    setTaskToDelete({ 
+      id: taskId, 
+      title: taskTitle || 'công việc này' 
+    });
+    setIsDeleteTaskModalOpen(true);
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return;
+
+    try {
       console.log('Deleting task:', taskToDelete.id);
-      // In real implementation, this would call API to delete task
-      alert(`Đã xóa công việc: ${taskToDelete.title}`);
-      setTaskToDelete(null);
-      setIsDeleteTaskModalOpen(false);
+      
+      const response = await taskService.deleteTask(taskToDelete.id);
+      
+      if (response.success) {
+        alert(`Đã xóa công việc: ${taskToDelete.title}`);
+        setTaskToDelete(null);
+        setIsDeleteTaskModalOpen(false);
+        // Trigger refresh to reload task list
+        setRefreshKey(prev => prev + 1);
+      } else {
+        alert(`Lỗi: ${response.error || 'Không thể xóa công việc'}`);
+      }
+    } catch (error: any) {
+      console.error('Error deleting task:', error);
+      alert('Có lỗi xảy ra khi xóa công việc. Vui lòng thử lại!');
     }
   };
 
@@ -104,13 +146,43 @@ const ProjectDetailPage = () => {
     setTaskToEdit(null);
   };
 
-  const handleUpdateTask = (taskData: any) => {
-    // Mock task update - replace with actual API call
-    console.log('Updating task:', taskData);
-    // In real implementation, this would call API to update task
-    alert('Cập nhật công việc thành công!');
-    setIsEditTaskModalOpen(false);
-    setTaskToEdit(null);
+  const handleUpdateTask = async (taskData: any) => {
+    try {
+      if (!taskToEdit?.id) {
+        alert('Không tìm thấy thông tin công việc');
+        return;
+      }
+
+      console.log('Updating task:', taskData);
+      
+      // Prepare request data
+      const requestData = {
+        id: taskToEdit.id,
+        projectId: projectId,
+        userId: taskData.assignee || undefined, // Only include userId if assignee is selected
+        title: taskData.title,
+        description: taskData.description || '',
+        status: taskData.status,
+        startDate: taskData.startDate || undefined,
+        endDate: taskData.endDate || undefined,
+        milestoneIds: taskData.milestoneIds || []
+      };
+
+      const response = await taskService.updateTask(requestData);
+      
+      if (response.success) {
+        alert('Cập nhật công việc thành công!');
+        setIsEditTaskModalOpen(false);
+        setTaskToEdit(null);
+        // Trigger refresh
+        setRefreshKey(prev => prev + 1);
+      } else {
+        alert(`Lỗi: ${response.error || 'Không thể cập nhật công việc'}`);
+      }
+    } catch (error: any) {
+      console.error('Error updating task:', error);
+      alert('Có lỗi xảy ra khi cập nhật công việc. Vui lòng thử lại!');
+    }
   };
 
   const handleCreateMilestone = () => {
@@ -331,15 +403,7 @@ const ProjectDetailPage = () => {
         <DetailTaskModal
           isOpen={isTaskModalOpen}
           onClose={handleCloseTaskModal}
-          onEdit={(task) => {
-            console.log('Editing task:', task);
-            // Handle task edit - you can implement actual edit logic here
-          }}
-          onDelete={(taskId, taskTitle) => {
-            console.log('Deleting task:', taskId, taskTitle);
-            // Handle task delete - you can implement actual delete logic here
-          }}
-          task={selectedTask}
+          task={selectedTask as any}
           projectId={projectId}
         />
       )}

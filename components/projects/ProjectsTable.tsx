@@ -22,13 +22,13 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
+      case 'Đang hoạt động':
         return '#10b981';
-      case 'planning':
+      case 'Chưa bắt đầu':
         return '#f59e0b';
-      case 'on-hold':
+      case 'Tạm dừng':
         return '#ef4444';
-      case 'completed':
+      case 'Hoàn thành':
         return '#10b981';
       default:
         return '#6b7280';
@@ -37,7 +37,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
 
   const getStatusBackgroundColor = (status: string) => {
     switch (status) {
-      case 'Đang hoat động':
+      case 'Đang hoạt động':
         return '#dcfce7';
       case 'Chưa bắt đầu':
         return '#fef3c7';
@@ -47,21 +47,6 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
         return '#dcfce7';
       default:
         return '#f3f4f6';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'Đang hoạt động';
-      case 'planning':
-        return 'Lập kế hoạch';
-      case 'on-hold':
-        return 'Tạm dừng';
-      case 'completed':
-        return 'Hoàn thành';
-      default:
-        return status;
     }
   };
 
@@ -167,7 +152,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                       borderColor: getStatusColor(project.status)
                     }}
                   >
-                    {getStatusText(project.status)}
+                    {project.status}
                   </div>
                 </td>
                 <td className="date-cell">

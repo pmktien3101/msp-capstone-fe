@@ -12,7 +12,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useForm } from "react-hook-form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useForm, Controller } from "react-hook-form";
 import { Project } from "@/types/project";
 import { Edit, X, Save } from 'lucide-react';
 
@@ -35,7 +42,7 @@ export function EditProjectModal({ isOpen, onClose, project, onUpdateProject }: 
     }
   };
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, control, formState: { errors } } = useForm({
     defaultValues: {
       name: project.name,
       description: project.description,
@@ -136,12 +143,27 @@ export function EditProjectModal({ isOpen, onClose, project, onUpdateProject }: 
 
             <div>
               <Label htmlFor="status">Trạng thái *</Label>
-              <Input
-                id="status"
-                {...register("status")}
-                disabled
-                className="bg-gray-100 cursor-not-allowed"
+              <Controller
+                name="status"
+                control={control}
+                rules={{ required: "Trạng thái là bắt buộc" }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger className={errors.status ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Chọn trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Chưa bắt đầu">Chưa bắt đầu</SelectItem>
+                      <SelectItem value="Đang hoạt động">Đang hoạt động</SelectItem>
+                      <SelectItem value="Tạm dừng">Tạm dừng</SelectItem>
+                      <SelectItem value="Hoàn thành">Hoàn thành</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               />
+              {errors.status && (
+                <p className="text-sm text-red-500 mt-1">{errors.status.message}</p>
+              )}
             </div>
 
           </div>

@@ -25,7 +25,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
   useEffect(() => {
     const fetchProjects = async () => {
       // Only fetch if user is authenticated
-      if (!isAuthenticated || !user) {
+      if (!isAuthenticated || !user?.userId) {
         console.log('User not authenticated, skipping project fetch');
         setLoading(false);
         return;
@@ -33,8 +33,8 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
       setLoading(true);
       try {
-        console.log('Fetching projects for user:', user.userId);
-        const result = await projectService.getAllProjects();
+        console.log('Fetching projects for manager:', user.userId);
+        const result = await projectService.getProjectsByManagerId(user.userId);
 
         if (result.success && result.data) {
           console.log('Fetched projects successfully:', result.data);
@@ -56,13 +56,13 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
+      case 'Đang hoạt động':
         return '#10b981';
-      case 'planning':
+      case 'Chưa bắt đầu':
         return '#f59e0b';
-      case 'on-hold':
+      case 'Tạm dừng':
         return '#ef4444';
-      case 'completed':
+      case 'Hoàn thành':
         return '#6b7280';
       default:
         return '#6b7280';
@@ -171,10 +171,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
                         style={{ backgroundColor: getStatusColor(project.status) }}
                       ></div>
                       <span className="project-status">
-                        {project.status === 'active' && 'Đang hoạt động'}
-                        {project.status === 'planning' && 'Lập kế hoạch'}
-                        {project.status === 'on-hold' && 'Tạm dừng'}
-                        {project.status === 'completed' && 'Hoàn thành'}
+                        {project.status}
                       </span>
                     </div>
                   </div>
