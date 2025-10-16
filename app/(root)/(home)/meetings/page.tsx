@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
+import { UserRole } from "@/lib/rbac";
 import {
   mockMeetings,
   mockProject,
@@ -262,8 +263,8 @@ const MeetingsPage = () => {
     setMeetingToDelete(null);
   }, []);
 
-  // Redirect if not PM
-  if (role !== "pm") {
+  // Redirect if not ProjectManager
+  if (role !== UserRole.PROJECT_MANAGER) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -1293,7 +1294,11 @@ const MeetingsPage = () => {
         <CreateMeetingModal
           onClose={handleCloseCreateModal}
           onCreated={handleCreateMeeting}
-          requireProjectSelection={true}
+          projectId={
+            selectedProject === "all"
+              ? mockProjects[0]?.id ?? ""
+              : selectedProject
+          }
         />
       )}
 

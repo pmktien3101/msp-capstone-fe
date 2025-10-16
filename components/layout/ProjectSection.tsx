@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Project } from '@/types/project';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
-import { mockTasks, mockProjects, mockMembers, mockMilestones } from '@/constants/mockData';
+import { projectService } from '@/services/projectService';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -15,60 +16,53 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
   const router = useRouter();
   const pathname = usePathname();
   const { openCreateModal } = useProjectModal();
+  const { user, isAuthenticated } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllProjects, setShowAllProjects] = useState(false);
 
-  // Calculate progress based on tasks for each project
-  const calculateProjectProgress = (projectId: string) => {
-    // Get tasks for this specific project based on milestoneIds
-    const projectMilestones = mockProjects.find(p => p.id === projectId)?.milestones || [];
-    const projectTasks = mockTasks.filter(task => 
-      task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
-    );
-    
-    const completedTasks = projectTasks.filter(task => task.status === 'done').length;
-    const totalTasks = projectTasks.length;
-    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  };
-
-  // Mock data - using data from constants/mockData.ts
+  // Fetch projects from API
   useEffect(() => {
-    // Convert all mockProjects to Project format
-    const allProjects: Project[] = mockProjects.map(mockProject => ({
-      id: mockProject.id,
-      name: mockProject.name,
-      description: mockProject.description,
-      status: mockProject.status as 'active' | 'planning' | 'completed' | 'on-hold',
-      startDate: mockProject.startDate,
-      endDate: mockProject.endDate,
-      manager: 'Quang Long', // From mockMembers
-      members: mockMembers.filter(member => 
-        mockProject.members.includes(member.id)
-      ).map(member => ({
-        id: member.id,
-        name: member.name,
-        role: member.role,
-        email: member.email,
-        avatar: `/avatars/${member.avatar.toLowerCase()}.png`
-      })),
-      milestones: mockProject.milestones, // Added - required by Project type
-      progress: calculateProjectProgress(mockProject.id)
-    }));
+    const fetchProjects = async () => {
+      // Only fetch if user is authenticated
+      if (!isAuthenticated || !user?.userId) {
+        console.log('User not authenticated, skipping project fetch');
+        setLoading(false);
+        return;
+      }
 
-    setProjects(allProjects);
-    setLoading(false);
-  }, []);
+      setLoading(true);
+      try {
+        console.log('Fetching projects for manager:', user.userId);
+        const result = await projectService.getProjectsByManagerId(user.userId);
+
+        if (result.success && result.data) {
+          console.log('Fetched projects successfully:', result.data);
+          setProjects(result.data.items);
+        } else {
+          console.error('Failed to fetch projects:', result.error);
+          setProjects([]);
+        }
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+        setProjects([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, [user, isAuthenticated]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
+      case 'Đang hoạt động':
         return '#10b981';
-      case 'planning':
+      case 'Chưa bắt đầu':
         return '#f59e0b';
-      case 'on-hold':
+      case 'Tạm dừng':
         return '#ef4444';
-      case 'completed':
+      case 'Hoàn thành':
         return '#6b7280';
       default:
         return '#6b7280';
@@ -172,7 +166,13 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
                   <div className="project-content">
                     <div className="project-name">{project.name}</div>
                     <div className="project-meta">
-                      <span className="project-progress">{project.progress}%</span>
+                      <div 
+                        className="status-dot" 
+                        style={{ backgroundColor: getStatusColor(project.status) }}
+                      ></div>
+                      <span className="project-status">
+                        {project.status}
+                      </span>
                     </div>
                   </div>
                   {isProjectActive(project.id) && (
@@ -353,22 +353,26 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
         .project-meta {
           display: flex;
-          justify-content: space-between;
           align-items: center;
           font-size: 10px;
           color: #6b7280;
           margin-top: 2px;
-          gap: 6px;
+          gap: 4px;
         }
 
+        .status-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
 
-        .project-progress {
-          font-weight: 600;
-          color: #fb923c;
-          background: rgba(251, 146, 60, 0.1);
-          padding: 1px 4px;
-          border-radius: 3px;
-          font-size: 9px;
+        .project-status {
+          font-weight: 500;
+          font-size: 10px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .active-indicator {

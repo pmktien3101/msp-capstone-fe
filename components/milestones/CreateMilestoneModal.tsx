@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { X, Calendar, FileText, Target } from "lucide-react";
+import { milestoneService } from "@/services/milestoneService";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CreateMilestoneModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateMilestone: (milestoneData: any) => void;
+  onCreateMilestone?: (milestoneData: any) => void;
+  onSuccess?: () => void;
   projectId: string;
 }
 
@@ -14,8 +17,10 @@ export const CreateMilestoneModal = ({
   isOpen,
   onClose,
   onCreateMilestone,
+  onSuccess,
   projectId,
 }: CreateMilestoneModalProps) => {
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -23,6 +28,7 @@ export const CreateMilestoneModal = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -70,30 +76,67 @@ export const CreateMilestoneModal = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateForm() || isSubmitting) {
       return;
     }
 
-    const milestoneData = {
-      name: formData.name.trim(),
-      description: formData.description.trim(),
-      dueDate: formData.dueDate,
-      projectId: projectId
-    };
+    setIsSubmitting(true);
 
-    onCreateMilestone(milestoneData);
-    
-    // Reset form
-    setFormData({
-      name: "",
-      description: "",
-      dueDate: "",
-    });
-    setErrors({});
-    onClose();
+    try {
+      // Get userId from useAuth hook
+      if (!user || !user.userId) {
+        console.error('No user found from useAuth');
+        alert('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log('User from useAuth:', user);
+      console.log('Using userId:', user.userId);
+
+      const milestoneData = {
+        userId: user.userId,
+        projectId: projectId,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        dueDate: formData.dueDate,
+      };
+
+      const response = await milestoneService.createMilestone(milestoneData);
+
+      if (response.success) {
+        // Call onCreateMilestone if provided (for backwards compatibility)
+        if (onCreateMilestone) {
+          onCreateMilestone(response.data);
+        }
+        
+        // Call onSuccess to refresh the milestone list
+        if (onSuccess) {
+          onSuccess();
+        }
+        
+        alert('Tạo cột mốc thành công!');
+        
+        // Reset form
+        setFormData({
+          name: "",
+          description: "",
+          dueDate: "",
+        });
+        setErrors({});
+        onClose();
+      } else {
+        alert(`Lỗi: ${response.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating milestone:', error);
+      alert('Có lỗi xảy ra khi tạo cột mốc');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -176,12 +219,12 @@ export const CreateMilestoneModal = ({
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="btn-cancel" onClick={handleClose}>
+            <button type="button" className="btn-cancel" onClick={handleClose} disabled={isSubmitting}>
               Hủy
             </button>
-            <button type="submit" className="btn-submit">
+            <button type="submit" className="btn-submit" disabled={isSubmitting}>
               <Target size={16} />
-              Tạo cột mốc
+              {isSubmitting ? 'Đang tạo...' : 'Tạo cột mốc'}
             </button>
           </div>
         </form>

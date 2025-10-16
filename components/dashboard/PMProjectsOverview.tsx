@@ -12,46 +12,31 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
-        return '#10b981'; // Green for active
-      case 'planning':
-        return '#f59e0b'; // Orange for planning
-      case 'on-hold':
-        return '#ef4444'; // Red for on-hold
-      case 'completed':
-        return '#10b981'; // Green for completed (same as your example)
+      case 'Đang hoạt động':
+        return '#10b981';
+      case 'Chưa bắt đầu':
+        return '#f59e0b';
+      case 'Tạm dừng':
+        return '#ef4444';
+      case 'Hoàn thành':
+        return '#10b981';
       default:
-        return '#6b7280'; // Gray for unknown
+        return '#6b7280';
     }
   };
 
   const getStatusBackgroundColor = (status: string) => {
     switch (status) {
-      case 'active':
-        return '#dcfce7'; // Light green background
-      case 'planning':
-        return '#fef3c7'; // Light orange background
-      case 'on-hold':
-        return '#fee2e2'; // Light red background
-      case 'completed':
-        return '#dcfce7'; // Light green background
+      case 'Đang hoạt động':
+        return '#dcfce7';
+      case 'Chưa bắt đầu':
+        return '#fef3c7';
+      case 'Tạm dừng':
+        return '#fee2e2';
+      case 'Hoàn thành':
+        return '#dcfce7';
       default:
-        return '#f3f4f6'; // Light gray background
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'Đang thực hiện';
-      case 'planning':
-        return 'Lập kế hoạch';
-      case 'on-hold':
-        return 'Tạm dừng';
-      case 'completed':
-        return 'Hoàn thành';
-      default:
-        return status;
+        return '#f3f4f6';
     }
   };
 
@@ -89,18 +74,18 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
                     borderColor: getStatusBackgroundColor(project.status)
                   }}
                 >
-                  {getStatusText(project.status)}
+                  {project.status}
                 </div>
               </div>
-              <div className="project-progress">
+              {/* <div className="project-progress">
                 <div className="progress-bar">
                   <div 
                     className="progress-fill"
-                    style={{ width: `${project.progress}%` }}
+                    style={{ width: `0%` }}
                   ></div>
                 </div>
-                <span className="progress-text">{project.progress}%</span>
-              </div>
+                <span className="progress-text">0%</span>
+              </div> */}
             </div>
 
             <div className="project-content">
@@ -110,38 +95,27 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
                 <div className="meta-item">
                   <span className="meta-label">Ngày bắt đầu:</span>
                   <span className="meta-value">
-                    {new Date(project.startDate).toLocaleDateString('vi-VN')}
+                    {project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : '-'}
                   </span>
                 </div>
                 <div className="meta-item">
                   <span className="meta-label">Ngày kết thúc:</span>
                   <span className="meta-value">
-                    {new Date(project.endDate).toLocaleDateString('vi-VN')}
+                    {project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : '-'}
                   </span>
-                </div>
-                <div className="meta-item">
-                  <span className="meta-label">Thành viên:</span>
-                  <span className="meta-value">{project.members?.length} người</span>
                 </div>
               </div>
 
-              <div className="project-team">
+              {/* <div className="project-team">
                 <div className="team-avatars">
-                  {project.members?.slice(0, 3).map((member, index) => (
-                    <div key={member.id} className="team-avatar">
-                      <span>{member.name.charAt(0)}</span>
-                    </div>
-                  ))}
-                  {(project.members?.length || 0) > 3 && (
-                    <div className="team-avatar more">
-                      +{(project.members?.length || 0) - 3}
-                    </div>
-                  )}
+                  <div className="team-avatar">
+                    <span>?</span>
+                  </div>
                 </div>
                 <span className="team-text">
-                  {project.members?.length || 0} thành viên
+                  0 thành viên
                 </span>
-              </div>
+              </div> */}
             </div>
 
             <div className="project-actions">
