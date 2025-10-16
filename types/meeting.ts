@@ -62,21 +62,24 @@ export interface UpdateMeetingRequest {
   status?: MeetingStatus;
 }
 
-export interface MeetingBackend {
-  meetingId: string;
-  createdById: string;
-  projectId: string;
-  milestoneId?: string | null;
+export interface MeetingItem {
+  id: string;
   title: string;
   description?: string;
-  startTime: string;
-  endTime: string;
-  status: string;
-  recordUrl?: string;
-  transcription?: string;
-  summary?: string;
-  attendeeIds: string[];
-  todoIds?: string[];
+  startTime?: string;
+  endTime?: string;
+  status: "Scheduled" | "Ongoing" | "Finished" | "Cancel" | string;
+  createdById?: string;
+  createdByEmail?: string;
+  projectId?: string;
+  projectName?: string;
+  milestoneId?: string;
+  milestoneName?: string;
   createdAt?: string;
   updatedAt?: string;
+  attendees?: {
+    id: string;
+    email: string;
+    avatarUrl?: string | null;
+  }[];
 }

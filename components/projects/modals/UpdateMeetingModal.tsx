@@ -6,15 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { Call } from "@stream-io/video-react-sdk";
 import { toast } from "react-toastify";
 import { Participant } from "@/types";
 import { projectService } from "@/services/projectService";
 import { milestoneService } from "@/services/milestoneService";
 import { meetingService } from "@/services/meetingService";
+import { MeetingItem } from "@/types/meeting";
 
 interface UpdateMeetingModalProps {
-  call: Call;
+  meeting: MeetingItem;
   onClose: () => void;
   onUpdated?: () => void;
   requireProjectSelection?: boolean;
@@ -45,25 +45,25 @@ interface Milestone {
 }
 
 export const UpdateMeetingModal = ({
-  call,
+  meeting,
   onClose,
   onUpdated,
   requireProjectSelection = false,
 }: UpdateMeetingModalProps) => {
   const initialData = {
-    title: call?.state?.custom?.title || "",
-    description: call?.state?.custom?.description || "",
-    milestoneId: call?.state?.custom?.milestoneId || "",
-    participants: call?.state?.custom?.participants || [],
-    dateTime: call?.state?.startsAt ? new Date(call.state.startsAt) : null,
-    projectId: call?.state?.custom?.projectId || "",
+    title: meeting?.title || "",
+    description: meeting?.description || "",
+    milestoneId: meeting?.milestoneId || "",
+    participants: meeting?.attendees || [],
+    dateTime: meeting?.startTime ? new Date(meeting.startTime) : null,
+    projectId: meeting?.projectId || "",
   };
 
   const [title, setTitle] = useState(initialData.title);
   const [description, setDescription] = useState(initialData.description);
   const [milestoneId, setMilestoneId] = useState(initialData.milestoneId);
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
-    initialData.participants
+    initialData.participants.map((p) => p.id)
   );
   const [dateTime, setDateTime] = useState<Date | null>(initialData.dateTime);
   const [saving, setSaving] = useState(false);
@@ -174,8 +174,8 @@ export const UpdateMeetingModal = ({
       if (selectedParticipants.length === 0)
         throw new Error("Vui lòng chọn ít nhất 1 người tham gia");
 
-      // 1. Update meeting in database
-      const meetingId = call?.id;
+      // Update meeting in database
+      const meetingId = meeting.id;
       const dbResult = await meetingService.updateMeeting({
         meetingId,
         title: title.trim(),
@@ -183,7 +183,7 @@ export const UpdateMeetingModal = ({
         milestoneId: milestoneId || null,
         projectId: requireProjectSelection
           ? selectedProjectId
-          : call?.state?.custom?.projectId,
+          : meeting.projectId,
         startTime: dateTime?.toISOString(),
         attendeeIds: selectedParticipants,
       });
@@ -193,27 +193,6 @@ export const UpdateMeetingModal = ({
           dbResult.error || "Cập nhật meeting thất bại ở database"
         );
       }
-
-      // 2. Update meeting in Stream call
-      await call?.update({
-        custom: {
-          title: title.trim(),
-          description: description.trim(),
-          participants: selectedParticipants,
-          milestoneId: milestoneId || null,
-          projectId: requireProjectSelection
-            ? selectedProjectId
-            : call?.state?.custom?.projectId,
-        },
-        starts_at: dateTime?.toISOString(),
-      });
-
-      await call?.updateCallMembers({
-        update_members: selectedParticipants.map((id) => ({
-          user_id: id,
-          role: "call_member",
-        })),
-      });
 
       toast.success("Đã cập nhật cuộc họp");
       onUpdated?.();

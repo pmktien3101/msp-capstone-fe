@@ -1,6 +1,6 @@
 import { api } from "./api";
 import type {
-  MeetingBackend,
+  MeetingItem,
   CreateMeetingRequest,
   UpdateMeetingRequest,
 } from "@/types/meeting";
@@ -15,7 +15,7 @@ export const meetingService = {
   // Create new meeting
   async createMeeting(
     data: CreateMeetingRequest
-  ): Promise<{ success: boolean; data?: MeetingBackend; error?: string }> {
+  ): Promise<{ success: boolean; data?: MeetingItem; error?: string }> {
     try {
       // Convert startTime to ISO 8601 UTC format if needed
       const requestData = {
@@ -25,7 +25,7 @@ export const meetingService = {
           : undefined,
       };
 
-      const response = await api.post<ApiResponse<MeetingBackend>>(
+      const response = await api.post<ApiResponse<MeetingItem>>(
         "/meetings",
         requestData
       );
@@ -56,7 +56,7 @@ export const meetingService = {
   // Update meeting
   async updateMeeting(
     data: UpdateMeetingRequest
-  ): Promise<{ success: boolean; data?: MeetingBackend; error?: string }> {
+  ): Promise<{ success: boolean; data?: MeetingItem; error?: string }> {
     try {
       const { meetingId, ...rest } = data;
       const requestData = {
@@ -66,7 +66,7 @@ export const meetingService = {
           : undefined,
       };
 
-      const response = await api.put<ApiResponse<MeetingBackend>>(
+      const response = await api.put<ApiResponse<MeetingItem>>(
         `/meetings/${meetingId}`,
         requestData
       );
@@ -127,9 +127,9 @@ export const meetingService = {
   // Get meeting by ID
   async getMeetingById(
     meetingId: string
-  ): Promise<{ success: boolean; data?: MeetingBackend; error?: string }> {
+  ): Promise<{ success: boolean; data?: MeetingItem; error?: string }> {
     try {
-      const response = await api.get<ApiResponse<MeetingBackend>>(
+      const response = await api.get<ApiResponse<MeetingItem>>(
         `/meetings/${meetingId}`
       );
 
@@ -159,9 +159,9 @@ export const meetingService = {
   // Get meetings by project ID
   async getMeetingsByProjectId(
     projectId: string
-  ): Promise<{ success: boolean; data?: MeetingBackend[]; error?: string }> {
+  ): Promise<{ success: boolean; data?: MeetingItem[]; error?: string }> {
     try {
-      const response = await api.get<ApiResponse<MeetingBackend[]>>(
+      const response = await api.get<ApiResponse<MeetingItem[]>>(
         `/meetings/by-project/${projectId}`
       );
 

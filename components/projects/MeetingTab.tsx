@@ -5,119 +5,140 @@ import { Project } from "@/types/project";
 import { Button } from "@/components/ui/button";
 import { CreateMeetingModal } from "./modals/CreateMeetingModal";
 import "@/app/styles/meeting-tab.scss";
-import { useGetCall } from "@/hooks/useGetCallList";
-import { Call } from "@stream-io/video-react-sdk";
-import { tokenService } from "@/services/streamService";
+import { meetingService } from "@/services/meetingService";
+import { MeetingItem } from "@/types/meeting";
 import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 import { toast } from "react-toastify";
 import { Eye, Pencil, Trash, Plus } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { useEffect } from "react";
 
 interface MeetingTabProps {
   project: Project;
 }
 
+function useProjectMeetings(projectId: string) {
+  const [meetings, setMeetings] = useState<MeetingItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchMeetings = async () => {
+    setIsLoading(true);
+    const res = await meetingService.getMeetingsByProjectId(projectId);
+    setMeetings(res.data || []);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchMeetings();
+    // eslint-disable-next-line
+  }, [projectId]);
+
+  return { meetings, isLoading, refetch: fetchMeetings };
+}
+
 export const MeetingTab = ({ project }: MeetingTabProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [selectedCall, setSelectedCall] = useState<Call | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<MeetingItem | null>(
+    null
+  );
+
   const {
-    upcomingCalls,
-    endedCalls,
-    inProgressCalls,
-    isLoadingCall,
-    refetchCalls,
-  } = useGetCall();
+    meetings: backendMeetings,
+    isLoading: isLoadingCall,
+    refetch: refetchCalls,
+  } = useProjectMeetings(project.id);
+
+  // Sửa lại viewType cho đúng với status từ API
   const [viewType, setViewType] = useState<
-    "all" | "upcoming" | "ended" | "inProgress"
+    "all" | "Scheduled" | "Ongoing" | "Finished" | "Cancel"
   >("all");
   const { role } = useUser();
   const isMember = role === "Member";
-  const allMeetings = useMemo(() => {
-    return [...upcomingCalls, ...inProgressCalls, ...endedCalls].filter(
-      (meeting: any) => meeting.state?.custom?.projectId === project.id
-    );
-  }, [upcomingCalls, inProgressCalls, endedCalls, project.id]);
 
-  const upcomingProjectMeetings = useMemo(() => {
-    return upcomingCalls.filter(
-      (meeting: any) => meeting.state?.custom?.projectId === project.id
-    );
-  }, [upcomingCalls, project.id]);
-
-  const inProgressProjectMeetings = useMemo(() => {
-    return inProgressCalls.filter(
-      (meeting: any) => meeting.state?.custom?.projectId === project.id
-    );
-  }, [inProgressCalls, project.id]);
-
-  const endedProjectMeetings = useMemo(() => {
-    return endedCalls.filter(
-      (meeting: any) => meeting.state?.custom?.projectId === project.id
-    );
-  }, [endedCalls, project.id]);
+  // Phân loại cuộc họp theo status
+  const scheduledMeetings = backendMeetings.filter(
+    (m) => m.status === "Scheduled"
+  );
+  const ongoingMeetings = backendMeetings.filter((m) => m.status === "Ongoing");
+  const finishedMeetings = backendMeetings.filter(
+    (m) => m.status === "Finished"
+  );
+  const cancelMeetings = backendMeetings.filter((m) => m.status === "Cancel");
+  const allMeetings = backendMeetings;
 
   const meetings = useMemo(() => {
     switch (viewType) {
-      case "upcoming":
-        return upcomingProjectMeetings;
-      case "ended":
-        return endedProjectMeetings;
-      case "inProgress":
-        return inProgressProjectMeetings;
+      case "Scheduled":
+        return scheduledMeetings;
+      case "Ongoing":
+        return ongoingMeetings;
+      case "Finished":
+        return finishedMeetings;
+      case "Cancel":
+        return cancelMeetings;
       default:
         return allMeetings;
     }
   }, [
     viewType,
     allMeetings,
-    upcomingProjectMeetings,
-    inProgressProjectMeetings,
-    endedProjectMeetings,
+    scheduledMeetings,
+    ongoingMeetings,
+    finishedMeetings,
+    cancelMeetings,
   ]);
 
-  const getStatusInfo = (call: Call) => {
-    const now = new Date();
-    const startsAt = call.state?.startsAt
-      ? new Date(call.state.startsAt)
-      : null;
-    const endedAt = call.state?.endedAt ? new Date(call.state.endedAt) : null;
-
-    if (endedAt) return { label: "Kết thúc", color: "#A41F39" };
-    if (startsAt && startsAt > now)
-      return { label: "Đã lên lịch", color: "#47D69D" };
-    return { label: "Đang diễn ra", color: "#FFA500" };
+  // Sửa lại getStatusInfo cho đúng nhãn
+  const getStatusInfo = (meeting: MeetingItem) => {
+    switch (meeting.status) {
+      case "Finished":
+        return { label: "Kết thúc", color: "#A41F39" };
+      case "Scheduled":
+        return { label: "Đã lên lịch", color: "#47D69D" };
+      case "Ongoing":
+        return { label: "Đang diễn ra", color: "#FFA500" };
+      case "Cancel":
+        return { label: "Tạm dừng", color: "#888" };
+      default:
+        return { label: meeting.status, color: "#ccc" };
+    }
   };
 
-  const handleJoin = (call: Call) => {
-    window.open(`/meeting/${call.id}`, "_blank");
+  const handleJoin = (meeting: MeetingItem) => {
+    window.open(`/meeting/${meeting.id}`, "_blank");
+  };
+  console.log("meetings", meetings);
+  const handleView = (meeting: MeetingItem) => {
+    window.location.href = `/meeting-detail/${meeting.id}`;
   };
 
-  const handleView = (call: Call) => {
-    window.location.href = `/meeting-detail/${call.id}`;
-  };
-
-  const handleEdit = (call: Call) => {
-    setSelectedCall(call);
+  const handleEdit = (meeting: MeetingItem) => {
+    setSelectedMeeting(meeting);
     setShowUpdateModal(true);
   };
 
-  const handleDelete = async (call: Call) => {
+  const handleDelete = async (meeting: MeetingItem) => {
     if (!confirm("Bạn chắc chắn muốn xóa cuộc họp này?")) return;
     try {
-      await tokenService.deleteCall(call.id, true);
-      await refetchCalls();
-      toast.success("Đã xóa cuộc họp");
+      const res = await meetingService.deleteMeeting(meeting.id);
+      if (res.success) {
+        await refetchCalls();
+        toast.success("Đã xóa cuộc họp");
+      } else {
+        toast.error(res.error || "Xóa thất bại");
+      }
     } catch (e: any) {
-      console.error("Delete call failed", e);
+      console.error("Delete meeting failed", e);
       toast.error(e?.message || "Xóa thất bại");
     }
   };
 
   const allMeetingsCount = allMeetings.length;
-  const upcomingMeetingsCount = upcomingProjectMeetings.length;
-  const inProgressMeetingsCount = inProgressProjectMeetings.length;
-  const endedMeetingsCount = endedProjectMeetings.length;
+  const scheduledMeetingsCount = scheduledMeetings.length;
+  const ongoingMeetingsCount = ongoingMeetings.length;
+  const finishedMeetingsCount = finishedMeetings.length;
+  const cancelMeetingsCount = cancelMeetings.length;
 
   return (
     <div className="meeting-tab">
@@ -164,16 +185,20 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           <div className="stat-label">Tổng cuộc họp</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{upcomingMeetingsCount}</div>
+          <div className="stat-number">{scheduledMeetingsCount}</div>
           <div className="stat-label">Đã lên lịch</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{inProgressMeetingsCount}</div>
+          <div className="stat-number">{ongoingMeetingsCount}</div>
           <div className="stat-label">Đang diễn ra</div>
         </div>
         <div className="stat-card">
-          <div className="stat-number">{endedMeetingsCount}</div>
-          <div className="stat-label">Hoàn thành</div>
+          <div className="stat-number">{finishedMeetingsCount}</div>
+          <div className="stat-label">Kết thúc</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-number">{cancelMeetingsCount}</div>
+          <div className="stat-label">Tạm dừng</div>
         </div>
       </div>
 
@@ -191,26 +216,14 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
             fontWeight: 500,
             transition: "all 0.2s ease",
           }}
-          onMouseEnter={(e) => {
-            if (viewType !== "all") {
-              e.currentTarget.style.background = "#FF5E13";
-              e.currentTarget.style.color = "white";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (viewType !== "all") {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#FF5E13";
-            }
-          }}
         >
           Tất cả
         </Button>
         <Button
-          onClick={() => setViewType("upcoming")}
+          onClick={() => setViewType("Scheduled")}
           style={{
-            background: viewType === "upcoming" ? "#FF5E13" : "transparent",
-            color: viewType === "upcoming" ? "white" : "#FF5E13",
+            background: viewType === "Scheduled" ? "#FF5E13" : "transparent",
+            color: viewType === "Scheduled" ? "white" : "#FF5E13",
             border: "1px solid #FF5E13",
             borderRadius: "8px",
             padding: "8px 16px",
@@ -220,13 +233,13 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
             transition: "all 0.2s ease",
           }}
         >
-          Sắp tới
+          Đã lên lịch
         </Button>
         <Button
-          onClick={() => setViewType("inProgress")}
+          onClick={() => setViewType("Ongoing")}
           style={{
-            background: viewType === "inProgress" ? "#FF5E13" : "transparent",
-            color: viewType === "inProgress" ? "white" : "#FF5E13",
+            background: viewType === "Ongoing" ? "#FF5E13" : "transparent",
+            color: viewType === "Ongoing" ? "white" : "#FF5E13",
             border: "1px solid #FF5E13",
             borderRadius: "8px",
             padding: "8px 16px",
@@ -239,10 +252,10 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           Đang diễn ra
         </Button>
         <Button
-          onClick={() => setViewType("ended")}
+          onClick={() => setViewType("Finished")}
           style={{
-            background: viewType === "ended" ? "#FF5E13" : "transparent",
-            color: viewType === "ended" ? "white" : "#FF5E13",
+            background: viewType === "Finished" ? "#FF5E13" : "transparent",
+            color: viewType === "Finished" ? "white" : "#FF5E13",
             border: "1px solid #FF5E13",
             borderRadius: "8px",
             padding: "8px 16px",
@@ -252,7 +265,23 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
             transition: "all 0.2s ease",
           }}
         >
-          Đã kết thúc
+          Kết thúc
+        </Button>
+        <Button
+          onClick={() => setViewType("Cancel")}
+          style={{
+            background: viewType === "Cancel" ? "#FF5E13" : "transparent",
+            color: viewType === "Cancel" ? "white" : "#FF5E13",
+            border: "1px solid #FF5E13",
+            borderRadius: "8px",
+            padding: "8px 16px",
+            cursor: "pointer",
+            fontSize: "14px",
+            fontWeight: 500,
+            transition: "all 0.2s ease",
+          }}
+        >
+          Tạm dừng
         </Button>
       </div>
 
@@ -279,45 +308,18 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
               <div className="col-status">Trạng thái</div>
               <div className="col-actions">Thao tác</div>
             </div>
-            {meetings.map((meeting: any, idx: number) => {
-              const call = meeting as Call;
-              const isStreamMeeting = !!meeting.state;
-
-              const title = isStreamMeeting
-                ? meeting.state?.custom?.title || "Cuộc họp"
-                : meeting.title;
-
-              const description = isStreamMeeting
-                ? meeting.state?.custom?.description?.substring(0, 120)
-                : meeting.description;
-
-              const startsAt = isStreamMeeting
-                ? meeting.state?.startsAt
-                  ? new Date(meeting.state.startsAt)
-                  : null
-                : meeting.startTime
+            {meetings.map((meeting: MeetingItem, idx: number) => {
+              const title = meeting.title;
+              const description = meeting.description?.substring(0, 120);
+              const startsAt = meeting.startTime
                 ? new Date(meeting.startTime)
                 : null;
-
-              const endsAt = isStreamMeeting
-                ? meeting.state?.endedAt
-                  ? new Date(meeting.state.endedAt)
-                  : null
-                : meeting.endTime
-                ? new Date(meeting.endTime)
-                : null;
-
-              const statusInfo = isStreamMeeting
-                ? getStatusInfo(meeting)
-                : meeting.status === "Scheduled"
-                ? { label: "Đã lên lịch", color: "#47D69D" }
-                : meeting.status === "Finished"
-                ? { label: "Kết thúc", color: "#A41F39" }
-                : { label: "Đang diễn ra", color: "#FFA500" };
+              const endsAt = meeting.endTime ? new Date(meeting.endTime) : null;
+              const statusInfo = getStatusInfo(meeting);
 
               return (
                 <div
-                  key={call.id || idx}
+                  key={meeting.id || idx}
                   className="table-row"
                   style={{ gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1.5fr" }}
                 >
@@ -349,7 +351,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     ) : (
                       <button
                         className="room-link cursor-pointer"
-                        onClick={() => handleJoin(call)}
+                        onClick={() => handleJoin(meeting)}
                       >
                         Tham gia
                       </button>
@@ -367,17 +369,17 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     <button
                       className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
                       title="Xem chi tiết"
-                      onClick={() => handleView(call)}
+                      onClick={() => handleView(meeting)}
                     >
                       <Eye className="w-5 h-5" />
                     </button>
-                    {!(viewType === "ended") &&
+                    {!(viewType === "Finished") &&
                       !(statusInfo.label === "Kết thúc") &&
                       !isMember && (
                         <button
                           className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
                           title="Cập nhật"
-                          onClick={() => handleEdit(call)}
+                          onClick={() => handleEdit(meeting)}
                         >
                           <Pencil className="w-5 h-5" />
                         </button>
@@ -386,7 +388,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       <button
                         className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
                         title="Xóa"
-                        onClick={() => handleDelete(call)}
+                        onClick={() => handleDelete(meeting)}
                       >
                         <Trash className="w-5 h-5 text-red-500" />
                       </button>
@@ -406,12 +408,12 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           onCreated={() => refetchCalls()}
         />
       )}
-      {showUpdateModal && selectedCall && (
+      {showUpdateModal && selectedMeeting && (
         <UpdateMeetingModal
-          call={selectedCall}
+          meeting={selectedMeeting}
           onClose={() => {
             setShowUpdateModal(false);
-            setSelectedCall(null);
+            setSelectedMeeting(null);
           }}
           onUpdated={async () => await refetchCalls()}
         />
