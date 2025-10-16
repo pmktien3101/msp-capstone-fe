@@ -31,9 +31,9 @@ const MeetingSetup = ({
 
   // Add this useEffect to check permissions
   useEffect(() => {
-    const participants = call?.state?.custom?.participants || [];
-    setCanJoin(participants.includes(userId));
-  }, [call?.state?.custom?.participants, userId]);
+    const attendees = call?.state?.custom?.attendeeIds || [];
+    setCanJoin(attendees.includes(userId));
+  }, [call?.state?.custom?.attendeeIds, userId]);
 
   if (!call) throw new Error("Call not found in MeetingSetup");
 
@@ -67,9 +67,9 @@ const MeetingSetup = ({
       : null;
     const endedAt = call.state?.endedAt ? new Date(call.state?.endedAt) : null;
 
-    // Check if user is in participants list
-    const participants = call.state?.custom?.participants || [];
-    if (!participants.includes(userId)) {
+    // Check if user is in attendees list
+    const attendees = call.state?.custom?.attendeeIds || [];
+    if (!attendees.includes(userId)) {
       toast.error("Bạn không được phép tham gia cuộc họp này", {
         autoClose: 5000,
       });

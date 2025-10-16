@@ -6,71 +6,153 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { Call } from "@stream-io/video-react-sdk";
 import { toast } from "react-toastify";
 import { Participant } from "@/types";
-import {
-  mockParticipants,
-  mockMilestones,
-  mockProjects,
-} from "@/constants/mockData";
+import { projectService } from "@/services/projectService";
+import { milestoneService } from "@/services/milestoneService";
+import { meetingService } from "@/services/meetingService";
+import { MeetingItem } from "@/types/meeting";
+import { Call } from "@stream-io/video-react-sdk";
 
 interface UpdateMeetingModalProps {
-  call: Call; // Now required since we only handle Stream meetings
+  meeting: MeetingItem;
   onClose: () => void;
   onUpdated?: () => void;
   requireProjectSelection?: boolean;
+  call?: Call; // Thêm dòng này
+}
+
+interface ProjectMemberResponse {
+  id: string;
+  projectId: string;
+  userId: string;
+  member: {
+    id: string;
+    userName: string;
+    email: string;
+    fullName: string;
+    phoneNumber: string;
+    avatarUrl: string | null;
+    role: string;
+    createdAt: string;
+  };
+  joinedAt: string;
+  leftAt: string | null;
+}
+
+interface Milestone {
+  id: string;
+  name: string;
+  projectId: string;
 }
 
 export const UpdateMeetingModal = ({
-  call,
+  meeting,
   onClose,
   onUpdated,
   requireProjectSelection = false,
+  call,
 }: UpdateMeetingModalProps) => {
   const initialData = {
-    title: call?.state?.custom?.title || "",
-    description: call?.state?.custom?.description || "",
-    milestoneId: call?.state?.custom?.milestoneId || "",
-    participants: call?.state?.custom?.participants || [],
-    dateTime: call?.state?.startsAt ? new Date(call.state.startsAt) : null,
+    title: meeting?.title || "",
+    description: meeting?.description || "",
+    milestoneId: meeting?.milestoneId || "",
+    participants: meeting?.attendees || [],
+    dateTime: meeting?.startTime ? new Date(meeting.startTime) : null,
+    projectId: meeting?.projectId || "",
   };
 
   const [title, setTitle] = useState(initialData.title);
   const [description, setDescription] = useState(initialData.description);
   const [milestoneId, setMilestoneId] = useState(initialData.milestoneId);
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
-    initialData.participants
+    initialData.participants.map((p) => p.id)
   );
   const [dateTime, setDateTime] = useState<Date | null>(initialData.dateTime);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [milestones, setMilestones] = useState(mockMilestones);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>(
     []
   );
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    call?.state?.custom?.projectId || ""
+    initialData.projectId
   );
+  const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+  const [isLoadingMilestones, setIsLoadingMilestones] = useState(false);
+
+  // Convert API response to Participant[]
+  const convertToParticipants = (
+    members: ProjectMemberResponse[]
+  ): Participant[] => {
+    return members
+      .filter((member) => member.member.role !== "ProjectManager")
+      .map((member) => ({
+        id: member.member.id,
+        role: member.member.role,
+        image: member.member.avatarUrl || "",
+        email: member.member.email,
+        name: member.member.fullName,
+      }));
+  };
+
+  const convertToMilestones = (milestones: any[]): Milestone[] => {
+    return milestones.map((milestone) => ({
+      id: milestone.id,
+      name: milestone.name,
+      projectId: milestone.projectId,
+    }));
+  };
 
   useEffect(() => {
-    setParticipants(mockParticipants);
+    const loadParticipantsAndMilestones = async () => {
+      if (!selectedProjectId) {
+        setParticipants([]);
+        setMilestones([]);
+        return;
+      }
+      setIsLoadingParticipants(true);
+      setIsLoadingMilestones(true);
 
-    if (requireProjectSelection) {
-      setProjects(mockProjects);
-    }
+      try {
+        const projectMembersResult = await projectService.getProjectMembers(
+          selectedProjectId
+        );
+        if (projectMembersResult.success && projectMembersResult.data) {
+          setParticipants(
+            convertToParticipants(
+              projectMembersResult.data as unknown as ProjectMemberResponse[]
+            )
+          );
+        } else {
+          setParticipants([]);
+        }
+      } catch (error: any) {
+        toast.error("Không thể tải danh sách thành viên dự án");
+        setParticipants([]);
+      } finally {
+        setIsLoadingParticipants(false);
+      }
 
-    if (selectedProjectId) {
-      const projectMilestones = mockMilestones.filter(
-        (milestone) => milestone.projectId === selectedProjectId
-      );
-      setMilestones(projectMilestones);
-    } else {
-      setMilestones(mockMilestones);
-    }
-  }, [selectedProjectId, requireProjectSelection]);
+      try {
+        const milestonesResult =
+          await milestoneService.getMilestonesByProjectId(selectedProjectId);
+        if (milestonesResult.success && milestonesResult.data) {
+          setMilestones(convertToMilestones(milestonesResult.data));
+        } else {
+          setMilestones([]);
+        }
+      } catch (error: any) {
+        setMilestones([]);
+      } finally {
+        setIsLoadingMilestones(false);
+      }
+    };
+
+    loadParticipantsAndMilestones();
+  }, [selectedProjectId]);
 
   const handleParticipantChange = (id: string) => {
     setSelectedParticipants((prev) =>
@@ -92,13 +174,35 @@ export const UpdateMeetingModal = ({
       if (!title.trim()) throw new Error("Tiêu đề không được để trống");
       if (dateTime && dateTime.getTime() < Date.now() - 60_000)
         throw new Error("Thời gian bắt đầu phải ở tương lai");
+      if (selectedParticipants.length === 0)
+        throw new Error("Vui lòng chọn ít nhất 1 người tham gia");
 
+      // Update meeting in database
+      const meetingId = meeting.id;
+      const dbResult = await meetingService.updateMeeting({
+        meetingId,
+        title: title.trim(),
+        description: description.trim(),
+        milestoneId: milestoneId || null,
+        projectId: requireProjectSelection
+          ? selectedProjectId
+          : meeting.projectId,
+        startTime: dateTime?.toISOString(),
+        attendeeIds: selectedParticipants,
+      });
+
+      if (!dbResult.success) {
+        throw new Error(
+          dbResult.error || "Cập nhật meeting thất bại ở database"
+        );
+      }
+      // 2. Update meeting in Stream call
       await call?.update({
         custom: {
           title: title.trim(),
           description: description.trim(),
           participants: selectedParticipants,
-          milestoneId,
+          milestoneId: milestoneId || null,
           projectId: requireProjectSelection
             ? selectedProjectId
             : call?.state?.custom?.projectId,
@@ -112,12 +216,10 @@ export const UpdateMeetingModal = ({
           role: "call_member",
         })),
       });
-
       toast.success("Đã cập nhật cuộc họp");
       onUpdated?.();
       onClose();
     } catch (err: any) {
-      console.error(err);
       setError(err?.message || "Cập nhật thất bại");
       toast.error(err?.message || "Cập nhật thất bại");
     } finally {
@@ -140,7 +242,6 @@ export const UpdateMeetingModal = ({
           onSubmit={handleSubmit}
           className="space-y-4 max-h-[60vh] overflow-y-auto pr-2"
         >
-          {/* Title field */}
           <div className="space-y-1">
             <label className="block text-sm font-medium">Tiêu đề</label>
             <Input
@@ -149,8 +250,6 @@ export const UpdateMeetingModal = ({
               required
             />
           </div>
-
-          {/* Description field */}
           <div className="space-y-1">
             <label className="block text-sm font-medium">Mô tả</label>
             <Textarea
@@ -160,8 +259,6 @@ export const UpdateMeetingModal = ({
               className="resize-none"
             />
           </div>
-
-          {/* DateTime field */}
           <div className="space-y-1">
             <label className="block text-sm font-medium">
               Thời gian bắt đầu
@@ -176,8 +273,6 @@ export const UpdateMeetingModal = ({
               className="w-full border rounded-md p-2"
             />
           </div>
-
-          {/* Project selection if required */}
           {requireProjectSelection && (
             <div className="space-y-2">
               <label className="block text-sm font-medium">
@@ -198,48 +293,59 @@ export const UpdateMeetingModal = ({
               </select>
             </div>
           )}
-
-          {/* Milestone field */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium">Milestone</label>
-            <select
-              value={milestoneId}
-              onChange={(e) => setMilestoneId(e.target.value)}
-              className="w-full rounded-md border border-gray-300 p-2"
-              disabled={requireProjectSelection && !selectedProjectId}
-            >
-              <option value="">-- Chọn milestone --</option>
-              {milestones.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
+            <label className="block text-sm font-medium">
+              Milestone (không bắt buộc)
+            </label>
+            {isLoadingMilestones ? (
+              <div className="text-sm text-gray-500">
+                Đang tải danh sách milestones...
+              </div>
+            ) : (
+              <select
+                value={milestoneId}
+                onChange={(e) => setMilestoneId(e.target.value)}
+                className="w-full rounded-md border border-gray-300 p-2"
+                disabled={requireProjectSelection && !selectedProjectId}
+              >
+                <option value="">-- Chọn milestone --</option>
+                {milestones.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
-
-          {/* Participants field */}
           <div className="space-y-2">
             <label className="block text-sm font-medium">Người tham gia</label>
-            <div className="max-h-40 overflow-y-auto border rounded-md p-2">
-              {participants.map((p) => (
-                <div key={p.id} className="flex items-center space-x-2 py-1">
-                  <input
-                    type="checkbox"
-                    checked={selectedParticipants.includes(p.id)}
-                    onChange={() => handleParticipantChange(p.id)}
-                    className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                  />
-                  <label className="text-sm text-gray-700">
-                    {p.email} - {p.role}
-                  </label>
-                </div>
-              ))}
-            </div>
+            {isLoadingParticipants ? (
+              <div className="text-sm text-gray-500">
+                Đang tải danh sách thành viên...
+              </div>
+            ) : participants.length === 0 ? (
+              <div className="text-sm text-gray-500">
+                Không có thành viên nào trong dự án
+              </div>
+            ) : (
+              <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+                {participants.map((p) => (
+                  <div key={p.id} className="flex items-center space-x-2 py-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedParticipants.includes(p.id)}
+                      onChange={() => handleParticipantChange(p.id)}
+                      className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                    />
+                    <label className="text-sm text-gray-700">
+                      {p.email} - {p.role}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-
           {error && <p className="text-sm text-red-500">{error}</p>}
-
-          {/* Submit buttons */}
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>
               Hủy

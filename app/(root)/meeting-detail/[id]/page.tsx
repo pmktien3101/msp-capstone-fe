@@ -34,10 +34,13 @@ import { useGetCallById } from "@/hooks/useGetCallById";
 import { Call, CallRecording } from "@stream-io/video-react-sdk";
 import { mockMilestones, mockParticipants } from "@/constants/mockData";
 import { toast } from "react-toastify";
+import { meetingService } from "@/services/meetingService";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
-const API_BASE = stripSlash(process.env.NEXT_PUBLIC_API_URL || "https://localhost:7129/api/v1");
+const API_BASE = stripSlash(
+  process.env.NEXT_PUBLIC_API_URL || "https://localhost:7129/api/v1"
+);
 
 // Map Stream call state to a simplified status label
 const mapCallStatus = (call?: Call) => {
@@ -67,15 +70,27 @@ export default function MeetingDetailPage() {
   const [editMode, setEditMode] = useState<{ [key: string]: boolean }>({});
   const [transcriptions, setTranscriptions] = useState<any[]>([]);
   const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(false);
-  const [transcriptionsError, setTranscriptionsError] = useState<string | null>(null);
+  const [transcriptionsError, setTranscriptionsError] = useState<string | null>(
+    null
+  );
   const [summary, setSummary] = useState<string>("");
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
-  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean, taskId: string | null }>({ isOpen: false, taskId: null });
-  const [isTaskCreated, setIsTaskCreated] = useState<{ [key: string]: boolean }>({});
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    isOpen: boolean;
+    taskId: string | null;
+  }>({ isOpen: false, taskId: null });
+  const [isTaskCreated, setIsTaskCreated] = useState<{
+    [key: string]: boolean;
+  }>({});
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
-  const [convertConfirmModal, setConvertConfirmModal] = useState<{ isOpen: boolean, taskCount: number }>({ isOpen: false, taskCount: 0 });
+  const [convertConfirmModal, setConvertConfirmModal] = useState<{
+    isOpen: boolean;
+    taskCount: number;
+  }>({ isOpen: false, taskCount: 0 });
+  const [meetingInfo, setMeetingInfo] = useState<any>(null);
+  const [isLoadingMeeting, setIsLoadingMeeting] = useState(true);
 
   // Khi đã join thì chuyển sang hiển thị MeetingRoom
   useEffect(() => {
@@ -111,7 +126,9 @@ export default function MeetingDetailPage() {
       setIsLoadingTranscriptions(true);
       setTranscriptionsError(null);
       try {
-        const response = await fetch(`${API_BASE}/stream/call/default/${call.id}/transcriptions`);
+        const response = await fetch(
+          `${API_BASE}/stream/call/default/${call.id}/transcriptions`
+        );
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -139,18 +156,18 @@ export default function MeetingDetailPage() {
     try {
       // Format transcriptions into text
       const formattedText = transcriptions
-        .map(item => `${getSpeakerName(item.speakerId)}: ${item.text}`)
-        .join('\n');
+        .map((item) => `${getSpeakerName(item.speakerId)}: ${item.text}`)
+        .join("\n");
 
       // Generate summary
       const summaryResponse = await fetch(`${API_BASE}/Summarize/summary`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          text: formattedText
-        })
+          text: formattedText,
+        }),
       });
 
       if (!summaryResponse.ok) {
@@ -164,17 +181,17 @@ export default function MeetingDetailPage() {
       const participantsInfo = {
         participants: participantEmails.map((email, index) => ({
           id: `speaker_${index + 1}`,
-          name: email.split('@')[0], // Extract name from email
+          name: email.split("@")[0], // Extract name from email
           email: email,
-          displayName: email
+          displayName: email,
         })),
         speakerMapping: {
-          "1": participantEmails[0]?.split('@')[0] || "Speaker 1",
-          "2": participantEmails[1]?.split('@')[0] || "Speaker 2",
-          "3": participantEmails[2]?.split('@')[0] || "Speaker 3",
-          "4": participantEmails[3]?.split('@')[0] || "Speaker 4",
-          "5": participantEmails[4]?.split('@')[0] || "Speaker 5"
-        }
+          "1": participantEmails[0]?.split("@")[0] || "Speaker 1",
+          "2": participantEmails[1]?.split("@")[0] || "Speaker 2",
+          "3": participantEmails[2]?.split("@")[0] || "Speaker 3",
+          "4": participantEmails[3]?.split("@")[0] || "Speaker 4",
+          "5": participantEmails[4]?.split("@")[0] || "Speaker 5",
+        },
       };
 
       const requestBody = {
@@ -184,19 +201,22 @@ export default function MeetingDetailPage() {
         meetingInfo: {
           title: call?.state?.custom?.title || call?.id || "Unknown Meeting",
           description: description,
-          milestone: milestoneName
-        }
+          milestone: milestoneName,
+        },
       };
 
       console.log("Sending to API:", requestBody);
 
-      const tasksResponse = await fetch(`${API_BASE}/Summarize/create-todolist`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
+      const tasksResponse = await fetch(
+        `${API_BASE}/Summarize/create-todolist`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
 
       if (!tasksResponse.ok) {
         throw new Error(`HTTP error! status: ${tasksResponse.status}`);
@@ -232,7 +252,9 @@ export default function MeetingDetailPage() {
             jsonString = jsonMatch[0];
           } else {
             console.error("Could not find JSON in summary:", summaryText);
-            throw new Error("Không thể tìm thấy JSON trong response. Format không đúng.");
+            throw new Error(
+              "Không thể tìm thấy JSON trong response. Format không đúng."
+            );
           }
         }
       }
@@ -254,7 +276,10 @@ export default function MeetingDetailPage() {
       // Convert to our task format with intelligent assignee matching
       const generatedTasks = tasksArray.map((task: any, index: number) => {
         // Try to find best matching participant for assignee
-        const matchedEmail = findBestMatch(task.assignee || "", participantsInfo.participants);
+        const matchedEmail = findBestMatch(
+          task.assignee || "",
+          participantsInfo.participants
+        );
 
         return {
           id: `AI-${index + 1}`,
@@ -270,7 +295,6 @@ export default function MeetingDetailPage() {
 
       console.log("Generated tasks:", generatedTasks);
       setGeneratedTasks(generatedTasks);
-
     } catch (e: any) {
       console.error("Failed to generate summary and tasks", e);
       setSummaryError("Không thể tạo tóm tắt và todo list");
@@ -280,7 +304,6 @@ export default function MeetingDetailPage() {
     }
   };
   useEffect(() => {
-
     if (transcriptions.length > 0) {
       generateSummaryAndTasks();
     }
@@ -326,7 +349,9 @@ export default function MeetingDetailPage() {
     const seconds = Math.floor(timestamp / 1000);
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+    return `${String(minutes).padStart(2, "0")}:${String(
+      remainingSeconds
+    ).padStart(2, "0")}`;
   };
 
   // Get speaker name from speakerId
@@ -337,7 +362,7 @@ export default function MeetingDetailPage() {
       "2": "Trần Thị B",
       "3": "Lê Văn C",
       "4": "Phạm Thị D",
-      "5": "Hoàng Văn E"
+      "5": "Hoàng Văn E",
     };
     return speakerMap[speakerId] || `Speaker ${speakerId}`;
   };
@@ -349,8 +374,8 @@ export default function MeetingDetailPage() {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return "Chưa rõ";
 
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
       const year = date.getFullYear();
 
       return `${day}-${month}-${year}`;
@@ -366,31 +391,35 @@ export default function MeetingDetailPage() {
     const normalizedAiName = aiAssigneeName.toLowerCase().trim();
 
     // First try exact match
-    let bestMatch = participants.find(p =>
-      p.name.toLowerCase() === normalizedAiName ||
-      p.displayName.toLowerCase() === normalizedAiName
+    let bestMatch = participants.find(
+      (p) =>
+        p.name.toLowerCase() === normalizedAiName ||
+        p.displayName.toLowerCase() === normalizedAiName
     );
 
     if (bestMatch) return bestMatch.email;
 
     // Then try partial match (contains)
-    bestMatch = participants.find(p =>
-      p.name.toLowerCase().includes(normalizedAiName) ||
-      normalizedAiName.includes(p.name.toLowerCase()) ||
-      p.displayName.toLowerCase().includes(normalizedAiName) ||
-      normalizedAiName.includes(p.displayName.toLowerCase())
+    bestMatch = participants.find(
+      (p) =>
+        p.name.toLowerCase().includes(normalizedAiName) ||
+        normalizedAiName.includes(p.name.toLowerCase()) ||
+        p.displayName.toLowerCase().includes(normalizedAiName) ||
+        normalizedAiName.includes(p.displayName.toLowerCase())
     );
 
     if (bestMatch) return bestMatch.email;
 
     // Try matching first name or last name
     const aiNameParts = normalizedAiName.split(/\s+/);
-    bestMatch = participants.find(p => {
+    bestMatch = participants.find((p) => {
       const participantNameParts = p.name.toLowerCase().split(/\s+/);
-      return aiNameParts.some(part =>
-        participantNameParts.some((pPart: string) =>
-          part.length > 2 && pPart.length > 2 &&
-          (part.includes(pPart) || pPart.includes(part))
+      return aiNameParts.some((part) =>
+        participantNameParts.some(
+          (pPart: string) =>
+            part.length > 2 &&
+            pPart.length > 2 &&
+            (part.includes(pPart) || pPart.includes(part))
         )
       );
     });
@@ -398,10 +427,12 @@ export default function MeetingDetailPage() {
     if (bestMatch) return bestMatch.email;
 
     // Try matching with email prefix
-    bestMatch = participants.find(p => {
-      const emailPrefix = p.email.split('@')[0].toLowerCase();
-      return emailPrefix.includes(normalizedAiName) ||
-        normalizedAiName.includes(emailPrefix);
+    bestMatch = participants.find((p) => {
+      const emailPrefix = p.email.split("@")[0].toLowerCase();
+      return (
+        emailPrefix.includes(normalizedAiName) ||
+        normalizedAiName.includes(emailPrefix)
+      );
     });
 
     if (bestMatch) return bestMatch.email;
@@ -414,13 +445,13 @@ export default function MeetingDetailPage() {
     if (!dateString) return "";
     try {
       // If already in yyyy-mm-dd format, return as is
-      if (dateString.includes('-') && dateString.split('-')[0].length === 4) {
+      if (dateString.includes("-") && dateString.split("-")[0].length === 4) {
         return dateString;
       }
 
       // If in dd-mm-yyyy format, convert to yyyy-mm-dd
-      if (dateString.includes('-') && dateString.split('-')[0].length === 2) {
-        const parts = dateString.split('-');
+      if (dateString.includes("-") && dateString.split("-")[0].length === 2) {
+        const parts = dateString.split("-");
         if (parts.length === 3) {
           const [day, month, year] = parts;
           return `${year}-${month}-${day}`;
@@ -432,15 +463,14 @@ export default function MeetingDetailPage() {
       if (isNaN(date.getTime())) return "";
 
       const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
 
       return `${year}-${month}-${day}`;
     } catch (error) {
       return "";
     }
   };
-
 
   // Xử lý chỉnh sửa task
   const handleEditTask = (task: any) => {
@@ -471,7 +501,9 @@ export default function MeetingDetailPage() {
   // Xử lý xóa task
   const handleDeleteTask = () => {
     if (deleteConfirmModal.taskId) {
-      setGeneratedTasks(prev => prev.filter(task => task.id !== deleteConfirmModal.taskId));
+      setGeneratedTasks((prev) =>
+        prev.filter((task) => task.id !== deleteConfirmModal.taskId)
+      );
       setDeleteConfirmModal({ isOpen: false, taskId: null });
     }
   };
@@ -483,14 +515,14 @@ export default function MeetingDetailPage() {
 
   // Xử lý tạo task từ todo
   const handleCreateTask = (taskId: string) => {
-    setIsTaskCreated(prev => ({ ...prev, [taskId]: true }));
+    setIsTaskCreated((prev) => ({ ...prev, [taskId]: true }));
   };
 
   // Xử lý select/deselect task
   const handleSelectTask = (taskId: string) => {
-    setSelectedTasks(prev =>
+    setSelectedTasks((prev) =>
       prev.includes(taskId)
-        ? prev.filter(id => id !== taskId)
+        ? prev.filter((id) => id !== taskId)
         : [...prev, taskId]
     );
   };
@@ -500,7 +532,7 @@ export default function MeetingDetailPage() {
     if (selectedTasks.length === generatedTasks.length) {
       setSelectedTasks([]);
     } else {
-      setSelectedTasks(generatedTasks.map(task => task.id));
+      setSelectedTasks(generatedTasks.map((task) => task.id));
     }
   };
 
@@ -515,7 +547,9 @@ export default function MeetingDetailPage() {
     console.log("Converting tasks:", selectedTasks);
 
     // Show success toast
-    toast.success(`${selectedTasks.length} công việc đã được tạo và phân công thành công cho các thành viên trong nhóm.`);
+    toast.success(
+      `${selectedTasks.length} công việc đã được tạo và phân công thành công cho các thành viên trong nhóm.`
+    );
 
     // Close modal and clear selection
     setConvertConfirmModal({ isOpen: false, taskCount: 0 });
@@ -526,9 +560,6 @@ export default function MeetingDetailPage() {
   const handleCancelConvert = () => {
     setConvertConfirmModal({ isOpen: false, taskCount: 0 });
   };
-
-
-
 
   // Xử lý tải xuống recording (tải blob để đảm bảo đặt được tên file)
   const handleDownload = async (rec: CallRecording, fallbackIndex: number) => {
@@ -543,8 +574,8 @@ export default function MeetingDetailPage() {
       const extensionFromType = contentType.includes("mp4")
         ? "mp4"
         : contentType.includes("webm")
-          ? "webm"
-          : "mp4";
+        ? "webm"
+        : "mp4";
       const baseName =
         rec.filename
           ?.replace(/\s+/g, "-")
@@ -569,7 +600,26 @@ export default function MeetingDetailPage() {
     }
   };
 
-  if (isLoadingCall) {
+  useEffect(() => {
+    async function fetchMeeting() {
+      setIsLoadingMeeting(true);
+      try {
+        const res = await meetingService.getMeetingById(params.id as string);
+        if (res.success && res.data) {
+          setMeetingInfo(res.data);
+        } else {
+          setMeetingInfo(null);
+        }
+      } catch (err) {
+        setMeetingInfo(null);
+      } finally {
+        setIsLoadingMeeting(false);
+      }
+    }
+    fetchMeeting();
+  }, [params.id]);
+
+  if (isLoadingCall || isLoadingMeeting) {
     return (
       <div className="meeting-detail-loading">
         <div className="loading-spinner"></div>
@@ -578,7 +628,7 @@ export default function MeetingDetailPage() {
     );
   }
 
-  if (!call) {
+  if (!call || !meetingInfo) {
     return (
       <div className="meeting-detail-error">
         <h3>Không tìm thấy cuộc họp</h3>
@@ -620,7 +670,13 @@ export default function MeetingDetailPage() {
   const displayParticipants = participants.filter((p) => p !== createdById);
   const participantEmails: string[] =
     displayParticipants.map(getParticipantEmail);
-
+  // Xử lý khi nhấn tham gia cuộc họp
+  const handleClickJoinMeeting = () => {
+    setShowJoinFlow(true);
+    router.push(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/meeting/${meetingInfo.id}`
+    );
+  };
   return (
     <div className="meeting-detail-page">
       {/* Header */}
@@ -635,16 +691,22 @@ export default function MeetingDetailPage() {
             Quay lại
           </Button>
           <div className="meeting-title">
-            <h1>{call.state?.custom?.title || call.id}</h1>
+            <h1>
+              {meetingInfo?.title || call.state?.custom?.title || call.id}
+            </h1>
             <div className="meeting-meta">
-              <span className="project-name">Cuộc họp</span>
+              <span className="project-name">
+                {meetingInfo?.projectName || "Cuộc họp"}
+              </span>
             </div>
           </div>
           <span
             className="meeting-status"
-            style={{ backgroundColor: getStatusColor(status) }}
+            style={{
+              backgroundColor: getStatusColor(meetingInfo?.status || status),
+            }}
           >
-            {getStatusLabel(status)}
+            {getStatusLabel(meetingInfo?.status || status)}
           </span>
         </div>
       </div>
@@ -679,55 +741,77 @@ export default function MeetingDetailPage() {
         {activeTab === "overview" && !showJoinFlow && (
           <div className="overview-section">
             <div className="meeting-info">
-              <h3>Thông tin cuộc họp</h3>
+              <div className="flex justify-between">
+                <h3>Thông tin cuộc họp</h3>
+                {(meetingInfo?.endTime
+                  ? new Date(meetingInfo.endTime) > new Date()
+                  : endsAt
+                  ? endsAt > new Date()
+                  : false) && (
+                  <Button
+                    variant="default"
+                    className="join-now-btn bg-orange-600 hover:bg-orange-700 cursor-pointer"
+                    style={{ marginTop: 12 }}
+                    onClick={() => handleClickJoinMeeting()}
+                  >
+                    <Video size={16} style={{ marginRight: 6 }} />
+                    Tham gia ngay
+                  </Button>
+                )}
+              </div>
+
               <div className="info-grid">
                 <div className="info-item">
                   <label>Tiêu đề:</label>
-                  <p>{call.state?.custom?.title || call.id}</p>
+                  <p>
+                    {meetingInfo?.title || call.state?.custom?.title || call.id}
+                  </p>
                 </div>
                 <div className="info-item">
                   <label>Mô tả:</label>
-                  <p>{description}</p>
+                  <p>{meetingInfo?.description || description}</p>
                 </div>
                 <div className="info-item">
                   <label>Thời gian bắt đầu:</label>
-                  <p>{startsAt ? startsAt.toLocaleString("vi-VN") : "-"}</p>
+                  <p>
+                    {meetingInfo?.startTime
+                      ? new Date(meetingInfo.startTime).toLocaleString("vi-VN")
+                      : startsAt?.toLocaleString("vi-VN") || "-"}
+                  </p>
                 </div>
                 <div className="info-item">
                   <label>Thời gian kết thúc:</label>
                   <p>
-                    {endsAt ? new Date(endsAt).toLocaleString("vi-VN") : "-"}
+                    {meetingInfo?.endTime
+                      ? new Date(meetingInfo.endTime).toLocaleString("vi-VN")
+                      : endsAt?.toLocaleString("vi-VN") || "-"}
                   </p>
                 </div>
                 <div className="info-item">
                   <label>Trạng thái:</label>
                   <span
-                    className="status-badge"
-                    style={{ backgroundColor: getStatusColor(status) }}
+                    className="px-8 py-2 rounded-full text-white text-sm font-medium"
+                    style={{
+                      backgroundColor: getStatusColor(
+                        meetingInfo?.status || status
+                      ),
+                    }}
                   >
-                    {getStatusLabel(status)}
+                    {getStatusLabel(meetingInfo?.status || status)}
                   </span>
                 </div>
-                {getStatusLabel(status) !== "Hoàn thành" && (
-                  <div className="info-item">
-                    <label>Tham gia cuộc họp:</label>
-                    <button
-                      onClick={() =>
-                        window.open(`/meeting/${call.id}`, "_blank")
-                      }
-                      className="room-link"
-                    >
-                      Nhấn để tham gia
-                    </button>
-                  </div>
-                )}
+
                 <div className="info-item">
                   <label>Người tạo:</label>
-                  <p>{createdBy}</p>
+                  <p>{meetingInfo?.createdByEmail || createdBy}</p>
                 </div>
                 <div className="info-item">
                   <label>Ngày tạo:</label>
-                  <p>{createdAt ? createdAt.toLocaleString("vi-VN") : "-"}</p>
+                  <p>
+                    {meetingInfo?.createdAt
+                      ? new Date(meetingInfo.createdAt).toLocaleString("vi-VN")
+                      : createdAt?.toLocaleString("vi-VN") || "-"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -738,69 +822,28 @@ export default function MeetingDetailPage() {
               <div className="info-grid">
                 <div className="info-item">
                   <label>Dự án:</label>
-                  <p>Hệ thống quản lý dự án MSP</p>
+                  <p>
+                    {meetingInfo?.projectName || "Hệ thống quản lý dự án MSP"}
+                  </p>
                 </div>
                 <div className="info-item">
                   <label>Milestone liên quan:</label>
-                  <p>{milestoneName}</p>
+                  <p>{meetingInfo?.milestoneName || milestoneName}</p>
                 </div>
                 <div className="info-item">
                   <label>Thành viên tham gia:</label>
                   <div className="participants">
-                    {participantEmails.length > 0 ? (
+                    {meetingInfo?.attendees?.length > 0 ? (
                       <ul>
-                        {participantEmails.map((email: string, idx: number) => (
-                          <li className="participant" key={idx}>
-                            {email}
+                        {meetingInfo.attendees.map((att: any, idx: number) => (
+                          <li className="participant" key={att.id}>
+                            {att.email}
                           </li>
                         ))}
                       </ul>
                     ) : (
                       <p>Chưa có người tham gia</p>
                     )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Thống kê cuộc họp */}
-            <div className="meeting-stats">
-              <h3>Thống kê cuộc họp</h3>
-              <div className="stats-grid">
-                <div className="stat-item">
-                  <div className="stat-icon">
-                    <User size={20} />
-                  </div>
-                  <div className="stat-content">
-                    <span className="stat-number">5</span>
-                    <span className="stat-label">Thành viên</span>
-                  </div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-icon">
-                    <Calendar size={20} />
-                  </div>
-                  <div className="stat-content">
-                    <span className="stat-number">90</span>
-                    <span className="stat-label">Phút</span>
-                  </div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-icon">
-                    <CheckSquare size={20} />
-                  </div>
-                  <div className="stat-content">
-                    <span className="stat-number">3</span>
-                    <span className="stat-label">Action Items</span>
-                  </div>
-                </div>
-                <div className="stat-item">
-                  <div className="stat-icon">
-                    <FileText size={20} />
-                  </div>
-                  <div className="stat-content">
-                    <span className="stat-number">1</span>
-                    <span className="stat-label">Tài liệu</span>
                   </div>
                 </div>
               </div>
@@ -879,9 +922,9 @@ export default function MeetingDetailPage() {
                       const duration =
                         rec.start_time && rec.end_time
                           ? formatDuration(
-                            new Date(rec.end_time).getTime() -
-                            new Date(rec.start_time).getTime()
-                          )
+                              new Date(rec.end_time).getTime() -
+                                new Date(rec.start_time).getTime()
+                            )
                           : null;
                       return (
                         <div className="recording-item" key={rec.url || idx}>
@@ -936,35 +979,52 @@ export default function MeetingDetailPage() {
               <div className="transcript">
                 <h4>Transcript</h4>
                 {isLoadingTranscriptions && (
-                  <div className="transcript-loading">Đang tải transcript...</div>
+                  <div className="transcript-loading">
+                    Đang tải transcript...
+                  </div>
                 )}
                 {transcriptionsError && !isLoadingTranscriptions && (
                   <div className="transcript-error">{transcriptionsError}</div>
                 )}
-                {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length === 0 && (
-                  <div className="transcript-empty">Chưa có transcript cho cuộc họp này</div>
-                )}
-                {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length > 0 && (
-                  <div
-                    className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
+                {!isLoadingTranscriptions &&
+                  !transcriptionsError &&
+                  transcriptions.length === 0 && (
+                    <div className="transcript-empty">
+                      Chưa có transcript cho cuộc họp này
+                    </div>
+                  )}
+                {!isLoadingTranscriptions &&
+                  !transcriptionsError &&
+                  transcriptions.length > 0 && (
+                    <div
+                      className={`transcript-content ${
+                        isTranscriptExpanded ? "expanded" : ""
                       }`}
-                    onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
-                  >
-                    {transcriptions.map((item, index) => (
-                      <div key={index} className="transcript-item">
-                        <span className="timestamp">{formatTimestamp(item.startTs)}</span>
-                        <div className="transcript-text">
-                          <strong>{getSpeakerName(item.speakerId)}:</strong> {item.text}
+                      onClick={() =>
+                        setIsTranscriptExpanded(!isTranscriptExpanded)
+                      }
+                    >
+                      {transcriptions.map((item, index) => (
+                        <div key={index} className="transcript-item">
+                          <span className="timestamp">
+                            {formatTimestamp(item.startTs)}
+                          </span>
+                          <div className="transcript-text">
+                            <strong>{getSpeakerName(item.speakerId)}:</strong>{" "}
+                            {item.text}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {!isLoadingTranscriptions && !transcriptionsError && transcriptions.length > 0 && !isTranscriptExpanded && (
-                  <div className="transcript-expand-hint">
-                    <span>Click để xem toàn bộ lời thoại</span>
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                {!isLoadingTranscriptions &&
+                  !transcriptionsError &&
+                  transcriptions.length > 0 &&
+                  !isTranscriptExpanded && (
+                    <div className="transcript-expand-hint">
+                      <span>Click để xem toàn bộ lời thoại</span>
+                    </div>
+                  )}
               </div>
 
               <div className="summary">
@@ -1019,12 +1079,15 @@ export default function MeetingDetailPage() {
                     {generatedTasks.length > 0 && (
                       <label className="select-all-section">
                         <Checkbox
-                          checked={selectedTasks.length === generatedTasks.length}
+                          checked={
+                            selectedTasks.length === generatedTasks.length
+                          }
                           onCheckedChange={handleSelectAllTasks}
                           className="select-all-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
                         />
                         <span className="select-all-label">
-                          Chọn tất cả ({selectedTasks.length}/{generatedTasks.length})
+                          Chọn tất cả ({selectedTasks.length}/
+                          {generatedTasks.length})
                         </span>
                       </label>
                     )}
@@ -1044,7 +1107,9 @@ export default function MeetingDetailPage() {
 
                       return (
                         <div
-                          className={`task-item ai-task ${selectedTasks.includes(task.id) ? 'selected' : ''} ${editMode[task.id] ? 'edit-mode' : ''}`}
+                          className={`task-item ai-task ${
+                            selectedTasks.includes(task.id) ? "selected" : ""
+                          } ${editMode[task.id] ? "edit-mode" : ""}`}
                           key={task.id}
                           data-task-id={task.id}
                           onClick={(e) => {
@@ -1053,12 +1118,18 @@ export default function MeetingDetailPage() {
 
                             // Don't select if clicking on action buttons or checkbox
                             const target = e.target as HTMLElement;
-                            if (target.closest('.task-actions') || target.closest('.task-checkbox')) return;
+                            if (
+                              target.closest(".task-actions") ||
+                              target.closest(".task-checkbox")
+                            )
+                              return;
 
                             // Select/deselect the task
                             handleSelectTask(task.id);
                           }}
-                          style={{ cursor: editMode[task.id] ? 'default' : 'pointer' }}
+                          style={{
+                            cursor: editMode[task.id] ? "default" : "pointer",
+                          }}
                         >
                           <div className="task-checkbox">
                             <Checkbox
@@ -1071,16 +1142,26 @@ export default function MeetingDetailPage() {
 
                           <div className="task-content">
                             <div className="task-title">
-                              <label className="detail-label"
-                                style={{ cursor: editMode[task.id] ? 'default' : 'pointer' }}
-                              >Tên công việc</label>
+                              <label
+                                className="detail-label"
+                                style={{
+                                  cursor: editMode[task.id]
+                                    ? "default"
+                                    : "pointer",
+                                }}
+                              >
+                                Tên công việc
+                              </label>
                               {editMode[task.id] ? (
                                 <input
                                   type="text"
                                   value={task.task}
                                   onChange={(e) => {
-                                    const updatedTasks = generatedTasks.map(t =>
-                                      t.id === task.id ? { ...t, task: e.target.value } : t
+                                    const updatedTasks = generatedTasks.map(
+                                      (t) =>
+                                        t.id === task.id
+                                          ? { ...t, task: e.target.value }
+                                          : t
                                     );
                                     setGeneratedTasks(updatedTasks);
                                   }}
@@ -1096,15 +1177,28 @@ export default function MeetingDetailPage() {
                             </div>
 
                             <div className="task-description">
-                              <label className="detail-label"
-                                style={{ cursor: editMode[task.id] ? 'default' : 'pointer' }}
-                              >Mô tả công việc</label>
+                              <label
+                                className="detail-label"
+                                style={{
+                                  cursor: editMode[task.id]
+                                    ? "default"
+                                    : "pointer",
+                                }}
+                              >
+                                Mô tả công việc
+                              </label>
                               {editMode[task.id] ? (
                                 <textarea
                                   value={task.description || ""}
                                   onChange={(e) => {
-                                    const updatedTasks = generatedTasks.map(t =>
-                                      t.id === task.id ? { ...t, description: e.target.value } : t
+                                    const updatedTasks = generatedTasks.map(
+                                      (t) =>
+                                        t.id === task.id
+                                          ? {
+                                              ...t,
+                                              description: e.target.value,
+                                            }
+                                          : t
                                     );
                                     setGeneratedTasks(updatedTasks);
                                   }}
@@ -1114,14 +1208,17 @@ export default function MeetingDetailPage() {
                                 />
                               ) : (
                                 <div className="task-description-display">
-                                  {task.description || "Mô tả chi tiết công việc..."}
+                                  {task.description ||
+                                    "Mô tả chi tiết công việc..."}
                                 </div>
                               )}
                             </div>
 
                             <div className="task-details">
                               <div className="detail-item">
-                                <label className="detail-label">Ngày bắt đầu</label>
+                                <label className="detail-label">
+                                  Ngày bắt đầu
+                                </label>
                                 <div className="detail-value">
                                   <Calendar size={14} />
                                   {editMode[task.id] ? (
@@ -1129,21 +1226,31 @@ export default function MeetingDetailPage() {
                                       type="date"
                                       value={task.startDate || ""}
                                       onChange={(e) => {
-                                        const updatedTasks = generatedTasks.map(t =>
-                                          t.id === task.id ? { ...t, startDate: e.target.value } : t
+                                        const updatedTasks = generatedTasks.map(
+                                          (t) =>
+                                            t.id === task.id
+                                              ? {
+                                                  ...t,
+                                                  startDate: e.target.value,
+                                                }
+                                              : t
                                         );
                                         setGeneratedTasks(updatedTasks);
                                       }}
                                       className="date-input"
                                     />
                                   ) : (
-                                    <span>{task.startDate || "--/--/----"}</span>
+                                    <span>
+                                      {task.startDate || "--/--/----"}
+                                    </span>
                                   )}
                                 </div>
                               </div>
 
                               <div className="detail-item">
-                                <label className="detail-label">Ngày kết thúc</label>
+                                <label className="detail-label">
+                                  Ngày kết thúc
+                                </label>
                                 <div className="detail-value">
                                   <Calendar size={14} />
                                   {editMode[task.id] ? (
@@ -1151,8 +1258,14 @@ export default function MeetingDetailPage() {
                                       type="date"
                                       value={task.endDate || ""}
                                       onChange={(e) => {
-                                        const updatedTasks = generatedTasks.map(t =>
-                                          t.id === task.id ? { ...t, endDate: e.target.value } : t
+                                        const updatedTasks = generatedTasks.map(
+                                          (t) =>
+                                            t.id === task.id
+                                              ? {
+                                                  ...t,
+                                                  endDate: e.target.value,
+                                                }
+                                              : t
                                         );
                                         setGeneratedTasks(updatedTasks);
                                       }}
@@ -1165,16 +1278,24 @@ export default function MeetingDetailPage() {
                               </div>
 
                               <div className="detail-item">
-                                <label className="detail-label">Người phụ trách</label>
+                                <label className="detail-label">
+                                  Người phụ trách
+                                </label>
                                 <div className="detail-value">
                                   <User size={14} />
                                   {editMode[task.id] ? (
                                     <select
                                       value={currentAssignee || ""}
                                       onChange={(e) => {
-                                        const newAssignee = e.target.value === "" ? null : e.target.value;
-                                        const updatedTasks = generatedTasks.map(t =>
-                                          t.id === task.id ? { ...t, assignee: newAssignee } : t
+                                        const newAssignee =
+                                          e.target.value === ""
+                                            ? null
+                                            : e.target.value;
+                                        const updatedTasks = generatedTasks.map(
+                                          (t) =>
+                                            t.id === task.id
+                                              ? { ...t, assignee: newAssignee }
+                                              : t
                                         );
                                         setGeneratedTasks(updatedTasks);
                                       }}
@@ -1188,7 +1309,9 @@ export default function MeetingDetailPage() {
                                       ))}
                                     </select>
                                   ) : (
-                                    <span>{currentAssignee || "Chưa được giao"}</span>
+                                    <span>
+                                      {currentAssignee || "Chưa được giao"}
+                                    </span>
                                   )}
                                 </div>
                               </div>
@@ -1203,7 +1326,10 @@ export default function MeetingDetailPage() {
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setEditMode(prev => ({ ...prev, [task.id]: false }));
+                                    setEditMode((prev) => ({
+                                      ...prev,
+                                      [task.id]: false,
+                                    }));
                                   }}
                                   className="save-btn"
                                   title="Lưu"
@@ -1215,7 +1341,10 @@ export default function MeetingDetailPage() {
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setEditMode(prev => ({ ...prev, [task.id]: false }));
+                                    setEditMode((prev) => ({
+                                      ...prev,
+                                      [task.id]: false,
+                                    }));
                                   }}
                                   className="cancel-btn"
                                   title="Hủy"
@@ -1230,7 +1359,10 @@ export default function MeetingDetailPage() {
                                   variant="outline"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setEditMode(prev => ({ ...prev, [task.id]: true }));
+                                    setEditMode((prev) => ({
+                                      ...prev,
+                                      [task.id]: true,
+                                    }));
                                   }}
                                   className="edit-btn"
                                   title="Chỉnh sửa"
@@ -1283,73 +1415,11 @@ export default function MeetingDetailPage() {
                       Tạo lại danh sách bằng AI
                     </Button>
                   </div>
-
                 </div>
               )}
             </div>
           </div>
         )}
-
-
-        {/* {activeTab === "comments" && !showJoinFlow && (
-          <div className="comments-section">
-            <h3>Bình luận & Feedback</h3>
-            <div className="comments-content">
-              <div className="comment-form">
-                <textarea
-                  placeholder="Viết bình luận hoặc feedback về cuộc họp..."
-                  className="comment-input"
-                />
-                <Button className="comment-submit">Gửi bình luận</Button>
-              </div>
-
-              <div className="comments-list">
-                <div className="comment-item">
-                  <div className="comment-avatar">A</div>
-                  <div className="comment-content">
-                    <div className="comment-header">
-                      <strong>Nguyễn Văn A</strong>
-                      <span className="comment-time">2 giờ trước</span>
-                    </div>
-                    <p>
-                      @Trần Thị B hoàn thành phần báo cáo trước thứ 6 nhé. Cảm
-                      ơn!
-                    </p>
-                  </div>
-                </div>
-
-                <div className="comment-item">
-                  <div className="comment-avatar">B</div>
-                  <div className="comment-content">
-                    <div className="comment-header">
-                      <strong>Trần Thị B</strong>
-                      <span className="comment-time">1 giờ trước</span>
-                    </div>
-                    <p>
-                      Được rồi, tôi sẽ hoàn thành trước thứ 6. Có cần thêm thông
-                      tin gì không?
-                    </p>
-                  </div>
-                </div>
-
-                <div className="comment-item">
-                  <div className="comment-avatar">C</div>
-                  <div className="comment-content">
-                    <div className="comment-header">
-                      <strong>Lê Văn C</strong>
-                      <span className="comment-time">30 phút trước</span>
-                    </div>
-                    <p>
-                      Cuộc họp hôm nay rất hiệu quả. Timeline được thống nhất rõ
-                      ràng.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )} */}
-
         {activeTab === "attachments" && !showJoinFlow && (
           <div className="attachments-section">
             <div className="attachments-header">
@@ -1424,7 +1494,9 @@ export default function MeetingDetailPage() {
             </div>
             <div className="delete-modal-content">
               <p>Bạn có chắc chắn muốn xóa To-do này không?</p>
-              <p className="delete-warning">Hành động này không thể hoàn tác.</p>
+              <p className="delete-warning">
+                Hành động này không thể hoàn tác.
+              </p>
             </div>
             <div className="delete-modal-actions">
               <Button
@@ -1434,10 +1506,7 @@ export default function MeetingDetailPage() {
               >
                 Hủy
               </Button>
-              <Button
-                onClick={handleDeleteTask}
-                className="confirm-delete-btn"
-              >
+              <Button onClick={handleDeleteTask} className="confirm-delete-btn">
                 <Trash2 size={16} />
                 Xóa task
               </Button>
@@ -1456,28 +1525,40 @@ export default function MeetingDetailPage() {
             </div>
 
             {/* Title */}
-            <h3 className="text-lg font-semibold mb-2">Chuyển đổi thành Nhiệm vụ Chính thức?</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              Chuyển đổi thành Nhiệm vụ Chính thức?
+            </h3>
 
             {/* Content */}
             <div className="delete-modal-content mb-4">
               <p>
-                Bạn sắp chuyển đổi <strong>{convertConfirmModal.taskCount} việc cần làm</strong> do AI tạo thành công việc chính thức.
-                Những việc này sẽ được thêm vào trong dự án của bạn và các thành viên liên quan trong nhóm sẽ nhận được thông báo.
+                Bạn sắp chuyển đổi{" "}
+                <strong>{convertConfirmModal.taskCount} việc cần làm</strong> do
+                AI tạo thành công việc chính thức. Những việc này sẽ được thêm
+                vào trong dự án của bạn và các thành viên liên quan trong nhóm
+                sẽ nhận được thông báo.
               </p>
             </div>
 
             {/* Actions */}
             <div className="delete-modal-actions flex gap-2">
-              <Button variant="outline" onClick={handleCancelConvert} className="cancel-btn">
+              <Button
+                variant="outline"
+                onClick={handleCancelConvert}
+                className="cancel-btn"
+              >
                 Hủy
               </Button>
-              <Button onClick={handleConfirmConvert} className="confirm-delete-btn" style={{ background: '#FF5E13' }}>
+              <Button
+                onClick={handleConfirmConvert}
+                className="confirm-delete-btn"
+                style={{ background: "#FF5E13" }}
+              >
                 Xác nhận chuyển đổi
               </Button>
             </div>
           </div>
         </div>
-
       )}
 
       <style jsx>{`
@@ -1650,7 +1731,11 @@ export default function MeetingDetailPage() {
         }
 
         .ai-badge {
-          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%) !important;
+          background: linear-gradient(
+            135deg,
+            #ff8c42 0%,
+            #ff6b1a 100%
+          ) !important;
           color: white !important;
           padding: 4px 12px;
           border-radius: 20px;
@@ -1803,16 +1888,22 @@ export default function MeetingDetailPage() {
         .ai-generated-tasks {
           margin-bottom: 32px;
           padding: 28px;
-          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 50%, #ff8c42 100%);
+          background: linear-gradient(
+            135deg,
+            #fff7ed 0%,
+            #fed7aa 50%,
+            #ff8c42 100%
+          );
           border: 2px solid #ff8c42;
           border-radius: 20px;
-          box-shadow: 0 8px 32px rgba(255, 140, 66, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 8px 32px rgba(255, 140, 66, 0.2),
+            0 2px 8px rgba(0, 0, 0, 0.1);
           position: relative;
           overflow: hidden;
         }
 
         .ai-generated-tasks::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: 0;
@@ -1848,7 +1939,11 @@ export default function MeetingDetailPage() {
         }
 
         .ai-badge {
-          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%) !important;
+          background: linear-gradient(
+            135deg,
+            #ff8c42 0%,
+            #ff6b1a 100%
+          ) !important;
           color: white !important;
           padding: 4px 12px;
           border-radius: 20px;
@@ -1863,14 +1958,15 @@ export default function MeetingDetailPage() {
           background: white;
           border: 2px solid #ff8c42;
           border-radius: 18px;
-          box-shadow: 0 4px 16px rgba(255, 140, 66, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 4px 16px rgba(255, 140, 66, 0.15),
+            0 2px 4px rgba(0, 0, 0, 0.05);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
         }
 
         .ai-task::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: 0;
@@ -1942,7 +2038,6 @@ export default function MeetingDetailPage() {
           box-shadow: 0 8px 24px rgba(34, 197, 94, 0.5) !important;
           transform: translateY(-2px);
         }
-
 
         .create-task-btn:focus {
           background: linear-gradient(135deg, #16a34a, #15803d) !important;
@@ -2028,10 +2123,6 @@ export default function MeetingDetailPage() {
             opacity: 1;
           }
         }
-
-
-
-
 
         .edit-btn {
           border-color: #ff8c42;
@@ -2131,17 +2222,10 @@ export default function MeetingDetailPage() {
 
         .date-field {
           display: flex;
-          align-items: center;
-          gap: 10px;
+          flex-direction: column;
+          gap: 6px;
           flex: 1;
           min-width: 150px;
-          padding: 10px 14px;
-          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-          border: 1px solid #e2e8f0;
-          border-radius: 10px;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-          position: relative;
         }
 
         .assignee-field {
@@ -2159,27 +2243,34 @@ export default function MeetingDetailPage() {
           position: relative;
         }
 
-        .date-field::before, .assignee-field::before {
-          content: '';
+        .date-field::before,
+        .assignee-field::before {
+          content: "";
           position: absolute;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
-          background: linear-gradient(135deg, rgba(245, 158, 11, 0.05), rgba(217, 119, 6, 0.05));
+          background: linear-gradient(
+            135deg,
+            rgba(245, 158, 11, 0.05),
+            rgba(217, 119, 6, 0.05)
+          );
           border-radius: 10px;
           opacity: 0;
           transition: opacity 0.3s ease;
         }
 
-        .date-field:hover, .assignee-field:hover {
+        .date-field:hover,
+        .assignee-field:hover {
           background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
           border-color: #f59e0b;
           box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
           transform: translateY(-2px);
         }
 
-        .date-field:hover::before, .assignee-field:hover::before {
+        .date-field:hover::before,
+        .assignee-field:hover::before {
           opacity: 1;
         }
 
@@ -2192,10 +2283,11 @@ export default function MeetingDetailPage() {
         }
 
         .edit-date {
-          padding: 8px 12px;
+          padding: 10px 12px;
           border: 1px solid #d1d5db;
           border-radius: 8px;
           font-size: 14px;
+          background: white;
           transition: border-color 0.2s;
         }
 
@@ -2205,512 +2297,9 @@ export default function MeetingDetailPage() {
           box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
         }
 
-        .edit-actions {
-          display: flex;
-          gap: 8px;
-          justify-content: flex-end;
-        }
-
-        .save-btn {
-          background: #ff8c42;
-          border-color: #ff8c42;
-          color: white;
-        }
-
-        .save-btn:hover {
-          background: #ff6b1a;
-          border-color: #ff6b1a;
-        }
-
-
-        .task-meta span {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 12px;
-        }
-
-        .overview-section {
-          display: flex;
-          flex-direction: column;
-          gap: 32px;
-        }
-
-        .meeting-info,
-        .project-info,
-        .meeting-stats {
-          background: white;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 24px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .meeting-info h3,
-        .project-info h3,
-        .meeting-stats h3 {
-          margin: 0 0 20px 0;
-          font-size: 20px;
-          font-weight: 700;
-          color: #1e293b;
-          border-bottom: 2px solid #ff8c42;
-          padding-bottom: 8px;
-        }
-
-        .info-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          grid-template-rows: repeat(2, 1fr);
-          gap: 20px;
-        }
-
-        .info-item {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .info-item label {
-          font-weight: 600;
-          color: #374151;
-          font-size: 14px;
-        }
-
-        .info-item p {
-          margin: 0;
-          color: #6b7280;
-          font-size: 15px;
-          line-height: 1.5;
-        }
-
-        .status-badge {
-          display: inline-block;
-          padding: 6px 12px;
-          border-radius: 20px;
-          color: white;
-          font-size: 12px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .meeting-id {
-          font-family: "Courier New", monospace;
-          background: #f3f4f6;
-          padding: 4px 8px;
-          border-radius: 6px;
-          font-size: 13px;
-          color: #374151;
-        }
-
-        .participants {
-          display: flex;
-          flex-wrap: nowrap;
-          gap: 8px;
-        }
-
-        .participant {
-          background: #f0f9ff;
-          color: #0369a1;
-          padding: 4px 12px;
-          border-radius: 16px;
-          font-size: 13px;
-          font-weight: 500;
-          border: 1px solid #bae6fd;
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 20px;
-        }
-
-        .stat-item {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          padding: 20px;
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
-          transition: all 0.3s ease;
-        }
-
-        .stat-item:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          border-color: #ff8c42;
-        }
-
-        .stat-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 48px;
-          height: 48px;
-          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
-          border-radius: 12px;
-          color: white;
-          box-shadow: 0 4px 8px rgba(255, 140, 66, 0.3);
-        }
-
-        .stat-content {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .stat-number {
-          font-size: 24px;
-          font-weight: 700;
-          color: #1e293b;
-        }
-
-        .stat-label {
-          font-size: 14px;
-          color: #64748b;
-          font-weight: 500;
-        }
-
-        @media (max-width: 768px) {
-          .summary {
-            padding: 20px;
-            margin-top: 20px;
-          }
-
-          .summary-header {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 16px;
-          }
-
-          .summary-title {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
-          }
-
-          .ai-actions {
-            align-self: stretch;
-          }
-
-          .generate-tasks-btn {
-            width: 100%;
-            justify-content: center;
-          }
-
-          .summary-stats {
-            flex-direction: column;
-            gap: 16px;
-          }
-
-          .stat-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-          }
-
-          .stat-number {
-            margin-bottom: 0;
-            font-size: 20px;
-          }
-
-          .stat-label {
-            font-size: 14px;
-            text-transform: none;
-            letter-spacing: normal;
-          }
-
-          .ai-generated-tasks {
-            padding: 16px;
-            margin-bottom: 24px;
-          }
-
-          .edit-meta {
-            flex-direction: column;
-            gap: 8px;
-          }
-
-          .edit-select,
-          .edit-date {
-            min-width: auto;
-          }
-
-          .edit-actions {
-            justify-content: stretch;
-          }
-
-          .edit-actions button {
-            flex: 1;
-          }
-
-          .overview-section {
-            gap: 24px;
-          }
-
-          .meeting-info,
-          .project-info,
-          .meeting-stats {
-            padding: 20px;
-          }
-
-          .info-grid {
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-
-          .stats-grid {
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-
-          .stat-item {
-            padding: 16px;
-          }
-
-          .participants {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-        }
-
-        .task-number {
-          display: inline-block;
-          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
-          color: white;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          text-align: center;
-          line-height: 24px;
-          font-size: 12px;
-          font-weight: 700;
-          margin-right: 12px;
-          flex-shrink: 0;
-          box-shadow: 0 2px 4px rgba(255, 140, 66, 0.3);
-        }
-
-        /* Delete Confirmation Modal */
-        .delete-modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 9999;
-          backdrop-filter: blur(4px);
-        }
-
-        .delete-modal {
-          background: white;
-          border-radius: 16px;
-          padding: 24px;
-          max-width: 400px;
-          width: 90%;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-          animation: modalSlideIn 0.3s ease-out;
-        }
-
-        @keyframes modalSlideIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95) translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-
-        .delete-modal-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 16px;
-        }
-
-        .delete-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 48px;
-          height: 48px;
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-          border-radius: 12px;
-          color: white;
-          box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
-        }
-
-        .delete-modal-header h3 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 700;
-          color: #1e293b;
-        }
-
-        .delete-modal-content {
-          margin-bottom: 24px;
-        }
-
-        .delete-modal-content p {
-          margin: 0 0 8px 0;
-          color: #64748b;
-          line-height: 1.5;
-        }
-
-        .delete-warning {
-          color: #ef4444 !important;
-          font-weight: 600;
-          font-size: 14px;
-        }
-
-        .delete-modal-actions {
-          display: flex;
-          gap: 12px;
-          justify-content: flex-end;
-        }
-
-        .cancel-btn {
-          border-color: #d1d5db;
-          color: #6b7280;
-        }
-
-        .cancel-btn:hover {
-          background: #f9fafb;
-          border-color: #9ca3af;
-        }
-
-        .confirm-delete-btn {
-          background: #ef4444;
-          border-color: #ef4444;
-          color: white;
-        }
-
-        .confirm-delete-btn:hover {
-          background: #dc2626;
-          border-color: #dc2626;
-        }
-
-        /* Task Status Badge */
-        .task-status-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          margin-left: 12px;
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-size: 11px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .task-status-badge.created {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          color: white;
-          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-        }
-
-        /* Create Task Button */
-        .create-task-btn {
-          border-color: #16a34a !important;
-          color: white !important;
-          background: linear-gradient(135deg, #22c55e, #16a34a) !important;
-        }
-
-        .create-task-btn:hover {
-          background: linear-gradient(135deg, #16a34a, #15803d) !important;
-          border-color: #15803d !important;
-          color: white !important;
-          transform: translateY(-2px) !important;
-          box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4) !important;
-        }
-
-        /* Clickable Task */
-        .clickable-task {
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .clickable-task:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2);
-        }
-
-        .clickable-task:hover .task-header {
-          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
-        }
-
-        .task-content {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 16px;
-        }
-
-        /* Tasks Loading */
-        .tasks-loading {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-          padding: 24px;
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-          border: 1px solid #f59e0b;
-          border-radius: 12px;
-          color: #92400e;
-          font-weight: 600;
-        }
-
-        .edit-meta {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .meta-row {
-          display: flex;
-          gap: 16px;
-          flex-wrap: nowrap;
-        }
-
-        .meta-field {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          flex: 1;
-          min-width: 150px;
-        }
-
-        .meta-field label {
-          font-size: 12px;
-          font-weight: 600;
-          color: #374151;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .edit-select {
-          padding: 8px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          font-size: 14px;
-          transition: border-color 0.2s;
-          background: white;
-        }
-
-        .edit-select:focus {
-          outline: none;
-          border-color: #ff8c42;
-          box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+        .edit-date::placeholder {
+          color: #9ca3af;
+          font-style: italic;
         }
 
         .task-meta {
@@ -2727,9 +2316,8 @@ export default function MeetingDetailPage() {
         .task-meta span {
           display: flex;
           align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          color: #64748b;
+          gap: 4px;
+          font-size: 12px;
         }
 
         .task-meta strong {
@@ -2745,14 +2333,15 @@ export default function MeetingDetailPage() {
           border-radius: 20px;
           padding: 0;
           margin-bottom: 20px;
-          box-shadow: 0 6px 20px rgba(245, 158, 11, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 6px 20px rgba(245, 158, 11, 0.15),
+            0 2px 4px rgba(0, 0, 0, 0.05);
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           overflow: hidden;
           position: relative;
         }
 
         .enhanced-task::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: 0;
@@ -2836,340 +2425,6 @@ export default function MeetingDetailPage() {
           height: 28px;
           border-radius: 50%;
           overflow: hidden;
-          flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
-        }
-
-        .avatar-img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .avatar-placeholder {
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(135deg, #1e3a8a, #3b82f6, #8b5cf6);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
-        }
-
-        .assignee-content {
-          display: flex;
-          flex-direction: column;
-          flex: 1;
-          gap: 4px;
-          width: 100%;
-          min-width: 0;
-        }
-
-        .assignee-label {
-          font-size: 12px;
-          font-weight: 600;
-          color: #1e3a8a;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 2px;
-        }
-
-        .assignee-select {
-          border: none;
-          background: transparent;
-          font-size: 15px;
-          font-weight: 500;
-          color: #1f2937;
-          outline: none;
-          flex: 1;
-          padding: 4px 6px;
-          line-height: 1.4;
-          cursor: pointer;
-          width: 100%;
-          z-index: 10;
-          position: relative;
-        }
-
-        .assignee-select:focus {
-          outline: 2px solid #3b82f6;
-          outline-offset: 2px;
-          border-radius: 4px;
-        }
-
-        .assignee-select option {
-          padding: 8px 12px;
-          background: white;
-          color: #1f2937;
-        }
-
-        .assignee-select option:hover {
-          background: #f3f4f6;
-        }
-
-        .date-icon {
-          width: 28px;
-          height: 28px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          flex-shrink: 0;
-          background: linear-gradient(135deg, #ff8c42, #ff6b1a);
-          border-radius: 8px;
-          padding: 4px;
-          box-shadow: 0 2px 6px rgba(255, 140, 66, 0.3);
-        }
-
-        .date-picker {
-          border: none;
-          background: transparent;
-          font-size: 15px;
-          font-weight: 500;
-          color: #1f2937;
-          outline: none;
-          flex: 1;
-          padding: 4px 30px 4px 6px;
-          line-height: 1.4;
-          position: relative;
-          cursor: pointer;
-          width: 100%;
-        }
-
-        .date-picker::placeholder {
-          color: #9ca3af;
-          font-style: italic;
-        }
-
-        .date-input-wrapper {
-          display: flex;
-          flex-direction: column;
-          flex: 1;
-          gap: 4px;
-          width: 100%;
-          min-width: 0;
-        }
-
-        .date-label {
-          font-size: 12px;
-          font-weight: 600;
-          color: #1e3a8a;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-bottom: 2px;
-        }
-
-        .date-picker::-webkit-calendar-picker-indicator {
-          opacity: 1;
-          position: absolute;
-          right: 8px;
-          width: 24px;
-          height: 24px;
-          cursor: pointer;
-          background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'/%3e%3c/svg%3e") no-repeat center;
-          background-size: 18px 18px;
-          z-index: 2;
-        }
-
-        /* New Input Fields */
-        .task-title-input {
-          width: 100%;
-          padding: 12px 30px 12px 20px; /* Increased right padding */
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          font-size: 15px;
-          font-weight: 500;
-          background: white;
-          color: #1f2937;
-          height: 44px;
-          transition: all 0.3s ease;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          line-height: 1.4;
-        }
-
-        .task-title-input:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .task-description-input {
-          width: 100%;
-          padding: 12px 24px 12px 20px; /* Increased right padding */
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 400;
-          background: white;
-          color: #1f2937;
-          min-height: 60px;
-          resize: vertical;
-          transition: all 0.3s ease;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-          font-family: inherit;
-          line-height: 1.5;
-        }
-
-        .task-description-input:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        /* Responsive Design for New Todo Layout */
-        @media (max-width: 768px) {
-          .task-header {
-            padding: 12px;
-            gap: 12px;
-            flex-direction: column;
-            border-radius: 6px;
-          }
-
-          .task-content {
-            gap: 8px;
-            padding: 2px 0;
-          }
-
-          .task-details-row {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 8px;
-            align-items: stretch;
-            padding: 2px 0;
-            width: 100%;
-          }
-
-          .detail-field {
-            min-width: auto;
-            width: 100%;
-            padding: 6px 10px;
-            gap: 8px;
-            min-height: 36px;
-            box-sizing: border-box;
-          }
-
-          .assignee-field, .date-field {
-            min-width: auto;
-            grid-column: 1;
-            width: 100%;
-          }
-
-          .date-field:first-of-type,
-          .date-field:last-of-type {
-            grid-column: 1;
-          }
-
-          .assignee-content,
-          .date-input-wrapper {
-            width: 100%;
-            min-width: 0;
-          }
-
-          .task-number {
-            width: 36px;
-            height: 36px;
-            font-size: 14px;
-            margin-top: 0;
-            align-self: flex-start;
-          }
-
-          .task-actions {
-            margin-top: 0;
-            justify-content: center;
-            gap: 10px;
-          }
-
-          .task-actions button {
-            min-width: 32px;
-            height: 32px;
-            padding: 6px 10px;
-          }
-
-          .task-title-input {
-            font-size: 14px;
-            padding: 10px 20px 10px 18px; /* Increased right padding for mobile */
-            height: 40px;
-            line-height: 1.4;
-          }
-
-          .task-description-input {
-            font-size: 13px;
-            padding: 10px 20px 10px 18px; /* Increased right padding for mobile */
-            min-height: 50px;
-            line-height: 1.5;
-          }
-
-          .assignee-avatar {
-            width: 24px;
-            height: 24px;
-          }
-
-          .date-icon {
-            width: 24px;
-            height: 24px;
-            padding: 3px;
-          }
-
-          .assignee-select, .date-picker {
-            font-size: 14px;
-            padding: 3px 5px;
-            line-height: 1.4;
-          }
-        }
-
-        .task-status {
-          display: flex;
-          align-items: center;
-        }
-
-        .status-badge {
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-size: 11px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          white-space: nowrap;
-        }
-
-        .status-in-progress {
-          background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-          color: white;
-        }
-
-        .status-completed {
-          background: linear-gradient(135deg, #10b981, #059669);
-          color: white;
-        }
-
-        .status-review {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-          color: white;
-        }
-
-        .status-pending {
-          background: linear-gradient(135deg, #6b7280, #4b5563);
-          color: white;
-        }
-
-        .task-description-field {
-          width: 100%;
-          margin-top: 4px;
-        }
-
-        .task-details-horizontal {
-          display: flex;
-          gap: 16px;
-          flex-wrap: wrap;
-          align-items: center;
-          margin-top: 8px;
-        }
-
-        .assignee-avatar {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          overflow: hidden;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -3227,7 +2482,7 @@ export default function MeetingDetailPage() {
         }
 
         .task-header::after {
-          content: '';
+          content: "";
           position: absolute;
           bottom: 0;
           left: 0;
@@ -3255,7 +2510,7 @@ export default function MeetingDetailPage() {
         }
 
         .task-number::before {
-          content: '';
+          content: "";
           position: absolute;
           top: -1px;
           left: -1px;
@@ -3352,7 +2607,7 @@ export default function MeetingDetailPage() {
           justify-content: center;
           width: 32px;
           height: 32px;
-          background: linear-gradient(135deg, #ff8c42 0%, #ff6b1a 100%);
+          background: linear-gradient(135deg, #ff8c42, #ff6b1a 100%);
           border-radius: 8px;
           color: white;
           flex-shrink: 0;
@@ -3433,7 +2688,8 @@ export default function MeetingDetailPage() {
           margin-bottom: 16px;
         }
 
-        .task-title-input, .task-description-input {
+        .task-title-input,
+        .task-description-input {
           width: 100%;
           padding: 8px 12px;
           border: 1px solid #e5e7eb;
@@ -3470,7 +2726,8 @@ export default function MeetingDetailPage() {
           box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
         }
 
-        .task-title-input:focus, .task-description-input:focus {
+        .task-title-input:focus,
+        .task-description-input:focus {
           outline: none;
           border-color: #ff8c42;
           box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
@@ -3637,7 +2894,8 @@ export default function MeetingDetailPage() {
             gap: 12px;
           }
 
-          .date-field, .assignee-field {
+          .date-field,
+          .assignee-field {
             min-width: 100%;
           }
 

@@ -1,6 +1,5 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { getAccessToken, getRefreshToken, clearAllAuthData } from '@/lib/auth';
-import { isTokenExpired, isTokenExpiringSoon } from '@/lib/jwt';
+import axios, { AxiosError } from 'axios';
+import { getAccessToken, clearAllAuthData } from '@/lib/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7129/api/v1";
 
@@ -9,105 +8,35 @@ export const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true, // Enable credentials to include httpOnly cookies
 });
 
-// Flag to prevent multiple refresh attempts
-let isRefreshing = false;
-let failedQueue: Array<{
-    resolve: (value?: any) => void;
-    reject: (error?: any) => void;
-}> = [];
-
-// Track refresh token attempts to avoid infinite loops
-let refreshAttempts = 0;
-const MAX_REFRESH_ATTEMPTS = 3;
-
-const processQueue = (error: any, token: string | null = null) => {
-    failedQueue.forEach(({ resolve, reject }) => {
-        if (error) {
-            reject(error);
-        } else {
-            resolve(token);
-        }
-    });
-    
-    failedQueue = [];
-};
 
 // Add request interceptor
 api.interceptors.request.use(
     async (config) => {
         const token = getAccessToken();
         
+        // Check JWT expiration
         if (token) {
-            // Check if token is expired or expiring soon
-            if (isTokenExpired(token)) {
-                console.log('Token is expired, attempting refresh...');
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const exp = payload.exp * 1000; // Convert to milliseconds
+                const now = Date.now();
+                const timeLeft = exp - now;
                 
-                // Check if we've exceeded max refresh attempts
-                if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
-                    console.log('Max refresh attempts exceeded, clearing auth data');
-                    clearAllAuthData();
-                    return config;
+                if (timeLeft < 0) {
+                    // Token is expired
+                } else if (timeLeft < 60000) { // Less than 1 minute
+                    // Token expires soon
                 }
-                
-                try {
-                    const refreshToken = getRefreshToken();
-                    if (refreshToken) {
-                        refreshAttempts++;
-                        console.log('=== REQUEST TO BACKEND DEBUG ===');
-                        console.log('URL:', `${API_URL}/auth/refresh-token`);
-                        console.log('Method: POST');
-                        console.log('Headers:', { 'Content-Type': 'application/json' });
-                        console.log('Body:', { refreshToken });
-                        console.log('Full refresh token:', refreshToken);
-                        console.log('Refresh token length:', refreshToken.length);
-                        console.log('================================');
-                        
-                        const response = await axios.post(`${API_URL}/auth/refresh-token`, { refreshToken });
-                        console.log('Refresh token response:', response.data);
-                        
-                        if (response.data.success && response.data.data) {
-                            const newToken = response.data.data.accessToken;
-                            localStorage.setItem('accessToken', newToken);
-                            config.headers.Authorization = `Bearer ${newToken}`;
-                            refreshAttempts = 0; // Reset attempts on success
-                        } else {
-                            // Refresh failed, don't redirect here - let response interceptor handle it
-                            console.log('Refresh failed in request interceptor:', response.data);
-                            clearAllAuthData();
-                        }
-                    } else {
-                        console.log('No refresh token available');
-                        clearAllAuthData();
-                    }
-                } catch (error: any) {
-                    console.log('Refresh error in request interceptor:', error.response?.data || error.message);
-                    clearAllAuthData();
-                    // Don't proceed with the request if refresh failed
-                    return Promise.reject(error);
-                }
-            } else if (isTokenExpiringSoon(token, 5)) {
-                // Token is expiring soon, try to refresh in background
-                const refreshToken = getRefreshToken();
-                if (refreshToken && !isRefreshing) {
-                    isRefreshing = true;
-                    try {
-                        const response = await axios.post(`${API_URL}/auth/refresh-token`, { refreshToken });
-                        if (response.data.success && response.data.data) {
-                            const newToken = response.data.data.accessToken;
-                            localStorage.setItem('accessToken', newToken);
-                            config.headers.Authorization = `Bearer ${newToken}`;
-                        }
-                    } catch (error) {
-                        console.log('Background token refresh failed');
-                    } finally {
-                        isRefreshing = false;
-                    }
-                }
-            } else {
-                config.headers.Authorization = `Bearer ${token}`;
+            } catch (error) {
+                // Error parsing JWT
             }
+        }
+        
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
         }
         
         return config;
@@ -118,60 +47,114 @@ api.interceptors.request.use(
 );
 
 // Add response interceptor
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    
+    failedQueue = [];
+};
+
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        return response;
+    },
     async (error: AxiosError) => {
-        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+        const originalRequest = error.config as any;
         
+        // Handle 401 errors - try to refresh token first
         if (error.response?.status === 401 && !originalRequest._retry) {
             if (isRefreshing) {
                 // If already refreshing, queue this request
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
-                }).then(() => {
+                }).then(token => {
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
                     return api(originalRequest);
-                }).catch((err) => {
+                }).catch(err => {
                     return Promise.reject(err);
                 });
             }
-
+            
             originalRequest._retry = true;
             isRefreshing = true;
-
+            
             try {
-                const refreshToken = getRefreshToken();
-                if (!refreshToken) {
-                    throw new Error('No refresh token available');
+                // Call refresh token endpoint (send refreshToken in body)
+                
+                // Get refreshToken from cookies (not localStorage anymore)
+                const cookieToken = document.cookie
+                    .split(';')
+                    .find(cookie => cookie.trim().startsWith('refreshToken='))
+                    ?.split('=')[1];
+                
+                // Fix base64 padding if missing
+                let refreshToken = cookieToken;
+                if (refreshToken) {
+                    // Decode URL-encoded characters first
+                    refreshToken = decodeURIComponent(refreshToken);
+                    
+                    // Add padding if missing
+                    while (refreshToken.length % 4) {
+                        refreshToken += '=';
+                    }
                 }
-
-                console.log('=== RESPONSE INTERCEPTOR REQUEST DEBUG ===');
-                console.log('URL:', `${API_URL}/auth/refresh-token?refreshToken=${refreshToken}`);
-                console.log('Method: POST');
-                console.log('Headers:', { 'Content-Type': 'application/json' });
-                console.log('Query param refreshToken:', refreshToken);
-                console.log('Full refresh token:', refreshToken);
-                console.log('Refresh token length:', refreshToken.length);
-                console.log('==========================================');
                 
-                const response = await axios.post(`${API_URL}/auth/refresh-token?refreshToken=${refreshToken}`);
+                const refreshResponse = await axios.post(`${API_URL}/auth/refresh-token`, { 
+                    refreshToken: refreshToken 
+                }, {
+                    withCredentials: true // Ensure httpOnly cookies are sent
+                });
                 
-                if (response.data.success && response.data.data) {
-                    const newToken = response.data.data.accessToken;
-                    localStorage.setItem('accessToken', newToken);
+                if (refreshResponse.data.success && refreshResponse.data.data) {
+                    const newAccessToken = refreshResponse.data.data.accessToken;
+                    const newRefreshToken = refreshResponse.data.data.refreshToken;
+                    
+                    // Update accessToken in localStorage
+                    localStorage.setItem('accessToken', newAccessToken);
+                    
+                    // Update refreshToken in cookies with JWT expiration
+                    try {
+                        const decodedRefreshToken = JSON.parse(atob(newRefreshToken.split('.')[1]));
+                        if (decodedRefreshToken && decodedRefreshToken.exp) {
+                            const refreshExpires = new Date(decodedRefreshToken.exp * 1000).toUTCString();
+                            document.cookie = `refreshToken=${newRefreshToken}; expires=${refreshExpires}; path=/; secure; samesite=strict`;
+                        } else {
+                            // Fallback to longer expiration for refresh token (7 days)
+                            const refreshMaxAge = 7 * 24 * 60 * 60; // 7 days
+                            document.cookie = `refreshToken=${newRefreshToken}; max-age=${refreshMaxAge}; path=/; secure; samesite=strict`;
+                        }
+                    } catch (error) {
+                        // If refreshToken is not a JWT, use longer expiration (7 days)
+                        const refreshMaxAge = 7 * 24 * 60 * 60; // 7 days
+                        document.cookie = `refreshToken=${newRefreshToken}; max-age=${refreshMaxAge}; path=/; secure; samesite=strict`;
+                    }
                     
                     // Update the original request with new token
                     if (originalRequest.headers) {
-                        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                     }
                     
-                    processQueue(null, newToken);
+                    // Process queued requests
+                    processQueue(null, newAccessToken);
+                    
+                    // Retry the original request
                     return api(originalRequest);
                 } else {
-                    throw new Error('Token refresh failed');
+                    throw new Error('Refresh token failed - invalid response');
                 }
-            } catch (refreshError: any) {
-                console.log('Refresh error in response interceptor:', refreshError.response?.data || refreshError.message);
+            } catch (refreshError) {
+                // Process queued requests with error
                 processQueue(refreshError, null);
+                
+                // Clear auth data and redirect to login
                 clearAllAuthData();
                 window.location.href = '/sign-in';
                 return Promise.reject(refreshError);
@@ -182,7 +165,7 @@ api.interceptors.response.use(
         
         // Handle other errors
         if (error.response?.status === 403) {
-            console.log('Access forbidden - insufficient permissions');
+            // Access forbidden - insufficient permissions
         }
         
         return Promise.reject(error);

@@ -1,24 +1,9 @@
 import { api } from './api';
 import type { LoginCredentials, RegisterData, LoginResponse, ApiResponse, User, AuthTokens } from '@/types/auth';
-import { clearAllAuthData, getRefreshToken, setTokens, getCurrentUser } from '@/lib/auth';
+import { clearAllAuthData, setTokens, getCurrentUser } from '@/lib/auth';
 import { extractUserFromToken } from '@/lib/jwt';
 import { normalizeRole } from '@/lib/rbac';
 
-// Helper function to validate refresh token before making API call
-const validateRefreshToken = (refreshToken: string): boolean => {
-    if (!refreshToken || refreshToken.trim() === '') {
-        console.log('Refresh token is empty or null');
-        return false;
-    }
-    
-    // Check if refresh token has minimum length (base64 encoded tokens are usually longer)
-    if (refreshToken.length < 20) {
-        console.log('Refresh token seems too short');
-        return false;
-    }
-    
-    return true;
-};
 
 // Helper function to process login response and extract user data
 const processLoginResponse = (loginData: LoginResponse, rememberMe: boolean = false) => {
@@ -136,12 +121,6 @@ export const authService = {
         }
     },
 
-    async refreshToken(): Promise<{ success: boolean; tokens?: AuthTokens; error?: string }> {
-        // Refresh token is now handled by api.ts interceptors
-        // This function is kept for backward compatibility but does nothing
-        console.log('refreshToken called - handled by api.ts interceptors');
-        return { success: false, error: 'Refresh token handled by api interceptors' };
-    },
 
     async logout(): Promise<{ success: boolean; message: string }> {
         try {
@@ -247,32 +226,5 @@ export const authService = {
         }
     },
 
-    // Debug function to test refresh token directly
-    async debugRefreshToken(): Promise<{ success: boolean; data?: any; error?: string }> {
-        try {
-            const refreshToken = getRefreshToken();
-            console.log('Debug - Refresh token:', refreshToken);
-            console.log('Debug - Refresh token length:', refreshToken?.length);
-            console.log('Debug - Refresh token type:', typeof refreshToken);
-            
-            if (!refreshToken) {
-                return { success: false, error: 'No refresh token found' };
-            }
-
-            // Test with direct axios call to avoid interceptors
-            const axios = require('axios');
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7129/api/v1";
-            
-            const response = await axios.post(`${API_URL}/auth/refresh-token`, { refreshToken });
-            console.log('Debug - Direct API response:', response.data);
-            
-            return { success: true, data: response.data };
-        } catch (error: any) {
-            console.error('Debug - Refresh token error:', error.response?.data || error.message);
-            return {
-                success: false,
-                error: error.response?.data?.message || error.message || 'Debug refresh failed'
-            };
-        }
-    }
 };
+
