@@ -23,17 +23,25 @@ export const getAccessToken = (): string | null => {
 export const getRefreshToken = (): string | null => {
   if (typeof window === 'undefined') return null;
   
-  // Get refreshToken from localStorage (needed for API calls)
-  const localToken = localStorage.getItem('refreshToken');
-  if (localToken) return localToken;
-  
-  // Fallback: try to get from cookies (if not httpOnly)
+  // Get refreshToken from cookies only (not localStorage)
   const cookieToken = document.cookie
     .split(';')
     .find(cookie => cookie.trim().startsWith('refreshToken='))
     ?.split('=')[1];
+  
+  // Fix base64 padding if missing (add == if needed)
+  let fixedToken = cookieToken;
+  if (fixedToken) {
+    // Decode URL-encoded characters first
+    fixedToken = decodeURIComponent(fixedToken);
     
-  return cookieToken || null;
+    // Add padding if missing
+    while (fixedToken.length % 4) {
+      fixedToken += '=';
+    }
+  }
+    
+  return fixedToken || null;
 };
 
 export const setTokens = (tokens: AuthTokens, rememberMe: boolean = false): void => {
@@ -42,15 +50,29 @@ export const setTokens = (tokens: AuthTokens, rememberMe: boolean = false): void
   // Store accessToken in localStorage
   localStorage.setItem('accessToken', tokens.accessToken);
   
-  // Store refreshToken in localStorage (needed for refresh token API call)
-  localStorage.setItem('refreshToken', tokens.refreshToken);
-  
   // Store accessToken in cookies for middleware
   const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60; // 30 days or 1 day
   document.cookie = `accessToken=${tokens.accessToken}; max-age=${maxAge}; path=/; secure; samesite=strict`;
   
+  // Store refreshToken in cookies with its JWT expiration
+  try {
+    const decodedRefreshToken = decodeJwtToken(tokens.refreshToken);
+    if (decodedRefreshToken && decodedRefreshToken.exp) {
+      const refreshExpires = new Date(decodedRefreshToken.exp * 1000).toUTCString();
+      document.cookie = `refreshToken=${tokens.refreshToken}; expires=${refreshExpires}; path=/; secure; samesite=strict`;
+    } else {
+      // Fallback to longer expiration for refresh token (7 days)
+      const refreshMaxAge = 7 * 24 * 60 * 60; // 7 days
+      document.cookie = `refreshToken=${tokens.refreshToken}; max-age=${refreshMaxAge}; path=/; secure; samesite=strict`;
+    }
+  } catch (error) {
+    // If refreshToken is not a JWT, use longer expiration (7 days)
+    const refreshMaxAge = 7 * 24 * 60 * 60; // 7 days
+    document.cookie = `refreshToken=${tokens.refreshToken}; max-age=${refreshMaxAge}; path=/; secure; samesite=strict`;
+  }
+  
   // Note: refreshToken is also stored in httpOnly cookies by backend
-  // But we also store it in localStorage for API calls
+  // But we also store it in regular cookies for frontend access
 };
 
 export const setAccessToken = (token: string, rememberMe: boolean = false): void => {
@@ -67,9 +89,8 @@ export const setAccessToken = (token: string, rememberMe: boolean = false): void
 export const removeTokens = (): void => {
   if (typeof window === 'undefined') return;
   
-  // Remove from localStorage
+  // Remove from localStorage (only accessToken, refreshToken is now in cookies only)
   localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
   
   // Remove from cookies
   document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
@@ -156,9 +177,8 @@ export const getCurrentUser = (): User | null => {
 export const clearAllAuthData = (): void => {
   if (typeof window === 'undefined') return;
   
-  // Clear localStorage
+  // Clear localStorage (only accessToken, refreshToken is now in cookies only)
   localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
   localStorage.removeItem('rememberedEmail');
   localStorage.removeItem('user-storage');
   
