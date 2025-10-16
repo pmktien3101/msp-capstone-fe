@@ -12,12 +12,14 @@ import { projectService } from "@/services/projectService";
 import { milestoneService } from "@/services/milestoneService";
 import { meetingService } from "@/services/meetingService";
 import { MeetingItem } from "@/types/meeting";
+import { Call } from "@stream-io/video-react-sdk";
 
 interface UpdateMeetingModalProps {
   meeting: MeetingItem;
   onClose: () => void;
   onUpdated?: () => void;
   requireProjectSelection?: boolean;
+  call?: Call; // Thêm dòng này
 }
 
 interface ProjectMemberResponse {
@@ -49,6 +51,7 @@ export const UpdateMeetingModal = ({
   onClose,
   onUpdated,
   requireProjectSelection = false,
+  call,
 }: UpdateMeetingModalProps) => {
   const initialData = {
     title: meeting?.title || "",
@@ -193,7 +196,26 @@ export const UpdateMeetingModal = ({
           dbResult.error || "Cập nhật meeting thất bại ở database"
         );
       }
+      // 2. Update meeting in Stream call
+      await call?.update({
+        custom: {
+          title: title.trim(),
+          description: description.trim(),
+          participants: selectedParticipants,
+          milestoneId: milestoneId || null,
+          projectId: requireProjectSelection
+            ? selectedProjectId
+            : call?.state?.custom?.projectId,
+        },
+        starts_at: dateTime?.toISOString(),
+      });
 
+      await call?.updateCallMembers({
+        update_members: selectedParticipants.map((id) => ({
+          user_id: id,
+          role: "call_member",
+        })),
+      });
       toast.success("Đã cập nhật cuộc họp");
       onUpdated?.();
       onClose();

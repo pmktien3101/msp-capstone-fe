@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import { Eye, Pencil, Trash, Plus } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useEffect } from "react";
+import { useStreamVideoClient } from "@stream-io/video-react-sdk";
 
 interface MeetingTabProps {
   project: Project;
@@ -42,6 +43,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingItem | null>(
     null
   );
+  const [callInstance, setCallInstance] = useState<any>(null);
+  const client = useStreamVideoClient();
 
   const {
     meetings: backendMeetings,
@@ -115,6 +118,12 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
 
   const handleEdit = (meeting: MeetingItem) => {
     setSelectedMeeting(meeting);
+    if (client) {
+      const call = client.call("default", meeting.id);
+      setCallInstance(call);
+    } else {
+      setCallInstance(null);
+    }
     setShowUpdateModal(true);
   };
 
@@ -414,8 +423,10 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           onClose={() => {
             setShowUpdateModal(false);
             setSelectedMeeting(null);
+            setCallInstance(null);
           }}
           onUpdated={async () => await refetchCalls()}
+          call={callInstance} // truyền call xuống modal
         />
       )}
     </div>
