@@ -1294,7 +1294,11 @@ const MeetingsPage = () => {
         <CreateMeetingModal
           onClose={handleCloseCreateModal}
           onCreated={handleCreateMeeting}
-          requireProjectSelection={true}
+          projectId={
+            selectedProject === "all"
+              ? mockProjects[0]?.id ?? ""
+              : selectedProject
+          }
         />
       )}
 
