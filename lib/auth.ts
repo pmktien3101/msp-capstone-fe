@@ -23,11 +23,11 @@ export const getAccessToken = (): string | null => {
 export const getRefreshToken = (): string | null => {
   if (typeof window === 'undefined') return null;
   
-  // Try localStorage first
+  // Get refreshToken from localStorage (needed for API calls)
   const localToken = localStorage.getItem('refreshToken');
   if (localToken) return localToken;
   
-  // Try cookies
+  // Fallback: try to get from cookies (if not httpOnly)
   const cookieToken = document.cookie
     .split(';')
     .find(cookie => cookie.trim().startsWith('refreshToken='))
@@ -39,14 +39,18 @@ export const getRefreshToken = (): string | null => {
 export const setTokens = (tokens: AuthTokens, rememberMe: boolean = false): void => {
   if (typeof window === 'undefined') return;
   
-  // Store in localStorage
+  // Store accessToken in localStorage
   localStorage.setItem('accessToken', tokens.accessToken);
+  
+  // Store refreshToken in localStorage (needed for refresh token API call)
   localStorage.setItem('refreshToken', tokens.refreshToken);
   
-  // Store in cookies for middleware
+  // Store accessToken in cookies for middleware
   const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60; // 30 days or 1 day
   document.cookie = `accessToken=${tokens.accessToken}; max-age=${maxAge}; path=/; secure; samesite=strict`;
-  document.cookie = `refreshToken=${tokens.refreshToken}; max-age=${maxAge}; path=/; secure; samesite=strict`;
+  
+  // Note: refreshToken is also stored in httpOnly cookies by backend
+  // But we also store it in localStorage for API calls
 };
 
 export const setAccessToken = (token: string, rememberMe: boolean = false): void => {
@@ -88,8 +92,9 @@ export const isAuthenticated = (): boolean => {
   const token = getAccessToken();
   if (!token) return false;
   
-  // Use comprehensive token validation (includes iat check)
-  if (!isTokenValid(token)) {
+  // Only check if token exists and has valid format, not if it's expired
+  // Token expiration will be handled by API interceptor for refresh
+  if (!isValidJwtFormat(token)) {
     return false;
   }
   
@@ -110,7 +115,11 @@ export const getCurrentUser = (): User | null => {
   if (typeof window === 'undefined') return null;
   
   const token = getAccessToken();
-  if (!token || isTokenExpired(token)) return null;
+  if (!token) return null;
+  
+  // Only check if token has valid format, not if it's expired
+  // Token expiration will be handled by API interceptor for refresh
+  if (!isValidJwtFormat(token)) return null;
   
   // Try to get user from token first
   const userFromToken = extractUserFromToken(token);

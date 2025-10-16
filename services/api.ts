@@ -1,6 +1,5 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { getAccessToken, getRefreshToken, clearAllAuthData } from '@/lib/auth';
-import { isTokenExpired, isTokenExpiringSoon } from '@/lib/jwt';
+import axios, { AxiosError } from 'axios';
+import { getAccessToken, clearAllAuthData } from '@/lib/auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7129/api/v1";
 
@@ -9,105 +8,60 @@ export const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true, // Enable credentials to include httpOnly cookies
 });
 
-// Flag to prevent multiple refresh attempts
-let isRefreshing = false;
-let failedQueue: Array<{
-    resolve: (value?: any) => void;
-    reject: (error?: any) => void;
-}> = [];
-
-// Track refresh token attempts to avoid infinite loops
-let refreshAttempts = 0;
-const MAX_REFRESH_ATTEMPTS = 3;
-
-const processQueue = (error: any, token: string | null = null) => {
-    failedQueue.forEach(({ resolve, reject }) => {
-        if (error) {
-            reject(error);
-        } else {
-            resolve(token);
-        }
-    });
-    
-    failedQueue = [];
-};
 
 // Add request interceptor
 api.interceptors.request.use(
     async (config) => {
         const token = getAccessToken();
         
+        console.log('🔍 REQUEST INTERCEPTOR - URL:', config.url);
+        console.log('🔍 REQUEST INTERCEPTOR - Token exists:', !!token);
+        console.log('🔍 REQUEST INTERCEPTOR - Token preview:', token?.substring(0, 50) + '...');
+        
+        // Check JWT expiration
         if (token) {
-            // Check if token is expired or expiring soon
-            if (isTokenExpired(token)) {
-                console.log('Token is expired, attempting refresh...');
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const exp = payload.exp * 1000; // Convert to milliseconds
+                const now = Date.now();
+                const timeLeft = exp - now;
+                const minutesLeft = Math.floor(timeLeft / 60000);
                 
-                // Check if we've exceeded max refresh attempts
-                if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
-                    console.log('Max refresh attempts exceeded, clearing auth data');
-                    clearAllAuthData();
-                    return config;
-                }
+                console.log('🕐 JWT EXPIRATION CHECK:');
+                console.log('🕐 Expires at:', new Date(exp).toLocaleString());
+                console.log('🕐 Current time:', new Date(now).toLocaleString());
+                console.log('🕐 Time left:', minutesLeft, 'minutes');
+                console.log('🕐 Is expired:', timeLeft < 0);
                 
-                try {
-                    const refreshToken = getRefreshToken();
-                    if (refreshToken) {
-                        refreshAttempts++;
-                        console.log('=== REQUEST TO BACKEND DEBUG ===');
-                        console.log('URL:', `${API_URL}/auth/refresh-token`);
-                        console.log('Method: POST');
-                        console.log('Headers:', { 'Content-Type': 'application/json' });
-                        console.log('Body:', { refreshToken });
-                        console.log('Full refresh token:', refreshToken);
-                        console.log('Refresh token length:', refreshToken.length);
-                        console.log('================================');
-                        
-                        const response = await axios.post(`${API_URL}/auth/refresh-token`, { refreshToken });
-                        console.log('Refresh token response:', response.data);
-                        
-                        if (response.data.success && response.data.data) {
-                            const newToken = response.data.data.accessToken;
-                            localStorage.setItem('accessToken', newToken);
-                            config.headers.Authorization = `Bearer ${newToken}`;
-                            refreshAttempts = 0; // Reset attempts on success
-                        } else {
-                            // Refresh failed, don't redirect here - let response interceptor handle it
-                            console.log('Refresh failed in request interceptor:', response.data);
-                            clearAllAuthData();
-                        }
-                    } else {
-                        console.log('No refresh token available');
-                        clearAllAuthData();
-                    }
-                } catch (error: any) {
-                    console.log('Refresh error in request interceptor:', error.response?.data || error.message);
-                    clearAllAuthData();
-                    // Don't proceed with the request if refresh failed
-                    return Promise.reject(error);
+                if (timeLeft < 0) {
+                    console.log('⚠️ TOKEN IS EXPIRED!');
+                } else if (timeLeft < 60000) { // Less than 1 minute
+                    console.log('⚠️ TOKEN EXPIRES SOON!');
                 }
-            } else if (isTokenExpiringSoon(token, 5)) {
-                // Token is expiring soon, try to refresh in background
-                const refreshToken = getRefreshToken();
-                if (refreshToken && !isRefreshing) {
-                    isRefreshing = true;
-                    try {
-                        const response = await axios.post(`${API_URL}/auth/refresh-token`, { refreshToken });
-                        if (response.data.success && response.data.data) {
-                            const newToken = response.data.data.accessToken;
-                            localStorage.setItem('accessToken', newToken);
-                            config.headers.Authorization = `Bearer ${newToken}`;
-                        }
-                    } catch (error) {
-                        console.log('Background token refresh failed');
-                    } finally {
-                        isRefreshing = false;
-                    }
-                }
-            } else {
-                config.headers.Authorization = `Bearer ${token}`;
+            } catch (error) {
+                console.log('❌ Error parsing JWT:', error);
             }
+        }
+        
+        // Check cookies
+        console.log('🍪 COOKIES CHECK:');
+        console.log('🍪 All cookies:', document.cookie);
+        console.log('🍪 ACCESS_TOKEN cookie:', document.cookie.split(';').find(c => c.trim().startsWith('ACCESS_TOKEN=')));
+        console.log('🍪 REFRESH_TOKEN cookie:', document.cookie.split(';').find(c => c.trim().startsWith('REFRESH_TOKEN=')));
+        
+        // Alert để biết API có được gọi qua interceptor không
+        if (config.url && !config.url.includes('refresh-token')) {
+            alert('🔍 API CALL: ' + config.url + ' - Token: ' + (token ? 'Có' : 'Không'));
+        }
+        
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+            console.log('🔍 REQUEST INTERCEPTOR - Authorization header set');
+        } else {
+            console.log('🔍 REQUEST INTERCEPTOR - No token found');
         }
         
         return config;
@@ -118,60 +72,123 @@ api.interceptors.request.use(
 );
 
 // Add response interceptor
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    
+    failedQueue = [];
+};
+
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        console.log('✅ RESPONSE SUCCESS - URL:', response.config.url);
+        console.log('✅ RESPONSE SUCCESS - Status:', response.status);
+        return response;
+    },
     async (error: AxiosError) => {
-        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+        const originalRequest = error.config as any;
         
+        console.log('❌ RESPONSE ERROR - URL:', originalRequest?.url);
+        console.log('❌ RESPONSE ERROR - Status:', error.response?.status);
+        console.log('❌ RESPONSE ERROR - Data:', error.response?.data);
+        
+        // Handle 401 errors - try to refresh token first
         if (error.response?.status === 401 && !originalRequest._retry) {
             if (isRefreshing) {
                 // If already refreshing, queue this request
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
-                }).then(() => {
+                }).then(token => {
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
                     return api(originalRequest);
-                }).catch((err) => {
+                }).catch(err => {
                     return Promise.reject(err);
                 });
             }
-
+            
             originalRequest._retry = true;
             isRefreshing = true;
-
+            
             try {
-                const refreshToken = getRefreshToken();
-                if (!refreshToken) {
-                    throw new Error('No refresh token available');
-                }
-
-                console.log('=== RESPONSE INTERCEPTOR REQUEST DEBUG ===');
-                console.log('URL:', `${API_URL}/auth/refresh-token?refreshToken=${refreshToken}`);
-                console.log('Method: POST');
-                console.log('Headers:', { 'Content-Type': 'application/json' });
-                console.log('Query param refreshToken:', refreshToken);
-                console.log('Full refresh token:', refreshToken);
-                console.log('Refresh token length:', refreshToken.length);
-                console.log('==========================================');
+                console.log('🚨 401 ERROR DETECTED - Access token expired, attempting to refresh...');
+                console.log('Error details:', error.response?.data);
+                console.log('Request URL:', originalRequest.url);
                 
-                const response = await axios.post(`${API_URL}/auth/refresh-token?refreshToken=${refreshToken}`);
+                // Alert user that 401 error was detected
+                alert('🚨 401 ERROR: Access token đã hết hạn! Đang thử refresh token...');
                 
-                if (response.data.success && response.data.data) {
-                    const newToken = response.data.data.accessToken;
-                    localStorage.setItem('accessToken', newToken);
+                // Call refresh token endpoint (send refreshToken in body)
+                console.log('🔄 CALLING REFRESH TOKEN ENDPOINT...');
+                console.log('🔄 URL:', `${API_URL}/auth/refresh-token`);
+                console.log('🔄 With credentials:', true);
+                
+                // Get refreshToken from localStorage (fallback if httpOnly cookies not available)
+                const refreshToken = localStorage.getItem('refreshToken');
+                console.log('🔄 RefreshToken from localStorage:', refreshToken ? 'Found' : 'Not found');
+                console.log('🔄 Current AccessToken before refresh:', localStorage.getItem('accessToken')?.substring(0, 50) + '...');
+                
+                // Alert user that refresh token is being called
+                alert('🔄 REFRESH TOKEN: Đang gọi refresh token...');
+                
+                const refreshResponse = await axios.post(`${API_URL}/auth/refresh-token`, { 
+                    refreshToken: refreshToken 
+                }, {
+                    withCredentials: true // Ensure httpOnly cookies are sent
+                });
+                
+                console.log('🔄 REFRESH TOKEN RESPONSE:', refreshResponse.data);
+                alert('✅ REFRESH TOKEN: Thành công! Response: ' + JSON.stringify(refreshResponse.data));
+                
+                if (refreshResponse.data.success && refreshResponse.data.data) {
+                    const newAccessToken = refreshResponse.data.data.accessToken;
+                    const newRefreshToken = refreshResponse.data.data.refreshToken;
+                    
+                    console.log('🔄 NEW ACCESS TOKEN:', newAccessToken?.substring(0, 50) + '...');
+                    console.log('🔄 NEW REFRESH TOKEN:', newRefreshToken?.substring(0, 50) + '...');
+                    
+                    // Update accessToken in localStorage
+                    localStorage.setItem('accessToken', newAccessToken);
+                    localStorage.setItem('refreshToken', newRefreshToken);
+                    
+                    // Note: ACCESS_TOKEN cookie removed - using Authorization header only
                     
                     // Update the original request with new token
                     if (originalRequest.headers) {
-                        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                     }
                     
-                    processQueue(null, newToken);
+                    console.log('✅ Token refreshed successfully, retrying original request');
+                    console.log('✅ Updated Authorization header:', `Bearer ${newAccessToken?.substring(0, 50)}...`);
+                    
+                    // Process queued requests
+                    processQueue(null, newAccessToken);
+                    
+                    // Retry the original request
                     return api(originalRequest);
                 } else {
-                    throw new Error('Token refresh failed');
+                    throw new Error('Refresh token failed - invalid response');
                 }
-            } catch (refreshError: any) {
-                console.log('Refresh error in response interceptor:', refreshError.response?.data || refreshError.message);
+            } catch (refreshError) {
+                console.log('Refresh token failed:', refreshError);
+                console.log('Redirecting to sign-in');
+                
+                // Process queued requests with error
                 processQueue(refreshError, null);
+                
+                // Alert user that refresh token failed
+                const errorMessage = (refreshError as any)?.response?.data?.message || (refreshError as any)?.message || 'Unknown error';
+                alert('❌ REFRESH TOKEN: Thất bại! Error: ' + errorMessage);
+                alert('🔄 REDIRECT: Chuyển hướng về trang đăng nhập...');
+                
+                // Clear auth data and redirect to login
                 clearAllAuthData();
                 window.location.href = '/sign-in';
                 return Promise.reject(refreshError);

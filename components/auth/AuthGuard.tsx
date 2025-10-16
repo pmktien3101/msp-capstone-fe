@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
-import { isAuthenticated, getCurrentUser, getAccessToken, getRefreshToken } from "@/lib/auth";
-import { isTokenExpired, isValidJwtFormat } from "@/lib/jwt";
-import { api } from "@/services/api";
+import { isAuthenticated, getCurrentUser, getAccessToken } from "@/lib/auth";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -27,9 +25,8 @@ const AuthGuard = ({
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = () => {
       const token = getAccessToken();
-      const refreshToken = getRefreshToken();
       
       // If no token at all, redirect to sign-in
       if (!token) {
@@ -40,74 +37,26 @@ const AuthGuard = ({
         return;
       }
       
-      // If token is expired, check if we have refresh token
-      if (isTokenExpired(token)) {
-        console.log("Token expired - checking refresh token availability");
-        
-        if (!refreshToken) {
-          console.log("No refresh token available - redirecting to sign-in");
+      // Check if user is authenticated (don't check token expiration here)
+      const authenticated = isAuthenticated();
+      const user = getCurrentUser();
+      
+      setIsUserAuthenticated(authenticated);
+      
+      if (authenticated && user) {
+        // Check role-based access
+        if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
+          console.log(`User role ${user.role} not authorized for this route`);
           setHasPermission(false);
-          router.push("/landing");
+          router.push("/dashboard");
           return;
         }
         
-        // Make a test request to trigger api interceptors
-        try {
-          console.log("Attempting to refresh token via test request");
-          // Use a simple GET request to trigger interceptors
-          await api.get('/auth/me'); // This will trigger the request interceptor
-          
-          // After request, check if token was refreshed
-          setTimeout(() => {
-            const authenticated = isAuthenticated();
-            const user = getCurrentUser();
-            
-            if (authenticated && user) {
-              // Check role-based access
-              if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
-                console.log(`User role ${user.role} not authorized for this route`);
-                setHasPermission(false);
-                router.push("/dashboard");
-                return;
-              }
-              
-              setHasPermission(true);
-              setIsUserAuthenticated(true);
-            } else {
-              setHasPermission(false);
-              router.push("/landing");
-            }
-          }, 500); // Wait 500ms for refresh to complete
-          
-        } catch (error) {
-          console.log("Test request failed - refresh token invalid or expired");
-          // If refresh failed, user needs to login again
-          setHasPermission(false);
-          router.push("/landing");
-        }
-        return;
+        setHasPermission(true);
       } else {
-        // Token is valid
-        const authenticated = isAuthenticated();
-        const user = getCurrentUser();
-        
-        setIsUserAuthenticated(authenticated);
-        
-        if (authenticated && user) {
-          // Check role-based access
-          if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
-            console.log(`User role ${user.role} not authorized for this route`);
-            setHasPermission(false);
-            router.push("/dashboard");
-            return;
-          }
-          
-          setHasPermission(true);
-        } else {
-          setHasPermission(false);
-          console.log("User not authenticated, redirecting to sign-in");
-          router.push("/landing");
-        }
+        setHasPermission(false);
+        console.log("User not authenticated, redirecting to sign-in");
+        router.push("/landing");
       }
       
       setIsLoading(false);
