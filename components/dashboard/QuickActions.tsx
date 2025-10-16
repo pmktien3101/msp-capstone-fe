@@ -4,17 +4,10 @@ import { useState } from 'react';
 import { Project } from '@/types/project';
 import { 
   Plus, 
-  Flag, 
-  CheckSquare, 
-  Users,
-  Calendar,
   FileText,
   Settings,
-  Clock,
-  Star,
   ArrowRight
 } from 'lucide-react';
-import CreateMeetingModal from '@/components/projects/modals/CreateMeetingModal';
 import { CreateProjectModal } from '@/components/projects/modals/CreateProjectModal';
 
 interface QuickActionsProps {
@@ -27,7 +20,6 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
     return projects.slice(0, 3);
   });
   
-  const [isCreateMeetingModalOpen, setIsCreateMeetingModalOpen] = useState(false);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
 
   const quickActions = [
@@ -39,16 +31,6 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
       color: '#3b82f6',
       action: () => {
         setIsCreateProjectModalOpen(true);
-      }
-    },
-    {
-      id: 'schedule-meeting',
-      title: 'Lên lịch họp',
-      description: 'Tạo cuộc họp mới',
-      icon: <Calendar size={24} />,
-      color: '#ef4444',
-      action: () => {
-        setIsCreateMeetingModalOpen(true);
       }
     }
   ];
@@ -445,18 +427,6 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
           }
         }
       `}</style>
-      
-      {/* Create Meeting Modal */}
-      {isCreateMeetingModalOpen && (
-        <CreateMeetingModal
-          onClose={() => setIsCreateMeetingModalOpen(false)}
-          onCreated={(meeting) => {
-            console.log('Meeting created:', meeting);
-            setIsCreateMeetingModalOpen(false);
-          }}
-          requireProjectSelection={true}
-        />
-      )}
       
       {/* Create Project Modal */}
       <CreateProjectModal
