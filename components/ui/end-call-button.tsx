@@ -77,7 +77,7 @@ const EndCallButton = () => {
       console.warn("Error ending call", err);
     } finally {
       setIsProcessing(false);
-      router.push(`/meeting-detail/${call.id}`);
+      router.push(`/projects`);
     }
   };
 
@@ -92,7 +92,7 @@ const EndCallButton = () => {
       console.warn("Error leaving call", err);
     } finally {
       setIsProcessing(false);
-      router.push(`/meeting-detail/${call.id}`);
+      router.push(`/projects`);
     }
   };
 
@@ -100,7 +100,7 @@ const EndCallButton = () => {
     <Button
       onClick={isMeetingOwner ? handleEndForAll : handleLeave}
       disabled={isProcessing}
-      title={isMeetingOwner ? "Kết thúc cuộc gọi cho tất cả" : "Rời cuộc gọi"}
+      title={isMeetingOwner ? "Kết thúc cuộc gọi" : "Rời cuộc gọi"}
       className={`cursor-pointer flex items-center disabled:opacity-60 disabled:cursor-not-allowed
         bg-red-600 hover:bg-red-700 rounded-full p-4`}
     >

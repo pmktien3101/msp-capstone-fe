@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Project } from "@/types/project";
 import { Button } from "@/components/ui/button";
 import { CreateMeetingModal } from "./modals/CreateMeetingModal";
@@ -11,7 +11,6 @@ import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 import { toast } from "react-toastify";
 import { Eye, Pencil, Plus, X } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-import { useEffect } from "react";
 import { useStreamVideoClient } from "@stream-io/video-react-sdk";
 
 interface MeetingTabProps {
@@ -57,6 +56,27 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
     "all" | "Scheduled" | "Ongoing" | "Finished" | "Cancelled"
   >("all");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // --- new: custom dropdown state + ref ---
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // hover state for nicer hover effects
+  const [hoveredOption, setHoveredOption] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+  // --- end new ---
 
   const { role } = useUser();
   const isMember = role === "Member";
@@ -153,6 +173,15 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const finishedMeetingsCount = finishedMeetings.length;
   const cancelMeetingsCount = cancelMeetings.length;
 
+  // status options for custom dropdown
+  const statusOptions = [
+    { value: "all", label: "Tất cả trạng thái" },
+    { value: "Scheduled", label: "Đã lên lịch" },
+    { value: "Ongoing", label: "Đang diễn ra" },
+    { value: "Finished", label: "Kết thúc" },
+    { value: "Cancelled", label: "Đã hủy" },
+  ];
+
   return (
     <div className="meeting-tab">
       <div className="meeting-header">
@@ -237,28 +266,107 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           }}
         />
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as any)}
-          style={{
-            padding: "8px 12px",
-            borderRadius: 8,
-            border: "1px solid #E5E7EB",
-            background: "white",
-            cursor: "pointer",
-          }}
+        {/* custom dropdown */}
+        <div
+          ref={dropdownRef}
+          style={{ position: "relative", display: "inline-block" }}
         >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="Scheduled">Đã lên lịch</option>
-          <option value="Ongoing">Đang diễn ra</option>
-          <option value="Finished">Kết thúc</option>
-          <option value="Cancelled">Đã hủy</option>
-        </select>
+          <button
+            onClick={() => setDropdownOpen((s) => !s)}
+            aria-expanded={dropdownOpen}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: "1px solid #E5E7EB",
+              background: "white",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              minWidth: 180,
+              transition: "box-shadow 0.15s ease",
+              boxShadow: dropdownOpen ? "0 4px 10px rgba(255,94,19,0.06)" : "",
+            }}
+            title="Lọc trạng thái"
+          >
+            <span style={{ flex: 1, textAlign: "left" }}>
+              {statusOptions.find((o) => o.value === statusFilter)?.label ||
+                "Tất cả trạng thái"}
+            </span>
+            <span
+              style={{
+                display: "inline-block",
+                width: 0,
+                height: 0,
+                borderLeft: "6px solid transparent",
+                borderRight: "6px solid transparent",
+                borderTop: `6px solid ${dropdownOpen ? "#FF5E13" : "#666"}`,
+                transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.18s ease, border-top-color 0.18s ease",
+              }}
+            />
+          </button>
+
+          {dropdownOpen && (
+            <div
+              role="menu"
+              style={{
+                position: "absolute",
+                top: "calc(100% + 8px)",
+                left: 0,
+                background: "white",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                zIndex: 40,
+                minWidth: 200,
+                overflow: "hidden",
+              }}
+            >
+              {statusOptions.map((opt) => (
+                <div
+                  key={opt.value}
+                  role="menuitem"
+                  onClick={() => {
+                    setStatusFilter(opt.value as any);
+                    setDropdownOpen(false);
+                  }}
+                  onMouseEnter={() => setHoveredOption(opt.value)}
+                  onMouseLeave={() => setHoveredOption(null)}
+                  style={{
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    background:
+                      statusFilter === opt.value
+                        ? "rgba(255,94,19,0.06)"
+                        : hoveredOption === opt.value
+                        ? "rgba(255,94,19,0.08)"
+                        : "transparent",
+                    color:
+                      statusFilter === opt.value || hoveredOption === opt.value
+                        ? "#FF5E13"
+                        : "#111827",
+                    borderBottom: "1px solid #F3F4F6",
+                    transition:
+                      "background 0.12s ease, color 0.12s ease, transform 0.12s ease",
+                    transform:
+                      hoveredOption === opt.value
+                        ? "translateX(4px)"
+                        : "translateX(0)",
+                  }}
+                >
+                  {opt.label}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <Button
           onClick={() => {
             setStatusFilter("all");
             setSearchTerm("");
+            setDropdownOpen(false);
           }}
           style={{
             background: "transparent",
