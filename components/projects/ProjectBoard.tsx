@@ -60,44 +60,44 @@ export const ProjectBoard = ({
         let response;
         
         // DEBUG: Log user info to check role value
-        console.log(`[ProjectBoard] 🔍 User Info:`, { userId, userRole, projectId });
-        console.log(`[ProjectBoard] 🔍 Role type:`, typeof userRole);
-        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'ProjectManager':`, userRole === 'ProjectManager');
-        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.PROJECT_MANAGER:`, userRole === UserRole.PROJECT_MANAGER);
-        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'Member':`, userRole === 'Member');
-        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.MEMBER:`, userRole === UserRole.MEMBER);
-        console.log(`[ProjectBoard] 🔍 UserRole enum values:`, { 
-          PROJECT_MANAGER: UserRole.PROJECT_MANAGER, 
-          MEMBER: UserRole.MEMBER 
-        });
+        // console.log(`[ProjectBoard] 🔍 User Info:`, { userId, userRole, projectId });
+        // console.log(`[ProjectBoard] 🔍 Role type:`, typeof userRole);
+        // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'ProjectManager':`, userRole === 'ProjectManager');
+        // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.PROJECT_MANAGER:`, userRole === UserRole.PROJECT_MANAGER);
+        // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'Member':`, userRole === 'Member');
+        // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.MEMBER:`, userRole === UserRole.MEMBER);
+        // console.log(`[ProjectBoard] 🔍 UserRole enum values:`, { 
+        //   PROJECT_MANAGER: UserRole.PROJECT_MANAGER, 
+        //   MEMBER: UserRole.MEMBER 
+        // });
         
         // ProjectManager: Get all tasks in project
         // Member: Get only tasks assigned to this user in project
         if (userRole === UserRole.PROJECT_MANAGER || userRole === 'ProjectManager') {
-          console.log(`[ProjectBoard] ✅ Fetching ALL tasks for ProjectManager in project: ${projectId}`);
+          // console.log(`[ProjectBoard] ✅ Fetching ALL tasks for ProjectManager in project: ${projectId}`);
           response = await taskService.getTasksByProjectId(projectId);
         } else {
-          console.log(`[ProjectBoard] ✅ Fetching ASSIGNED tasks for ${userRole} (user: ${userId}) in project: ${projectId}`);
+          // console.log(`[ProjectBoard] ✅ Fetching ASSIGNED tasks for ${userRole} (user: ${userId}) in project: ${projectId}`);
           response = await taskService.getTasksByUserIdAndProjectId(userId, projectId);
         }
         
         if (response.success && response.data) {
           // Extract items from PagingResponse
           const taskList = response.data.items || [];
-          console.log(`[ProjectBoard] ✅ Successfully loaded ${taskList.length} tasks for role "${userRole}"`);
-          console.log(`[ProjectBoard] 📋 Task list:`, taskList.map(t => ({ 
-            id: t.id, 
-            title: t.title, 
-            userId: t.userId,
-            assignedTo: t.user?.fullName || t.userId 
-          })));
+          // console.log(`[ProjectBoard] ✅ Successfully loaded ${taskList.length} tasks for role "${userRole}"`);
+          // console.log(`[ProjectBoard] 📋 Task list:`, taskList.map(t => ({ 
+          //   id: t.id, 
+          //   title: t.title, 
+          //   userId: t.userId,
+          //   assignedTo: t.user?.fullName || t.userId 
+          // })));
           setTasks(taskList);
         } else {
-          console.error('[ProjectBoard] ❌ Failed to fetch tasks:', response.error);
+          // console.error('[ProjectBoard] ❌ Failed to fetch tasks:', response.error);
           setTasks([]);
         }
       } catch (error) {
-        console.error('[ProjectBoard] Error fetching tasks:', error);
+        // console.error('[ProjectBoard] Error fetching tasks:', error);
         setTasks([]);
       } finally {
         setIsLoadingTasks(false);
@@ -117,7 +117,7 @@ export const ProjectBoard = ({
 
       setIsLoadingMembers(true);
       try {
-        console.log(`[ProjectBoard] Fetching members for project: ${projectId}`);
+        // console.log(`[ProjectBoard] Fetching members for project: ${projectId}`);
         const response = await projectService.getProjectMembers(projectId);
         
         if (response.success && response.data) {
@@ -131,14 +131,14 @@ export const ProjectBoard = ({
               role: pm.member.role
             }));
           
-          console.log(`[ProjectBoard] Loaded ${transformedMembers.length} members`);
+          // console.log(`[ProjectBoard] Loaded ${transformedMembers.length} members`);
           setMembers(transformedMembers);
         } else {
-          console.error('[ProjectBoard] Failed to fetch members:', response.error);
+          // console.error('[ProjectBoard] Failed to fetch members:', response.error);
           setMembers([]);
         }
       } catch (error) {
-        console.error('[ProjectBoard] Error fetching members:', error);
+        // console.error('[ProjectBoard] Error fetching members:', error);
         setMembers([]);
       } finally {
         setIsLoadingMembers(false);

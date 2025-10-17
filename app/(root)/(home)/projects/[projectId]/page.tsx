@@ -74,7 +74,7 @@ const ProjectDetailPage = () => {
         return;
       }
 
-      console.log('Creating new task:', taskData);
+      // console.log('Creating new task:', taskData);
       
       // Prepare request data
       const requestData = {
@@ -99,7 +99,7 @@ const ProjectDetailPage = () => {
         alert(`Lỗi: ${response.error || 'Không thể tạo công việc'}`);
       }
     } catch (error: any) {
-      console.error('Error creating task:', error);
+      // console.error('Error creating task:', error);
       alert('Có lỗi xảy ra khi tạo công việc. Vui lòng thử lại!');
     }
   };
@@ -131,7 +131,7 @@ const ProjectDetailPage = () => {
         alert(`Lỗi: ${response.error || 'Không thể xóa công việc'}`);
       }
     } catch (error: any) {
-      console.error('Error deleting task:', error);
+      // console.error('Error deleting task:', error);
       alert('Có lỗi xảy ra khi xóa công việc. Vui lòng thử lại!');
     }
   };
@@ -153,7 +153,7 @@ const ProjectDetailPage = () => {
         return;
       }
 
-      console.log('Updating task:', taskData);
+      // console.log('Updating task:', taskData);
       
       // Prepare request data
       const requestData = {
@@ -180,7 +180,7 @@ const ProjectDetailPage = () => {
         alert(`Lỗi: ${response.error || 'Không thể cập nhật công việc'}`);
       }
     } catch (error: any) {
-      console.error('Error updating task:', error);
+      // console.error('Error updating task:', error);
       alert('Có lỗi xảy ra khi cập nhật công việc. Vui lòng thử lại!');
     }
   };
@@ -201,7 +201,7 @@ const ProjectDetailPage = () => {
     try {
       // Add milestone to mockData
       const newMilestone = addMilestone(milestoneData);
-      console.log('Created new milestone:', newMilestone);
+      // console.log('Created new milestone:', newMilestone);
       
       // Trigger UI refresh by updating refreshKey
       setRefreshKey(prev => prev + 1);
@@ -209,7 +209,7 @@ const ProjectDetailPage = () => {
       // Milestone created successfully - UI will automatically refresh
       // No need for alert since user can see the new milestone in the list
     } catch (error) {
-      console.error('Error creating milestone:', error);
+      // console.error('Error creating milestone:', error);
       alert('Có lỗi xảy ra khi tạo cột mốc. Vui lòng thử lại!');
     }
   };
@@ -229,7 +229,7 @@ const ProjectDetailPage = () => {
       try {
         // Validate projectId first
         if (!projectId || projectId === 'undefined' || projectId === 'null') {
-          console.error('Invalid projectId:', projectId);
+          // console.error('Invalid projectId:', projectId);
           setError('ID dự án không hợp lệ');
           setLoading(false);
           return;
@@ -256,7 +256,7 @@ const ProjectDetailPage = () => {
               // Continue anyway, just with empty users list
             }
           } catch (err: any) {
-            console.warn('Error fetching members (403 expected for non-BO):', err);
+            // console.warn('Error fetching members (403 expected for non-BO):', err);
             // 403 is expected if user is not BusinessOwner, continue with empty list
           }
         }

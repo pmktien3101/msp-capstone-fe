@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { X, Calendar, User, Flag, FileText, Layers } from "lucide-react";
 import { milestoneService } from "@/services/milestoneService";
 import { projectService } from "@/services/projectService";
+import { useAuth } from "@/hooks/useAuth";
+import { UserRole } from "@/lib/rbac";
 import type { MilestoneBackend } from "@/types/milestone";
 import type { ProjectMember } from "@/types/project";
 
@@ -26,6 +28,12 @@ export const CreateTaskModal = ({
   projectId, // Destructured projectId
   taskToEdit // Destructured taskToEdit
 }: CreateTaskModalProps) => {
+  const { user } = useAuth();
+  const userRole = user?.role;
+  
+  // Check if user is Member (cannot edit assignee)
+  const isMember = userRole === UserRole.MEMBER || userRole === 'Member';
+  
   const [formData, setFormData] = useState({
     title: taskToEdit?.title || "",
     description: taskToEdit?.description || "",
@@ -71,10 +79,10 @@ export const CreateTaskModal = ({
       setIsLoadingMembers(true);
       try {
         const response = await projectService.getProjectMembers(projectId);
-        console.log('[CreateTaskModal] Fetched members response:', response);
+        // console.log('[CreateTaskModal] Fetched members response:', response);
         
         if (response.success && response.data) {
-          console.log('[CreateTaskModal] All members:', response.data);
+          // console.log('[CreateTaskModal] All members:', response.data);
           
           // Log each member to see structure
           response.data.forEach(pm => {
@@ -91,8 +99,8 @@ export const CreateTaskModal = ({
           const memberUsers = response.data.filter(pm => 
             pm.member?.role === "Member"
           );
-          console.log('[CreateTaskModal] Filtered members (role=Member):', memberUsers);
-          console.log('[CreateTaskModal] Total filtered:', memberUsers.length);
+          // console.log('[CreateTaskModal] Filtered members (role=Member):', memberUsers);
+          // console.log('[CreateTaskModal] Total filtered:', memberUsers.length);
           setMembers(memberUsers);
         }
       } catch (error) {
@@ -338,6 +346,11 @@ export const CreateTaskModal = ({
               <label className="form-label">
                 <User size={16} />
                 Người thực hiện
+                {/* {isMember && (
+                  <span className="role-restriction-badge" title="Thành viên không thể thay đổi người thực hiện">
+                    🔒
+                  </span>
+                )} */}
               </label>
               {isLoadingMembers ? (
                 <div className="loading-state">Đang tải thành viên...</div>
@@ -345,7 +358,9 @@ export const CreateTaskModal = ({
                 <select
                   value={formData.assignee}
                   onChange={(e) => handleInputChange("assignee", e.target.value)}
-                  className="form-select"
+                  className={`form-select ${isMember ? 'disabled' : ''}`}
+                  disabled={isMember}
+                  title={isMember ? "Bạn không có quyền thay đổi người thực hiện" : ""}
                 >
                   <option value="">Chưa giao</option>
                   {members.map((projectMember) => (
@@ -355,6 +370,11 @@ export const CreateTaskModal = ({
                   ))}
                 </select>
               )}
+              {/* {isMember && (
+                <div className="help-text restriction-text">
+                  ⓘ Chỉ PM mới có quyền phân công công việc
+                </div>
+              )} */}
             </div>
 
             {/* Date Range */}
@@ -617,6 +637,38 @@ export const CreateTaskModal = ({
 
         .status-done {
           background: #10b981;
+        }
+
+        .role-restriction-badge {
+          display: inline-block;
+          margin-left: 8px;
+          font-size: 14px;
+          cursor: help;
+        }
+
+        .form-select.disabled {
+          background: #f3f4f6;
+          color: #9ca3af;
+          cursor: not-allowed;
+          border-color: #e5e7eb;
+        }
+
+        .form-select.disabled:hover {
+          border-color: #e5e7eb;
+        }
+
+        .help-text {
+          font-size: 12px;
+          color: #6b7280;
+          margin-top: 6px;
+        }
+
+        .restriction-text {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: #f59e0b;
+          font-weight: 500;
         }
 
         .date-range-group {
