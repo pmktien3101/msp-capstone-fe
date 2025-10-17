@@ -94,6 +94,75 @@ export const meetingService = {
     }
   },
 
+  // Cancel (pause/hủy) meeting
+  async cancelMeeting(
+    meetingId: string
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const response = await api.patch<ApiResponse>(
+        `/meetings/${meetingId}/cancel`
+      );
+
+      if (response.data.success) {
+        return {
+          success: true,
+          message: response.data.message,
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message || "Failed to cancel meeting",
+        };
+      }
+    } catch (error: any) {
+      console.error("Cancel meeting error:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to cancel meeting",
+      };
+    }
+  },
+
+  // Finish meeting (set end time)
+  async finishMeeting(
+    meetingId: string,
+    endTime: Date | string
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const payload =
+        endTime instanceof Date ? endTime.toISOString() : String(endTime);
+
+      const response = await api.patch<ApiResponse>(
+        `/meetings/${meetingId}/finish`,
+        payload
+      );
+
+      if (response.data.success) {
+        return {
+          success: true,
+          message: response.data.message,
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message || "Failed to finish meeting",
+        };
+      }
+    } catch (error: any) {
+      console.error("Finish meeting error:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to finish meeting",
+      };
+    }
+  },
+
   // Delete meeting
   async deleteMeeting(
     meetingId: string

@@ -9,7 +9,7 @@ import { meetingService } from "@/services/meetingService";
 import { MeetingItem } from "@/types/meeting";
 import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 import { toast } from "react-toastify";
-import { Eye, Pencil, Trash, Plus } from "lucide-react";
+import { Eye, Pencil, Plus, X } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useEffect } from "react";
 import { useStreamVideoClient } from "@stream-io/video-react-sdk";
@@ -52,14 +52,16 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
     refetch: refetchCalls,
   } = useProjectMeetings(project.id);
 
-  // Sửa lại viewType cho đúng với status từ API
-  const [viewType, setViewType] = useState<
-    "all" | "Scheduled" | "Ongoing" | "Finished" | "Cancel"
+  // Thay tabs bằng filter + search
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "Scheduled" | "Ongoing" | "Finished" | "Cancelled"
   >("all");
+  const [searchTerm, setSearchTerm] = useState("");
+
   const { role } = useUser();
   const isMember = role === "Member";
 
-  // Phân loại cuộc họp theo status
+  // Phân loại cuộc họp theo status (duy trì cho thống kê)
   const scheduledMeetings = backendMeetings.filter(
     (m) => m.status === "Scheduled"
   );
@@ -67,30 +69,30 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const finishedMeetings = backendMeetings.filter(
     (m) => m.status === "Finished"
   );
-  const cancelMeetings = backendMeetings.filter((m) => m.status === "Cancel");
+  const cancelMeetings = backendMeetings.filter(
+    (m) => m.status === "Cancelled"
+  );
   const allMeetings = backendMeetings;
 
+  // Áp filter status và search vào danh sách hiển thị
   const meetings = useMemo(() => {
-    switch (viewType) {
-      case "Scheduled":
-        return scheduledMeetings;
-      case "Ongoing":
-        return ongoingMeetings;
-      case "Finished":
-        return finishedMeetings;
-      case "Cancel":
-        return cancelMeetings;
-      default:
-        return allMeetings;
+    let list = backendMeetings.slice();
+
+    if (statusFilter !== "all") {
+      list = list.filter((m) => m.status === statusFilter);
     }
-  }, [
-    viewType,
-    allMeetings,
-    scheduledMeetings,
-    ongoingMeetings,
-    finishedMeetings,
-    cancelMeetings,
-  ]);
+
+    const q = searchTerm.trim().toLowerCase();
+    if (q) {
+      list = list.filter((m) => {
+        const title = (m.title || "").toLowerCase();
+        const desc = (m.description || "").toLowerCase();
+        return title.includes(q) || desc.includes(q);
+      });
+    }
+
+    return list;
+  }, [backendMeetings, statusFilter, searchTerm]);
 
   // Sửa lại getStatusInfo cho đúng nhãn
   const getStatusInfo = (meeting: MeetingItem) => {
@@ -101,8 +103,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
         return { label: "Đã lên lịch", color: "#47D69D" };
       case "Ongoing":
         return { label: "Đang diễn ra", color: "#FFA500" };
-      case "Cancel":
-        return { label: "Tạm dừng", color: "#888" };
+      case "Cancelled":
+        return { label: "Đã hủy", color: "#888" };
       default:
         return { label: meeting.status, color: "#ccc" };
     }
@@ -127,19 +129,21 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
     setShowUpdateModal(true);
   };
 
-  const handleDelete = async (meeting: MeetingItem) => {
-    if (!confirm("Bạn chắc chắn muốn xóa cuộc họp này?")) return;
+  const handleCancel = async (meeting: MeetingItem) => {
+    if (!confirm("Bạn chắc chắn muốn hủy cuộc họp này?")) return;
+
     try {
-      const res = await meetingService.deleteMeeting(meeting.id);
-      if (res.success) {
+      const res = await meetingService.cancelMeeting(meeting.id);
+
+      if (res?.success) {
         await refetchCalls();
-        toast.success("Đã xóa cuộc họp");
+        toast.success("Đã hủy cuộc họp thành công");
       } else {
-        toast.error(res.error || "Xóa thất bại");
+        toast.error(res?.error || res?.message || "Hủy cuộc họp thất bại");
       }
     } catch (e: any) {
-      console.error("Delete meeting failed", e);
-      toast.error(e?.message || "Xóa thất bại");
+      console.error("Cancel meeting failed", e);
+      toast.error(e?.message || "Hủy cuộc họp thất bại");
     }
   };
 
@@ -207,90 +211,67 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
         </div>
         <div className="stat-card">
           <div className="stat-number">{cancelMeetingsCount}</div>
-          <div className="stat-label">Tạm dừng</div>
+          <div className="stat-label">Đã hủy</div>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <Button
-          onClick={() => setViewType("all")}
+      {/* Filter + Search thay cho các tab */}
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginBottom: 16,
+          alignItems: "center",
+        }}
+      >
+        <input
+          type="text"
+          placeholder="Tìm kiếm theo tiêu đề hoặc mô tả..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           style={{
-            background: viewType === "all" ? "#FF5E13" : "transparent",
-            color: viewType === "all" ? "white" : "#FF5E13",
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #E5E7EB",
+            width: 360,
+          }}
+        />
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as any)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #E5E7EB",
+            background: "white",
+            cursor: "pointer",
+          }}
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="Scheduled">Đã lên lịch</option>
+          <option value="Ongoing">Đang diễn ra</option>
+          <option value="Finished">Kết thúc</option>
+          <option value="Cancelled">Đã hủy</option>
+        </select>
+
+        <Button
+          onClick={() => {
+            setStatusFilter("all");
+            setSearchTerm("");
+          }}
+          style={{
+            background: "transparent",
+            color: "#FF5E13",
             border: "1px solid #FF5E13",
             borderRadius: "8px",
             padding: "8px 16px",
             cursor: "pointer",
             fontSize: "14px",
             fontWeight: 500,
-            transition: "all 0.2s ease",
           }}
         >
-          Tất cả
-        </Button>
-        <Button
-          onClick={() => setViewType("Scheduled")}
-          style={{
-            background: viewType === "Scheduled" ? "#FF5E13" : "transparent",
-            color: viewType === "Scheduled" ? "white" : "#FF5E13",
-            border: "1px solid #FF5E13",
-            borderRadius: "8px",
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: 500,
-            transition: "all 0.2s ease",
-          }}
-        >
-          Đã lên lịch
-        </Button>
-        <Button
-          onClick={() => setViewType("Ongoing")}
-          style={{
-            background: viewType === "Ongoing" ? "#FF5E13" : "transparent",
-            color: viewType === "Ongoing" ? "white" : "#FF5E13",
-            border: "1px solid #FF5E13",
-            borderRadius: "8px",
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: 500,
-            transition: "all 0.2s ease",
-          }}
-        >
-          Đang diễn ra
-        </Button>
-        <Button
-          onClick={() => setViewType("Finished")}
-          style={{
-            background: viewType === "Finished" ? "#FF5E13" : "transparent",
-            color: viewType === "Finished" ? "white" : "#FF5E13",
-            border: "1px solid #FF5E13",
-            borderRadius: "8px",
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: 500,
-            transition: "all 0.2s ease",
-          }}
-        >
-          Kết thúc
-        </Button>
-        <Button
-          onClick={() => setViewType("Cancel")}
-          style={{
-            background: viewType === "Cancel" ? "#FF5E13" : "transparent",
-            color: viewType === "Cancel" ? "white" : "#FF5E13",
-            border: "1px solid #FF5E13",
-            borderRadius: "8px",
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: 500,
-            transition: "all 0.2s ease",
-          }}
-        >
-          Tạm dừng
+          Reset
         </Button>
       </div>
 
@@ -353,7 +334,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     </div>
                   </div>
                   <div className="col-room">
-                    {statusInfo.label === "Kết thúc" ? (
+                    {meeting.status === "Finished" ||
+                    meeting.status === "Cancelled" ? (
                       <span className="text-xs text-gray-400 italic">
                         (Đã đóng)
                       </span>
@@ -382,8 +364,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     >
                       <Eye className="w-5 h-5" />
                     </button>
-                    {!(viewType === "Finished") &&
-                      !(statusInfo.label === "Kết thúc") &&
+                    {meeting.status !== "Finished" &&
+                      meeting.status !== "Cancelled" &&
                       !isMember && (
                         <button
                           className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
@@ -393,15 +375,17 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                           <Pencil className="w-5 h-5" />
                         </button>
                       )}
-                    {!isMember && (
-                      <button
-                        className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
-                        title="Xóa"
-                        onClick={() => handleDelete(meeting)}
-                      >
-                        <Trash className="w-5 h-5 text-red-500" />
-                      </button>
-                    )}
+                    {!isMember &&
+                      meeting.status !== "Cancelled" &&
+                      meeting.status !== "Finished" && (
+                        <button
+                          className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                          title="Hủy cuộc họp"
+                          onClick={() => handleCancel(meeting)}
+                        >
+                          <X className="w-5 h-5 text-red-500" />
+                        </button>
+                      )}
                   </div>
                 </div>
               );
