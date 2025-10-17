@@ -3,6 +3,7 @@ import { useCall, useCallStateHooks } from "@stream-io/video-react-sdk";
 import { Button } from "./button";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { meetingService } from "../../services/meetingService";
 
 const EndCallButton = () => {
   const call = useCall();
@@ -17,13 +18,61 @@ const EndCallButton = () => {
     localParticipant?.userId &&
     call?.state?.createdBy?.id === localParticipant.userId;
 
+  // helper: poll call.state for an endedAt timestamp (up to timeoutMs)
+  const waitForEndedAt = async (timeoutMs = 5000, intervalMs = 300) => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const endedAt = (call as any)?.state?.endedAt;
+      if (endedAt) return endedAt;
+      // small delay
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+    return null;
+  };
+
   const handleEndForAll = async () => {
     if (!call || isProcessing) return;
     setIsProcessing(true);
     try {
       await call.camera?.disable();
       await call.microphone?.disable();
+      console.log("Calling endCall()", {
+        callId: call.id,
+        beforeState: call.state,
+      });
       await call.endCall();
+
+      // wait a short while for the call stream/state to update with an end timestamp
+      const endedAtRaw = await waitForEndedAt();
+      let endTime: Date;
+      if (endedAtRaw) {
+        endTime =
+          endedAtRaw instanceof Date ? endedAtRaw : new Date(endedAtRaw);
+        console.log("Call endedAt updated on stream:", {
+          callId: call.id,
+          endedAt: endTime,
+        });
+      } else {
+        endTime = new Date();
+        console.warn("endedAt not found after endCall, using now:", {
+          callId: call.id,
+          state: call.state,
+          endTime,
+        });
+      }
+
+      // send end time to backend
+      try {
+        const res = await meetingService.finishMeeting(call.id, endTime);
+        if (res.success) {
+          console.log("finishMeeting success:", res.message);
+        } else {
+          console.warn("finishMeeting failed:", res.error || res.message);
+        }
+      } catch (e) {
+        console.error("Error calling meetingService.finishMeeting", e);
+      }
     } catch (err) {
       console.warn("Error ending call", err);
     } finally {
@@ -60,8 +109,8 @@ const EndCallButton = () => {
           ? "Ending..."
           : "Leaving..."
         : isMeetingOwner
-        ? "End Call for All"
-        : "Leave Call"}
+        ? "Kết thúc cuộc gọi"
+        : "Rời cuộc gọi"}
     </Button>
   );
 };
