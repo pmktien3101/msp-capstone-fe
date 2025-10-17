@@ -348,11 +348,16 @@ const ProjectDetailPage = () => {
         <div className="project-info">
           <div className="project-title-section">
             <h1 className="project-title">{project.name}</h1>
-            <span className={`status-badge status-${project.status}`}>
-              {project.status === 'active' && 'Đang hoạt động'}
-              {project.status === 'planning' && 'Đang lập kế hoạch'}
-              {project.status === 'on-hold' && 'Tạm dừng'}
-              {project.status === 'completed' && 'Hoàn thành'}
+            <span className={`status-badge ${
+              project.status === 'Đang hoạt động' ? 'status-active' :
+              project.status === 'Chưa bắt đầu' ? 'status-planning' :
+              project.status === 'Tạm dừng' ? 'status-on-hold' :
+              project.status === 'Hoàn thành' ? 'status-completed' : ''
+            }`}>
+              {project.status === 'Đang hoạt động' && 'Đang hoạt động'}
+              {project.status === 'Chưa bắt đầu' && 'Chưa bắt đầu'}
+              {project.status === 'Tạm dừng' && 'Tạm dừng'}
+              {project.status === 'Hoàn thành' && 'Hoàn thành'}
             </span>
           </div>
           <p className="project-description">{project.description}</p>
