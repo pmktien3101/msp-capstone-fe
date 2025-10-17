@@ -1,7 +1,5 @@
 'use client';
 
-import { mockMembers, mockTasks } from "@/constants/mockData";
-
 interface Member {
   id: string;
   name: string;
