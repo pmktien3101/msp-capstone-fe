@@ -82,7 +82,7 @@ export function ProjectSummary({ project }: ProjectSummaryProps) {
     completed: projectTasks.filter(task => task.status === 'Hoàn thành').length,
     inProgress: projectTasks.filter(task => task.status === 'Đang làm').length,
     todo: projectTasks.filter(task => task.status === 'Chưa bắt đầu').length,
-    review: 0, // Backend không có status "review", set về 0
+    onHold: projectTasks.filter(task => task.status === 'Tạm dừng').length,
     completionRate: projectTasks.length > 0 
       ? Math.round((projectTasks.filter(task => task.status === 'Hoàn thành').length / projectTasks.length) * 100) 
       : 0,

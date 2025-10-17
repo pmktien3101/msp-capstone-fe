@@ -6,6 +6,7 @@ import { Project } from '@/types/project';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
 import { projectService } from '@/services/projectService';
 import { useAuth } from '@/hooks/useAuth';
+import { UserRole } from '@/lib/rbac';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -25,7 +26,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
   useEffect(() => {
     const fetchProjects = async () => {
       // Only fetch if user is authenticated
-      if (!isAuthenticated || !user?.userId) {
+      if (!isAuthenticated || !user?.userId || !user?.role) {
         console.log('User not authenticated, skipping project fetch');
         setLoading(false);
         return;
@@ -33,18 +34,29 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
       setLoading(true);
       try {
-        console.log('Fetching projects for manager:', user.userId);
-        const result = await projectService.getProjectsByManagerId(user.userId);
+        let result;
+        
+        // Fetch projects based on user role
+        if (user.role === UserRole.PROJECT_MANAGER || user.role === 'ProjectManager') {
+          console.log('[Sidebar] Fetching projects managed by ProjectManager:', user.userId);
+          result = await projectService.getProjectsByManagerId(user.userId);
+        } else if (user.role === UserRole.MEMBER || user.role === 'Member') {
+          console.log('[Sidebar] Fetching projects where Member participates:', user.userId);
+          result = await projectService.getProjectsByMemberId(user.userId);
+        } else {
+          console.log('[Sidebar] Unknown role, fetching all projects');
+          result = await projectService.getAllProjects();
+        }
 
         if (result.success && result.data) {
-          console.log('Fetched projects successfully:', result.data);
+          console.log('[Sidebar] Fetched projects successfully:', result.data.items.length, 'projects');
           setProjects(result.data.items);
         } else {
-          console.error('Failed to fetch projects:', result.error);
+          console.error('[Sidebar] Failed to fetch projects:', result.error);
           setProjects([]);
         }
       } catch (error) {
-        console.error('Error fetching projects:', error);
+        console.error('[Sidebar] Error fetching projects:', error);
         setProjects([]);
       } finally {
         setLoading(false);
@@ -94,6 +106,40 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
   };
 
   const isAnyProjectActive = projects.some(project => isProjectActive(project.id));
+
+  // Sort projects: Active projects with nearest deadline first
+  const sortedProjects = [...projects].sort((a, b) => {
+    // 1. Prioritize "Đang hoạt động" (Active) projects first
+    const statusPriority = {
+      'Đang hoạt động': 1,
+      'Chưa bắt đầu': 2,
+      'Tạm dừng': 3,
+      'Hoàn thành': 4
+    };
+    
+    const aPriority = statusPriority[a.status as keyof typeof statusPriority] || 5;
+    const bPriority = statusPriority[b.status as keyof typeof statusPriority] || 5;
+    
+    if (aPriority !== bPriority) {
+      return aPriority - bPriority;
+    }
+    
+    // 2. For same status, sort by nearest endDate (deadline)
+    if (a.endDate && b.endDate) {
+      return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+    }
+    
+    // 3. Projects with endDate come before those without
+    if (a.endDate && !b.endDate) return -1;
+    if (!a.endDate && b.endDate) return 1;
+    
+    // 4. Finally, sort by startDate
+    if (a.startDate && b.startDate) {
+      return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+    }
+    
+    return 0;
+  });
 
   return (
     <div className="project-section">
@@ -157,7 +203,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
             </div>
           ) : (
             <>
-              {(showAllProjects ? projects : projects.slice(0, 3)).map((project) => (
+              {(showAllProjects ? sortedProjects : sortedProjects.slice(0, 3)).map((project) => (
                 <div
                   key={project.id}
                   className={`project-item ${isProjectActive(project.id) ? 'active' : ''}`}
@@ -182,7 +228,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
               ))}
               
               <div className="view-all-section">
-                {!showAllProjects && projects.length > 3 ? (
+                {!showAllProjects && sortedProjects.length > 3 ? (
                   <button 
                     className="view-all-btn"
                     onClick={handleShowMoreProjects}
@@ -190,9 +236,9 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                       <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    <span>Xem thêm ({projects.length - 3} dự án)</span>
+                    <span>Xem thêm ({sortedProjects.length - 3} dự án)</span>
                   </button>
-                ) : showAllProjects && projects.length > 3 ? (
+                ) : showAllProjects && sortedProjects.length > 3 ? (
                   <button 
                     className="view-all-btn"
                     onClick={handleShowLessProjects}

@@ -6,54 +6,106 @@ import { ProjectPortfolioOverview } from '@/components/dashboard/ProjectPortfoli
 import { ProjectHighlights } from '@/components/dashboard/ProjectHighlights';
 import { ProjectVisualization } from '@/components/dashboard/ProjectVisualization';
 import { QuickActions } from '@/components/dashboard/QuickActions';
-import { mockTasks, mockMeetings, mockProjects, mockMembers } from '@/constants/mockData';
+import { projectService } from '@/services/projectService';
+import { taskService } from '@/services/taskService';
+import { milestoneService } from '@/services/milestoneService';
+import { useUser } from '@/hooks/useUser';
 import '@/app/styles/dashboard.scss';
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>("1");
+  const [allTasks, setAllTasks] = useState<any[]>([]);
+  const [allMilestones, setAllMilestones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { userId } = useUser();
 
-  // Calculate progress based on tasks for each project
-  const calculateProjectProgress = (projectId: string) => {
-    // Get tasks for this specific project based on milestoneIds
-    const projectMilestones = mockProjects.find(p => p.id === projectId)?.milestones || [];
-    const projectTasks = mockTasks.filter(task => 
-      task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
-    );
-    
-    const completedTasks = projectTasks.filter(task => task.status === 'done').length;
-    const totalTasks = projectTasks.length;
-    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  };
-
-  // Mock data - using data from constants/mockData.ts
+  // Fetch projects và tính progress từ API
   useEffect(() => {
-    // Convert all mockProjects to Project format
-    const allProjects: Project[] = mockProjects.map(mockProject => ({
-      id: mockProject.id,
-      name: mockProject.name,
-      description: mockProject.description,
-      status: mockProject.status as 'active' | 'planning' | 'completed' | 'on-hold',
-      startDate: mockProject.startDate,
-      endDate: mockProject.endDate,
-      manager: 'Quang Long', // From mockMembers
-      members: mockMembers.filter(member => 
-        mockProject.members.includes(member.id)
-      ).map(member => ({
-        id: member.id,
-        name: member.name,
-        role: member.role,
-        email: member.email,
-        avatar: `/avatars/${member.avatar.toLowerCase()}.png`
-      })),
-      milestones: mockProject.milestones, // Added - required by Project type
-      progress: calculateProjectProgress(mockProject.id)
-    }));
+    const fetchDashboardData = async () => {
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
 
-    setProjects(allProjects);
-    setLoading(false);
-  }, []);
+      setLoading(true);
+      try {
+        // Fetch projects của PM
+        const projectsRes = await projectService.getProjectsByManagerId(userId);
+        
+        if (projectsRes.success && projectsRes.data) {
+          const projectsList = projectsRes.data.items || [];
+          
+          // Arrays để aggregate tất cả tasks và milestones
+          const tasksArray: any[] = [];
+          const milestonesArray: any[] = [];
+          
+          // Fetch tasks và milestones cho mỗi project để tính progress
+          const projectsWithProgress = await Promise.all(
+            projectsList.map(async (project: Project) => {
+              try {
+                const [tasksRes, milestonesRes, membersRes] = await Promise.all([
+                  taskService.getTasksByProjectId(project.id),
+                  milestoneService.getMilestonesByProjectId(project.id),
+                  projectService.getProjectMembers(project.id)
+                ]);
+
+                const tasks = tasksRes.success && tasksRes.data ? tasksRes.data.items || [] : [];
+                const milestones = milestonesRes.success && milestonesRes.data ? milestonesRes.data : [];
+                const members = membersRes.success && membersRes.data ? membersRes.data : [];
+
+                // Add to aggregate arrays
+                tasksArray.push(...tasks.map((task: any) => ({ ...task, projectId: project.id, projectName: project.name })));
+                milestonesArray.push(...milestones.map((milestone: any) => ({ ...milestone, projectName: project.name })));
+
+                // Tính progress từ tasks
+                const completedTasks = tasks.filter((task: any) => task.status === 'Hoàn thành').length;
+                const totalTasks = tasks.length;
+                const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                return {
+                  ...project,
+                  progress,
+                  milestones: milestones.map((m: any) => m.id),
+                  members: members.filter((pm: any) => pm.member).map((pm: any) => ({
+                    id: pm.member.id,
+                    name: pm.member.fullName || 'Unknown',
+                    role: pm.member.role || 'Member',
+                    email: pm.member.email || '',
+                    avatar: pm.member.fullName?.charAt(0).toUpperCase() || 'U'
+                  }))
+                };
+              } catch (error) {
+                console.error(`Error fetching data for project ${project.id}:`, error);
+                return {
+                  ...project,
+                  progress: 0,
+                  milestones: [],
+                  members: []
+                };
+              }
+            })
+          );
+
+          setProjects(projectsWithProgress);
+          setAllTasks(tasksArray);
+          setAllMilestones(milestonesArray);
+        } else {
+          setProjects([]);
+          setAllTasks([]);
+          setAllMilestones([]);
+        }
+      } catch (error) {
+        console.error('[PM Dashboard] Error fetching data:', error);
+        setProjects([]);
+        setAllTasks([]);
+        setAllMilestones([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [userId]);
 
   if (loading) {
     return (
@@ -72,17 +124,25 @@ export default function DashboardPage() {
       <div className="dashboard-content">
         {/* Top Section - Portfolio Overview */}
         <div className="dashboard-section">
-          <ProjectPortfolioOverview projects={projects} />
+          <ProjectPortfolioOverview projects={projects} tasks={allTasks} />
         </div>
 
         {/* Middle Section - Highlights and Visualization */}
         <div className="dashboard-section">
           <div className="dashboard-grid">
             <div className="grid-item">
-              <ProjectHighlights projects={projects} />
+              <ProjectHighlights 
+                projects={projects} 
+                tasks={allTasks} 
+                milestones={allMilestones} 
+              />
             </div>
             <div className="grid-item">
-              <ProjectVisualization projects={projects} />
+              <ProjectVisualization 
+                projects={projects} 
+                tasks={allTasks} 
+                milestones={allMilestones} 
+              />
             </div>
           </div>
         </div>

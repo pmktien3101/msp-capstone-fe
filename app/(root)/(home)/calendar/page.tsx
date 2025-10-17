@@ -739,8 +739,8 @@ export default function CalendarPage() {
         <DetailTaskModal
           isOpen={isTaskModalOpen}
           onClose={handleCloseTaskModal}
-          onEdit={handleTaskEdit}
-          onDelete={handleTaskDelete}
+          // onEdit={handleTaskEdit}
+          // onDelete={handleTaskDelete}
           task={selectedTask}
         />
       )}

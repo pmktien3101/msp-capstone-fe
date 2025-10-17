@@ -21,7 +21,14 @@ export const projectService = {
     // Create new project
     async createProject(data: CreateProjectRequest): Promise<{ success: boolean; data?: Project; error?: string }> {
         try {
-            const response = await api.post<ApiResponse<Project>>('/projects', data);
+            // Convert dates to ISO 8601 UTC format if needed
+            const requestData = {
+                ...data,
+                startDate: data.startDate ? new Date(data.startDate).toISOString() : undefined,
+                endDate: data.endDate ? new Date(data.endDate).toISOString() : undefined
+            };
+
+            const response = await api.post<ApiResponse<Project>>('/projects', requestData);
             
             if (response.data.success && response.data.data) {
                 return {
@@ -46,7 +53,14 @@ export const projectService = {
     // Update project
     async updateProject(data: UpdateProjectRequest): Promise<{ success: boolean; data?: Project; error?: string }> {
         try {
-            const response = await api.put<ApiResponse<Project>>('/projects', data);
+            // Convert dates to ISO 8601 UTC format if needed
+            const requestData = {
+                ...data,
+                startDate: data.startDate ? new Date(data.startDate).toISOString() : undefined,
+                endDate: data.endDate ? new Date(data.endDate).toISOString() : undefined
+            };
+
+            const response = await api.put<ApiResponse<Project>>('/projects', requestData);
             return {
                 success: response.data.success,
                 data: response.data.data,
@@ -235,6 +249,31 @@ export const projectService = {
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || 'Failed to fetch BO projects'
+            };
+        }
+    },
+
+    // Get projects by member ID (user is a member of the project)
+    async getProjectsByMemberId(memberId: string, params?: PagingRequest): Promise<{ success: boolean; data?: PagingResponse<Project>; error?: string }> {
+        try {
+            const response = await api.get<ApiResponse<PagingResponse<Project>>>(`/projects/by-member/${memberId}`, { params });
+            
+            if (response.data.success && response.data.data) {
+                return {
+                    success: true,
+                    data: response.data.data
+                };
+            } else {
+                return {
+                    success: false,
+                    error: response.data.message || 'Failed to fetch member projects'
+                };
+            }
+        } catch (error: any) {
+            console.error('Get member projects error:', error);
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Failed to fetch member projects'
             };
         }
     },

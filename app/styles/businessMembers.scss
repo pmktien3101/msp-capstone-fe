@@ -1,1047 +1,1301 @@
+// ============================================
+// VARIABLES & COLORS - COMPACT VERSION
+// ============================================
+$primary: #ff5e13;
+$primary-light: #ff8c42;
+$primary-dark: #e04a0c;
+$success: #10b981;
+$danger: #ef4444;
+$info: #3b82f6;
+$warning: #fbbf24; // vàng
+$warning-light: #fef6de; // vàng nhạt
+
+
+$gray-50: #f9fafb;
+$gray-100: #f3f4f6;
+$gray-200: #e5e7eb;
+$gray-400: #9ca3af;
+$gray-500: #6b7280;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-900: #111827;
+
+$shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+
+// ============================================
+// ANIMATIONS
+// ============================================
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// ============================================
+// MAIN CONTAINER - COMPACT
+// ============================================
 .members-roles-page {
-  max-width: 1200px;
+  max-width: 1300px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 20px 20px; // Giảm padding
+  min-height: 100vh;
+  background: #fafbfc;
+  animation: fadeIn 0.4s ease-out;
 }
 
+// ============================================
+// PAGE HEADER - COMPACT
+// ============================================
 .page-header {
+  margin-bottom: 20px; // Giảm từ 32px
+  padding-bottom: 16px;
+  border-bottom: 2px solid $gray-100;
+
+  h1 {
+    font-size: 24px; // Giảm từ 32px
+    font-weight: 700;
+    color: $gray-900;
+    margin: 0 0 4px 0;
+    background: linear-gradient(135deg, $primary, $primary-light);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  p {
+    font-size: 14px; // Giảm từ 16px
+    color: $gray-600;
+    margin: 0;
+  }
+}
+
+// ============================================
+// TABS - COMPACT
+// ============================================
+.tabs {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
+  gap: 6px;
+  margin-bottom: 20px; // Giảm từ 32px
+  padding: 4px;
+  background: white;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  border: 1px solid $gray-100;
 }
 
-.header-content h1 {
-  font-size: 32px;
-  font-weight: 700;
-  color: #0d062d;
-  margin: 0 0 8px 0;
-}
-
-.header-content p {
-  font-size: 16px;
-  color: #787486;
-  margin: 0;
-}
-
-.add-member-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #ff5e13;
-  color: white;
+.tab {
+  flex: 1;
+  padding: 10px 16px; // Giảm từ 14px 24px
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $gray-600;
+  font-weight: 600;
+  font-size: 13px; // Giảm từ 14px
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+
+  &:hover:not(.active) {
+    color: $primary;
+    background: $gray-50;
+  }
+
+  &.active {
+    background: linear-gradient(135deg, $primary, $primary-light);
+    color: white;
+    box-shadow: 0 2px 8px rgba($primary, 0.3);
+    transform: translateY(-1px);
+  }
 }
 
-.add-member-btn:hover {
-  background: #ffa463;
-  transform: translateY(-2px);
-}
-
+// ============================================
+// FILTERS SECTION - COMPACT
+// ============================================
 .filters-section {
   display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 20px;
+  animation: slideUp 0.5s ease-out;
 }
 
 .search-box {
   position: relative;
   flex: 1;
-  background: white;
-  border-radius: 8px;
+
+  svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $gray-400;
+    width: 18px;
+    height: 18px;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px 12px 10px 40px; // Giảm padding
+    border: 2px solid $gray-200;
+    border-radius: $radius-md;
+    font-size: 14px;
+    background: white;
+    transition: all 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+
+    &::placeholder {
+      color: $gray-400;
+    }
+  }
 }
 
-.search-box svg {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #787486;
+.role-filter {
+  select {
+    padding: 10px 36px 10px 14px; // Giảm padding
+    border: 2px solid $gray-200;
+    border-radius: $radius-md;
+    font-size: 14px;
+    font-weight: 500;
+    background: white;
+    color: $gray-700;
+    cursor: pointer;
+    transition: all 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+
+    &:focus {
+      outline: none;
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+  }
 }
 
-.search-box input {
-  width: 100%;
-  padding: 12px 12px 12px 44px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: border-color 0.3s ease;
-}
-
-.search-box input:focus {
-  outline: none;
-  border-color: #ff5e13;
-}
-
-.role-filter select {
-  padding: 12px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 14px;
-  background: white;
-  cursor: pointer;
-  transition: border-color 0.3s ease;
-}
-
-.role-filter select:focus {
-  outline: none;
-  border-color: #ff5e13;
-}
-
+// ============================================
+// STATS GRID - COMPACT WITH SHADOW
+// ============================================
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); // Giảm từ 280px
+  gap: 16px; // Giảm từ 20px
+  margin-bottom: 24px;
+  animation: slideUp 0.6s ease-out;
 }
 
 .stat-card {
   background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: $radius-lg;
+  padding: 18px; // Giảm từ 24px
+  box-shadow: $shadow-md; // ✅ THÊM SHADOW
+  border: 1px solid $gray-100;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px; // Giảm từ 16px
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, $primary, $primary-light);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s;
+  }
+
+  &:hover {
+    transform: translateY(-3px); // Giảm từ -4px
+    box-shadow: $shadow-lg; // ✅ SHADOW KHI HOVER
+    border-color: rgba($primary, 0.2);
+
+    &::before {
+      transform: scaleX(1);
+    }
+
+    .stat-icon {
+      transform: scale(1.08) rotate(3deg);
+    }
+  }
 }
 
 .stat-icon {
-  width: 40px;
-  height: 40px;
-  background: #f9f4ee;
-  border-radius: 8px;
+  width: 48px; // Giảm từ 56px
+  height: 48px;
+  background: linear-gradient(135deg, rgba($primary, 0.1), rgba($primary-light, 0.1));
+  border-radius: $radius-md;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ff5e13;
+  color: $primary;
+  flex-shrink: 0;
+  transition: all 0.3s;
+
+  svg {
+    width: 22px; // Giảm size icon
+    height: 22px;
+  }
 }
 
-.stat-content h3 {
-  font-size: 12px;
-  color: #787486;
-  margin: 0 0 4px 0;
-  font-weight: 500;
+.stat-content {
+  flex: 1;
+
+  h3 {
+    font-size: 11px; // Giảm từ 13px
+    color: $gray-500;
+    margin: 0 0 4px 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
 }
 
 .stat-number {
-  font-size: 24px;
-  font-weight: 700;
-  color: #0d062d;
+  font-size: 26px; // Giảm từ 32px
+  font-weight: 800;
+  color: $gray-900;
   margin: 0;
+  line-height: 1;
 }
 
+// ============================================
+// MEMBERS TABLE CONTAINER - COMPACT
+// ============================================
 .members-table-container {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: $radius-xl;
+  box-shadow: $shadow-md;
   overflow: hidden;
-  border: 1px solid #f1f5f9;
-  position: relative;
-}
-
-.members-table-container::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #ff5e13, transparent);
-  opacity: 0.3;
+  border: 1px solid $gray-100;
+  animation: slideUp 0.7s ease-out;
 }
 
 .table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #f3f4f6;
+  padding: 18px 22px; // Giảm từ 24px 28px
+  background: linear-gradient(135deg, $gray-50 0%, white 100%);
+  border-bottom: 2px solid $gray-100;
 }
 
 .header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.table-header h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #0d062d;
-  margin: 0;
+  h3 {
+    font-size: 18px; // Giảm từ 20px
+    font-weight: 700;
+    color: $gray-900;
+    margin: 0 0 2px 0;
+  }
 }
 
 .member-count {
-  font-size: 14px;
-  color: #787486;
+  font-size: 13px;
+  color: $gray-500;
+  font-weight: 500;
 }
 
 .header-actions {
   display: flex;
-  gap: 12px;
-  align-items: center;
+  gap: 10px;
 }
 
-.download-template-btn,
-.import-excel-btn,
 .add-member-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  background: white;
-  color: #0d062d;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.download-template-btn:hover {
-  border-color: #10b981;
-  color: #10b981;
-  background: #f0fdf4;
-}
-
-.import-excel-btn:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
-  background: #eff6ff;
-}
-
-.add-member-btn {
-  background: #ff5e13;
-  border-color: #ff5e13;
+  gap: 6px;
+  background: linear-gradient(135deg, $primary, $primary-light);
   color: white;
+  border: none;
+  padding: 10px 20px; // Giảm từ 12px 24px
+  border-radius: $radius-md;
+  font-size: 13px; // Giảm từ 14px
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba($primary, 0.3);
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba($primary, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 }
 
-.add-member-btn:hover {
-  background: #e04a0c;
-  border-color: #e04a0c;
-}
-
+// ============================================
+// TABLE - COMPACT
+// ============================================
 .members-table {
   overflow-x: auto;
 }
 
 .table-header-row {
   display: grid;
-  grid-template-columns: 2fr 2fr 1fr 1fr 1fr 1.5fr;
-  gap: 16px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  font-size: 12px;
+  grid-template-columns: 2.5fr 2fr 1.2fr 1.2fr 1fr 1.5fr;
+  gap: 12px; // Giảm từ 16px
+  padding: 12px 22px; // Giảm từ 16px 28px
+  background: $gray-50;
+  font-size: 10px; // Giảm từ 11px
   font-weight: 700;
-  color: #475569;
+  color: $gray-600;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  border-bottom: 2px solid #e2e8f0;
-  position: relative;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.table-header-row::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #ff5e13, #ff8c42, #ffa463);
-  border-radius: 0 0 2px 2px;
+  border-bottom: 1px solid $gray-200;
 }
 
 .table-row {
   display: grid;
-  grid-template-columns: 2fr 2fr 1fr 1fr 1fr 2fr;
-  gap: 16px;
-  padding: 20px 24px;
-  border-bottom: 1px solid #f1f5f9;
+  grid-template-columns: 2.5fr 2fr 1.2fr 1.2fr 1fr 1.5fr;
+  gap: 12px;
+  padding: 14px 22px; // Giảm từ 20px 28px
+  border-bottom: 1px solid $gray-100;
   align-items: center;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   background: white;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(135deg, $primary, $primary-light);
+    transform: scaleY(0);
+    transition: transform 0.2s;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, rgba($primary, 0.02), rgba($primary-light, 0.02));
+
+    &::before {
+      transform: scaleY(1);
+    }
+
+    .member-avatar {
+      transform: scale(1.08);
+      box-shadow: 0 4px 12px rgba($primary, 0.3);
+    }
+
+    .member-name {
+      color: $primary;
+    }
+  }
 }
 
-.table-row:hover {
-  background: linear-gradient(135deg, #fef7f0 0%, #fff5f0 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(255, 94, 19, 0.08);
-  border-left: 3px solid #ff5e13;
-}
-
-.table-row:nth-child(even) {
-  background: #fafbfc;
-}
-
-.table-row:nth-child(even):hover {
-  background: linear-gradient(135deg, #fef7f0 0%, #fff5f0 100%);
-}
-
+// ============================================
+// MEMBER INFO - COMPACT
+// ============================================
 .member-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px; // Giảm từ 14px
 }
 
 .member-avatar {
-  width: 44px;
-  height: 44px;
-  background: linear-gradient(135deg, #ff5e13, #ff8c42);
+  width: 40px; // Giảm từ 48px
+  height: 40px;
+  background: linear-gradient(135deg, $primary, $primary-light);
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 16px;
-  box-shadow: 0 4px 12px rgba(255, 94, 19, 0.3);
-  border: 3px solid white;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.member-avatar::before {
-  content: "";
-  position: absolute;
-  inset: -2px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ff5e13, #ff8c42, #ffa463);
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.member-avatar:hover::before {
-  opacity: 1;
-}
-
-.member-avatar:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(255, 94, 19, 0.4);
+  font-size: 16px; // Giảm từ 18px
+  box-shadow: 0 2px 8px rgba($primary, 0.25);
+  flex-shrink: 0;
+  transition: all 0.2s;
 }
 
 .member-details {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  min-width: 0;
 }
 
 .member-name {
-  font-size: 15px;
+  font-size: 14px; // Giảm từ 15px
   font-weight: 700;
-  color: #0d062d;
-  transition: color 0.3s ease;
-}
-
-.table-row:hover .member-name {
-  color: #ff5e13;
+  color: $gray-900;
+  transition: color 0.2s;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .join-date {
-  font-size: 12px;
-  color: #64748b;
+  font-size: 11px; // Giảm từ 12px
+  color: $gray-500;
   font-weight: 500;
+  display: block;
+  margin-top: 2px;
 }
 
 .email {
-  font-size: 14px;
-  color: #475569;
+  font-size: 13px; // Giảm từ 14px
+  color: $gray-600;
   font-weight: 500;
-  transition: color 0.3s ease;
 }
 
-.table-row:hover .email {
-  color: #ff5e13;
-}
-
+// ============================================
+// BADGES - COMPACT
+// ============================================
 .role-badge,
 .status-badge {
   font-size: 12px;
-  font-weight: 600;
-  color: #059669;
-  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-  padding: 4px 8px;
-  border-radius: 6px;
-  display: inline-block;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  max-width: 100%;
+  font-weight: 700;
+  padding: 7px 18px;
+  border-radius: 16px;
+  margin-bottom: 4px;
+  background: $gray-200;
+  color: $gray-600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 6px 0 rgba($primary, 0.03);
+
+  &.pending {
+    background: $warning-light;
+    color: $warning;
+    border: 1px solid $warning;
+  }
+
+  &.accepted {
+    background: lighten($success, 40%);
+    color: $success;
+    border: 1px solid $success;
+  }
+
+  &.rejected,
+  &.canceled {
+    background: lighten($danger, 43%);
+    color: $danger;
+    border: 1px solid $danger;
+  }
 }
 
-.table-row:hover .role-badge {
-  background: linear-gradient(135deg, #fef7f0, #fff5f0);
-  color: #ff5e13;
-  transform: scale(1.05);
+.role-badge {
+  background: linear-gradient(135deg, rgba($info, 0.1), rgba($info, 0.15));
+  color: $info;
+
+  &::before {
+    background: $info;
+  }
 }
 
-.table-row:hover .status-badge {
-  background: linear-gradient(135deg, #fef7f0, #fff5f0);
-  color: #ff5e13;
-  transform: scale(1.05);
+.status-badge {
+  background: linear-gradient(135deg, rgba($success, 0.1), rgba($success, 0.15));
+  color: $success;
+
+  &::before {
+    background: $success;
+    animation: pulse 2s infinite;
+  }
 }
 
 .project-count {
-  font-size: 14px;
-  color: #475569;
+  font-size: 13px;
+  color: $gray-700;
   font-weight: 600;
-  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-  padding: 4px 8px;
-  border-radius: 12px;
+  padding: 4px 10px;
+  background: $gray-100;
+  border-radius: 16px;
   display: inline-block;
-  transition: all 0.3s ease;
 }
 
-.table-row:hover .project-count {
-  background: linear-gradient(135deg, #fef7f0, #fff5f0);
-  color: #ff5e13;
-}
-
+// ============================================
+// ACTION BUTTONS - COMPACT
+// ============================================
 .col-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  justify-content: flex-end;
 }
 
 .action-btn {
-  width: 36px;
-  height: 36px;
+  width: 34px; // Giảm từ 40px
+  height: 34px;
   border: none;
-  border-radius: 8px;
+  border-radius: $radius-sm;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  transition: all 0.2s;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &.view {
+    background: linear-gradient(135deg, rgba($success, 0.1), rgba($success, 0.15));
+    color: $success;
+
+    &:hover {
+      background: linear-gradient(135deg, $success, darken($success, 5%));
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 3px 8px rgba($success, 0.3);
+    }
+  }
+
+  &.edit {
+    background: linear-gradient(135deg, rgba($info, 0.1), rgba($info, 0.15));
+    color: $info;
+
+    &:hover {
+      background: linear-gradient(135deg, $info, darken($info, 5%));
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 3px 8px rgba($info, 0.3);
+    }
+  }
+
+  &.delete {
+    background: linear-gradient(135deg, rgba($danger, 0.1), rgba($danger, 0.15));
+    color: $danger;
+
+    &:hover {
+      background: linear-gradient(135deg, $danger, darken($danger, 5%));
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 3px 8px rgba($danger, 0.3);
+    }
+  }
 }
 
-.action-btn::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.action-btn:hover::before {
-  opacity: 1;
-}
-
-.action-btn.view {
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  color: #16a34a;
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
-}
-
-.action-btn.view:hover {
-  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-}
-
-.action-btn.edit {
-  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-  color: #1e40af;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
-}
-
-.action-btn.edit:hover {
-  background: linear-gradient(135deg, #bfdbfe, #93c5fd);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.action-btn.delete {
-  background: linear-gradient(135deg, #fee2e2, #fecaca);
-  color: #dc2626;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);
-}
-
-.action-btn.delete:hover {
-  background: linear-gradient(135deg, #fecaca, #fca5a5);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-}
-
+// ============================================
+// MODALS - COMPACT
+// ============================================
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba($gray-900, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+  padding: 16px;
 }
 
 .modal {
   background: white;
-  border-radius: 16px;
-  width: 90%;
-  max-width: 600px;
+  border-radius: $radius-xl;
+  width: 100%;
+  max-width: 560px; // Giảm từ 600px
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  animation: modalSlideIn 0.3s ease-out;
-}
-
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  box-shadow: $shadow-xl;
+  animation: slideUp 0.3s ease-out;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 28px;
-  border-bottom: 1px solid #f3f4f6;
-  background: linear-gradient(135deg, #f9f4ee 0%, #fff5f0 100%);
-  border-radius: 16px 16px 0 0;
-}
+  padding: 20px 24px; // Giảm từ 28px 32px
+  border-bottom: 2px solid $gray-100;
+  background: linear-gradient(135deg, $gray-50 0%, white 100%);
 
-.modal-header h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #0d062d;
-  margin: 0;
+  h3 {
+    font-size: 18px; // Giảm từ 22px
+    font-weight: 700;
+    color: $gray-900;
+    margin: 0;
+  }
 }
 
 .close-btn {
-  background: none;
+  width: 32px; // Giảm từ 36px
+  height: 32px;
+  border-radius: 50%;
   border: none;
+  background: $gray-100;
+  color: $gray-600;
   cursor: pointer;
-  color: #787486;
-  padding: 4px;
-}
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-.close-btn:hover {
-  color: #0d062d;
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    background: $danger;
+    color: white;
+    transform: rotate(90deg);
+  }
 }
 
 .modal-body {
-  padding: 24px;
-  background: white;
-}
-
-.form-group {
-  margin-bottom: 16px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.form-row .form-group {
-  margin-bottom: 0;
-}
-
-.form-group.full-width {
-  grid-column: 1 / -1;
-}
-
-.form-group label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: #0d062d;
-  margin-bottom: 8px;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 14px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  background: #fafbfc;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  outline: none;
-  border-color: #ff5e13;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(255, 94, 19, 0.1);
-  transform: translateY(-1px);
-}
-
-.email-input-group {
-  display: flex;
-  align-items: center;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-  transition: border-color 0.3s ease;
-}
-
-.email-input-group:focus-within {
-  border-color: #ff5e13;
-}
-
-.email-input-group input {
-  flex: 1;
-  border: none;
-  padding: 12px;
-  font-size: 14px;
-  outline: none;
-}
-
-.email-domain {
-  padding: 12px;
-  background: #f9f4ee;
-  color: #787486;
-  font-size: 14px;
-  font-weight: 500;
-  border-left: 1px solid #e5e7eb;
-}
-
-.phone {
-  color: #475569;
-  font-size: 14px;
-  font-weight: 500;
-  transition: color 0.3s ease;
-}
-
-.table-row:hover .phone {
-  color: #ff5e13;
-}
-
-/* Import Modal Styles */
-.import-instructions {
-  background: #f9f4ee;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.import-instructions h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #0d062d;
-}
-
-.import-instructions ol {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.import-instructions li {
-  font-size: 14px;
-  color: #6b7280;
-  margin-bottom: 4px;
-}
-
-.file-upload-area {
-  border: 2px dashed #e5e7eb;
-  border-radius: 8px;
-  padding: 40px 20px;
-  text-align: center;
-  transition: border-color 0.3s ease;
-}
-
-.file-upload-area:hover {
-  border-color: #ff5e13;
-}
-
-.file-upload-label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  color: #6b7280;
-}
-
-.file-upload-label svg {
-  color: #ff5e13;
-}
-
-.file-upload-label span {
-  font-size: 16px;
-  font-weight: 500;
-  color: #0d062d;
-}
-
-.file-upload-label small {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-/* Preview Modal Styles */
-.preview-modal {
-  max-width: 1000px;
-  width: 90%;
-}
-
-.import-summary {
-  display: flex;
-  gap: 24px;
-  margin-bottom: 20px;
-  padding: 16px;
-  background: #f9f4ee;
-  border-radius: 8px;
-}
-
-.summary-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.summary-item .label {
-  font-size: 12px;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.summary-item .value {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0d062d;
-}
-
-.summary-item .value.valid {
-  color: #10b981;
-}
-
-.summary-item .value.error {
-  color: #ef4444;
-}
-
-.preview-table {
-  max-height: 400px;
-  overflow-y: auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-}
-
-.preview-header {
-  display: grid;
-  grid-template-columns: 60px 1fr 1.5fr 1fr 1fr;
-  gap: 12px;
-  padding: 12px 16px;
-  background: #f9f4ee;
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.preview-row {
-  display: grid;
-  grid-template-columns: 60px 1fr 1.5fr 1fr 1fr;
-  gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #f3f4f6;
-  font-size: 14px;
-}
-
-.preview-row.valid {
-  background: white;
-}
-
-.preview-row.error {
-  background: #fef2f2;
-}
-
-.preview-col {
-  display: flex;
-  align-items: center;
-}
-
-.status-valid {
-  color: #10b981;
-  font-weight: 500;
-}
-
-.status-error {
-  color: #ef4444;
-  font-weight: 500;
-}
-
-.error-details {
-  margin-top: 4px;
-}
-
-.error-item {
-  font-size: 12px;
-  color: #dc2626;
-  margin-bottom: 2px;
-}
-
-.confirm-import-btn {
-  background: #10b981;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.confirm-import-btn:hover:not(:disabled) {
-  background: #059669;
-}
-
-.confirm-import-btn:disabled {
-  background: #d1d5db;
-  cursor: not-allowed;
+  padding: 24px; // Giảm từ 32px
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 24px 28px;
-  border-top: 1px solid #f3f4f6;
-  background: #fafbfc;
-  border-radius: 0 0 16px 16px;
+  gap: 10px;
+  padding: 18px 24px; // Giảm từ 24px 32px
+  border-top: 2px solid $gray-100;
+  background: $gray-50;
+}
+
+.cancel-btn,
+.save-btn {
+  padding: 10px 24px; // Giảm từ 12px 28px
+  border-radius: $radius-md;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 .cancel-btn {
-  padding: 12px 24px;
-  border: 2px solid #e5e7eb;
   background: white;
-  color: #787486;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
+  color: $gray-700;
+  border: 2px solid $gray-200;
 
-.cancel-btn:hover {
-  border-color: #d1d5db;
-  color: #0d062d;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  &:hover:not(:disabled) {
+    background: $gray-50;
+    border-color: $gray-400;
+  }
 }
 
 .save-btn {
-  padding: 12px 24px;
-  border: none;
-  background: linear-gradient(135deg, #ff5e13, #ff8c42);
+  background: linear-gradient(135deg, $primary, $primary-light);
   color: white;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(255, 94, 19, 0.3);
+  box-shadow: 0 2px 8px rgba($primary, 0.3);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba($primary, 0.4);
+  }
 }
 
-.save-btn:hover {
-  background: linear-gradient(135deg, #e04a0c, #ff5e13);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 94, 19, 0.4);
+// ============================================
+// FORM ELEMENTS - COMPACT
+// ============================================
+.form-group {
+  margin-bottom: 18px; // Giảm từ 24px
+
+  label {
+    display: block;
+    font-size: 13px; // Giảm từ 14px
+    font-weight: 600;
+    color: $gray-700;
+    margin-bottom: 6px;
+  }
+
+  input,
+  select {
+    width: 100%;
+    padding: 10px 14px; // Giảm từ 14px 16px
+    border: 2px solid $gray-200;
+    border-radius: $radius-md;
+    font-size: 14px;
+    background: white;
+    transition: all 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px; // Giảm từ 16px
+  margin-bottom: 18px;
+
+  .form-group {
+    margin-bottom: 0;
+  }
+}
+
+// ============================================
+// LOADING & EMPTY STATES - COMPACT
+// ============================================
+.loading-container,
+.error-container,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px; // Giảm từ 80px
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 48px; // Giảm từ 56px
+  height: 48px;
+  border: 3px solid $gray-200;
+  border-top-color: $primary;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.loading-text,
+.error-text,
+.empty-text {
+  font-size: 16px; // Giảm từ 18px
+  font-weight: 600;
+  color: $gray-900;
+  margin-bottom: 6px;
+}
+
+.error-description,
+.empty-description {
+  font-size: 14px;
+  color: $gray-600;
+}
+
+// ============================================
+// RESPONSIVE - OPTIMIZED
+// ============================================
+@media (max-width: 1024px) {
+
+  .table-header-row,
+  .table-row {
+    grid-template-columns: 2fr 1.5fr 1fr 1fr 0.8fr 1.3fr;
+    gap: 10px;
+  }
 }
 
 @media (max-width: 768px) {
   .members-roles-page {
-    padding: 16px;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+    padding: 16px 12px;
   }
 
   .filters-section {
     flex-direction: column;
-    padding: 16px;
   }
 
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .table-header-row,
   .table-row {
     grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .col-name,
-  .col-email,
-  .col-role,
-  .col-status,
-  .col-projects,
-  .col-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #f3f4f6;
-  }
-
-  .col-name::before {
-    content: "Tên: ";
-    font-weight: 600;
-  }
-  .col-email::before {
-    content: "Email: ";
-    font-weight: 600;
-  }
-  .col-role::before {
-    content: "Vai trò: ";
-    font-weight: 600;
-  }
-  .col-status::before {
-    content: "Trạng thái: ";
-    font-weight: 600;
-  }
-  .col-projects::before {
-    content: "Dự án: ";
-    font-weight: 600;
-  }
-  .col-actions::before {
-    content: "Thao tác: ";
-    font-weight: 600;
-  }
-
-  /* Modal responsive */
-  .modal {
-    max-width: 95%;
-    margin: 20px;
+    gap: 10px;
   }
 
   .form-row {
     grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .modal-header {
-    padding: 20px 24px;
-  }
-
-  .modal-body {
-    padding: 20px 24px;
-  }
-
-  .modal-footer {
-    padding: 20px 24px;
   }
 }
 
-.tabs {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.tab {
-  padding: 10px 24px;
-  border-radius: 8px 8px 0 0;
-  background: #f3f4f6;
-  color: #787486;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.tab.active {
-  background: #ff5e13;
-  color: white;
-}
-.requests-table,
-.invites-table {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  padding: 24px;
-  margin-bottom: 32px;
-}
-.requests-table h3,
-.invites-table h3 {
-  margin-bottom: 16px;
+@media (max-width: 600px) {
+  .requests-card {
+    flex-direction: column;
+    align-items: stretch;
+
+    .request-status,
+    .request-actions {
+      margin: 6px 0;
+      justify-content: flex-start;
+    }
+  }
 }
 
+// ============================================
+// INVITE EMAIL STYLES - COMPACT
+// ============================================
 .invite-input-group {
   display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 10px;
+  margin-top: 10px;
+
+  input {
+    flex: 1;
+  }
 }
-.invite-input-group input {
-  flex: 1;
-  padding: 10px 12px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 14px;
-}
+
 .add-email-btn {
-  background: #ff5e13;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, $primary, $primary-light);
   color: white;
   border: none;
-  border-radius: 8px;
-  padding: 0 16px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: $radius-md;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba($primary, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
-.add-email-btn:disabled {
-  background: #f3f4f6;
-  color: #787486;
-  cursor: not-allowed;
-}
+
 .invite-emails-list {
-  margin-top: 12px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 12px;
 }
+
 .invite-email-label {
-  background: #f3f4f6;
-  color: #0d062d;
-  border-radius: 16px;
-  padding: 6px 16px;
-  font-size: 14px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, rgba($primary, 0.1), rgba($primary-light, 0.1));
+  color: $gray-900;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
 }
+
 .remove-email-btn {
   background: none;
   border: none;
-  color: #dc2626;
+  color: $danger;
   font-size: 18px;
+  font-weight: 700;
   cursor: pointer;
-  margin-left: 4px;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba($danger, 0.1);
+  }
+}
+
+.member-info-section {
+  background: linear-gradient(135deg, #f9f4ee 0%, #fff5f0 100%);
+  padding: 16px;
+  border-radius: $radius-md;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.info-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: $gray-900;
+  margin-bottom: 2px;
+}
+
+.info-email {
+  font-size: 13px;
+  color: $gray-600;
+}
+
+.info-note {
+  background: #eff6ff;
+  padding: 12px 14px;
+  border-radius: $radius-sm;
+  margin-top: 16px;
+  border: 1px solid #bfdbfe;
+
+  p {
+    font-size: 12px;
+    color: #1e40af;
+    margin: 0;
+  }
+}
+
+.status-badge.inactive {
+  background: linear-gradient(135deg, rgba($danger, 0.1), rgba($danger, 0.15));
+  color: $danger;
+
+  &::before {
+    background: $danger;
+  }
+}
+
+.requests-card {
+  display: flex;
+  justify-content: space-between; // <--- Giúp ba block trái, giữa, phải đều lề, không bị giữa trống!
+  align-items: center;
+  gap: 0;
+  padding: 16px 18px;
+  background: $gray-100;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  border: 1.5px solid $gray-100;
+  margin-bottom: 8px;
+  min-height: 74px;
+  transition: box-shadow 0.15s, border-color 0.15s, background-color 0.19s;
+
+  &:hover {
+    box-shadow: $shadow-md;
+    border-color: $primary-light;
+    background: $gray-50;
+  }
+}
+
+// LEFT: Info
+.request-info {
+  flex: 3;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+
+  .member-avatar {
+    width: 38px;
+    height: 38px;
+    background: $gray-200;
+    color: $primary-dark;
+    border-radius: 50%;
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .member-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: $gray-900;
+    }
+
+    .member-email {
+      font-size: 12px;
+      color: $gray-500;
+    }
+
+    .organization-badge {
+      background: $gray-200;
+      color: $primary-dark;
+      font-size: 11px;
+      border-radius: 10px;
+      padding: 1.5px 8px;
+      margin-top: 1px;
+      font-weight: 500;
+      display: inline-block;
+      max-width: 98px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow-x: hidden;
+    }
+  }
+}
+
+// MIDDLE: badge + ngày gửi
+.request-badge-block {
+  flex: 1.5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+
+  .status-badge {
+    margin-bottom: 7px;
+  }
+
+  .created-date {
+    font-size: 11px;
+    color: $gray-500;
+  }
+}
+
+// RIGHT: Actions
+.request-actions-group {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 8px;
+}
+
+.action-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: $radius-sm;
+  min-width: 92px;
+  border: 1.4px solid $gray-400;
+  background: white;
+  color: $primary-dark;
+  box-shadow: none;
+  transition: all 0.17s;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+
+  &.accept {
+    border-color: $success;
+    color: $success;
+
+    &:hover {
+      background: $success;
+      color: #fff;
+      border-color: $success;
+    }
+  }
+
+  &.reject {
+    border-color: $danger;
+    color: $danger;
+
+    &:hover {
+      background: $danger;
+      color: #fff;
+      border-color: $danger;
+    }
+  }
+}
+
+.invite-status-filter {
+  min-width: 170px;
+  max-width: 220px;
+  padding: 10px 32px 10px 14px;
+  border: 2px solid $gray-200;
+  border-radius: $radius-md;
+  font-size: 15px;
+  font-weight: 600;
+  color: $gray-700;
+  background: white;
+  margin-bottom: 7px;
+  transition: all 0.17s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  box-shadow: 0 2px 8px rgba($primary, 0.07);
+
+  &:focus {
+    outline: none;
+    border-color: $primary;
+    box-shadow: 0 0 0 3px rgba($primary, 0.10);
+  }
+}
+
+
+.invite-card {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  background: linear-gradient(135deg, $gray-50 70%, white 100%);
+  border-radius: $radius-md;
+  border: 1.5px solid $gray-100;
+  box-shadow: 0 4px 18px 0 rgba($primary, 0.06); // Bóng rộng, mềm và sáng
+  margin-bottom: 14px;
+  min-height: 80px;
+  transition: box-shadow 0.14s, background-color 0.14s, border-color 0.19s;
+
+  &:hover {
+    background: $gray-100;
+    border-color: $primary-light;
+    box-shadow: $shadow-md;
+  }
+
+  .request-info {
+    flex: 4;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 12px 22px;
+
+    .member-avatar {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, $primary, $primary-light);
+      color: white;
+      border-radius: 50%;
+      font-size: 17px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+
+      .avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      box-shadow: 0 2px 10px 0 rgba($primary, 0.16);
+    }
+
+    .details {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5px;
+
+      .member-name {
+        font-size: 15px;
+        font-weight: 650;
+        color: $gray-900;
+      }
+
+      .member-email {
+        font-size: 12px;
+        color: $gray-500;
+      }
+
+      .organization-badge {
+        font-size: 12px;
+        background: $gray-200;
+        color: $primary;
+        border-radius: 8px;
+        padding: 2px 10px;
+        margin: 2px 0 0 0;
+        font-weight: 600;
+        display: inline-block;
+        white-space: nowrap;
+        max-width: 130px;
+        overflow-x: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+
+  .invite-badge-block {
+    flex: 2.3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 15px;
+    min-width: 120px;
+    border-left: 1px solid $gray-200;
+
+    .status-badge {
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 8px 22px;
+      border-radius: 15px;
+      margin-bottom: 8px;
+      background: $gray-100;
+      color: $primary-dark;
+      letter-spacing: 0.03em;
+      box-shadow: 0 2px 8px 0 rgba($primary, 0.04);
+
+      &.pending {
+        background: $warning-light;
+        color: $warning; // Đang chờ: vàng
+        border: 1px solid $warning;
+      }
+
+      &.accepted {
+        background: lighten($success, 40%);
+        color: $success; // Đã nhận: xanh lá
+        border: 1px solid $success;
+      }
+
+      &.rejected,
+      &.canceled {
+        background: lighten($danger, 43%);
+        color: $danger; // Từ chối & hủy: đỏ
+        border: 1px solid $danger;
+      }
+    }
+
+    .created-date {
+      font-size: 12px;
+      color: $gray-400;
+      font-weight: 500;
+    }
+  }
 }

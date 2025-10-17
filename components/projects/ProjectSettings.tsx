@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Project, ProjectMember } from "@/types/project";
 import { Member } from "@/types/member";
 import { AddMemberModal } from "./modals/AddMemberModal";
-import { EditMemberModal } from "./modals/EditMemberModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
@@ -93,7 +92,6 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  const [editingMember, setEditingMember] = useState<Member | null>(null);
   
   // Confirm dialog states
   const [isConfirmDeleteMemberOpen, setIsConfirmDeleteMemberOpen] = useState(false);
@@ -128,6 +126,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
             .filter((pm: any) => pm.member) // Only include items with member data
             .map((pm: any) => ({
               id: pm.member.id,
+              pmId: pm.id, // Store ProjectMember ID for deletion
               name: pm.member.fullName || 'Unknown',
               email: pm.member.email || '',
               role: pm.member.role || 'Member',
@@ -197,50 +196,36 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
     }
   };
 
-  const handleEditMember = (member: Member) => {
-    setEditingMember(member);
-  };
-
-  const handleUpdateMember = (updatedMember: Member) => {
-    setMembers((prev) =>
-      prev.map((m) => (m.id === updatedMember.id ? updatedMember : m))
-    );
-    setEditingMember(null);
-  };
-
   const handleDeleteMember = (memberId: string) => {
     const member = members.find(m => m.id === memberId);
     if (member) {
-      setMemberToDelete({ id: member.id, name: member.name });
+      setMemberToDelete({ id: member.pmId || member.id, name: member.name });
       setIsConfirmDeleteMemberOpen(true);
     }
   };
 
   const confirmDeleteMember = async () => {
-    if (memberToDelete) {
-      // Optimistically remove from UI
-      setMembers((prev) => prev.filter((m) => m.id !== memberToDelete.id));
-      setMemberToDelete(null);
-      console.log('Deleted member:', memberToDelete.id);
+    if (!memberToDelete) return;
+
+    try {
+      // Call API to remove project member
+      const result = await projectService.removeProjectMember(memberToDelete.id);
       
-      // Re-fetch to ensure sync with backend
-      try {
-        const result = await projectService.getProjectMembers(project.id);
-        if (result.success && result.data) {
-          const transformedMembers: Member[] = result.data
-            .filter((pm: any) => pm.member)
-            .map((pm: any) => ({
-              id: pm.member.id,
-              name: pm.member.fullName || 'Unknown',
-              email: pm.member.email || '',
-              role: pm.member.role || 'Member',
-              avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase()
-            }));
-          setMembers(transformedMembers);
-        }
-      } catch (error) {
-        console.error('Error refreshing members after delete:', error);
+      if (result.success) {
+        // Remove from UI on success
+        setMembers((prev) => prev.filter((m) => (m.pmId || m.id) !== memberToDelete.id));
+        console.log('Successfully deleted member:', memberToDelete.name);
+        alert('Đã xóa thành viên thành công!');
+      } else {
+        console.error('Failed to delete member:', result.error);
+        alert(`Lỗi khi xóa thành viên: ${result.error || 'Unknown error'}`);
       }
+    } catch (error) {
+      console.error('Error deleting member:', error);
+      alert('Đã xảy ra lỗi khi xóa thành viên');
+    } finally {
+      setMemberToDelete(null);
+      setIsConfirmDeleteMemberOpen(false);
     }
   };
 
@@ -254,11 +239,39 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
     setIsEditingBasicInfo(false);
   };
 
-  const handleSaveBasicInfo = () => {
-    setSettings(tempSettings);
-    setIsEditingBasicInfo(false);
-    console.log("Saving basic info:", tempSettings);
-    // TODO: Call API to save
+  const handleSaveBasicInfo = async () => {
+    if (!project.id) {
+      alert('Không tìm thấy thông tin dự án');
+      return;
+    }
+
+    try {
+      console.log('[ProjectSettings] Saving basic info:', tempSettings);
+      
+      const updateData = {
+        id: project.id,
+        name: tempSettings.name,
+        description: tempSettings.description,
+        status: tempSettings.status,
+        startDate: tempSettings.startDate || undefined,
+        endDate: tempSettings.endDate || undefined
+      };
+
+      const result = await projectService.updateProject(updateData);
+      
+      if (result.success && result.data) {
+        console.log('[ProjectSettings] Project updated successfully:', result.data);
+        setSettings(tempSettings);
+        setIsEditingBasicInfo(false);
+        alert('Cập nhật thông tin dự án thành công!');
+      } else {
+        console.error('[ProjectSettings] Failed to update project:', result.error);
+        alert(`Lỗi: ${result.error || 'Không thể cập nhật thông tin dự án'}`);
+      }
+    } catch (error) {
+      console.error('[ProjectSettings] Error updating project:', error);
+      alert('Có lỗi xảy ra khi cập nhật thông tin dự án');
+    }
   };
 
   const handleTempInputChange = (field: string, value: any) => {
@@ -330,10 +343,10 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
                 className="form-select"
                 disabled={!isEditingBasicInfo}
               >
-                <option value="planning">Đang lập kế hoạch</option>
-                <option value="active">Đang hoạt động</option>
-                <option value="on-hold">Tạm dừng</option>
-                <option value="completed">Hoàn thành</option>
+                <option value="Chưa bắt đầu">Chưa bắt đầu</option>
+                <option value="Đang hoạt động">Đang hoạt động</option>
+                <option value="Tạm dừng">Tạm dừng</option>
+                <option value="Hoàn thành">Hoàn thành</option>
               </select>
             </div>
 
@@ -606,15 +619,8 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
                       <div className="member-role">{member.role}</div>
                       <div className="member-email">{member.email}</div>
                     </div>
-                    {canAddMember && (
+                    {canAddMember && member.role?.toLowerCase() === 'member' && (
                       <div className="member-actions">
-                        <button
-                          className="btn btn-sm btn-secondary"
-                          onClick={() => handleEditMember(member)}
-                          title="Chỉnh sửa thành viên"
-                        >
-                          <Edit size={12} />
-                        </button>
                         <button
                           className="btn btn-sm btn-danger"
                           onClick={() => handleDeleteMember(member.id)}
@@ -641,14 +647,6 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
         existingMembers={members}
         projectId={project.id}
         ownerId={project.ownerId || project.owner?.userId || ''}
-      />
-
-      {/* Edit Member Modal */}
-      <EditMemberModal
-        isOpen={!!editingMember}
-        onClose={() => setEditingMember(null)}
-        onUpdateMember={handleUpdateMember}
-        member={editingMember}
       />
 
       {/* Confirm Delete Member Dialog */}

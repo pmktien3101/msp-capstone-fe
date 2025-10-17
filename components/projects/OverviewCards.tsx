@@ -15,7 +15,7 @@ interface OverviewCardsProps {
     completed: number;
     inProgress: number;
     todo: number;
-    review: number;
+    onHold: number;
     completionRate: number;
   };
 }

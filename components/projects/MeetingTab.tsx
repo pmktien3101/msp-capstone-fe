@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Project } from "@/types/project";
 import { Button } from "@/components/ui/button";
 import { CreateMeetingModal } from "./modals/CreateMeetingModal";
@@ -9,9 +9,8 @@ import { meetingService } from "@/services/meetingService";
 import { MeetingItem } from "@/types/meeting";
 import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 import { toast } from "react-toastify";
-import { Eye, Pencil, Trash, Plus } from "lucide-react";
+import { Eye, Pencil, Plus, X } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-import { useEffect } from "react";
 import { useStreamVideoClient } from "@stream-io/video-react-sdk";
 
 interface MeetingTabProps {
@@ -52,14 +51,37 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
     refetch: refetchCalls,
   } = useProjectMeetings(project.id);
 
-  // Sửa lại viewType cho đúng với status từ API
-  const [viewType, setViewType] = useState<
-    "all" | "Scheduled" | "Ongoing" | "Finished" | "Cancel"
+  // Thay tabs bằng filter + search
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "Scheduled" | "Ongoing" | "Finished" | "Cancelled"
   >("all");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // --- new: custom dropdown state + ref ---
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // hover state for nicer hover effects
+  const [hoveredOption, setHoveredOption] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+  // --- end new ---
+
   const { role } = useUser();
   const isMember = role === "Member";
 
-  // Phân loại cuộc họp theo status
+  // Phân loại cuộc họp theo status (duy trì cho thống kê)
   const scheduledMeetings = backendMeetings.filter(
     (m) => m.status === "Scheduled"
   );
@@ -67,30 +89,30 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const finishedMeetings = backendMeetings.filter(
     (m) => m.status === "Finished"
   );
-  const cancelMeetings = backendMeetings.filter((m) => m.status === "Cancel");
+  const cancelMeetings = backendMeetings.filter(
+    (m) => m.status === "Cancelled"
+  );
   const allMeetings = backendMeetings;
 
+  // Áp filter status và search vào danh sách hiển thị
   const meetings = useMemo(() => {
-    switch (viewType) {
-      case "Scheduled":
-        return scheduledMeetings;
-      case "Ongoing":
-        return ongoingMeetings;
-      case "Finished":
-        return finishedMeetings;
-      case "Cancel":
-        return cancelMeetings;
-      default:
-        return allMeetings;
+    let list = backendMeetings.slice();
+
+    if (statusFilter !== "all") {
+      list = list.filter((m) => m.status === statusFilter);
     }
-  }, [
-    viewType,
-    allMeetings,
-    scheduledMeetings,
-    ongoingMeetings,
-    finishedMeetings,
-    cancelMeetings,
-  ]);
+
+    const q = searchTerm.trim().toLowerCase();
+    if (q) {
+      list = list.filter((m) => {
+        const title = (m.title || "").toLowerCase();
+        const desc = (m.description || "").toLowerCase();
+        return title.includes(q) || desc.includes(q);
+      });
+    }
+
+    return list;
+  }, [backendMeetings, statusFilter, searchTerm]);
 
   // Sửa lại getStatusInfo cho đúng nhãn
   const getStatusInfo = (meeting: MeetingItem) => {
@@ -101,8 +123,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
         return { label: "Đã lên lịch", color: "#47D69D" };
       case "Ongoing":
         return { label: "Đang diễn ra", color: "#FFA500" };
-      case "Cancel":
-        return { label: "Tạm dừng", color: "#888" };
+      case "Cancelled":
+        return { label: "Đã hủy", color: "#888" };
       default:
         return { label: meeting.status, color: "#ccc" };
     }
@@ -127,19 +149,21 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
     setShowUpdateModal(true);
   };
 
-  const handleDelete = async (meeting: MeetingItem) => {
-    if (!confirm("Bạn chắc chắn muốn xóa cuộc họp này?")) return;
+  const handleCancel = async (meeting: MeetingItem) => {
+    if (!confirm("Bạn chắc chắn muốn hủy cuộc họp này?")) return;
+
     try {
-      const res = await meetingService.deleteMeeting(meeting.id);
-      if (res.success) {
+      const res = await meetingService.cancelMeeting(meeting.id);
+
+      if (res?.success) {
         await refetchCalls();
-        toast.success("Đã xóa cuộc họp");
+        toast.success("Đã hủy cuộc họp thành công");
       } else {
-        toast.error(res.error || "Xóa thất bại");
+        toast.error(res?.error || res?.message || "Hủy cuộc họp thất bại");
       }
     } catch (e: any) {
-      console.error("Delete meeting failed", e);
-      toast.error(e?.message || "Xóa thất bại");
+      console.error("Cancel meeting failed", e);
+      toast.error(e?.message || "Hủy cuộc họp thất bại");
     }
   };
 
@@ -148,6 +172,15 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   const ongoingMeetingsCount = ongoingMeetings.length;
   const finishedMeetingsCount = finishedMeetings.length;
   const cancelMeetingsCount = cancelMeetings.length;
+
+  // status options for custom dropdown
+  const statusOptions = [
+    { value: "all", label: "Tất cả trạng thái" },
+    { value: "Scheduled", label: "Đã lên lịch" },
+    { value: "Ongoing", label: "Đang diễn ra" },
+    { value: "Finished", label: "Kết thúc" },
+    { value: "Cancelled", label: "Đã hủy" },
+  ];
 
   return (
     <div className="meeting-tab">
@@ -207,90 +240,146 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
         </div>
         <div className="stat-card">
           <div className="stat-number">{cancelMeetingsCount}</div>
-          <div className="stat-label">Tạm dừng</div>
+          <div className="stat-label">Đã hủy</div>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <Button
-          onClick={() => setViewType("all")}
+      {/* Filter + Search thay cho các tab */}
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginBottom: 16,
+          alignItems: "center",
+        }}
+      >
+        <input
+          type="text"
+          placeholder="Tìm kiếm theo tiêu đề hoặc mô tả..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           style={{
-            background: viewType === "all" ? "#FF5E13" : "transparent",
-            color: viewType === "all" ? "white" : "#FF5E13",
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #E5E7EB",
+            width: 360,
+          }}
+        />
+
+        {/* custom dropdown */}
+        <div
+          ref={dropdownRef}
+          style={{ position: "relative", display: "inline-block" }}
+        >
+          <button
+            onClick={() => setDropdownOpen((s) => !s)}
+            aria-expanded={dropdownOpen}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: "1px solid #E5E7EB",
+              background: "white",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              minWidth: 180,
+              transition: "box-shadow 0.15s ease",
+              boxShadow: dropdownOpen ? "0 4px 10px rgba(255,94,19,0.06)" : "",
+            }}
+            title="Lọc trạng thái"
+          >
+            <span style={{ flex: 1, textAlign: "left" }}>
+              {statusOptions.find((o) => o.value === statusFilter)?.label ||
+                "Tất cả trạng thái"}
+            </span>
+            <span
+              style={{
+                display: "inline-block",
+                width: 0,
+                height: 0,
+                borderLeft: "6px solid transparent",
+                borderRight: "6px solid transparent",
+                borderTop: `6px solid ${dropdownOpen ? "#FF5E13" : "#666"}`,
+                transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.18s ease, border-top-color 0.18s ease",
+              }}
+            />
+          </button>
+
+          {dropdownOpen && (
+            <div
+              role="menu"
+              style={{
+                position: "absolute",
+                top: "calc(100% + 8px)",
+                left: 0,
+                background: "white",
+                border: "1px solid #E5E7EB",
+                borderRadius: 8,
+                boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                zIndex: 40,
+                minWidth: 200,
+                overflow: "hidden",
+              }}
+            >
+              {statusOptions.map((opt) => (
+                <div
+                  key={opt.value}
+                  role="menuitem"
+                  onClick={() => {
+                    setStatusFilter(opt.value as any);
+                    setDropdownOpen(false);
+                  }}
+                  onMouseEnter={() => setHoveredOption(opt.value)}
+                  onMouseLeave={() => setHoveredOption(null)}
+                  style={{
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    background:
+                      statusFilter === opt.value
+                        ? "rgba(255,94,19,0.06)"
+                        : hoveredOption === opt.value
+                        ? "rgba(255,94,19,0.08)"
+                        : "transparent",
+                    color:
+                      statusFilter === opt.value || hoveredOption === opt.value
+                        ? "#FF5E13"
+                        : "#111827",
+                    borderBottom: "1px solid #F3F4F6",
+                    transition:
+                      "background 0.12s ease, color 0.12s ease, transform 0.12s ease",
+                    transform:
+                      hoveredOption === opt.value
+                        ? "translateX(4px)"
+                        : "translateX(0)",
+                  }}
+                >
+                  {opt.label}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Button
+          onClick={() => {
+            setStatusFilter("all");
+            setSearchTerm("");
+            setDropdownOpen(false);
+          }}
+          style={{
+            background: "transparent",
+            color: "#FF5E13",
             border: "1px solid #FF5E13",
             borderRadius: "8px",
             padding: "8px 16px",
             cursor: "pointer",
             fontSize: "14px",
             fontWeight: 500,
-            transition: "all 0.2s ease",
           }}
         >
-          Tất cả
-        </Button>
-        <Button
-          onClick={() => setViewType("Scheduled")}
-          style={{
-            background: viewType === "Scheduled" ? "#FF5E13" : "transparent",
-            color: viewType === "Scheduled" ? "white" : "#FF5E13",
-            border: "1px solid #FF5E13",
-            borderRadius: "8px",
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: 500,
-            transition: "all 0.2s ease",
-          }}
-        >
-          Đã lên lịch
-        </Button>
-        <Button
-          onClick={() => setViewType("Ongoing")}
-          style={{
-            background: viewType === "Ongoing" ? "#FF5E13" : "transparent",
-            color: viewType === "Ongoing" ? "white" : "#FF5E13",
-            border: "1px solid #FF5E13",
-            borderRadius: "8px",
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: 500,
-            transition: "all 0.2s ease",
-          }}
-        >
-          Đang diễn ra
-        </Button>
-        <Button
-          onClick={() => setViewType("Finished")}
-          style={{
-            background: viewType === "Finished" ? "#FF5E13" : "transparent",
-            color: viewType === "Finished" ? "white" : "#FF5E13",
-            border: "1px solid #FF5E13",
-            borderRadius: "8px",
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: 500,
-            transition: "all 0.2s ease",
-          }}
-        >
-          Kết thúc
-        </Button>
-        <Button
-          onClick={() => setViewType("Cancel")}
-          style={{
-            background: viewType === "Cancel" ? "#FF5E13" : "transparent",
-            color: viewType === "Cancel" ? "white" : "#FF5E13",
-            border: "1px solid #FF5E13",
-            borderRadius: "8px",
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: 500,
-            transition: "all 0.2s ease",
-          }}
-        >
-          Tạm dừng
+          Reset
         </Button>
       </div>
 
@@ -353,7 +442,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     </div>
                   </div>
                   <div className="col-room">
-                    {statusInfo.label === "Kết thúc" ? (
+                    {meeting.status === "Finished" ||
+                    meeting.status === "Cancelled" ? (
                       <span className="text-xs text-gray-400 italic">
                         (Đã đóng)
                       </span>
@@ -382,8 +472,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     >
                       <Eye className="w-5 h-5" />
                     </button>
-                    {!(viewType === "Finished") &&
-                      !(statusInfo.label === "Kết thúc") &&
+                    {meeting.status !== "Finished" &&
+                      meeting.status !== "Cancelled" &&
                       !isMember && (
                         <button
                           className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
@@ -393,15 +483,17 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                           <Pencil className="w-5 h-5" />
                         </button>
                       )}
-                    {!isMember && (
-                      <button
-                        className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
-                        title="Xóa"
-                        onClick={() => handleDelete(meeting)}
-                      >
-                        <Trash className="w-5 h-5 text-red-500" />
-                      </button>
-                    )}
+                    {!isMember &&
+                      meeting.status !== "Cancelled" &&
+                      meeting.status !== "Finished" && (
+                        <button
+                          className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                          title="Hủy cuộc họp"
+                          onClick={() => handleCancel(meeting)}
+                        >
+                          <X className="w-5 h-5 text-red-500" />
+                        </button>
+                      )}
                   </div>
                 </div>
               );
