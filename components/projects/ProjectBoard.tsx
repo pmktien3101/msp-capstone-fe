@@ -6,6 +6,8 @@ import { Trash2, Eye, Edit, MoreVertical } from "lucide-react";
 import { taskService } from "@/services/taskService";
 import { projectService } from "@/services/projectService";
 import { GetTaskResponse } from "@/types/task";
+import { useAuth } from "@/hooks/useAuth";
+import { UserRole } from "@/lib/rbac";
 
 interface ProjectBoardProps {
   project: Project;
@@ -31,6 +33,7 @@ export const ProjectBoard = ({
   onDeleteTask,
   onEditTask,
 }: ProjectBoardProps) => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [groupBy, setGroupBy] = useState("none");
   
@@ -41,27 +44,56 @@ export const ProjectBoard = ({
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
   const projectId = project?.id?.toString();
+  const userRole = user?.role;
+  const userId = user?.userId;
 
   // Fetch tasks from API
   useEffect(() => {
     const fetchTasks = async () => {
-      if (!projectId) {
+      if (!projectId || !userRole || !userId) {
         setIsLoadingTasks(false);
         return;
       }
 
       setIsLoadingTasks(true);
       try {
-        console.log(`[ProjectBoard] Fetching tasks for project: ${projectId}`);
-        const response = await taskService.getTasksByProjectId(projectId);
+        let response;
+        
+        // DEBUG: Log user info to check role value
+        console.log(`[ProjectBoard] 🔍 User Info:`, { userId, userRole, projectId });
+        console.log(`[ProjectBoard] 🔍 Role type:`, typeof userRole);
+        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'ProjectManager':`, userRole === 'ProjectManager');
+        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.PROJECT_MANAGER:`, userRole === UserRole.PROJECT_MANAGER);
+        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'Member':`, userRole === 'Member');
+        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.MEMBER:`, userRole === UserRole.MEMBER);
+        console.log(`[ProjectBoard] 🔍 UserRole enum values:`, { 
+          PROJECT_MANAGER: UserRole.PROJECT_MANAGER, 
+          MEMBER: UserRole.MEMBER 
+        });
+        
+        // ProjectManager: Get all tasks in project
+        // Member: Get only tasks assigned to this user in project
+        if (userRole === UserRole.PROJECT_MANAGER || userRole === 'ProjectManager') {
+          console.log(`[ProjectBoard] ✅ Fetching ALL tasks for ProjectManager in project: ${projectId}`);
+          response = await taskService.getTasksByProjectId(projectId);
+        } else {
+          console.log(`[ProjectBoard] ✅ Fetching ASSIGNED tasks for ${userRole} (user: ${userId}) in project: ${projectId}`);
+          response = await taskService.getTasksByUserIdAndProjectId(userId, projectId);
+        }
         
         if (response.success && response.data) {
           // Extract items from PagingResponse
           const taskList = response.data.items || [];
-          console.log(`[ProjectBoard] Loaded ${taskList.length} tasks`);
+          console.log(`[ProjectBoard] ✅ Successfully loaded ${taskList.length} tasks for role "${userRole}"`);
+          console.log(`[ProjectBoard] 📋 Task list:`, taskList.map(t => ({ 
+            id: t.id, 
+            title: t.title, 
+            userId: t.userId,
+            assignedTo: t.user?.fullName || t.userId 
+          })));
           setTasks(taskList);
         } else {
-          console.error('[ProjectBoard] Failed to fetch tasks:', response.error);
+          console.error('[ProjectBoard] ❌ Failed to fetch tasks:', response.error);
           setTasks([]);
         }
       } catch (error) {
@@ -73,7 +105,7 @@ export const ProjectBoard = ({
     };
 
     fetchTasks();
-  }, [projectId]); // Will re-fetch when projectId changes or when parent re-renders with key
+  }, [projectId, userRole, userId]); // Will re-fetch when projectId, userRole, or userId changes
 
   // Fetch project members
   useEffect(() => {
@@ -239,6 +271,8 @@ export const ProjectBoard = ({
         onSearchChange={setSearchQuery}
         groupBy={groupBy}
         onGroupByChange={setGroupBy}
+        members={members}
+        userRole={userRole}
       />
       {onCreateTask && (
         <div className="create-task-container">

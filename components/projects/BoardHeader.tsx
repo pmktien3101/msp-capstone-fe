@@ -2,26 +2,60 @@
 
 import { mockMembers, mockTasks } from "@/constants/mockData";
 
+interface Member {
+  id: string;
+  name: string;
+  email: string;
+  role?: string;
+}
+
 interface BoardHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   groupBy: string;
   onGroupByChange: (groupBy: string) => void;
+  members?: Member[];
+  userRole?: string;
 }
 
 export const BoardHeader = ({ 
   searchQuery, 
   onSearchChange, 
   groupBy, 
-  onGroupByChange 
+  onGroupByChange,
+  members = [],
+  userRole
 }: BoardHeaderProps) => {
-  // Get members who have tasks
-  const getMembersWithTasks = () => {
-    const memberIdsWithTasks = new Set(mockTasks.map(task => task.assignee).filter(Boolean));
-    return mockMembers.filter(member => memberIdsWithTasks.has(member.id));
+  // Generate initials from member name
+  const getInitials = (name: string) => {
+    if (!name) return '?';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
   };
 
-  const membersWithTasks = getMembersWithTasks();
+  // Generate color based on name
+  const getAvatarColor = (name: string) => {
+    const colors = [
+      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+      'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+      'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+      'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+      'linear-gradient(135deg, #ff6e7f 0%, #bfe9ff 100%)',
+    ];
+    const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  };
+
+  // Check if user is Member role
+  const isMemberRole = userRole === 'Member' || userRole === 'member';
 
   return (
     <div className="board-header">
@@ -41,28 +75,38 @@ export const BoardHeader = ({
         </div>
         
         <div className="members-avatars">
-          {membersWithTasks.map((member) => (
-            <div key={member.id} className="member-avatar" title={member.name}>
-              {member.avatar}
-            </div>
-          ))}
+          {members.length > 0 ? (
+            members.map((member) => (
+              <div 
+                key={member.id} 
+                className="member-avatar" 
+                title={member.name}
+                style={{ background: getAvatarColor(member.name) }}
+              >
+                {getInitials(member.name)}
+              </div>
+            ))
+          ) : (
+            <div className="no-members-text">Chưa có thành viên</div>
+          )}
         </div>
       </div>
 
       <div className="header-right">
-        <div className="group-dropdown">
-          <select 
-            value={groupBy} 
-            onChange={(e) => onGroupByChange(e.target.value)}
-            className="group-select"
-          >
-            <option value="none">Không nhóm</option>
-            <option value="status">Nhóm theo trạng thái</option>
-            <option value="assignee">Nhóm theo người thực hiện</option>
-            <option value="milestone">Nhóm theo cột mốc</option>
-          </select>
-        </div>
-
+        {!isMemberRole && (
+          <div className="group-dropdown">
+            <select 
+              value={groupBy} 
+              onChange={(e) => onGroupByChange(e.target.value)}
+              className="group-select"
+            >
+              <option value="none">Không nhóm</option>
+              <option value="status">Nhóm theo trạng thái</option>
+              <option value="assignee">Nhóm theo người thực hiện</option>
+              <option value="milestone">Nhóm theo cột mốc</option>
+            </select>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -120,25 +164,32 @@ export const BoardHeader = ({
           gap: 8px;
         }
 
+        .no-members-text {
+          font-size: 13px;
+          color: #9ca3af;
+          font-style: italic;
+        }
+
         .member-avatar {
-          width: 28px;
-          height: 28px;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 11px;
-          font-weight: 600;
-          background: linear-gradient(135deg, #fb923c, #fbbf24);
+          font-size: 12px;
+          font-weight: 700;
           color: white;
           cursor: pointer;
           transition: all 0.2s ease;
-          box-shadow: 0 2px 4px rgba(251, 146, 60, 0.3);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+          border: 2px solid white;
         }
 
         .member-avatar:hover {
-          transform: scale(1.05);
-          box-shadow: 0 4px 8px rgba(251, 146, 60, 0.4);
+          transform: scale(1.15);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+          z-index: 10;
         }
 
 

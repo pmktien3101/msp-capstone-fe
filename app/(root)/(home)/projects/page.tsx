@@ -9,6 +9,7 @@ import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
 import { projectService } from '@/services/projectService';
 import { useAuth } from '@/hooks/useAuth';
+import { UserRole } from '@/lib/rbac';
 import '@/app/styles/projects.scss';
 import '@/app/styles/projects-table.scss';
 import { Project } from '@/types/project';
@@ -34,7 +35,7 @@ const ProjectsPage = () => {
   }, [isAuthenticated, user]);
 
   const fetchProjects = async () => {
-    if (!user?.userId) {
+    if (!user?.userId || !user?.role) {
       setError('Không tìm thấy thông tin người dùng');
       setLoading(false);
       return;
@@ -43,19 +44,30 @@ const ProjectsPage = () => {
     try {
       setLoading(true);
       setError('');
-      console.log('Fetching projects for manager:', user.userId);
       
-      const result = await projectService.getProjectsByManagerId(user.userId);
+      let result;
+      
+      // Fetch projects based on user role
+      if (user.role === UserRole.PROJECT_MANAGER || user.role === 'ProjectManager') {
+        console.log('[ProjectsPage] Fetching projects managed by ProjectManager:', user.userId);
+        result = await projectService.getProjectsByManagerId(user.userId);
+      } else if (user.role === UserRole.MEMBER || user.role === 'Member') {
+        console.log('[ProjectsPage] Fetching projects where Member participates:', user.userId);
+        result = await projectService.getProjectsByMemberId(user.userId);
+      } else {
+        console.log('[ProjectsPage] Unknown role, fetching all projects');
+        result = await projectService.getAllProjects();
+      }
       
       if (result.success && result.data) {
-        console.log('Projects fetched successfully:', result.data.items);
+        console.log('[ProjectsPage] Projects fetched successfully:', result.data.items.length, 'projects');
         setProjects(result.data.items);
       } else {
-        console.error('Failed to fetch projects:', result.error);
+        console.error('[ProjectsPage] Failed to fetch projects:', result.error);
         setError(result.error || 'Không thể tải danh sách dự án');
       }
     } catch (error: any) {
-      console.error('Fetch projects error:', error);
+      console.error('[ProjectsPage] Fetch projects error:', error);
       setError(error.message || 'Đã xảy ra lỗi khi tải dự án');
     } finally {
       setLoading(false);

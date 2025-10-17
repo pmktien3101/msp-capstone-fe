@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Project } from '@/types/project';
-import { mockProjects } from '@/constants/mockData';
 import { 
   FolderOpen, 
   CheckCircle, 
@@ -17,14 +16,31 @@ import {
 
 interface ProjectPortfolioOverviewProps {
   projects: Project[];
+  tasks?: any[];
 }
 
-export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewProps) => {
+export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfolioOverviewProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const router = useRouter();
 
   const handleProjectClick = (projectId: string) => {
     router.push(`/projects/${projectId}`);
+  };
+
+  // Calculate progress for a project
+  const calculateProgress = (projectId: string) => {
+    const projectTasks = tasks.filter((task: any) => task.projectId === projectId);
+    if (projectTasks.length === 0) return 0;
+    
+    const completedTasks = projectTasks.filter((task: any) => task.status === 'Hoàn thành').length;
+    return Math.round((completedTasks / projectTasks.length) * 100);
+  };
+
+  // Calculate member count for a project
+  const getMemberCount = (projectId: string) => {
+    const projectTasks = tasks.filter((task: any) => task.projectId === projectId);
+    const uniqueUsers = new Set(projectTasks.map((task: any) => task.userId).filter(Boolean));
+    return uniqueUsers.size;
   };
 
   // Tính toán thống kê theo trạng thái
@@ -36,10 +52,11 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
   };
 
   const totalProjects = projects.length;
-  // Comment out averageProgress since progress doesn't exist
-  // const averageProgress = projects.length > 0 
-  //   ? Math.round(projects.reduce((sum, p) => sum + (p.progress ?? 0), 0) / projects.length)
-  //   : 0;
+  
+  // Calculate average progress from tasks
+  const averageProgress = projects.length > 0 
+    ? Math.round(projects.reduce((sum, p) => sum + calculateProgress(p.id), 0) / projects.length)
+    : 0;
 
   // Lọc dự án theo trạng thái
   const filteredProjects = statusFilter === 'all' 
@@ -122,16 +139,15 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
           </div>
         </div>
 
-
-        {/* <div className="stat-card">
+        <div className="stat-card">
           <div className="stat-icon">
             <TrendingUp size={24} />
           </div>
           <div className="stat-content">
-            <h3>0%</h3>
+            <h3>{averageProgress}%</h3>
             <p>Tiến độ trung bình</p>
           </div>
-        </div> */}
+        </div>
       </div>
 
       {/* Projects List */}
@@ -143,14 +159,18 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
               <tr>
                 <th>Tên dự án</th>
                 <th>Trạng thái</th>
-                {/* <th>Thành viên</th>
-                <th>Tiến độ</th> */}
+                <th>Thành viên</th>
+                <th>Tiến độ</th>
                 <th>Ngày bắt đầu</th>
                 <th>Ngày kết thúc</th>
               </tr>
             </thead>
             <tbody>
-              {filteredProjects.map(project => (
+              {filteredProjects.map(project => {
+                const progress = calculateProgress(project.id);
+                const memberCount = getMemberCount(project.id);
+                
+                return (
                 <tr key={project.id} className="project-row" onClick={() => handleProjectClick(project.id)}>
                   <td className="project-name-cell">
                     <div className="project-name-info">
@@ -169,25 +189,28 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
                       {project.status}
                     </div>
                   </td>
-                  {/* <td className="members-cell">
+                  <td className="members-cell">
                     <div className="members-info">
                       <Users size={16} />
-                      <span>0 thành viên</span>
+                      <span>{memberCount} thành viên</span>
                     </div>
                   </td>
                   <td className="progress-cell">
                     <div className="progress-info">
                       <div className="progress-header">
-                        <span>0%</span>
+                        <span>{progress}%</span>
                       </div>
                       <div className="progress-bar">
                         <div 
                           className="progress-fill"
-                          style={{ width: `0%` }}
+                          style={{ 
+                            width: `${progress}%`,
+                            backgroundColor: progress === 100 ? '#10b981' : progress > 50 ? '#3b82f6' : '#f59e0b'
+                          }}
                         />
                       </div>
                     </div>
-                  </td> */}
+                  </td>
                   <td className="date-cell">
                     <div className="date-info">
                       <Calendar size={16} />
@@ -201,7 +224,8 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

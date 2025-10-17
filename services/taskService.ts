@@ -194,19 +194,21 @@ export const taskService = {
         }
     },
 
-    // Get tasks by user ID
-    async getTasksByUserId(
+    // Get tasks by user ID and project ID
+    async getTasksByUserIdAndProjectId(
         userId: string,
+        projectId: string,
         params?: PagingRequest
     ): Promise<{ success: boolean; data?: PagingResponse<GetTaskResponse>; error?: string }> {
         try {
-            console.log('getTasksByUserId - UserId:', userId, 'Params:', params);
+            console.log('getTasksByUserIdAndProjectId - UserId:', userId, 'ProjectId:', projectId, 'Params:', params);
             
             const response = await api.get<ApiResponse<PagingResponse<GetTaskResponse>>>(
-                `/tasks/by-user/${userId}`,
+                `/tasks/by-user-and-project/${userId}/${projectId}`,
                 { params }
             );
-            console.log('getTasksByUserId - Response:', response.data);
+            
+            console.log('getTasksByUserIdAndProjectId - Response:', response.data);
             
             if (response.data.success && response.data.data) {
                 return {
@@ -220,11 +222,11 @@ export const taskService = {
                 };
             }
         } catch (error: any) {
-            console.log('Get tasks by user error:', error.response?.status, error.response?.data);
+            console.log('Get tasks by user and project error:', error.response?.status, error.response?.data);
             
             // Handle 400/404 as empty result (no tasks found)
             if (error.response?.status === 400 || error.response?.status === 404) {
-                console.log('No tasks found for user, returning empty result');
+                console.log('No tasks found for user and project, returning empty result');
                 return {
                     success: true,
                     data: {
@@ -235,9 +237,10 @@ export const taskService = {
                     }
                 };
             }
-            
-            console.error('Get tasks by user error:', error);
+
+            console.error('Get tasks by user and project error:', error);
             console.error('Error response:', error.response?.data);
+            
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || 'Failed to fetch tasks'

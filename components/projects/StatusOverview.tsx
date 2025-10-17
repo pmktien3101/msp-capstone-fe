@@ -9,7 +9,7 @@ interface StatusOverviewProps {
     completed: number;
     inProgress: number;
     todo: number;
-    review: number;
+    onHold: number;
     completionRate: number;
   };
 }
@@ -26,8 +26,8 @@ export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
   const statusData = [
     { status: 'Hoàn thành', count: stats.completed || 0, color: '#10b981', percentage: safePercentage(stats.completed) },
     { status: 'Đang làm', count: stats.inProgress || 0, color: '#fb923c', percentage: safePercentage(stats.inProgress) },
-    { status: 'Cần làm', count: stats.todo || 0, color: '#6b7280', percentage: safePercentage(stats.todo) },
-    { status: 'Đang review', count: stats.review || 0, color: '#fbbf24', percentage: safePercentage(stats.review) }
+    { status: 'Chưa bắt đầu', count: stats.todo || 0, color: '#6b7280', percentage: safePercentage(stats.todo) },
+    { status: 'Tạm dừng', count: stats.onHold || 0, color: '#fbbf24', percentage: safePercentage(stats.onHold) }
   ];
 
   const totalItems = total;

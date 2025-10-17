@@ -5,6 +5,8 @@ import { Project, ProjectMemberResponse } from "@/types/project";
 import { MilestoneBackend } from "@/types/milestone";
 import { mockTasks, mockMembers } from "@/constants/mockData";
 import { useUser } from "@/hooks/useUser";
+import { useAuth } from "@/hooks/useAuth";
+import { UserRole } from "@/lib/rbac";
 import { ListHeader } from "./ListHeader";
 import { milestoneService } from "@/services/milestoneService";
 import { taskService } from "@/services/taskService";
@@ -35,9 +37,10 @@ interface MilestoneDetailPanelProps {
   taskError?: string;
   projectId: string;
   onTasksUpdated?: () => void; // Callback to refresh tasks
+  userRole?: string; // ✨ NEW: User role for permission control
 }
 
-const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allMilestones = [], isLoadingTasks = false, taskError = '', projectId, onTasksUpdated }: MilestoneDetailPanelProps) => {
+const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allMilestones = [], isLoadingTasks = false, taskError = '', projectId, onTasksUpdated, userRole }: MilestoneDetailPanelProps) => {
   const { userId } = useUser();
   const [editedMilestone, setEditedMilestone] = useState(milestone);
   const [editedTasks, setEditedTasks] = useState(tasks);
@@ -55,6 +58,9 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
   const [editingTasks, setEditingTasks] = useState<Set<string>>(new Set());
   const [isSavingTask, setIsSavingTask] = useState(false);
   const [isSavingMilestone, setIsSavingMilestone] = useState(false);
+
+  // Check if user is Member (read-only mode)
+  const isMemberRole = userRole === UserRole.MEMBER || userRole === 'Member';
 
   // Format date for input field (yyyy-MM-dd)
   const formatDateForInput = (dateStr: string | undefined) => {
@@ -300,7 +306,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
     try {
       const taskData = {
         projectId: projectId,
-        userId: newTask.assignee || userId, // Use selected assignee or current user
+        userId: newTask.assignee || undefined, // undefined nếu chưa giao cho ai
         title: newTask.title,
         description: newTask.description || undefined,
         status: newTask.status,
@@ -367,7 +373,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
     try {
       const taskData = {
         projectId: projectId,
-        userId: newTask.assignee || userId,
+        userId: newTask.assignee || undefined, // undefined nếu chưa giao cho ai
         title: newTask.title,
         description: newTask.description || undefined,
         status: newTask.status,
@@ -437,23 +443,29 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
         <div className="panel-header">
           <div className="panel-title">
             <Target size={20} />
-            <input
-              type="text"
-              value={editedMilestone.name}
-              onChange={(e) => handleMilestoneFieldChange('name', e.target.value)}
-              className="milestone-name-input"
-            />
+            {isMemberRole ? (
+              <h3>{editedMilestone.name}</h3>
+            ) : (
+              <input
+                type="text"
+                value={editedMilestone.name}
+                onChange={(e) => handleMilestoneFieldChange('name', e.target.value)}
+                className="milestone-name-input"
+              />
+            )}
           </div>
           <div className="panel-header-actions">
-            <button 
-              className="save-milestone-btn" 
-              onClick={handleSaveMilestone}
-              disabled={isSavingMilestone}
-              title="Lưu thay đổi"
-            >
-              <Save size={16} />
-              {isSavingMilestone ? 'Đang lưu...' : 'Lưu'}
-            </button>
+            {!isMemberRole && (
+              <button 
+                className="save-milestone-btn" 
+                onClick={handleSaveMilestone}
+                disabled={isSavingMilestone}
+                title="Lưu thay đổi"
+              >
+                <Save size={16} />
+                {isSavingMilestone ? 'Đang lưu...' : 'Lưu'}
+              </button>
+            )}
             <button className="close-btn" onClick={onClose}>
               ×
             </button>
@@ -463,22 +475,30 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
 
         <div className="panel-content">
           <div className="milestone-info">
-            <textarea
-              value={editedMilestone.description}
-              onChange={(e) => handleMilestoneFieldChange('description', e.target.value)}
-              className="milestone-description-input"
-              rows={3}
-              placeholder="Mô tả cột mốc..."
-            />
+            {isMemberRole ? (
+              <div className="milestone-description">{editedMilestone.description}</div>
+            ) : (
+              <textarea
+                value={editedMilestone.description}
+                onChange={(e) => handleMilestoneFieldChange('description', e.target.value)}
+                className="milestone-description-input"
+                rows={3}
+                placeholder="Mô tả cột mốc..."
+              />
+            )}
             <div className="milestone-meta">
               <div className="meta-item">
                 <Calendar size={16} />
-                <input
-                  type="date"
-                  value={editedMilestone.dueDate}
-                  onChange={(e) => handleMilestoneFieldChange('dueDate', e.target.value)}
-                  className="due-date-input"
-                />
+                {isMemberRole ? (
+                  <span>{new Date(editedMilestone.dueDate).toLocaleDateString('vi-VN')}</span>
+                ) : (
+                  <input
+                    type="date"
+                    value={editedMilestone.dueDate}
+                    onChange={(e) => handleMilestoneFieldChange('dueDate', e.target.value)}
+                    className="due-date-input"
+                  />
+                )}
               </div>
               <div className="meta-item">
                 <CheckCircle size={16} />
@@ -503,10 +523,12 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
           <div className="tasks-section">
             <div className="tasks-header">
               <h4>Danh sách công việc</h4>
-              <button className="add-task-btn" onClick={handleCreateTaskInline}>
-                <Plus size={16} />
-                Thêm công việc
-              </button>
+              {!isMemberRole && (
+                <button className="add-task-btn" onClick={handleCreateTaskInline}>
+                  <Plus size={16} />
+                  Thêm công việc
+                </button>
+              )}
             </div>
             <div className="tasks-list">
               {/* Inline Task Creation */}
@@ -668,8 +690,8 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
                   const taskAssignee = getTaskAssignee(task);
                   
                   return (
-                    <div key={task.id} className={`task-item-compact ${editingTasks.has(task.id) ? 'has-edit-actions' : ''}`}>
-                      {editingTasks.has(task.id) && (
+                    <div key={task.id} className={`task-item-compact ${editingTasks.has(task.id) && !isMemberRole ? 'has-edit-actions' : ''}`}>
+                      {!isMemberRole && editingTasks.has(task.id) && (
                         <div className="edit-actions-top">
                           <button
                             onClick={() => handleSaveTask(task.id)}
@@ -693,11 +715,11 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
                         <input
                           type="text"
                           value={task.title}
-                          onChange={(e) => handleTaskFieldChange(task.id, 'title', e.target.value)}
-                          onKeyPress={(e) => handleKeyPress(e, () => console.log(`Saved task ${task.id} title`))}
+                          onChange={(e) => !isMemberRole && handleTaskFieldChange(task.id, 'title', e.target.value)}
+                          onKeyPress={(e) => !isMemberRole && handleKeyPress(e, () => console.log(`Saved task ${task.id} title`))}
                           className="task-title-input-compact"
                           placeholder="Tên công việc..."
-                          readOnly
+                          readOnly={isMemberRole}
                         />
                         {isMultiMilestone && (
                           <div className="multi-milestone-badge-compact" title={taskMilestoneNames.join(", ")}>
@@ -2050,6 +2072,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
 
 export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
   const { role } = useUser();
+  const { user } = useAuth();
   const [selectedMilestone, setSelectedMilestone] = useState<MilestoneBackend | null>(null);
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -2069,6 +2092,10 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
 
   // Safety check: if no project, don't fetch anything
   const projectId = project?.id?.toString();
+  
+  // Get user role for permission control
+  const userRole = user?.role;
+  const isMemberRole = userRole === UserRole.MEMBER || userRole === 'Member';
 
   // Fetch milestones from API
   useEffect(() => {
@@ -2370,13 +2397,15 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
                     </div>
                   </div>
                   <div className="col-actions">
-                    <button 
-                      className="delete-milestone-btn-row"
-                      onClick={(e) => handleDeleteMilestone(milestone.id.toString(), e)}
-                      title="Xóa cột mốc"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {!isMemberRole && (
+                      <button 
+                        className="delete-milestone-btn-row"
+                        onClick={(e) => handleDeleteMilestone(milestone.id.toString(), e)}
+                        title="Xóa cột mốc"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -2397,6 +2426,7 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
           taskError={taskError}
           projectId={projectId}
           onTasksUpdated={handleTasksUpdated}
+          userRole={userRole}
         />
       )}
 

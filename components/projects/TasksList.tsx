@@ -1,20 +1,52 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
-import { mockTasks, mockMembers, mockMilestones } from '@/constants/mockData';
+import { GetTaskResponse } from '@/types/task';
+import { taskService } from '@/services/taskService';
 
 interface TasksListProps {
   project: Project;
 }
 
 export const TasksList = ({ project }: TasksListProps) => {
+  const [tasks, setTasks] = useState<GetTaskResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch tasks from API
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (!project?.id) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const result = await taskService.getTasksByProjectId(project.id);
+        if (result.success && result.data) {
+          setTasks(result.data.items || []);
+        } else {
+          setTasks([]);
+        }
+      } catch (error) {
+        console.error('[TasksList] Error fetching tasks:', error);
+        setTasks([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTasks();
+  }, [project?.id]);
+
   // Kiểm tra project có tồn tại không
   if (!project) {
     return (
       <div className="tasks-list">
         <div className="section-header">
           <div className="section-title">
-            <h3>Công việc cần review</h3>
+            <h3>Công việc đang làm</h3>
           </div>
         </div>
         <div className="no-data-message">
@@ -24,41 +56,27 @@ export const TasksList = ({ project }: TasksListProps) => {
     );
   }
 
-  // Filter tasks for this specific project
-  const projectMilestones = mockMilestones.filter(m => m.projectId === project.id);
-  const projectTasks = mockTasks.filter(task => 
-    task.milestoneIds.some(milestoneId => projectMilestones.some(m => m.id === milestoneId))
-  );
-  // Lấy thông tin member và milestone
-  const getMemberInfo = (memberId: string) => {
-    return mockMembers.find(member => member.id === memberId);
-  };
-
-  const getMilestoneInfo = (milestoneIds: string[]) => {
-    return milestoneIds.map(id => mockMilestones.find(milestone => milestone.id === id)).filter(Boolean);
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'done':
+      case 'Hoàn thành':
         return {
           background: 'rgba(16, 185, 129, 0.1)',
           color: '#10b981',
           border: 'rgba(16, 185, 129, 0.2)'
         };
-      case 'in-progress':
+      case 'Đang làm':
         return {
           background: 'rgba(251, 146, 60, 0.1)',
           color: '#fb923c',
           border: 'rgba(251, 146, 60, 0.2)'
         };
-      case 'review':
+      case 'Tạm dừng':
         return {
           background: 'rgba(251, 191, 36, 0.1)',
           color: '#fbbf24',
           border: 'rgba(251, 191, 36, 0.2)'
         };
-      case 'todo':
+      case 'Chưa bắt đầu':
         return {
           background: 'rgba(107, 114, 128, 0.1)',
           color: '#6b7280',
@@ -74,18 +92,8 @@ export const TasksList = ({ project }: TasksListProps) => {
   };
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'done':
-        return 'Hoàn thành';
-      case 'in-progress':
-        return 'Đang làm';
-      case 'review':
-        return 'Đang review';
-      case 'todo':
-        return 'Cần làm';
-      default:
-        return status;
-    }
+    // Status đã ở dạng tiếng Việt từ API
+    return status;
   };
 
   const getPriorityColor = (priority: string) => {
@@ -114,26 +122,39 @@ export const TasksList = ({ project }: TasksListProps) => {
     }
   };
 
-  // Lọc chỉ các tasks cần review
-  const reviewTasks = projectTasks.filter(task => task.status === 'review');
+  // Lọc các tasks đang làm
+  const inProgressTasks = tasks.filter(task => task.status === 'Đang làm');
   
-  // Sắp xếp tasks theo priority và status
-  const sortedTasks = [...reviewTasks].sort((a, b) => {
-    const priorityOrder = { high: 3, medium: 2, low: 1 };
-    const statusOrder = { todo: 4, 'in-progress': 3, review: 2, done: 1 };
-    
-    if (priorityOrder[a.priority as keyof typeof priorityOrder] !== priorityOrder[b.priority as keyof typeof priorityOrder]) {
-      return priorityOrder[b.priority as keyof typeof priorityOrder] - priorityOrder[a.priority as keyof typeof priorityOrder];
-    }
-    
-    return statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder];
+  // Sắp xếp tasks theo endDate (gần deadline nhất lên đầu)
+  const sortedTasks = [...inProgressTasks].sort((a, b) => {
+    if (!a.endDate) return 1;
+    if (!b.endDate) return -1;
+    return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
   });
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="tasks-list">
+        <div className="section-header">
+          <div className="section-title">
+            <h3>Công việc đang làm</h3>
+          </div>
+        </div>
+        <div className="tasks-content">
+          <div className="no-tasks-message">
+            <p>Đang tải dữ liệu...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tasks-list">
       <div className="section-header">
         <div className="section-title">
-          <h3>Công việc cần review</h3>
+          <h3>Công việc đang làm</h3>
         </div>
         <a 
           href="#" 
@@ -158,14 +179,11 @@ export const TasksList = ({ project }: TasksListProps) => {
                   <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <h4>Không có công việc nào cần review</h4>
-              <p>Tất cả công việc đã được hoàn thành hoặc đang trong quá trình thực hiện.</p>
+              <h4>Không có công việc nào đang làm</h4>
+              <p>Tất cả công việc đang chờ bắt đầu hoặc đã hoàn thành.</p>
             </div>
           ) : (
             sortedTasks.map((task) => {
-            const member = getMemberInfo(task.assignee);
-            const milestones = getMilestoneInfo(task.milestoneIds || []);
-            
             return (
               <div key={task.id} className="task-item">
                 <div className="task-content">
@@ -173,12 +191,12 @@ export const TasksList = ({ project }: TasksListProps) => {
                 </div>
                 
                 <div className="task-assignee">
-                  {member ? (
+                  {task.user ? (
                     <div className="assignee-info">
                       <div className="assignee-avatar">
-                        {member.avatar}
+                        {task.user.fullName?.charAt(0).toUpperCase() || 'U'}
                       </div>
-                      <span className="assignee-name">{member.name}</span>
+                      <span className="assignee-name">{task.user.fullName || 'Unknown'}</span>
                     </div>
                   ) : (
                     <div className="assignee-info">
@@ -200,7 +218,7 @@ export const TasksList = ({ project }: TasksListProps) => {
                     <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  <span>{new Date(task.endDate).toLocaleDateString('vi-VN')}</span>
+                  <span>{task.endDate ? new Date(task.endDate).toLocaleDateString('vi-VN') : 'Chưa có'}</span>
                 </div>
                 
                 <div 
