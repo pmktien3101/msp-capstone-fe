@@ -60,6 +60,9 @@ export interface UpdateMeetingRequest {
   startTime?: string;
   attendeeIds?: string[];
   status?: MeetingStatus;
+  summary?: string;
+  transcription?: string;
+  recordUrl?: string;
 }
 
 export interface MeetingItem {
@@ -77,9 +80,13 @@ export interface MeetingItem {
   milestoneName?: string;
   createdAt?: string;
   updatedAt?: string;
+  summary?: string;
+  transcription?: string;
+  recordUrl?: string;
   attendees?: {
     id: string;
     email: string;
     avatarUrl?: string | null;
+    fullName?: string;
   }[];
 }
