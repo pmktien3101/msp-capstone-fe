@@ -13,6 +13,7 @@ import { UserRole } from '@/lib/rbac';
 import '@/app/styles/projects.scss';
 import '@/app/styles/projects-table.scss';
 import { Project } from '@/types/project';
+import { toast } from 'react-toastify';
 
 const ProjectsPage = () => {
   const router = useRouter();
@@ -107,12 +108,13 @@ const ProjectsPage = () => {
         );
         setShowEditProjectModal(false);
         setSelectedProject(null);
+        toast.success('Cập nhật dự án thành công!');
       } else {
-        alert(result.error || 'Không thể cập nhật dự án');
+        toast.error(result.error || 'Không thể cập nhật dự án');
       }
     } catch (error) {
       console.error('Update project error:', error);
-      alert('Đã xảy ra lỗi khi cập nhật dự án');
+      toast.error('Đã xảy ra lỗi khi cập nhật dự án');
     }
   };
 

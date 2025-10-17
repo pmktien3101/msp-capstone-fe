@@ -160,19 +160,22 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
           <span>Dự án</span>
         </div>
         <div className="section-actions">
-          <button 
-            className="add-project-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCreateProject();
-            }}
-            title="Tạo dự án mới"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+          {/* Chỉ hiện nút tạo dự án cho PM */}
+          {(user?.role === UserRole.PROJECT_MANAGER || user?.role === 'ProjectManager') && (
+            <button 
+              className="add-project-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCreateProject();
+              }}
+              title="Tạo dự án mới"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          )}
           <div 
             className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
           >
@@ -194,12 +197,15 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
           ) : projects.length === 0 ? (
             <div className="empty-state">
               <p>Chưa có dự án</p>
-              <button 
-                className="create-project-btn"
-                onClick={handleCreateProject}
-              >
-                Tạo dự án
-              </button>
+              {/* Chỉ hiện nút tạo dự án cho PM */}
+              {(user?.role === UserRole.PROJECT_MANAGER || user?.role === 'ProjectManager') && (
+                <button 
+                  className="create-project-btn"
+                  onClick={handleCreateProject}
+                >
+                  Tạo dự án
+                </button>
+              )}
             </div>
           ) : (
             <>

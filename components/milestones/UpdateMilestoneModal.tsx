@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X, Save, Calendar, FileText, Target } from "lucide-react";
 import { milestoneService } from "@/services/milestoneService";
 import { MilestoneBackend } from "@/types/milestone";
+import { toast } from "react-toastify";
 
 interface UpdateMilestoneModalProps {
   isOpen: boolean;
@@ -135,13 +136,14 @@ export const UpdateMilestoneModal = ({
           onSuccess();
         }
         
-        alert('Cập nhật cột mốc thành công!');
+        toast.success('Cập nhật cột mốc thành công!');
         onClose();
       } else {
-        alert(`Lỗi: ${response.error}`);
+        toast.error(`Lỗi: ${response.error}`);
       }
     } catch (error) {
       console.error('Error updating milestone:', error);
+      toast.error('Có lỗi xảy ra khi cập nhật cột mốc');
     } finally {
       setIsSubmitting(false);
     }

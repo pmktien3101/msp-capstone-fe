@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Calendar, FileText, Target } from "lucide-react";
 import { milestoneService } from "@/services/milestoneService";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "react-toastify";
 
 interface CreateMilestoneModalProps {
   isOpen: boolean;
@@ -89,7 +90,7 @@ export const CreateMilestoneModal = ({
       // Get userId from useAuth hook
       if (!user || !user.userId) {
         console.error('No user found from useAuth');
-        alert('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
+        toast.error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
         setIsSubmitting(false);
         return;
       }
@@ -118,7 +119,7 @@ export const CreateMilestoneModal = ({
           onSuccess();
         }
         
-        alert('Tạo cột mốc thành công!');
+        toast.success('Tạo cột mốc thành công!');
         
         // Reset form
         setFormData({
@@ -129,11 +130,11 @@ export const CreateMilestoneModal = ({
         setErrors({});
         onClose();
       } else {
-        alert(`Lỗi: ${response.error}`);
+        toast.error(`Lỗi: ${response.error}`);
       }
     } catch (error) {
       console.error('Error creating milestone:', error);
-      alert('Có lỗi xảy ra khi tạo cột mốc');
+      toast.error('Có lỗi xảy ra khi tạo cột mốc');
     } finally {
       setIsSubmitting(false);
     }

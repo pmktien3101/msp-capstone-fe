@@ -12,6 +12,7 @@ import { milestoneService } from "@/services/milestoneService";
 import { taskService } from "@/services/taskService";
 import { projectService } from "@/services/projectService";
 import { GetTaskResponse } from "@/types/task";
+import { toast } from "react-toastify";
 import {
   Calendar,
   CheckCircle,
@@ -200,18 +201,18 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
 
       if (response.success) {
         console.log('Milestone updated successfully');
-        alert('Cập nhật cột mốc thành công!');
+        toast.success('Cập nhật cột mốc thành công!');
         // Optionally refresh milestone list
         if (onTasksUpdated) {
           onTasksUpdated();
         }
       } else {
         console.error('Failed to update milestone:', response.error);
-        alert(`Lỗi: ${response.error || 'Không thể cập nhật cột mốc'}`);
+        toast.error(`Lỗi: ${response.error || 'Không thể cập nhật cột mốc'}`);
       }
     } catch (error) {
       console.error('Error saving milestone:', error);
-      alert('Có lỗi xảy ra khi lưu cột mốc. Vui lòng thử lại!');
+      toast.error('Có lỗi xảy ra khi lưu cột mốc. Vui lòng thử lại!');
     } finally {
       setIsSavingMilestone(false);
     }
@@ -267,11 +268,11 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
           onTasksUpdated();
         }
       } else {
-        alert(`Lỗi: ${response.error}`);
+        toast.error(`Lỗi: ${response.error}`);
       }
     } catch (error) {
       console.error('[MilestoneDetailPanel] Error updating task:', error);
-      alert('Có lỗi xảy ra khi cập nhật công việc');
+      toast.error('Có lỗi xảy ra khi cập nhật công việc');
     } finally {
       setIsSavingTask(false);
     }
@@ -298,7 +299,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
   const handleCreateTask = async () => {
     if (!newTask.title.trim()) return;
     if (!userId) {
-      alert('Không tìm thấy thông tin người dùng');
+      toast.error('Không tìm thấy thông tin người dùng');
       return;
     }
 
@@ -320,7 +321,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
 
       if (response.success && response.data) {
         console.log('[MilestoneDetailPanel] Task created successfully:', response.data);
-        alert('Tạo công việc thành công!');
+        toast.success('Tạo công việc thành công!');
         
         // Reset form
         setNewTask({
@@ -339,11 +340,11 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
           onTasksUpdated();
         }
       } else {
-        alert(`Lỗi: ${response.error}`);
+        toast.error(`Lỗi: ${response.error}`);
       }
     } catch (error) {
       console.error('[MilestoneDetailPanel] Error creating task:', error);
-      alert('Có lỗi xảy ra khi tạo công việc');
+      toast.error('Có lỗi xảy ra khi tạo công việc');
     } finally {
       setIsSavingTask(false);
     }
@@ -365,7 +366,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
   const handleSaveTaskInline = async () => {
     if (!newTask.title.trim()) return;
     if (!userId) {
-      alert('Không tìm thấy thông tin người dùng');
+      toast.error('Không tìm thấy thông tin người dùng');
       return;
     }
 
@@ -405,11 +406,11 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
           onTasksUpdated();
         }
       } else {
-        alert(`Lỗi: ${response.error}`);
+        toast.error(`Lỗi: ${response.error}`);
       }
     } catch (error) {
       console.error('[MilestoneDetailPanel] Error creating task:', error);
-      alert('Có lỗi xảy ra khi tạo công việc');
+      toast.error('Có lỗi xảy ra khi tạo công việc');
     } finally {
       setIsSavingTask(false);
     }
@@ -2307,7 +2308,7 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
     }
 
     if (!projectId) {
-      alert('Không tìm thấy thông tin dự án');
+      toast.error('Không tìm thấy thông tin dự án');
       return;
     }
 
@@ -2319,13 +2320,13 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
         if (updatedResponse.success && updatedResponse.data) {
           setProjectMilestones(updatedResponse.data);
         }
-        alert('Xóa cột mốc thành công!');
+        toast.success('Xóa cột mốc thành công!');
       } else {
-        alert(`Lỗi: ${response.error}`);
+        toast.error(`Lỗi: ${response.error}`);
       }
     } catch (error) {
       console.error('Error deleting milestone:', error);
-      alert('Có lỗi xảy ra khi xóa cột mốc');
+      toast.error('Có lỗi xảy ra khi xóa cột mốc');
     }
   };
 

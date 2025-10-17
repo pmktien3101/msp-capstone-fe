@@ -18,6 +18,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { projectService } from '@/services/projectService';
 import { userService } from '@/services/userService';
 import { taskService } from '@/services/taskService';
+import { toast } from 'react-toastify';
 
 const ProjectDetailPage = () => {
   const params = useParams();
@@ -70,7 +71,7 @@ const ProjectDetailPage = () => {
   const handleSubmitTask = async (taskData: any) => {
     try {
       if (!user?.userId) {
-        alert('Không tìm thấy thông tin người dùng');
+        toast.error('Không tìm thấy thông tin người dùng');
         return;
       }
 
@@ -91,16 +92,16 @@ const ProjectDetailPage = () => {
       const response = await taskService.createTask(requestData);
       
       if (response.success) {
-        alert('Tạo công việc thành công!');
+        toast.success('Tạo công việc thành công!');
         setIsCreateTaskModalOpen(false);
         // Trigger refresh
         setRefreshKey(prev => prev + 1);
       } else {
-        alert(`Lỗi: ${response.error || 'Không thể tạo công việc'}`);
+        toast.error(`Lỗi: ${response.error || 'Không thể tạo công việc'}`);
       }
     } catch (error: any) {
       // console.error('Error creating task:', error);
-      alert('Có lỗi xảy ra khi tạo công việc. Vui lòng thử lại!');
+      toast.error('Có lỗi xảy ra khi tạo công việc. Vui lòng thử lại!');
     }
   };
 
@@ -122,17 +123,17 @@ const ProjectDetailPage = () => {
       const response = await taskService.deleteTask(taskToDelete.id);
       
       if (response.success) {
-        alert(`Đã xóa công việc: ${taskToDelete.title}`);
+        toast.success(`Đã xóa công việc: ${taskToDelete.title}`);
         setTaskToDelete(null);
         setIsDeleteTaskModalOpen(false);
         // Trigger refresh to reload task list
         setRefreshKey(prev => prev + 1);
       } else {
-        alert(`Lỗi: ${response.error || 'Không thể xóa công việc'}`);
+        toast.error(`Lỗi: ${response.error || 'Không thể xóa công việc'}`);
       }
     } catch (error: any) {
       // console.error('Error deleting task:', error);
-      alert('Có lỗi xảy ra khi xóa công việc. Vui lòng thử lại!');
+      toast.error('Có lỗi xảy ra khi xóa công việc. Vui lòng thử lại!');
     }
   };
 
@@ -149,7 +150,7 @@ const ProjectDetailPage = () => {
   const handleUpdateTask = async (taskData: any) => {
     try {
       if (!taskToEdit?.id) {
-        alert('Không tìm thấy thông tin công việc');
+        toast.error('Không tìm thấy thông tin công việc');
         return;
       }
 
@@ -171,17 +172,17 @@ const ProjectDetailPage = () => {
       const response = await taskService.updateTask(requestData);
       
       if (response.success) {
-        alert('Cập nhật công việc thành công!');
+        toast.success('Cập nhật công việc thành công!');
         setIsEditTaskModalOpen(false);
         setTaskToEdit(null);
         // Trigger refresh
         setRefreshKey(prev => prev + 1);
       } else {
-        alert(`Lỗi: ${response.error || 'Không thể cập nhật công việc'}`);
+        toast.error(`Lỗi: ${response.error || 'Không thể cập nhật công việc'}`);
       }
     } catch (error: any) {
       // console.error('Error updating task:', error);
-      alert('Có lỗi xảy ra khi cập nhật công việc. Vui lòng thử lại!');
+      toast.error('Có lỗi xảy ra khi cập nhật công việc. Vui lòng thử lại!');
     }
   };
 
@@ -210,7 +211,7 @@ const ProjectDetailPage = () => {
       // No need for alert since user can see the new milestone in the list
     } catch (error) {
       // console.error('Error creating milestone:', error);
-      alert('Có lỗi xảy ra khi tạo cột mốc. Vui lòng thử lại!');
+      toast.error('Có lỗi xảy ra khi tạo cột mốc. Vui lòng thử lại!');
     }
   };
 

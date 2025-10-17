@@ -7,6 +7,7 @@ import { AddMemberModal } from "./modals/AddMemberModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
+import { toast } from "react-toastify";
 import { 
   Plus, 
   Edit, 
@@ -215,14 +216,14 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
         // Remove from UI on success
         setMembers((prev) => prev.filter((m) => (m.pmId || m.id) !== memberToDelete.id));
         console.log('Successfully deleted member:', memberToDelete.name);
-        alert('Đã xóa thành viên thành công!');
+        toast.success('Đã xóa thành viên thành công!');
       } else {
         console.error('Failed to delete member:', result.error);
-        alert(`Lỗi khi xóa thành viên: ${result.error || 'Unknown error'}`);
+        toast.error(`Lỗi khi xóa thành viên: ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error deleting member:', error);
-      alert('Đã xảy ra lỗi khi xóa thành viên');
+      toast.error('Đã xảy ra lỗi khi xóa thành viên');
     } finally {
       setMemberToDelete(null);
       setIsConfirmDeleteMemberOpen(false);
@@ -241,7 +242,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
 
   const handleSaveBasicInfo = async () => {
     if (!project.id) {
-      alert('Không tìm thấy thông tin dự án');
+      toast.error('Không tìm thấy thông tin dự án');
       return;
     }
 
@@ -263,14 +264,14 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
         console.log('[ProjectSettings] Project updated successfully:', result.data);
         setSettings(tempSettings);
         setIsEditingBasicInfo(false);
-        alert('Cập nhật thông tin dự án thành công!');
+        toast.success('Cập nhật thông tin dự án thành công!');
       } else {
         console.error('[ProjectSettings] Failed to update project:', result.error);
-        alert(`Lỗi: ${result.error || 'Không thể cập nhật thông tin dự án'}`);
+        toast.error(`Lỗi: ${result.error || 'Không thể cập nhật thông tin dự án'}`);
       }
     } catch (error) {
       console.error('[ProjectSettings] Error updating project:', error);
-      alert('Có lỗi xảy ra khi cập nhật thông tin dự án');
+      toast.error('Có lỗi xảy ra khi cập nhật thông tin dự án');
     }
   };
 
@@ -469,97 +470,6 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
                 checked={settings.notifications.inApp}
                 onChange={(e) =>
                   handleNestedChange("notifications", "inApp", e.target.checked)
-                }
-              />
-                <span className="toggle-slider"></span>
-            </label>
-            </div>
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <div className="section-header">
-            <div className="section-icon">
-              <Shield size={16} color="white" />
-            </div>
-          <h4>Quyền truy cập</h4>
-          </div>
-          
-          <div className={`checkbox-grid ${Object.keys(settings.permissions).length % 2 === 1 ? 'three-columns' : ''}`}>
-            <div className="checkbox-card">
-              <div className="checkbox-header">
-                <Shield size={16} color="#FF5E13" />
-                <span className="checkbox-title">Dự án công khai</span>
-              </div>
-              <label className="checkbox-toggle">
-              <input
-                type="checkbox"
-                checked={settings.permissions.public}
-                onChange={(e) =>
-                  handleNestedChange("permissions", "public", e.target.checked)
-                }
-              />
-                <span className="toggle-slider"></span>
-            </label>
-            </div>
-
-            <div className="checkbox-card">
-              <div className="checkbox-header">
-                <Users size={16} color="#FF5E13" />
-                <span className="checkbox-title">Chỉ thành viên</span>
-              </div>
-              <label className="checkbox-toggle">
-              <input
-                type="checkbox"
-                checked={settings.permissions.membersOnly}
-                onChange={(e) =>
-                  handleNestedChange(
-                    "permissions",
-                    "membersOnly",
-                    e.target.checked
-                  )
-                }
-              />
-                <span className="toggle-slider"></span>
-            </label>
-            </div>
-
-            <div className="checkbox-card">
-              <div className="checkbox-header">
-                <MessageSquare size={16} color="#FF5E13" />
-                <span className="checkbox-title">Cho phép bình luận</span>
-              </div>
-              <label className="checkbox-toggle">
-              <input
-                type="checkbox"
-                checked={settings.permissions.allowComments}
-                onChange={(e) =>
-                  handleNestedChange(
-                    "permissions",
-                    "allowComments",
-                    e.target.checked
-                  )
-                }
-              />
-                <span className="toggle-slider"></span>
-            </label>
-            </div>
-
-            <div className="checkbox-card">
-              <div className="checkbox-header">
-                <Paperclip size={16} color="#FF5E13" />
-                <span className="checkbox-title">Cho phép đính kèm</span>
-              </div>
-              <label className="checkbox-toggle">
-              <input
-                type="checkbox"
-                checked={settings.permissions.allowAttachments}
-                onChange={(e) =>
-                  handleNestedChange(
-                    "permissions",
-                    "allowAttachments",
-                    e.target.checked
-                  )
                 }
               />
                 <span className="toggle-slider"></span>
