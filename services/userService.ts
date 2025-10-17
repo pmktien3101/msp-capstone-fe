@@ -1,6 +1,6 @@
 import { BusinessResponse, GetUserResponse, ReAssignRoleRequest, ReAssignRoleResponse } from '@/types/user';
 import { api } from './api';
-import type { BusinessOwnersResponse, BusinessOwner, ApiResponse } from '@/types/auth';
+import type { BusinessOwner, ApiResponse } from '@/types/auth';
 
 export const userService = {
     async getBusinessOwners(): Promise<{ success: boolean; data?: BusinessOwner[]; message?: string; error?: string }> {
@@ -259,6 +259,15 @@ export const userService = {
                 success: false,
                 error: error.response?.data?.message || error.message || 'Failed to get business detail'
             };
+        }
+    },
+
+    async removeMemberFromOrganization(memberId: string): Promise<{ success: boolean; error?: string; }> {
+        try {
+            const res = await api.post(`/Users/remove-member/${memberId}`);
+            return { success: res.data.success };
+        } catch (error: any) {
+            return { success: false, error: error.response?.data?.message || error.message || "Không thể xóa thành viên" };
         }
     }
 

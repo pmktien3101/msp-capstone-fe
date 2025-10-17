@@ -1,4 +1,4 @@
-import { OrganizationInvitationResponse } from "@/types/organizeInvitation";
+import { OrganizationInvitationResponse, SendInvitationResult } from "@/types/organizeInvitation";
 import { api } from "./api";
 
 export const organizeInvitationService = {
@@ -6,7 +6,6 @@ export const organizeInvitationService = {
      * BusinessOwner: Get list of invitations sent to members
      */
     async getSentInvitationsByBusinessOwnerId(
-        businessOwnerId: string
     ): Promise<{
         success: boolean;
         data?: OrganizationInvitationResponse[];
@@ -14,7 +13,7 @@ export const organizeInvitationService = {
         error?: string;
     }> {
         try {
-            const res = await api.get(`/OrganizationInvitations/sent-invitations/${businessOwnerId}`);
+            const res = await api.get(`/OrganizationInvitations/sent-invitations`);
             return {
                 success: res.data.success,
                 data: res.data.data,
@@ -25,33 +24,6 @@ export const organizeInvitationService = {
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || "Failed to get sent invitations",
-            };
-        }
-    },
-
-    /**
-     * BusinessOwner: Get list of pending requests from members
-     */
-    async getPendingRequestsByBusinessOwnerId(
-        businessOwnerId: string
-    ): Promise<{
-        success: boolean;
-        data?: OrganizationInvitationResponse[];
-        message?: string;
-        error?: string;
-    }> {
-        try {
-            const res = await api.get(`/OrganizationInvitations/pending-requests/${businessOwnerId}`);
-            return {
-                success: res.data.success,
-                data: res.data.data,
-                message: res.data.message,
-            };
-        } catch (error: any) {
-            console.error('Get pending requests error:', error);
-            return {
-                success: false,
-                error: error.response?.data?.message || error.message || "Failed to get pending requests",
             };
         }
     },
@@ -187,5 +159,65 @@ export const organizeInvitationService = {
             };
         }
     },
+
+    async sendInvitations(memberEmails: string[]): Promise<{
+        success: boolean;
+        data?: SendInvitationResult[];
+        message?: string;
+        error?: string;
+    }> {
+        try {
+            const res = await api.post("/OrganizationInvitations/send-invitations", {
+                memberEmails,
+            });
+            return {
+                success: res.data.success,
+                data: res.data.data,
+                message: res.data.message,
+            };
+        } catch (error: any) {
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || "Gửi lời mời thất bại.",
+            };
+        }
+    },
+
+    async getPendingRequestsByBusinessOwner(): Promise<{
+        success: boolean;
+        data?: OrganizationInvitationResponse[];
+        error?: string;
+    }> {
+        try {
+            const res = await api.get(`/OrganizationInvitations/pending-requests`);
+            return {
+                success: res.data.success,
+                data: res.data.data,
+            };
+        } catch (error: any) {
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || "Không thể lấy danh sách yêu cầu tham gia",
+            };
+        }
+    },
+
+    async businessOwnerRejectRequest(invitationId: string): Promise<{ success: boolean; error?: string; message?: string; }> {
+        try {
+            const res = await api.post(`/OrganizationInvitations/reject-request/${invitationId}`);
+            return { success: res.data.success, message: res.data.message };
+        } catch (error: any) {
+            return { success: false, error: error.response?.data?.message || error.message || "Không thể từ chối yêu cầu" };
+        }
+    },
+
+    async businessOwnerAcceptRequest(invitationId: string): Promise<{ success: boolean; error?: string; message?: string; }> {
+        try {
+            const res = await api.post(`/OrganizationInvitations/accept-request/${invitationId}`);
+            return { success: res.data.success, message: res.data.message };
+        } catch (error: any) {
+            return { success: false, error: error.response?.data?.message || error.message || "Không thể duyệt yêu cầu" };
+        }
+    }
 
 };

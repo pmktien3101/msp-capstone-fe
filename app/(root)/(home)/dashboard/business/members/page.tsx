@@ -1,16 +1,19 @@
 "use client";
 
-import { CheckCircle2, CircleAlertIcon, Plus, Search, SearchIcon, Trash2, User, UserPenIcon, UserStarIcon, XIcon } from "lucide-react";
+import { CheckCircle2, CircleAlertIcon, MailOpenIcon, Plus, Search, SearchIcon, Trash2, User, UserPenIcon, UserStarIcon, XIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import "../../../../../styles/businessMembers.scss";
 import { userService } from "@/services/userService";
 import { GetUserResponse } from "@/types/user";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "react-toastify";
+import { OrganizationInvitationResponse, SendInvitationResult } from "@/types/organizeInvitation";
+import { organizeInvitationService } from "@/services/organizeInvitationService";
+import { ConfirmModal } from "@/components/modals/ConfirmModal";
 
 const MembersRolesPage = () => {
   const { user } = useAuth();
-  
+
   // States
   const [showEditRoleModal, setShowEditRoleModal] = useState(false);
   const [memberToEditRole, setMemberToEditRole] = useState<GetUserResponse | null>(null);
@@ -24,8 +27,30 @@ const MembersRolesPage = () => {
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [inviteInput, setInviteInput] = useState("");
   const [activeTab, setActiveTab] = useState<"members" | "requests" | "invites">("members");
-  const [joinRequests, setJoinRequests] = useState<GetUserResponse[]>([]);
   const [sentInvites, setSentInvites] = useState<string[]>([]);
+
+  // Invitation results States
+  const [inviteResult, setInviteResult] = useState<SendInvitationResult[] | null>(null);
+  const [loadingInvite, setLoadingInvite] = useState(false);
+
+  // Join requests state
+  const [joinRequests, setJoinRequests] = useState<OrganizationInvitationResponse[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+
+  // Request action loading states
+  const [loadingAcceptRequest, setLoadingAcceptRequest] = useState<string | null>(null);
+  const [loadingRejectRequest, setLoadingRejectRequest] = useState<string | null>(null);
+  const [confirmRejectId, setConfirmRejectId] = useState<string | null>(null);
+
+  // Sent invitations state
+  const [sentInvitations, setSentInvitations] = useState<OrganizationInvitationResponse[]>([]);
+  const [loadingSentInvitations, setLoadingSentInvitations] = useState(false);
+  const [inviteStatusFilter, setInviteStatusFilter] = useState<"all" | "Pending" | "Accepted" | "Rejected" | "Canceled">("all");
+
+  // Delete member states
+  const [confirmDeleteMemberId, setConfirmDeleteMemberId] = useState<string | null>(null);
+  const [loadingDeleteMember, setLoadingDeleteMember] = useState<string | null>(null);
+
 
   // Filtered members
   const filteredMembers = members.filter((member) => {
@@ -36,6 +61,11 @@ const MembersRolesPage = () => {
     return matchesSearch && matchesRole;
   });
 
+  // Filtered sent invitations
+  const filteredSentInvitations = inviteStatusFilter === "all"
+    ? sentInvitations
+    : sentInvitations.filter(inv => inv.statusDisplay === inviteStatusFilter);
+
   // Fetch members
   const fetchMembers = async () => {
     if (!user?.userId) {
@@ -43,18 +73,18 @@ const MembersRolesPage = () => {
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     setError("");
-    
+
     const result = await userService.getMembersByBO(user.userId);
-    
+
     if (result.success && result.data) {
       setMembers(result.data);
     } else {
       setError(result.error || "Không thể tải danh sách");
     }
-    
+
     setLoading(false);
   };
 
@@ -63,10 +93,16 @@ const MembersRolesPage = () => {
   }, [user?.userId]);
 
   // Handlers
-  const handleDeleteMember = (memberId: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa thành viên này?")) {
-      setMembers(members.filter((member) => member.id !== memberId));
+  const handleDeleteMember = async (memberId: string) => {
+    setLoadingDeleteMember(memberId);
+    const result = await userService.removeMemberFromOrganization(memberId);
+    setLoadingDeleteMember(null);
+    setConfirmDeleteMemberId(null);
+    if (result.success) {
+      setMembers(members.filter((m) => m.id !== memberId));
       toast.success("Đã xóa thành viên");
+    } else {
+      toast.error(result.error || "Không thể xóa thành viên");
     }
   };
 
@@ -128,6 +164,10 @@ const MembersRolesPage = () => {
   };
 
   const addInviteEmail = (email: string) => {
+    if (inviteEmails.length >= 5) {
+      toast.warning("Chỉ có thể mời tối đa 5 người / lần");
+      return;
+    }
     if (email && !inviteEmails.includes(email) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setInviteEmails([...inviteEmails, email]);
       setInviteInput("");
@@ -142,11 +182,84 @@ const MembersRolesPage = () => {
     setInviteEmails(inviteEmails.filter((e) => e !== email));
   };
 
-  const handleSendInvites = () => {
-    setSentInvites([...sentInvites, ...inviteEmails]);
-    setInviteEmails([]);
-    setShowInviteModal(false);
-    toast.success(`Đã gửi ${inviteEmails.length} lời mời`);
+  // Send invitations
+  const handleSendInvites = async () => {
+    if (inviteEmails.length === 0) return;
+    setLoadingInvite(true);
+    setInviteResult(null);
+    try {
+      const res = await organizeInvitationService.sendInvitations(inviteEmails);
+      if (res.success && res.data) {
+        setInviteResult(res.data);
+        // Tự động thêm các email gửi thành công vào sentInvites (nếu muốn hiển thị)
+        setSentInvites([
+          ...sentInvites,
+          ...res.data.filter(r => r.success).map(r => r.email)
+        ]);
+        setInviteEmails([]); // Clear input
+      } else {
+        toast.error(res.error || "Không thể gửi lời mời");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Gửi lời mời thất bại");
+    }
+    setLoadingInvite(false);
+  };
+
+  // Fetch join requests
+  const fetchJoinRequests = async () => {
+    if (!user?.userId) return;
+    setLoadingRequests(true);
+    const res = await organizeInvitationService.getPendingRequestsByBusinessOwner();
+    if (res.success && res.data) {
+      setJoinRequests(res.data.filter(r => r.typeDisplay === "Request")); // lọc đúng các "yêu cầu"
+    } else {
+      setJoinRequests([]);
+      toast.error(res.error || "Không thể lấy yêu cầu tham gia");
+    }
+    setLoadingRequests(false);
+  };
+  const fetchSentInvitations = async () => {
+    setLoadingSentInvitations(true);
+    const res = await organizeInvitationService.getSentInvitationsByBusinessOwnerId();
+    if (res.success && res.data) {
+      setSentInvitations(res.data);
+    } else {
+      toast.error(res.error || "Không thể tải danh sách lời mời đã gửi");
+      setSentInvitations([]);
+    }
+    setLoadingSentInvitations(false);
+  };
+  useEffect(() => {
+    fetchJoinRequests();
+    fetchSentInvitations();
+  }, [user?.userId]);
+
+  // Accept join request
+  const handleAcceptJoinRequest = async (invitationId: string) => {
+    setLoadingAcceptRequest(invitationId);
+    const res = await organizeInvitationService.businessOwnerAcceptRequest(invitationId);
+    setLoadingAcceptRequest(null);
+    if (res.success) {
+      toast.success("Đã duyệt yêu cầu thành công!");
+      fetchJoinRequests();
+    } else {
+      toast.error(res.error || "Không thể duyệt yêu cầu");
+    }
+  };
+
+  // Reject join request
+  const handleRejectJoinRequest = async (invitationId: string) => {
+    setLoadingRejectRequest(invitationId);
+    const res = await organizeInvitationService.businessOwnerRejectRequest(invitationId);
+    setLoadingRejectRequest(null);
+    setConfirmRejectId(null); // <-- Đảm bảo đóng modal sau khi xong
+    if (res.success) {
+      toast.success("Đã từ chối yêu cầu!");
+      fetchJoinRequests();
+    } else {
+      toast.error(res.error || "Không thể từ chối yêu cầu");
+    }
   };
 
   const getRoleBadge = (role: string) => {
@@ -179,8 +292,8 @@ const MembersRolesPage = () => {
           </div>
           <p className="error-text">Không thể tải danh sách</p>
           <p className="error-description">{error}</p>
-          <button 
-            className="add-member-btn" 
+          <button
+            className="add-member-btn"
             onClick={fetchMembers}
             style={{ marginTop: '16px' }}
           >
@@ -211,7 +324,7 @@ const MembersRolesPage = () => {
           className={activeTab === "invites" ? "tab active" : "tab"}
           onClick={() => setActiveTab("invites")}
         >
-          Lời mời đã gửi ({sentInvites.length})
+          Lời mời đã gửi ({sentInvitations.length})
         </button>
       </div>
 
@@ -285,7 +398,7 @@ const MembersRolesPage = () => {
               </div>
               <div className="header-actions">
                 <button className="add-member-btn" onClick={() => setShowInviteModal(true)}>
-                  <Plus size={22} strokeWidth={2}/>
+                  <Plus size={22} strokeWidth={2} />
                   Mời thành viên
                 </button>
               </div>
@@ -308,7 +421,7 @@ const MembersRolesPage = () => {
                     <User size={40} strokeWidth={1.5} />
                   </div>
                   <p className="empty-text">
-                    {searchTerm || roleFilter !== 'all' 
+                    {searchTerm || roleFilter !== 'all'
                       ? 'Không tìm thấy thành viên phù hợp'
                       : 'Chưa có thành viên nào'}
                   </p>
@@ -355,7 +468,12 @@ const MembersRolesPage = () => {
                         <UserPenIcon size={16} strokeWidth={2} />
                       </button>
 
-                      <button className="action-btn delete" onClick={() => handleDeleteMember(member.id)} title="Xóa thành viên">
+                      <button
+                        className="action-btn delete"
+                        onClick={() => setConfirmDeleteMemberId(member.id)}
+                        title="Xóa thành viên"
+                        disabled={loadingDeleteMember === member.id}
+                      >
                         <Trash2 size={16} strokeWidth={2} />
                       </button>
                     </div>
@@ -365,6 +483,131 @@ const MembersRolesPage = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* Requests Tab */}
+      {activeTab === "requests" && (
+        <div className="">
+          {loadingRequests ? (
+            <div className="loading-request py-8 text-center">
+              <CircleAlertIcon size={32} className="text-orange-600 mb-3 animate-spin" />
+              <p className="text-muted-foreground">Đang tải yêu cầu tham gia...</p>
+            </div>
+          ) : joinRequests.length === 0 ? (
+            <div className="empty-state py-8 text-center">
+              <User size={40} strokeWidth={1.5} className="mb-2" />
+              <p className="empty-text">Không có yêu cầu tham gia nào</p>
+            </div>
+          ) : (
+            joinRequests.map(req => (
+              <div key={req.id} className="requests-card">
+                {/* LEFT: Info */}
+                <div className="request-info">
+                  <div className="member-avatar">
+                    {req.memberAvatar
+                      ? <img src={req.memberAvatar} alt={req.memberName} className="avatar-img" />
+                      : req.memberName?.charAt(0).toUpperCase()
+                    }
+                  </div>
+                  <div className="details">
+                    <div className="member-name">{req.memberName}</div>
+                    <div className="member-email">{req.memberEmail}</div>
+                    <div className="organization-badge">{req.organizationName}</div>
+                  </div>
+                </div>
+
+                {/* MIDDLE: status + ngày gửi */}
+                <div className="request-badge-block">
+                  <span className={"status-badge " + req.statusDisplay?.toLowerCase()}>
+                    {req.statusDisplay === "Pending" && "Chờ duyệt"}
+                    {req.statusDisplay === "Accepted" && "Đã nhận"}
+                    {req.statusDisplay === "Rejected" && "Đã từ chối"}
+                    {req.statusDisplay === "Canceled" && "Đã hủy"}
+                  </span>
+                  <div className="created-date text-center">Gửi: {new Date(req.createdAt).toLocaleDateString("vi-VN")}<br /></div>
+                </div>
+
+                {/* RIGHT: Nút */}
+                <div className="request-actions-group">
+                  <button className="action-btn accept"
+                    onClick={() => handleAcceptJoinRequest(req.id)}
+                    disabled={loadingAcceptRequest === req.id || loadingRejectRequest === req.id}
+                  >
+                    {loadingAcceptRequest === req.id ? "Đang duyệt..." : "Duyệt"}
+                  </button>
+                  <button className="action-btn reject"
+                    onClick={() => setConfirmRejectId(req.id)}
+                    disabled={loadingRejectRequest === req.id}
+                  >
+                    {loadingRejectRequest === req.id ? "Đang từ chối..." : "Từ chối"}
+                  </button>
+                </div>
+              </div>
+
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Sent Invitations Tab */}
+      {activeTab === "invites" && (
+        <div className="requests-table-container">
+          {/* Filter thanh trạng thái */}
+          <div className="filters-section" style={{ marginBottom: 12 }}>
+            <select
+              className="invite-status-filter"
+              value={inviteStatusFilter}
+              onChange={e => setInviteStatusFilter(e.target.value as any)}
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="Pending">Đang chờ</option>
+              <option value="Accepted">Đã chấp nhận</option>
+              <option value="Rejected">Đã từ chối</option>
+              <option value="Canceled">Đã được hủy tự động</option>
+            </select>
+          </div>
+          {loadingSentInvitations ? (
+            <div className="loading-request py-8 text-center">
+              <div className="loading-spinner mb-2"></div>
+              <div>Đang tải lời mời đã gửi...</div>
+            </div>
+          ) : filteredSentInvitations.length === 0 ? (
+            <div className="empty-state py-10 text-center">
+              <MailOpenIcon size={40} strokeWidth={1.5} className="mb-2" />
+              <p className="empty-text">Không có lời mời phù hợp trạng thái.</p>
+            </div>
+          ) : (
+            filteredSentInvitations.map(invite => (
+              <div key={invite.id} className="requests-card invite-card">
+                <div className="request-info">
+                  <div className="member-avatar">
+                    {invite.memberAvatar
+                      ? <img src={invite.memberAvatar} alt={invite.memberName} className="avatar-img" />
+                      : invite.memberName?.charAt(0).toUpperCase()
+                    }
+                  </div>
+                  <div className="details">
+                    <div className="member-name">{invite.memberName}</div>
+                    <div className="member-email">{invite.memberEmail}</div>
+                    <div className="organization-badge">{invite.organizationName}</div>
+                  </div>
+                </div>
+                <div className="invite-badge-block">
+                  <span className={`status-badge ${invite.statusDisplay?.toLowerCase()}`}>
+                    {invite.statusDisplay === "Pending" && "Đang chờ"}
+                    {invite.statusDisplay === "Accepted" && "Đã chấp nhận"}
+                    {invite.statusDisplay === "Rejected" && "Đã từ chối"}
+                    {invite.statusDisplay === "Canceled" && "Đã được hủy tự động"}
+                    {!["Pending", "Accepted", "Rejected", "Canceled"].includes(invite.statusDisplay) && invite.statusDisplay}
+                  </span>
+                  <div className="created-date">
+                    Gửi: {new Date(invite.createdAt).toLocaleDateString("vi-VN")}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       )}
 
       {/* Edit Role Modal - ✅ VỚI LOADING STATE */}
@@ -465,7 +708,7 @@ const MembersRolesPage = () => {
                   type="button"
                   className="add-email-btn"
                   onClick={() => addInviteEmail(inviteInput.trim())}
-                  disabled={!inviteInput.trim()}
+                  disabled={!inviteInput.trim() || inviteEmails.length >= 5}
                 >
                   Thêm
                 </button>
@@ -480,18 +723,101 @@ const MembersRolesPage = () => {
                   </span>
                 ))}
               </div>
+
+              {inviteEmails.length >= 5 && (
+                <div className="text-xs text-orange-600 mt-2 text-center">
+                  Đã đạt tối đa 5 email mỗi lần gửi.
+                </div>
+              )}
+
+
+              {inviteResult && (
+                <div className="invite-results mt-4 space-y-2">
+                  <h4 className="font-semibold mb-2">Kết quả gửi lời mời:</h4>
+                  {inviteResult.map(r => (
+                    <div
+                      key={r.email}
+                      className={
+                        `flex items-center gap-4 p-3 rounded-lg border overflow-x-auto ` +
+                        (r.success
+                          ? "bg-green-50 border-green-200"
+                          : "bg-red-50 border-red-200")
+                      }
+                      style={{ maxWidth: "100%" }}
+                    >
+                      {/* Email + icon */}
+                      <div className="flex items-center gap-2 min-w-[120px]">
+                        {r.success
+                          ? <CheckCircle2 className="text-green-500" size={20} />
+                          : <XIcon className="text-red-500" size={20} />}
+                        <span className="font-mono text-sm break-all">{r.email}</span>
+                      </div>
+                      {/* Message luôn đủ rộng và luôn cùng hàng */}
+                      {!r.success && (
+                        <span
+                          className="text-xs text-red-500 italic"
+                          style={{
+                            whiteSpace: "normal",
+                            wordBreak: "break-word",
+                            maxWidth: "500px"
+                          }}
+                        >
+                          {r.message}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
             </div>
             <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setShowInviteModal(false)}>
+              <button className="cancel-btn" onClick={() => {
+                setShowInviteModal(false);
+                setInviteResult(null);
+                setInviteEmails([]);
+              }}>
                 Hủy
               </button>
-              <button className="save-btn" onClick={handleSendInvites} disabled={inviteEmails.length === 0}>
-                Gửi lời mời ({inviteEmails.length})
+              <button
+                className="save-btn"
+                onClick={handleSendInvites}
+                disabled={inviteEmails.length === 0 || loadingInvite}
+              >
+                {loadingInvite ? "Đang gửi..." : `Gửi lời mời (${inviteEmails.length})`}
               </button>
             </div>
+
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={!!confirmRejectId}
+        title="Từ chối yêu cầu này?"
+        content="Bạn sẽ từ chối yêu cầu tham gia này. Thao tác này không thể hoàn tác."
+        loading={loadingRejectRequest === confirmRejectId}
+        onCancel={() => setConfirmRejectId(null)}
+        onConfirm={() => {
+          if (confirmRejectId) handleRejectJoinRequest(confirmRejectId);
+        }}
+        confirmText="Từ chối"
+        cancelText="Hủy"
+        destructive
+      />
+
+      <ConfirmModal
+        open={!!confirmDeleteMemberId}
+        title="Xóa thành viên khỏi tổ chức?"
+        content="Bạn sẽ xóa thành viên này khỏi tổ chức. Thao tác này không thể hoàn tác!"
+        loading={loadingDeleteMember === confirmDeleteMemberId}
+        onCancel={() => setConfirmDeleteMemberId(null)}
+        onConfirm={() => {
+          if (confirmDeleteMemberId) handleDeleteMember(confirmDeleteMemberId);
+        }}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        destructive
+      />
     </div>
   );
 };

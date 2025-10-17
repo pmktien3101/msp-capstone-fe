@@ -18,3 +18,9 @@ export interface OrganizationInvitationResponse {
     createdAt: string;
     respondedAt?: string;
 }
+
+export interface SendInvitationResult {
+  email: string;
+  success: boolean;
+  message: string;
+}
