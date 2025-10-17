@@ -180,7 +180,7 @@ const MeetingRoom = () => {
       console.warn("Error auto-ending call", err);
     } finally {
       // navigate to meeting detail page
-      router.push(`/meeting-detail/${call?.id}`);
+      router.push(`/projects`);
     }
   };
 
