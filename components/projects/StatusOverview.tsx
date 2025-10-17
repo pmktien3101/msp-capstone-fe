@@ -9,21 +9,28 @@ interface StatusOverviewProps {
     completed: number;
     inProgress: number;
     todo: number;
-    review: number;
+    onHold: number;
     completionRate: number;
   };
 }
 
 export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
   
+  // Prevent division by zero
+  const total = stats.total || 0;
+  const safePercentage = (count: number) => {
+    if (total === 0) return 0;
+    return Math.round((count / total) * 100) || 0;
+  };
+
   const statusData = [
-    { status: 'Hoàn thành', count: stats.completed, color: '#10b981', percentage: Math.round((stats.completed / stats.total) * 100) },
-    { status: 'Đang làm', count: stats.inProgress, color: '#fb923c', percentage: Math.round((stats.inProgress / stats.total) * 100) },
-    { status: 'Cần làm', count: stats.todo, color: '#6b7280', percentage: Math.round((stats.todo / stats.total) * 100) },
-    { status: 'Đang review', count: stats.review, color: '#fbbf24', percentage: Math.round((stats.review / stats.total) * 100) }
+    { status: 'Hoàn thành', count: stats.completed || 0, color: '#10b981', percentage: safePercentage(stats.completed) },
+    { status: 'Đang làm', count: stats.inProgress || 0, color: '#fb923c', percentage: safePercentage(stats.inProgress) },
+    { status: 'Chưa bắt đầu', count: stats.todo || 0, color: '#6b7280', percentage: safePercentage(stats.todo) },
+    { status: 'Tạm dừng', count: stats.onHold || 0, color: '#fbbf24', percentage: safePercentage(stats.onHold) }
   ];
 
-  const totalItems = stats.total;
+  const totalItems = total;
 
   return (
     <div className="status-overview">
@@ -64,8 +71,21 @@ export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
               {statusData.map((item, index) => {
                 const circumference = 2 * Math.PI * 50;
                 const strokeDasharray = circumference;
-                const strokeDashoffset = circumference - (item.percentage / 100) * circumference;
-                const rotation = statusData.slice(0, index).reduce((acc, prev) => acc + prev.percentage, 0) * 3.6;
+                
+                // Safely calculate strokeDashoffset, default to circumference if NaN
+                const percentage = isNaN(item.percentage) ? 0 : item.percentage;
+                const strokeDashoffset = circumference - (percentage / 100) * circumference;
+                
+                // Safely calculate rotation
+                const rotation = statusData
+                  .slice(0, index)
+                  .reduce((acc, prev) => {
+                    const prevPercentage = isNaN(prev.percentage) ? 0 : prev.percentage;
+                    return acc + prevPercentage;
+                  }, 0) * 3.6;
+                
+                // Skip rendering if percentage is 0
+                if (percentage === 0) return null;
                 
                 return (
                   <circle

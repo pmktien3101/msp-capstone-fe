@@ -1,21 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Project } from "@/types/project";
 import { BoardHeader } from "./BoardHeader";
 import { mockTasks, mockMembers } from "@/constants/mockData";
 import { Trash2, Eye, Edit, MoreVertical } from "lucide-react";
+import { taskService } from "@/services/taskService";
+import { projectService } from "@/services/projectService";
+import { GetTaskResponse } from "@/types/task";
+import { useAuth } from "@/hooks/useAuth";
+import { UserRole } from "@/lib/rbac";
 
 interface ProjectBoardProps {
   project: Project;
   onTaskClick?: (task: any) => void;
   onCreateTask?: () => void;
-  onDeleteTask?: (taskId: string) => void;
+  onDeleteTask?: (taskId: string, taskTitle: string) => void;
   onEditTask?: (task: any) => void;
 }
-
-// Map lấy tên member từ ID
-const memberMap = Object.fromEntries(
-  mockMembers.map((m) => [m.id, m.name])
-);
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return "";
@@ -33,64 +33,181 @@ export const ProjectBoard = ({
   onDeleteTask,
   onEditTask,
 }: ProjectBoardProps) => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [groupBy, setGroupBy] = useState("none");
+  
+  // State for tasks and members
+  const [tasks, setTasks] = useState<GetTaskResponse[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
-  // Lấy danh sách milestone id của project hiện tại
-  const projectMilestoneIds = project.milestones || [];
+  const projectId = project?.id?.toString();
+  const userRole = user?.role;
+  const userId = user?.userId;
 
-  // Lọc tasks chỉ thuộc project hiện tại
-  const tasksOfCurrentProject = mockTasks.filter(
-    (task) =>
-      task.milestoneIds &&
-      task.milestoneIds.some((id) => projectMilestoneIds.includes(id))
+  // Fetch tasks from API
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (!projectId || !userRole || !userId) {
+        setIsLoadingTasks(false);
+        return;
+      }
+
+      setIsLoadingTasks(true);
+      try {
+        let response;
+        
+        // DEBUG: Log user info to check role value
+        console.log(`[ProjectBoard] 🔍 User Info:`, { userId, userRole, projectId });
+        console.log(`[ProjectBoard] 🔍 Role type:`, typeof userRole);
+        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'ProjectManager':`, userRole === 'ProjectManager');
+        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.PROJECT_MANAGER:`, userRole === UserRole.PROJECT_MANAGER);
+        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'Member':`, userRole === 'Member');
+        console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.MEMBER:`, userRole === UserRole.MEMBER);
+        console.log(`[ProjectBoard] 🔍 UserRole enum values:`, { 
+          PROJECT_MANAGER: UserRole.PROJECT_MANAGER, 
+          MEMBER: UserRole.MEMBER 
+        });
+        
+        // ProjectManager: Get all tasks in project
+        // Member: Get only tasks assigned to this user in project
+        if (userRole === UserRole.PROJECT_MANAGER || userRole === 'ProjectManager') {
+          console.log(`[ProjectBoard] ✅ Fetching ALL tasks for ProjectManager in project: ${projectId}`);
+          response = await taskService.getTasksByProjectId(projectId);
+        } else {
+          console.log(`[ProjectBoard] ✅ Fetching ASSIGNED tasks for ${userRole} (user: ${userId}) in project: ${projectId}`);
+          response = await taskService.getTasksByUserIdAndProjectId(userId, projectId);
+        }
+        
+        if (response.success && response.data) {
+          // Extract items from PagingResponse
+          const taskList = response.data.items || [];
+          console.log(`[ProjectBoard] ✅ Successfully loaded ${taskList.length} tasks for role "${userRole}"`);
+          console.log(`[ProjectBoard] 📋 Task list:`, taskList.map(t => ({ 
+            id: t.id, 
+            title: t.title, 
+            userId: t.userId,
+            assignedTo: t.user?.fullName || t.userId 
+          })));
+          setTasks(taskList);
+        } else {
+          console.error('[ProjectBoard] ❌ Failed to fetch tasks:', response.error);
+          setTasks([]);
+        }
+      } catch (error) {
+        console.error('[ProjectBoard] Error fetching tasks:', error);
+        setTasks([]);
+      } finally {
+        setIsLoadingTasks(false);
+      }
+    };
+
+    fetchTasks();
+  }, [projectId, userRole, userId]); // Will re-fetch when projectId, userRole, or userId changes
+
+  // Fetch project members
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!projectId) {
+        setIsLoadingMembers(false);
+        return;
+      }
+
+      setIsLoadingMembers(true);
+      try {
+        console.log(`[ProjectBoard] Fetching members for project: ${projectId}`);
+        const response = await projectService.getProjectMembers(projectId);
+        
+        if (response.success && response.data) {
+          // Transform to simple format for display
+          const transformedMembers = response.data
+            .filter((pm: any) => pm.member)
+            .map((pm: any) => ({
+              id: pm.member.id,
+              name: pm.member.fullName || pm.member.email,
+              email: pm.member.email,
+              role: pm.member.role
+            }));
+          
+          console.log(`[ProjectBoard] Loaded ${transformedMembers.length} members`);
+          setMembers(transformedMembers);
+        } else {
+          console.error('[ProjectBoard] Failed to fetch members:', response.error);
+          setMembers([]);
+        }
+      } catch (error) {
+        console.error('[ProjectBoard] Error fetching members:', error);
+        setMembers([]);
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
+
+    fetchMembers();
+  }, [projectId]);
+
+  // Create member map for quick lookup
+  const memberMap = Object.fromEntries(
+    members.map((m) => [m.id, m.name])
   );
 
   // Helper functions
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "todo":
-        return "Cần làm";
-      case "in-progress":
-        return "Đang làm";
-      case "review":
-        return "Đang review";
-      case "done":
-        return "Hoàn thành";
-      default:
-        return "Cần làm";
-    }
+    // Status in DB: "Chưa bắt đầu", "Đang làm", "Tạm dừng", "Hoàn thành"
+    return status;
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "todo":
+      case "Chưa bắt đầu":
         return "#6b7280";
-      case "in-progress":
+      case "Đang làm":
         return "#f59e0b";
-      case "review":
-        return "#3b82f6";
-      case "done":
+      case "Tạm dừng":
+        return "#ef4444";
+      case "Hoàn thành":
         return "#10b981";
       default:
         return "#6b7280";
     }
   };
 
-  // Filter thêm theo search nếu có
-  const filteredTasks = tasksOfCurrentProject.filter(
+  // Filter tasks by search query
+  const filteredTasks = tasks.filter(
     (task) =>
       task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  // Helper to get assignee info from task
+  const getTaskAssignee = (task: GetTaskResponse): string => {
+    // Backend returns task.user object or task.userId
+    if (task.user) {
+      return task.user.fullName || task.user.email || task.userId || '';
+    }
+    if (task.userId) {
+      return memberMap[task.userId] || task.userId;
+    }
+    return "Chưa giao"; // Return "Chưa giao" if no assignee
+  };
+
+  // Helper to get milestone IDs from task
+  const getTaskMilestoneIds = (task: GetTaskResponse): string[] => {
+    if (task.milestones && Array.isArray(task.milestones)) {
+      return task.milestones.map((m: any) => m.id.toString());
+    }
+    return [];
+  };
+
   // Group tasks based on groupBy selection
-  const groupTasks = (tasks: any[]) => {
+  const groupTasks = (tasks: GetTaskResponse[]) => {
     if (groupBy === "none") {
       return { "Tất cả": tasks };
     }
 
-    const grouped: Record<string, any[]> = {};
+    const grouped: Record<string, GetTaskResponse[]> = {};
     
     tasks.forEach(task => {
       let groupKey = "";
@@ -100,11 +217,13 @@ export const ProjectBoard = ({
           groupKey = getStatusLabel(task.status);
           break;
         case "assignee":
-          groupKey = task.assignee ? memberMap[task.assignee] : "Chưa giao";
+          const assignee = getTaskAssignee(task);
+          groupKey = assignee || "Chưa giao";
           break;
         case "milestone":
-          if (task.milestoneIds && task.milestoneIds.length > 0) {
-            groupKey = task.milestoneIds.length === 1 ? "Cột mốc đơn" : "Nhiều cột mốc";
+          const milestoneIds = getTaskMilestoneIds(task);
+          if (milestoneIds.length > 0) {
+            groupKey = milestoneIds.length === 1 ? "Cột mốc đơn" : "Nhiều cột mốc";
           } else {
             groupKey = "Không có cột mốc";
           }
@@ -124,10 +243,10 @@ export const ProjectBoard = ({
 
   const groupedTasks = groupTasks(filteredTasks);
 
-  const handleDeleteTask = (e: React.MouseEvent, taskId: string) => {
+  const handleDeleteTask = (e: React.MouseEvent, taskId: string, taskTitle: string) => {
     e.stopPropagation(); // Ngăn chặn event bubbling để không trigger onTaskClick
     if (onDeleteTask) {
-      onDeleteTask(taskId);
+      onDeleteTask(taskId, taskTitle);
     }
   };
 
@@ -152,6 +271,8 @@ export const ProjectBoard = ({
         onSearchChange={setSearchQuery}
         groupBy={groupBy}
         onGroupByChange={setGroupBy}
+        members={members}
+        userRole={userRole}
       />
       {onCreateTask && (
         <div className="create-task-container">
@@ -161,7 +282,20 @@ export const ProjectBoard = ({
 
       {/* List table công việc */}
       <div className="task-list">
-        {Object.entries(groupedTasks).map(([groupName, tasks]) => (
+        {isLoadingTasks ? (
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>Đang tải danh sách công việc...</p>
+          </div>
+        ) : tasks.length === 0 ? (
+          <div className="empty-state">
+            <p>Chưa có công việc nào trong dự án này</p>
+            {onCreateTask && (
+              <button onClick={onCreateTask}>Tạo công việc đầu tiên</button>
+            )}
+          </div>
+        ) : (
+          Object.entries(groupedTasks).map(([groupName, tasks]) => (
           <div key={groupName} className="task-group">
             {groupBy !== "none" && (
               <div className="group-header">
@@ -201,13 +335,13 @@ export const ProjectBoard = ({
                         {getStatusLabel(task.status)}
                       </span>
                     </td>
-                    <td className="assignee-cell" title={task.assignee ? memberMap[task.assignee] : "Chưa giao"}>
+                    <td className="assignee-cell" title={getTaskAssignee(task) || "Chưa giao"}>
                       <span className="assignee-text">
-                        {task.assignee ? memberMap[task.assignee] : "Chưa giao"}
+                        {getTaskAssignee(task) || "Chưa giao"}
                       </span>
                     </td>
-                    <td className="date-cell">{formatDate(task.startDate)}</td>
-                    <td className="date-cell">{formatDate(task.endDate)}</td>
+                    <td className="date-cell">{formatDate(task.startDate || '')}</td>
+                    <td className="date-cell">{formatDate(task.endDate || '')}</td>
                     <td className="actions-cell">
                       <div className="action-buttons">
                         <button
@@ -226,7 +360,7 @@ export const ProjectBoard = ({
                         </button>
                         <button
                           className="action-btn delete-btn"
-                          onClick={(e) => handleDeleteTask(e, task.id)}
+                          onClick={(e) => handleDeleteTask(e, task.id, task.title)}
                           title="Xóa công việc"
                         >
                           <Trash2 size={14} />
@@ -238,7 +372,8 @@ export const ProjectBoard = ({
               </tbody>
             </table>
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       <style jsx>{`
@@ -289,6 +424,58 @@ export const ProjectBoard = ({
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
           border: 1px solid rgba(255, 255, 255, 0.2);
           overflow: hidden;
+          backdrop-filter: blur(10px);
+          padding: 24px;
+        }
+
+        .loading-state,
+        .empty-state {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 60px 20px;
+          text-align: center;
+          color: #64748b;
+        }
+
+        .loading-spinner {
+          width: 40px;
+          height: 40px;
+          border: 3px solid #e2e8f0;
+          border-top-color: #FF5E13;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .loading-state p,
+        .empty-state p {
+          margin: 0 0 20px 0;
+          font-size: 16px;
+          font-weight: 500;
+        }
+
+        .empty-state button {
+          background: transparent;
+          color: #FF5E13;
+          border: 1px solid #FF5E13;
+          border-radius: 8px;
+          padding: 10px 20px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .empty-state button:hover {
+          background: #FF5E13;
+          color: white;
+        }
           backdrop-filter: blur(10px);
         }
         

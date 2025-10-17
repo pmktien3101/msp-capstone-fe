@@ -47,3 +47,29 @@ export interface Task {
   milestoneIds?: string[];
   comments?: any[];
 }
+
+// Backend API types for Milestone
+export interface MilestoneBackend {
+  id: string;
+  projectId: string;
+  name: string;
+  dueDate: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMilestoneRequest {
+  userId: string;
+  projectId: string;
+  name: string;
+  dueDate: string;
+  description: string;
+}
+
+export interface UpdateMilestoneRequest {
+  id: string;
+  name: string;
+  dueDate: string;
+  description: string;
+}

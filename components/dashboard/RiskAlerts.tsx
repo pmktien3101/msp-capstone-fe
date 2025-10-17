@@ -29,9 +29,12 @@ export const RiskAlerts = ({ projects }: RiskAlertsProps) => {
     
     return projects
       .map(project => {
+        if (!project.endDate) return null;
         const endDate = new Date(project.endDate);
         const daysUntilDeadline = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        const progressRate = project.progress ?? 0 / Math.max(1, daysUntilDeadline);
+        // Comment out progress usage since it doesn't exist
+        // const progressRate = (project.progress ?? 0) / Math.max(1, daysUntilDeadline);
+        const progressRate = 0; // Default to 0
         
         let riskLevel = 'low';
         if (daysUntilDeadline <= 3 || progressRate < 0.5) riskLevel = 'critical';
@@ -46,7 +49,7 @@ export const RiskAlerts = ({ projects }: RiskAlertsProps) => {
           isOverdue: daysUntilDeadline < 0
         };
       })
-      .filter(project => project.riskLevel !== 'low')
+      .filter((project): project is NonNullable<typeof project> => project !== null && project.riskLevel !== 'low')
       .sort((a, b) => {
         if (a.isOverdue && !b.isOverdue) return -1;
         if (!a.isOverdue && b.isOverdue) return 1;
@@ -259,27 +262,27 @@ export const RiskAlerts = ({ projects }: RiskAlertsProps) => {
                           }
                         </span>
                       </div>
-                      <div className="detail-item">
+                      {/* <div className="detail-item">
                         <TrendingDown size={14} />
-                        <span>Tiến độ: {project.progress}%</span>
-                      </div>
+                        <span>Tiến độ: 0%</span>
+                      </div> */}
                     </div>
                     
-                    <div className="risk-progress">
+                    {/* <div className="risk-progress">
                       <div className="progress-header">
                         <span>Tiến độ dự án</span>
-                        <span>{project.progress}%</span>
+                        <span>0%</span>
                       </div>
                       <div className="progress-bar">
                         <div 
                           className="progress-fill"
                           style={{ 
-                            width: `${project.progress}%`,
+                            width: `0%`,
                             backgroundColor: getRiskColor(project.riskLevel)
                           }}
                         />
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               ))
