@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { LoginCredentials, RegisterData, LoginResponse, ApiResponse, User, AuthTokens } from '@/types/auth';
+import type { LoginCredentials, RegisterData, LoginResponse, ApiResponse, User, AuthTokens, ResendConfirmationEmailRequest } from '@/types/auth';
 import { clearAllAuthData, setTokens, getCurrentUser } from '@/lib/auth';
 import { extractUserFromToken } from '@/lib/jwt';
 import { normalizeRole } from '@/lib/rbac';
@@ -222,6 +222,69 @@ export const authService = {
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || 'Password reset failed'
+            };
+        }
+    },
+
+    async confirmEmail(email: string, token: string): Promise<{ success: boolean; message?: string; error?: string }> {
+        try {
+            console.log('Confirming email with token:', token.substring(0, 10) + '...');
+            
+            const response = await api.get(`/auth/confirm-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`);
+            
+            if (response.data.success) {
+                console.log('Email confirmed successfully');
+                return {
+                    success: true,
+                    message: response.data.message || "Email đã được xác nhận thành công!",
+                };
+            } else {
+                console.error('Email confirmation failed:', response.data.message);
+                return {
+                    success: false,
+                    error: response.data.message || "Xác nhận email thất bại",
+                };
+            }
+        } catch (error: any) {
+            console.error("Confirm email error:", error);
+            console.error("Error response:", error.response?.data);
+            console.error("Error status:", error.response?.status);
+            
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || "Có lỗi xảy ra khi xác nhận email",
+            };
+        }
+    },
+
+    async resendConfirmation(email: string): Promise<{ success: boolean; message?: string; error?: string }> {
+        try {
+            console.log('Resending confirmation email for:', email);
+            
+            const requestData: ResendConfirmationEmailRequest = { email };
+            const response = await api.post('/auth/resend-confirmation-email', requestData);
+            
+            if (response.data.success) {
+                console.log('Confirmation email resent successfully');
+                return {
+                    success: true,
+                    message: response.data.message || "Email xác nhận đã được gửi lại!",
+                };
+            } else {
+                console.error('Resend confirmation failed:', response.data.message);
+                return {
+                    success: false,
+                    error: response.data.message || "Gửi lại email thất bại",
+                };
+            }
+        } catch (error: any) {
+            console.error("Resend confirmation error:", error);
+            console.error("Error response:", error.response?.data);
+            console.error("Error status:", error.response?.status);
+            
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || "Có lỗi xảy ra khi gửi lại email",
             };
         }
     },

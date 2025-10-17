@@ -90,3 +90,7 @@ export interface BusinessOwnersResponse {
     data: BusinessOwner[];
     errors: string[] | null;
 }
+
+export interface ResendConfirmationEmailRequest {
+    email: string;
+}
