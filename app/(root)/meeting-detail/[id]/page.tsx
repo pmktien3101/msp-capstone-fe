@@ -184,7 +184,7 @@ export default function MeetingDetailPage() {
       if (data.success) {
         // Cập nhật state với kết quả
         setImprovedTranscript(data.data.improvedTranscript);
-
+        console.log('✅ Improved Transcript set:', data.data.improvedTranscript);
         // Map assigneeId thành tên trong summary
         const processedSummary = mapSummaryAssigneeIds(data.data.summary);
         setSummary(processedSummary);
@@ -266,8 +266,7 @@ export default function MeetingDetailPage() {
                 createTodosResult.data
               );
               toast.success(
-                `${
-                  createTodosResult.data?.length || 0
+                `${createTodosResult.data?.length || 0
                 } công việc đã được tạo từ AI`
               );
               // Refresh todos from DB
@@ -780,9 +779,8 @@ export default function MeetingDetailPage() {
 
       return (
         <div
-          className={`task-item ai-task ${
-            selectedTasks.includes(todo.id) ? "selected" : ""
-          } ${editMode[todo.id] ? "edit-mode" : ""}`}
+          className={`task-item ai-task ${selectedTasks.includes(todo.id) ? "selected" : ""
+            } ${editMode[todo.id] ? "edit-mode" : ""}`}
           key={`todo-${todo.id}-${index}`}
           data-task-id={todo.id}
           onClick={(e) => {
@@ -1083,8 +1081,8 @@ export default function MeetingDetailPage() {
       const extensionFromType = contentType.includes("mp4")
         ? "mp4"
         : contentType.includes("webm")
-        ? "webm"
-        : "mp4";
+          ? "webm"
+          : "mp4";
       const baseName =
         rec.filename
           ?.replace(/\s+/g, "-")
@@ -1293,18 +1291,18 @@ export default function MeetingDetailPage() {
                 {(meetingInfo?.endTime
                   ? new Date(meetingInfo.endTime) > new Date()
                   : endsAt
-                  ? endsAt > new Date()
-                  : false) && (
-                  <Button
-                    variant="default"
-                    className="join-now-btn bg-orange-600 hover:bg-orange-700 cursor-pointer"
-                    style={{ marginTop: 12 }}
-                    onClick={() => handleClickJoinMeeting()}
-                  >
-                    <Video size={16} style={{ marginRight: 6 }} />
-                    Tham gia ngay
-                  </Button>
-                )}
+                    ? endsAt > new Date()
+                    : false) && (
+                    <Button
+                      variant="default"
+                      className="join-now-btn bg-orange-600 hover:bg-orange-700 cursor-pointer"
+                      style={{ marginTop: 12 }}
+                      onClick={() => handleClickJoinMeeting()}
+                    >
+                      <Video size={16} style={{ marginRight: 6 }} />
+                      Tham gia ngay
+                    </Button>
+                  )}
               </div>
 
               <div className="info-grid">
@@ -1472,8 +1470,8 @@ export default function MeetingDetailPage() {
                                 <p>
                                   {meetingInfo.updatedAt
                                     ? new Date(
-                                        meetingInfo.updatedAt
-                                      ).toLocaleString("vi-VN")
+                                      meetingInfo.updatedAt
+                                    ).toLocaleString("vi-VN")
                                     : "-"}
                                 </p>
                               </div>
@@ -1539,9 +1537,9 @@ export default function MeetingDetailPage() {
                         const duration =
                           rec.start_time && rec.end_time
                             ? formatDuration(
-                                new Date(rec.end_time).getTime() -
-                                  new Date(rec.start_time).getTime()
-                              )
+                              new Date(rec.end_time).getTime() -
+                              new Date(rec.start_time).getTime()
+                            )
                             : null;
                         return (
                           <div className="recording-item" key={rec.url || idx}>
@@ -1632,9 +1630,8 @@ export default function MeetingDetailPage() {
                 )}
                 {!isProcessingMeetingAI && improvedTranscript.length > 0 && (
                   <div
-                    className={`transcript-content ${
-                      isTranscriptExpanded ? "expanded" : ""
-                    }`}
+                    className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
+                      }`}
                     onClick={() =>
                       setIsTranscriptExpanded(!isTranscriptExpanded)
                     }
@@ -1739,7 +1736,7 @@ export default function MeetingDetailPage() {
                       Chuyển đổi thành công việc chính thức
                     </Button>
 
-                    <Button
+                    {/* <Button
                       disabled={isGeneratingTasks}
                       onClick={() => {
                         // Handle regenerate AI tasks
@@ -1751,7 +1748,7 @@ export default function MeetingDetailPage() {
                     >
                       <Sparkles size={16} />
                       Tạo lại danh sách bằng AI
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
               )}

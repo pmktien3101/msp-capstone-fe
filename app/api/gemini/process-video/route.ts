@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
                         parts: [
                             {
                                 text: `
-                                    Tôi có một đoạn transcript sơ bộ của video này được tạo tự động. Hãy xem video và dựa vào transcript tôi cung cấp để tạo ra một transcript hoàn chỉnh, chính xác hơn bằng tiếng Việt/tiếng Anh (giữ nguyên ngôn ngữ gốc trong video).
+                                    Tôi có một đoạn transcript sơ bộ của video này. Hãy xem video và dựa vào transcript tôi cung cấp để tạo ra một transcript hoàn chỉnh, chính xác hơn bằng tiếng Việt.
 
                                     Transcript sơ bộ:
                                     ${transcriptText}
@@ -245,18 +245,9 @@ export async function POST(request: NextRequest) {
                                     Yêu cầu:
                                     - Sửa lại các từ sai, thiếu hoặc không rõ ràng
                                     - Thêm dấu câu chính xác
-                                    - Gộp các câu ngắn thành đoạn văn hợp lý nếu cùng người nói và cùng chủ đề
-                                    - **QUAN TRỌNG VỀ SPEAKER ID:**
-                                      + GIỮ NGUYÊN các Speaker ID đã có trong transcript sơ bộ (ví dụ: Speaker 1, Speaker 4)
-                                      + KHÔNG tự ý đổi Speaker 1 thành Speaker 2, hoặc Speaker 4 thành Speaker 3
-                                      + NẾU phát hiện có giọng nói MỚI trong video (speaker không được đề cập/xuất hiện trong transcript sơ bộ, ví dụ: tiếng ồn từ mic, người ngoài xen vào), hãy:
-                                        * Gán ID là "male-voice" nếu là giọng nam
-                                        * Gán ID là "female-voice" nếu là giọng nữ
-                                        * Chỉ thêm speaker mới khi CHẮC CHẮN có người khác nói, không phải nhiễu
-                                    - Giữ nguyên định dạng: [timestamp] Speaker X: <nội dung>
-                                    - Giữ nguyên timestamp gần đúng (có thể điều chỉnh nhẹ nếu cần)
-                                    - Loại bỏ các đoạn không rõ ràng hoặc nhiễu (tiếng ho, tiếng động không có nghĩa)
+                                    - Chia đoạn văn hợp lý
                                     - Giữ nguyên ý nghĩa và ngữ cảnh
+                                    - Định dạng rõ ràng, dễ đọc
                                     
                                     Trả về transcript đã cải thiện theo định dạng:
                                     [timestamp] Speaker X: <nội dung đã sửa>
@@ -278,7 +269,6 @@ export async function POST(request: NextRequest) {
 
             improvedText = improvedResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
             improvedTranscript = parseImprovedTranscript(improvedText, transcriptSegments);
-            console.log('✅ Bước 2 hoàn thành: Transcript đã được cải thiện');
 
         } catch (error: any) {
             console.warn('⚠️ Bước 2 thất bại sau khi retry, sử dụng transcript gốc:', error.message);
