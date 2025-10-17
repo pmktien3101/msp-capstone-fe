@@ -85,15 +85,15 @@ export const CreateTaskModal = ({
           // console.log('[CreateTaskModal] All members:', response.data);
           
           // Log each member to see structure
-          response.data.forEach(pm => {
-            console.log('[CreateTaskModal] Member:', {
-              id: pm.id,
-              userId: pm.userId,
-              role: pm.member?.role,
-              fullName: pm.member?.fullName,
-              email: pm.member?.email
-            });
-          });
+          // response.data.forEach(pm => {
+          //   console.log('[CreateTaskModal] Member:', {
+          //     id: pm.id,
+          //     userId: pm.userId,
+          //     role: pm.member?.role,
+          //     fullName: pm.member?.fullName,
+          //     email: pm.member?.email
+          //   });
+          // });
           
           // Filter only users with role "Member"
           const memberUsers = response.data.filter(pm => 

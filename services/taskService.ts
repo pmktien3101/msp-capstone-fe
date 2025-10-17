@@ -16,7 +16,7 @@ export const taskService = {
     // Create new task
     async createTask(data: CreateTaskRequest): Promise<{ success: boolean; data?: GetTaskResponse; error?: string }> {
         try {
-            console.log('createTask - Request:', data);
+            // console.log('createTask - Request:', data);
             
             // Convert dates to ISO 8601 UTC format if provided
             const requestData = {
@@ -26,7 +26,7 @@ export const taskService = {
             };
 
             const response = await api.post<ApiResponse<GetTaskResponse>>('/tasks', requestData);
-            console.log('createTask - Response:', response.data);
+            // console.log('createTask - Response:', response.data);
             
             if (response.data.success && response.data.data) {
                 return {
@@ -52,7 +52,7 @@ export const taskService = {
     // Update task
     async updateTask(data: UpdateTaskRequest): Promise<{ success: boolean; data?: GetTaskResponse; error?: string }> {
         try {
-            console.log('updateTask - Request:', data);
+            // console.log('updateTask - Request:', data);
             
             // Convert dates to ISO 8601 UTC format if provided
             const requestData = {
@@ -62,7 +62,7 @@ export const taskService = {
             };
 
             const response = await api.put<ApiResponse<GetTaskResponse>>('/tasks', requestData);
-            console.log('updateTask - Response:', response.data);
+            // console.log('updateTask - Response:', response.data);
             
             if (response.data.success && response.data.data) {
                 return {
@@ -88,10 +88,10 @@ export const taskService = {
     // Delete task
     async deleteTask(taskId: string): Promise<{ success: boolean; message?: string; error?: string }> {
         try {
-            console.log('deleteTask - TaskId:', taskId);
+            // console.log('deleteTask - TaskId:', taskId);
             
             const response = await api.delete<ApiResponse>(`/tasks/${taskId}`);
-            console.log('deleteTask - Response:', response.data);
+            // console.log('deleteTask - Response:', response.data);
             
             if (response.data.success) {
                 return {
@@ -117,10 +117,10 @@ export const taskService = {
     // Get task by ID
     async getTaskById(taskId: string): Promise<{ success: boolean; data?: GetTaskResponse; error?: string }> {
         try {
-            console.log('getTaskById - TaskId:', taskId);
+            // console.log('getTaskById - TaskId:', taskId);
             
             const response = await api.get<ApiResponse<GetTaskResponse>>(`/tasks/${taskId}`);
-            console.log('getTaskById - Response:', response.data);
+            // console.log('getTaskById - Response:', response.data);
             
             if (response.data.success && response.data.data) {
                 return {
@@ -149,7 +149,7 @@ export const taskService = {
         params?: PagingRequest
     ): Promise<{ success: boolean; data?: PagingResponse<GetTaskResponse>; error?: string }> {
         try {
-            console.log('getTasksByProjectId - ProjectId:', projectId, 'Params:', params);
+            // console.log('getTasksByProjectId - ProjectId:', projectId, 'Params:', params);
             
             const response = await api.get<ApiResponse<PagingResponse<GetTaskResponse>>>(
                 `/tasks/by-project/${projectId}`,
@@ -169,7 +169,7 @@ export const taskService = {
                 };
             }
         } catch (error: any) {
-            console.log('Get tasks by project error:', error.response?.status, error.response?.data);
+            // console.log('Get tasks by project error:', error.response?.status, error.response?.data);
             
             // Handle 400/404 as empty result (no tasks found)
             if (error.response?.status === 400 || error.response?.status === 404) {
@@ -201,14 +201,14 @@ export const taskService = {
         params?: PagingRequest
     ): Promise<{ success: boolean; data?: PagingResponse<GetTaskResponse>; error?: string }> {
         try {
-            console.log('getTasksByUserIdAndProjectId - UserId:', userId, 'ProjectId:', projectId, 'Params:', params);
+            // console.log('getTasksByUserIdAndProjectId - UserId:', userId, 'ProjectId:', projectId, 'Params:', params);
             
             const response = await api.get<ApiResponse<PagingResponse<GetTaskResponse>>>(
                 `/tasks/by-user-and-project/${userId}/${projectId}`,
                 { params }
             );
             
-            console.log('getTasksByUserIdAndProjectId - Response:', response.data);
+            // console.log('getTasksByUserIdAndProjectId - Response:', response.data);
             
             if (response.data.success && response.data.data) {
                 return {
@@ -222,7 +222,7 @@ export const taskService = {
                 };
             }
         } catch (error: any) {
-            console.log('Get tasks by user and project error:', error.response?.status, error.response?.data);
+            // console.log('Get tasks by user and project error:', error.response?.status, error.response?.data);
             
             // Handle 400/404 as empty result (no tasks found)
             if (error.response?.status === 400 || error.response?.status === 404) {
@@ -251,10 +251,10 @@ export const taskService = {
     // Get tasks by milestone ID
     async getTasksByMilestoneId(milestoneId: string): Promise<{ success: boolean; data?: GetTaskResponse[]; error?: string }> {
         try {
-            console.log('getTasksByMilestoneId - MilestoneId:', milestoneId);
+            // console.log('getTasksByMilestoneId - MilestoneId:', milestoneId);
             
             const response = await api.get<ApiResponse<GetTaskResponse[]>>(`/tasks/by-milestone/${milestoneId}`);
-            console.log('getTasksByMilestoneId - Response:', response.data);
+            // console.log('getTasksByMilestoneId - Response:', response.data);
             
             if (response.data.success && response.data.data) {
                 return {

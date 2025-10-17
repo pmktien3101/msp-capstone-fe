@@ -235,7 +235,7 @@ const ProjectDetailPage = () => {
           return;
         }
 
-        console.log('Fetching project with ID:', projectId);
+        // console.log('Fetching project with ID:', projectId);
 
         // Check if user is authenticated and has userId
         if (!user || !user.userId) {
@@ -265,7 +265,7 @@ const ProjectDetailPage = () => {
         const result = await projectService.getProjectById(projectId);
         
         if (result.success && result.data) {
-          console.log('Project fetched successfully:', result.data);
+          // console.log('Project fetched successfully:', result.data);
           
           // Fetch project members
           let membersResult;
@@ -276,7 +276,7 @@ const ProjectDetailPage = () => {
               if (membersResult.data.length === 0) {
                 console.log('Project has no members yet (newly created project)');
               } else {
-                console.log('Members fetched:', membersResult.data);
+                // console.log('Members fetched:', membersResult.data);
               }
             } else {
               console.warn('Failed to fetch members:', membersResult.error);
