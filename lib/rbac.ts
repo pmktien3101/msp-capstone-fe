@@ -43,9 +43,9 @@ const rolePermissions: Record<UserRole, Permission[]> = {
   [UserRole.ADMIN]: [
     Permission.MANAGE_USERS,
     Permission.VIEW_USERS,
-    Permission.MANAGE_PROJECTS,
-    Permission.VIEW_PROJECTS,
-    Permission.DELETE_PROJECTS,
+    // Permission.MANAGE_PROJECTS,
+    // Permission.VIEW_PROJECTS,
+    // Permission.DELETE_PROJECTS,
     Permission.MANAGE_MEETINGS,
     Permission.VIEW_MEETINGS,
     Permission.DELETE_MEETINGS,

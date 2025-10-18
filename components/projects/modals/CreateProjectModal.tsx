@@ -175,7 +175,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
                 )}
               </div>
               <div>
-                <Label htmlFor="endDate">Ngày kết thúc *</Label>
+                <Label htmlFor="endDate">Ngày dự kiến kết thúc *</Label>
                 <Input
                   id="endDate"
                   type="date"

@@ -263,7 +263,7 @@ const MembersRolesPage = () => {
   };
 
   const getRoleBadge = (role: string) => {
-    return role === "ProjectManager" ? "Project Manager" : "Member";
+    return role === "ProjectManager" ? "PM" : "Member";
   };
 
   const getStatusText = (isActive: boolean) => {

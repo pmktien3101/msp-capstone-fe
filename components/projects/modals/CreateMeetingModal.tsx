@@ -416,7 +416,7 @@ export default function MeetingForm({
                           htmlFor={`participant-${participant.id}`}
                           className="text-sm text-gray-700"
                         >
-                          {participant.email} - {participant.role}
+                          {participant.email} - {participant.name}
                         </label>
                       </div>
                     ))}
