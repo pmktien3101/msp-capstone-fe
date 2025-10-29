@@ -2189,11 +2189,11 @@ export const MilestoneListView = ({ project, refreshKey = 0 }: MilestoneListView
         console.log(`[MilestoneListView] Fetching tasks for milestone: ${selectedMilestone.id}`);
         const response = await taskService.getTasksByMilestoneId(selectedMilestone.id);
         
-        if (response.success && response.data) {
+        if (response.success && response?.data) {
           console.log(`[MilestoneListView] Loaded ${response.data.length} tasks for milestone ${selectedMilestone.id}`);
           setMilestoneTasks(response.data);
         } else {
-          console.error('[MilestoneListView] Failed to fetch tasks:', response.error);
+          // console.error('[MilestoneListView] Failed to fetch tasks:', response.error);
           setTaskError(response.error || 'Không thể tải danh sách công việc');
           setMilestoneTasks([]);
         }
