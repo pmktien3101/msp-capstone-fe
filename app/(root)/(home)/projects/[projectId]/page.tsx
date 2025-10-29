@@ -40,6 +40,7 @@ const ProjectDetailPage = () => {
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [projectProgress, setProjectProgress] = useState(0);
 
   // Mock data for available project managers (kept for compatibility)
   const availableProjectManagers = allUsers.filter(user => 
@@ -324,6 +325,36 @@ const ProjectDetailPage = () => {
     }
   }, [projectId, searchParams]);
 
+  // Fetch tasks and calculate progress
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!projectId) return;
+
+      try {
+        const tasksResult = await taskService.getTasksByProjectId(projectId);
+        
+        if (tasksResult.success && tasksResult.data) {
+          const tasks = (tasksResult.data as any).items || tasksResult.data;
+          const taskArray = Array.isArray(tasks) ? tasks : [];
+          
+          const totalTasks = taskArray.length;
+          const completedTasks = taskArray.filter((task: any) => 
+            task.status?.toLowerCase() === 'hoàn thành' || 
+            task.status?.toLowerCase() === 'completed'
+          ).length;
+          
+          const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+          setProjectProgress(progress);
+        }
+      } catch (error) {
+        console.error('Error fetching tasks for progress:', error);
+        setProjectProgress(0);
+      }
+    };
+
+    fetchProgress();
+  }, [projectId, refreshKey]); // Re-fetch when refreshKey changes
+
   if (loading) {
     return (
       <div className="project-detail-loading">
@@ -350,12 +381,12 @@ const ProjectDetailPage = () => {
             <h1 className="project-title">{project.name}</h1>
             <span className={`status-badge ${
               project.status === 'Đang hoạt động' ? 'status-active' :
-              project.status === 'Chưa bắt đầu' ? 'status-planning' :
+              project.status === 'Lập kế hoạch' ? 'status-planning' :
               project.status === 'Tạm dừng' ? 'status-on-hold' :
               project.status === 'Hoàn thành' ? 'status-completed' : ''
             }`}>
               {project.status === 'Đang hoạt động' && 'Đang hoạt động'}
-              {project.status === 'Chưa bắt đầu' && 'Chưa bắt đầu'}
+              {project.status === 'Lập kế hoạch' && 'Lập kế hoạch'}
               {project.status === 'Tạm dừng' && 'Tạm dừng'}
               {project.status === 'Hoàn thành' && 'Hoàn thành'}
             </span>
@@ -374,7 +405,7 @@ const ProjectDetailPage = () => {
             </div>
             <div className="meta-item">
               <Target size={16} />
-              <span>Tiến độ: {project.progress || 0}%</span>
+              <span>Tiến độ: {projectProgress}%</span>
             </div>
           </div>
         </div>
@@ -402,6 +433,7 @@ const ProjectDetailPage = () => {
         onTabChange={handleTabChange}
         initialActiveTab={activeTab}
         availableProjectManagers={availableProjectManagers}
+        refreshKey={refreshKey}
       />
       
       {/* Task Detail Modal */}

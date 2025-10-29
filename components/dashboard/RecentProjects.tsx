@@ -31,7 +31,7 @@ export const RecentProjects = ({ projects }: RecentProjectsProps) => {
           color: '#10b981',
           border: 'rgba(16, 185, 129, 0.2)'
         };
-      case 'Chưa bắt đầu':
+      case 'Lập kế hoạch':
         return {
           background: 'rgba(107, 114, 128, 0.1)',
           color: '#6b7280',

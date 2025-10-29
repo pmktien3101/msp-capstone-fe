@@ -344,7 +344,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
                 className="form-select"
                 disabled={!isEditingBasicInfo}
               >
-                <option value="Chưa bắt đầu">Chưa bắt đầu</option>
+                <option value="Lập kế hoạch">Lập kế hoạch</option>
                 <option value="Đang hoạt động">Đang hoạt động</option>
                 <option value="Tạm dừng">Tạm dừng</option>
                 <option value="Hoàn thành">Hoàn thành</option>
@@ -490,7 +490,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
                 onClick={() => setShowAddMemberModal(true)}
               >
                 <Plus size={14} />
-                Thêm thành viên
+                {userRole === 'businessowner' ? 'Thêm người quản lý' : 'Thêm thành viên'}
               </button>
             )}
           </div>
@@ -515,33 +515,45 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
                     onClick={() => setShowAddMemberModal(true)}
                   >
                     <Plus size={14} />
-                    Thêm thành viên đầu tiên
+                    {userRole === 'businessowner' ? 'Thêm người quản lý đầu tiên' : 'Thêm thành viên đầu tiên'}
                   </button>
                 )}
               </div>
             ) : (
               <div className="members-grid">
-                {members.map((member) => (
-                  <div key={member.id} className="member-card">
-                    <div className="member-avatar">{member.avatar}</div>
-                    <div className="member-info">
-                      <div className="member-name">{member.name}</div>
-                      <div className="member-role">{member.role}</div>
-                      <div className="member-email">{member.email}</div>
-                    </div>
-                    {canAddMember && member.role?.toLowerCase() === 'member' && (
-                      <div className="member-actions">
-                        <button
-                          className="btn btn-sm btn-danger"
-                          onClick={() => handleDeleteMember(member.id)}
-                          title="Xóa thành viên"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                {members
+                  .sort((a, b) => {
+                    // Sort by role: ProjectManager first, then Member
+                    const roleA = a.role?.toLowerCase() || '';
+                    const roleB = b.role?.toLowerCase() || '';
+                    
+                    if (roleA === 'projectmanager' && roleB !== 'projectmanager') return -1;
+                    if (roleA !== 'projectmanager' && roleB === 'projectmanager') return 1;
+                    
+                    // If same role, sort by name A-Z
+                    return (a.name || '').localeCompare(b.name || '');
+                  })
+                  .map((member) => (
+                    <div key={member.id} className="member-card">
+                      <div className="member-avatar">{member.avatar}</div>
+                      <div className="member-info">
+                        <div className="member-name">{member.name}</div>
+                        <div className="member-role">{member.role}</div>
+                        <div className="member-email">{member.email}</div>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {canAddMember && member.role?.toLowerCase() === 'member' && (
+                        <div className="member-actions">
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleDeleteMember(member.id)}
+                            title="Xóa thành viên"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
             )}
           </div>
@@ -557,6 +569,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
         existingMembers={members}
         projectId={project.id}
         ownerId={project.ownerId || project.owner?.userId || ''}
+        userRole={userRole}
       />
 
       {/* Confirm Delete Member Dialog */}

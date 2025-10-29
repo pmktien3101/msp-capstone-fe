@@ -24,7 +24,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
     switch (status) {
       case 'Đang hoạt động':
         return '#10b981';
-      case 'Chưa bắt đầu':
+      case 'Lập kế hoạch':
         return '#f59e0b';
       case 'Tạm dừng':
         return '#ef4444';
@@ -39,7 +39,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
     switch (status) {
       case 'Đang hoạt động':
         return '#dcfce7';
-      case 'Chưa bắt đầu':
+      case 'Lập kế hoạch':
         return '#fef3c7';
       case 'Tạm dừng':
         return '#fee2e2';

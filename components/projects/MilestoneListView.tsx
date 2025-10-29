@@ -25,6 +25,7 @@ import {
 
 interface MilestoneListViewProps {
   project: Project;
+  refreshKey?: number;
 }
 
 interface MilestoneDetailPanelProps {
@@ -2071,7 +2072,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
   );
 };
 
-export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
+export const MilestoneListView = ({ project, refreshKey = 0 }: MilestoneListViewProps) => {
   const { role } = useUser();
   const { user } = useAuth();
   const [selectedMilestone, setSelectedMilestone] = useState<MilestoneBackend | null>(null);
@@ -2124,7 +2125,7 @@ export const MilestoneListView = ({ project }: MilestoneListViewProps) => {
     };
 
     fetchMilestones();
-  }, [projectId]);
+  }, [projectId, refreshKey]); // Add refreshKey to re-fetch when it changes
 
   // Fetch project members (only role "Member")
   useEffect(() => {

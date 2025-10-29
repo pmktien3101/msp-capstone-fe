@@ -30,6 +30,7 @@ interface ProjectTabsProps {
   onTabChange?: (activeTab: string) => void;
   initialActiveTab?: string;
   availableProjectManagers?: any[];
+  refreshKey?: number;
 }
 
 export const ProjectTabs = ({
@@ -41,6 +42,7 @@ export const ProjectTabs = ({
   onTabChange,
   initialActiveTab = "summary",
   availableProjectManagers = [],
+  refreshKey = 0,
 }: ProjectTabsProps) => {
   const [activeTab, setActiveTab] = useState(initialActiveTab);
 
@@ -111,10 +113,11 @@ export const ProjectTabs = ({
             onCreateTask={onCreateTask}
             onDeleteTask={onDeleteTask}
             onEditTask={onEditTask}
+            refreshKey={refreshKey}
           />
         );
       case "list":
-        return <ProjectList project={project} />;
+        return <ProjectList project={project} refreshKey={refreshKey} />;
       case "documents":
         return <ProjectDocuments project={project} />;
       case "meetings":

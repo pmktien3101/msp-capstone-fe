@@ -32,7 +32,7 @@ const projectSchema = z.object({
   description: z.string().min(1, "Mô tả là bắt buộc"),
   startDate: z.string().min(1, "Ngày bắt đầu là bắt buộc"),
   endDate: z.string().min(1, "Ngày kết thúc là bắt buộc"),
-  status: z.enum(["Chưa bắt đầu", "Đang hoạt động", "Tạm dừng", "Hoàn thành"]).describe("Trạng thái"),
+  status: z.enum(["Lập kế hoạch", "Đang hoạt động", "Tạm dừng", "Hoàn thành"]).describe("Trạng thái"),
   members: z.array(z.string()).optional(),
 });
 
@@ -49,7 +49,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>('');
   
-  console.log('CreateProjectModal render - isOpen:', isOpen, 'user:', user);
+  // console.log('CreateProjectModal render - isOpen:', isOpen, 'user:', user);
   
   const {
     register,
@@ -59,7 +59,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
-      status: "Chưa bắt đầu",
+      status: "Lập kế hoạch",
       members: [],
     },
   });
@@ -199,10 +199,10 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
                       <SelectValue placeholder="Chọn trạng thái" />
                     </SelectTrigger>
                     <SelectContent className="z-[9999]" position="popper" side="bottom" align="start">
-                      <SelectItem value="Chưa bắt đầu">
+                      <SelectItem value="Lập kế hoạch">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <Calendar size={16} />
-                          Chưa bắt đầu
+                          Lập kế hoạch
                         </div>
                       </SelectItem>
                     </SelectContent>

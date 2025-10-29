@@ -1,196 +1,132 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { projectService } from '@/services/projectService';
+import { taskService } from '@/services/taskService';
+import { useAuth } from '@/hooks/useAuth';
+import type { Project as ProjectType, ProjectMemberResponse } from '@/types/project';
 
-interface ProjectManager {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-  projectManagers: ProjectManager[]; // Changed from single to array
-  status: 'active' | 'completed' | 'on-hold' | 'cancelled';
-  startDate: string;
-  endDate: string;
+interface ProjectStats {
+  memberCount: number;
   progress: number;
-  members: number;
-  tasks: {
-    total: number;
-    completed: number;
-    pending: number;
-  };
-  createdAt: string;
-  lastUpdated: string;
+  completedTasks: number;
+  totalTasks: number;
 }
 
 const BusinessProjectsPage = () => {
   const router = useRouter();
-  const [projects] = useState<Project[]>([
-    {
-      id: '1',
-      name: 'Website Redesign',
-      description: 'Redesign company website with modern UI/UX',
-      projectManagers: [
-        {
-          id: '1',
-          name: 'Nguyễn Văn A',
-          email: 'nguyenvana@company.com'
-        },
-        {
-          id: '2',
-          name: 'Trần Thị B',
-          email: 'tranthib@company.com'
-        }
-      ],
-      status: 'active',
-      startDate: '2024-01-15',
-      endDate: '2024-03-15',
-      progress: 65,
-      members: 5,
-      tasks: {
-        total: 20,
-        completed: 13,
-        pending: 7
-      },
-      createdAt: '2024-01-10',
-      lastUpdated: '2024-12-20'
-    },
-    {
-      id: '2',
-      name: 'Mobile App Development',
-      description: 'Develop mobile application for iOS and Android',
-      projectManagers: [
-        {
-          id: '4',
-          name: 'Phạm Thị D',
-          email: 'phamthid@company.com'
-        }
-      ],
-      status: 'active',
-      startDate: '2024-02-01',
-      endDate: '2024-05-01',
-      progress: 30,
-      members: 8,
-      tasks: {
-        total: 35,
-        completed: 10,
-        pending: 25
-      },
-      createdAt: '2024-01-25',
-      lastUpdated: '2024-12-19'
-    },
-    {
-      id: '3',
-      name: 'Database Migration',
-      description: 'Migrate legacy database to new cloud infrastructure',
-      projectManagers: [
-        {
-          id: '1',
-          name: 'Nguyễn Văn A',
-          email: 'nguyenvana@company.com'
-        },
-        {
-          id: '3',
-          name: 'Lê Văn C',
-          email: 'levanc@company.com'
-        }
-      ],
-      status: 'completed',
-      startDate: '2024-01-01',
-      endDate: '2024-02-28',
-      progress: 100,
-      members: 3,
-      tasks: {
-        total: 15,
-        completed: 15,
-        pending: 0
-      },
-      createdAt: '2023-12-15',
-      lastUpdated: '2024-02-28'
-    },
-    {
-      id: '4',
-      name: 'API Integration',
-      description: 'Integrate third-party APIs for payment processing',
-      projectManagers: [
-        {
-          id: '4',
-          name: 'Phạm Thị D',
-          email: 'phamthid@company.com'
-        },
-        {
-          id: '2',
-          name: 'Trần Thị B',
-          email: 'tranthib@company.com'
-        },
-        {
-          id: '3',
-          name: 'Lê Văn C',
-          email: 'levanc@company.com'
-        }
-      ],
-      status: 'on-hold',
-      startDate: '2024-03-01',
-      endDate: '2024-04-15',
-      progress: 20,
-      members: 4,
-      tasks: {
-        total: 12,
-        completed: 2,
-        pending: 10
-      },
-      createdAt: '2024-02-20',
-      lastUpdated: '2024-12-15'
-    },
-    {
-      id: '5',
-      name: 'Security Audit',
-      description: 'Comprehensive security audit and vulnerability assessment',
-      projectManagers: [
-        {
-          id: '1',
-          name: 'Nguyễn Văn A',
-          email: 'nguyenvana@company.com'
-        }
-      ],
-      status: 'active',
-      startDate: '2024-12-01',
-      endDate: '2024-12-31',
-      progress: 45,
-      members: 2,
-      tasks: {
-        total: 8,
-        completed: 3,
-        pending: 5
-      },
-      createdAt: '2024-11-25',
-      lastUpdated: '2024-12-18'
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<ProjectType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
+  const [projectManagers, setProjectManagers] = useState<Array<{ id: string; name: string; email: string }>>([]);
+  const [projectPMs, setProjectPMs] = useState<Map<string, string[]>>(new Map()); // projectId -> PM userIds
+  const [projectStats, setProjectStats] = useState<Map<string, ProjectStats>>(new Map()); // projectId -> stats
+
+  // Fetch projects and their members from API
+  const fetchProjects = useCallback(async () => {
+    // Wait for user to be loaded
+    if (!user?.userId) {
+      return;
     }
-  ]);
+
+    try {
+      setLoading(true);
+      setError('');
+      
+      const result = await projectService.getProjectsByBOId(user.userId);
+      
+      if (result.success && result.data) {
+        const projectList = result.data.items || [];
+        setProjects(projectList);
+
+        // Fetch members for all projects and extract ProjectManagers
+        const pmMap = new Map<string, { id: string; name: string; email: string }>();
+        const projectPMMap = new Map<string, string[]>();
+        const statsMap = new Map<string, ProjectStats>();
+
+        await Promise.all(
+          projectList.map(async (project) => {
+            // Fetch members
+            const membersResult = await projectService.getProjectMembers(project.id);
+            let memberCount = 0;
+            
+            if (membersResult.success && membersResult.data) {
+              memberCount = membersResult.data.length;
+              const pmUserIds: string[] = [];
+              
+              membersResult.data.forEach((projectMember: any) => {
+                // API returns: { userId, member: { id, role, fullName, email } }
+                if (projectMember.member && projectMember.member.role === 'ProjectManager') {
+                  pmMap.set(projectMember.userId, {
+                    id: projectMember.userId,
+                    name: projectMember.member.fullName,
+                    email: projectMember.member.email
+                  });
+                  pmUserIds.push(projectMember.userId);
+                }
+              });
+              projectPMMap.set(project.id, pmUserIds);
+            }
+
+            // Fetch tasks to calculate progress
+            const tasksResult = await taskService.getTasksByProjectId(project.id);
+            let completedTasks = 0;
+            let totalTasks = 0;
+            let progress = 0;
+
+            if (tasksResult.success && tasksResult.data) {
+              // API returns PagingResponse with items array
+              const tasks = (tasksResult.data as any).items || tasksResult.data;
+              const taskArray = Array.isArray(tasks) ? tasks : [];
+              
+              totalTasks = taskArray.length;
+              completedTasks = taskArray.filter((task: any) => 
+                task.status?.toLowerCase() === 'hoàn thành' || 
+                task.status?.toLowerCase() === 'completed'
+              ).length;
+              progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            }
+
+            statsMap.set(project.id, {
+              memberCount,
+              progress,
+              completedTasks,
+              totalTasks
+            });
+          })
+        );
+
+        setProjectManagers(Array.from(pmMap.values()));
+        setProjectPMs(projectPMMap);
+        setProjectStats(statsMap);
+      } else {
+        setError(result.error || 'Không thể tải danh sách dự án');
+      }
+    } catch (err) {
+      console.error('[BusinessProjects] Error:', err);
+      setError('Có lỗi xảy ra khi tải dữ liệu');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.userId]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'on-hold' | 'cancelled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | string>('all');
   const [pmFilter, setPmFilter] = useState<string>('all');
-
-  // Get unique project managers for filter
-  const projectManagers = Array.from(
-    new Map(
-      projects
-        .flatMap(p => p.projectManagers)
-        .map(pm => [pm.id, pm])
-    ).values()
-  );
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         (project.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    const matchesPM = pmFilter === 'all' || project.projectManagers.some(pm => pm.id === pmFilter);
+    
+    // Check if project has the selected PM as a member
+    const matchesPM = pmFilter === 'all' || (projectPMs.get(project.id) || []).includes(pmFilter);
     
     return matchesSearch && matchesStatus && matchesPM;
   });
@@ -200,14 +136,14 @@ const BusinessProjectsPage = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      active: { color: '#10B981', text: 'Đang thực hiện', bg: '#ECFDF5' },
-      completed: { color: '#059669', text: 'Hoàn thành', bg: '#D1FAE5' },
-      'on-hold': { color: '#F59E0B', text: 'Tạm dừng', bg: '#FEF3C7' },
-      cancelled: { color: '#DC2626', text: 'Đã hủy', bg: '#FEE2E2' }
+    const statusConfig: Record<string, { color: string; text: string; bg: string }> = {
+      'Đang hoạt động': { color: '#10B981', text: 'Đang hoạt động', bg: '#ECFDF5' },
+      'Hoàn thành': { color: '#059669', text: 'Hoàn thành', bg: '#D1FAE5' },
+      'Tạm dừng': { color: '#F59E0B', text: 'Tạm dừng', bg: '#FEF3C7' },
+      'Lập kế hoạch': { color: '#6B7280', text: 'Lập kế hoạch', bg: '#F3F4F6' }
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig];
+    const config = statusConfig[status] || statusConfig['Lập kế hoạch'];
     return (
       <span
         className="status-badge"
@@ -227,6 +163,31 @@ const BusinessProjectsPage = () => {
     if (progress >= 40) return '#F59E0B';
     return '#DC2626';
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="business-projects-page">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="business-projects-page">
+        <div className="error-container">
+          <h2>Có lỗi xảy ra</h2>
+          <p>{error}</p>
+          <button onClick={() => window.location.reload()}>Thử lại</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="business-projects-page">
@@ -259,8 +220,8 @@ const BusinessProjectsPage = () => {
             </svg>
           </div>
           <div className="stat-content">
-            <h3>Đang Thực Hiện</h3>
-            <p className="stat-number">{projects.filter(p => p.status === 'active').length}</p>
+            <h3>Đang Hoạt Động</h3>
+            <p className="stat-number">{projects.filter(p => p.status === 'Đang hoạt động').length}</p>
           </div>
         </div>
 
@@ -273,7 +234,7 @@ const BusinessProjectsPage = () => {
           </div>
           <div className="stat-content">
             <h3>Hoàn Thành</h3>
-            <p className="stat-number">{projects.filter(p => p.status === 'completed').length}</p>
+            <p className="stat-number">{projects.filter(p => p.status === 'Hoàn thành').length}</p>
           </div>
         </div>
 
@@ -313,10 +274,10 @@ const BusinessProjectsPage = () => {
             onChange={(e) => setStatusFilter(e.target.value as any)}
           >
             <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang thực hiện</option>
-            <option value="completed">Hoàn thành</option>
-            <option value="on-hold">Tạm dừng</option>
-            <option value="cancelled">Đã hủy</option>
+            <option value="Đang hoạt động">Đang hoạt động</option>
+            <option value="Hoàn thành">Hoàn thành</option>
+            <option value="Tạm dừng">Tạm dừng</option>
+            <option value="Lập kế hoạch">Lập kế hoạch</option>
           </select>
         </div>
 
@@ -370,22 +331,32 @@ const BusinessProjectsPage = () => {
 
               <div className="col-pm">
                 <div className="pm-list">
-                  {project.projectManagers.map((pm, index) => (
-                    <div key={pm.id} className="pm-item">
-                      <div className="pm-avatar">
-                        {pm.name.charAt(0)}
+                  {(() => {
+                    const pmIds = projectPMs.get(project.id) || [];
+                    const pms = projectManagers.filter(pm => pmIds.includes(pm.id));
+                    
+                    if (pms.length === 0) {
+                      return (
+                        <div className="pm-item">
+                          <div className="pm-details">
+                            <div className="pm-name">Chưa có PM</div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    return pms.map(pm => (
+                      <div key={pm.id} className="pm-item">
+                        <div className="pm-avatar">
+                          {pm.name?.charAt(0) || 'P'}
+                        </div>
+                        <div className="pm-details">
+                          <div className="pm-name">{pm.name || 'N/A'}</div>
+                          <div className="pm-email">{pm.email || ''}</div>
+                        </div>
                       </div>
-                      <div className="pm-details">
-                        <div className="pm-name">{pm.name}</div>
-                        <div className="pm-email">{pm.email}</div>
-                      </div>
-                    </div>
-                  ))}
-                  {project.projectManagers.length > 2 && (
-                    <div className="pm-more">
-                      +{project.projectManagers.length - 2} PM khác
-                    </div>
-                  )}
+                    ));
+                  })()}
                 </div>
               </div>
 
@@ -399,31 +370,35 @@ const BusinessProjectsPage = () => {
                     <div 
                       className="progress-fill"
                       style={{
-                        width: `${project.progress}%`,
-                        backgroundColor: getProgressColor(project.progress)
+                        width: `${projectStats.get(project.id)?.progress || 0}%`,
+                        backgroundColor: getProgressColor(projectStats.get(project.id)?.progress || 0)
                       }}
                     />
                   </div>
-                  <span className="progress-text">{project.progress}%</span>
+                  <span className="progress-text">{projectStats.get(project.id)?.progress || 0}%</span>
                 </div>
               </div>
 
               <div className="col-members">
-                <span className="member-count">{project.members} người</span>
+                <span className="member-count">{projectStats.get(project.id)?.memberCount || 0} người</span>
               </div>
 
               <div className="col-tasks">
                 <div className="task-stats">
-                  <span className="task-completed">{project.tasks.completed}</span>
+                  <span className="task-completed">{projectStats.get(project.id)?.completedTasks || 0}</span>
                   <span className="task-separator">/</span>
-                  <span className="task-total">{project.tasks.total}</span>
+                  <span className="task-total">{projectStats.get(project.id)?.totalTasks || 0}</span>
                 </div>
               </div>
 
               <div className="col-dates">
                 <div className="date-info">
-                  <div className="start-date">Bắt đầu: {new Date(project.startDate).toLocaleDateString('vi-VN')}</div>
-                  <div className="end-date">Kết thúc: {new Date(project.endDate).toLocaleDateString('vi-VN')}</div>
+                  <div className="start-date">
+                    Bắt đầu: {project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : 'N/A'}
+                  </div>
+                  <div className="end-date">
+                    Kết thúc: {project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : 'N/A'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -963,6 +938,58 @@ const BusinessProjectsPage = () => {
           .table-row {
             padding: 16px 20px;
           }
+        }
+
+        .loading-container,
+        .error-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 60vh;
+          gap: 20px;
+        }
+
+        .loading-spinner {
+          width: 50px;
+          height: 50px;
+          border: 4px solid #f3f4f6;
+          border-top-color: #FF5E13;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .error-container h2 {
+          color: #ef4444;
+          font-size: 24px;
+          margin: 0;
+        }
+
+        .error-container p {
+          color: #6b7280;
+          font-size: 16px;
+          margin: 0;
+        }
+
+        .error-container button {
+          padding: 10px 24px;
+          background: #FF5E13;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .error-container button:hover {
+          background: #E54D0F;
+          transform: translateY(-1px);
         }
       `}</style>
     </div>

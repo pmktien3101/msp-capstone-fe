@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Project } from "@/types/project";
 import { BoardHeader } from "./BoardHeader";
 import { mockTasks, mockMembers } from "@/constants/mockData";
@@ -15,6 +15,7 @@ interface ProjectBoardProps {
   onCreateTask?: () => void;
   onDeleteTask?: (taskId: string, taskTitle: string) => void;
   onEditTask?: (task: any) => void;
+  refreshKey?: number;
 }
 
 const formatDate = (dateStr: string) => {
@@ -32,6 +33,7 @@ export const ProjectBoard = ({
   onCreateTask,
   onDeleteTask,
   onEditTask,
+  refreshKey = 0,
 }: ProjectBoardProps) => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,64 +50,65 @@ export const ProjectBoard = ({
   const userId = user?.userId;
 
   // Fetch tasks from API
-  useEffect(() => {
-    const fetchTasks = async () => {
-      if (!projectId || !userRole || !userId) {
-        setIsLoadingTasks(false);
-        return;
-      }
+  const fetchTasks = useCallback(async () => {
+    if (!projectId || !userRole || !userId) {
+      setIsLoadingTasks(false);
+      return;
+    }
 
-      setIsLoadingTasks(true);
-      try {
-        let response;
-        
-        // DEBUG: Log user info to check role value
-        // console.log(`[ProjectBoard] 🔍 User Info:`, { userId, userRole, projectId });
-        // console.log(`[ProjectBoard] 🔍 Role type:`, typeof userRole);
-        // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'ProjectManager':`, userRole === 'ProjectManager');
-        // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.PROJECT_MANAGER:`, userRole === UserRole.PROJECT_MANAGER);
-        // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'Member':`, userRole === 'Member');
-        // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.MEMBER:`, userRole === UserRole.MEMBER);
-        // console.log(`[ProjectBoard] 🔍 UserRole enum values:`, { 
-        //   PROJECT_MANAGER: UserRole.PROJECT_MANAGER, 
-        //   MEMBER: UserRole.MEMBER 
-        // });
-        
-        // ProjectManager: Get all tasks in project
-        // Member: Get only tasks assigned to this user in project
-        if (userRole === UserRole.PROJECT_MANAGER || userRole === 'ProjectManager') {
-          // console.log(`[ProjectBoard] ✅ Fetching ALL tasks for ProjectManager in project: ${projectId}`);
-          response = await taskService.getTasksByProjectId(projectId);
-        } else {
-          // console.log(`[ProjectBoard] ✅ Fetching ASSIGNED tasks for ${userRole} (user: ${userId}) in project: ${projectId}`);
-          response = await taskService.getTasksByUserIdAndProjectId(userId, projectId);
-        }
-        
-        if (response.success && response.data) {
-          // Extract items from PagingResponse
-          const taskList = response.data.items || [];
-          // console.log(`[ProjectBoard] ✅ Successfully loaded ${taskList.length} tasks for role "${userRole}"`);
-          // console.log(`[ProjectBoard] 📋 Task list:`, taskList.map(t => ({ 
-          //   id: t.id, 
-          //   title: t.title, 
-          //   userId: t.userId,
-          //   assignedTo: t.user?.fullName || t.userId 
-          // })));
-          setTasks(taskList);
-        } else {
-          // console.error('[ProjectBoard] ❌ Failed to fetch tasks:', response.error);
-          setTasks([]);
-        }
-      } catch (error) {
-        // console.error('[ProjectBoard] Error fetching tasks:', error);
+    setIsLoadingTasks(true);
+    try {
+      let response;
+      
+      // DEBUG: Log user info to check role value
+      // console.log(`[ProjectBoard] 🔍 User Info:`, { userId, userRole, projectId });
+      // console.log(`[ProjectBoard] 🔍 Role type:`, typeof userRole);
+      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'ProjectManager':`, userRole === 'ProjectManager');
+      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.PROJECT_MANAGER:`, userRole === UserRole.PROJECT_MANAGER);
+      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'Member':`, userRole === 'Member');
+      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.MEMBER:`, userRole === UserRole.MEMBER);
+      // console.log(`[ProjectBoard] 🔍 UserRole enum values:`, { 
+      //   PROJECT_MANAGER: UserRole.PROJECT_MANAGER, 
+      //   MEMBER: UserRole.MEMBER 
+      // });
+      
+      // ProjectManager & BusinessOwner: Get all tasks in project
+      // Member: Get only tasks assigned to this user in project
+      if (userRole === UserRole.PROJECT_MANAGER || userRole === 'ProjectManager' || 
+          userRole === UserRole.BUSINESS_OWNER || userRole === 'BusinessOwner') {
+        // console.log(`[ProjectBoard] ✅ Fetching ALL tasks for ${userRole} in project: ${projectId}`);
+        response = await taskService.getTasksByProjectId(projectId);
+      } else {
+        // console.log(`[ProjectBoard] ✅ Fetching ASSIGNED tasks for ${userRole} (user: ${userId}) in project: ${projectId}`);
+        response = await taskService.getTasksByUserIdAndProjectId(userId, projectId);
+      }
+      
+      if (response.success && response.data) {
+        // Extract items from PagingResponse
+        const taskList = response.data.items || [];
+        // console.log(`[ProjectBoard] ✅ Successfully loaded ${taskList.length} tasks for role "${userRole}"`);
+        // console.log(`[ProjectBoard] 📋 Task list:`, taskList.map(t => ({ 
+        //   id: t.id, 
+        //   title: t.title, 
+        //   userId: t.userId,
+        //   assignedTo: t.user?.fullName || t.userId 
+        // })));
+        setTasks(taskList);
+      } else {
+        // console.error('[ProjectBoard] ❌ Failed to fetch tasks:', response.error);
         setTasks([]);
-      } finally {
-        setIsLoadingTasks(false);
       }
-    };
+    } catch (error) {
+      // console.error('[ProjectBoard] Error fetching tasks:', error);
+      setTasks([]);
+    } finally {
+      setIsLoadingTasks(false);
+    }
+  }, [projectId, userRole, userId, refreshKey]); // Add refreshKey to dependencies
 
+  useEffect(() => {
     fetchTasks();
-  }, [projectId, userRole, userId]); // Will re-fetch when projectId, userRole, or userId changes
+  }, [fetchTasks]);
 
   // Fetch project members
   useEffect(() => {

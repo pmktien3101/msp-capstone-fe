@@ -16,6 +16,7 @@ interface AddMemberModalProps {
   existingMembers: Member[];
   projectId: string;
   ownerId: string;
+  userRole?: string;
 }
 
 export function AddMemberModal({ 
@@ -25,7 +26,8 @@ export function AddMemberModal({
   onRemoveMember,
   existingMembers,
   projectId,
-  ownerId
+  ownerId,
+  userRole
 }: AddMemberModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
@@ -51,11 +53,9 @@ export function AddMemberModal({
     setError('');
     
     try {
-      console.log('Fetching members by BO (ownerId):', ownerId);
       const result = await userService.getMembersByBO(ownerId);
       
       if (result.success && result.data) {
-        console.log('Available users fetched:', result.data);
         setAvailableUsers(result.data);
       } else {
         setError(result.error || 'Không thể tải danh sách người dùng');
@@ -82,11 +82,27 @@ export function AddMemberModal({
     const isExistingMemberByEmail = existingMemberEmails.includes(availableUser.email?.toLowerCase());
     const isExistingMember = isExistingMemberById || isExistingMemberByEmail;
     
+    // Role-based filtering
+    const userRoleValue = availableUser.role || availableUser.roleName || '';
+    const userRoleLower = userRoleValue.toLowerCase();
+    
+    // If user is Business Owner, only show ProjectManager role
+    if (userRole === 'businessowner') {
+      const isProjectManager = userRoleLower === 'projectmanager';
+      if (!isProjectManager) return false;
+    }
+    
+    // If user is Project Manager, only show Member role
+    if (userRole === 'projectmanager') {
+      const isMember = userRoleLower === 'member';
+      if (!isMember) return false;
+    }
+    
     // Apply search filter
     const matchesSearch = !searchQuery || 
       availableUser.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       availableUser.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (availableUser.role || availableUser.roleName)?.toLowerCase().includes(searchQuery.toLowerCase());
+      userRoleValue.toLowerCase().includes(searchQuery.toLowerCase());
     
     return !isExistingMember && matchesSearch;
   });
@@ -213,7 +229,7 @@ export function AddMemberModal({
               margin: 0
             }}
           >
-            Thêm thành viên
+            {userRole === 'businessowner' ? 'Thêm người quản lý' : 'Thêm thành viên'}
           </h2>
           <button
             style={{

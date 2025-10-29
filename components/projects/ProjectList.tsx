@@ -6,9 +6,10 @@ import { MilestoneListView } from "./MilestoneListView";
 
 interface ProjectListProps {
   project: Project;
+  refreshKey?: number;
 }
 
-export const ProjectList = ({ project }: ProjectListProps) => {
+export const ProjectList = ({ project, refreshKey = 0 }: ProjectListProps) => {
   // Safety check: if no project, show empty state
   if (!project || !project.id) {
     return (
@@ -56,7 +57,7 @@ export const ProjectList = ({ project }: ProjectListProps) => {
 
   return (
     <div className="project-list">
-      <MilestoneListView project={project} />
+      <MilestoneListView project={project} refreshKey={refreshKey} />
 
       <style jsx>{`
         .project-list {

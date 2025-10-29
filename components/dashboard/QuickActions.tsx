@@ -149,7 +149,7 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
                       style={{ 
                         backgroundColor: project.status === 'Đang hoạt động' ? '#10b981' : 
                                         project.status === 'Hoàn thành' ? '#3b82f6' :
-                                        project.status === 'Chưa bắt đầu' ? '#f59e0b' : '#ef4444'
+                                        project.status === 'Lập kế hoạch' ? '#f59e0b' : '#ef4444'
                       }}
                     />
                   </div>

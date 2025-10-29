@@ -47,7 +47,7 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
   const statusStats = {
     active: projects.filter(p => p.status === 'Đang hoạt động').length,
     completed: projects.filter(p => p.status === 'Hoàn thành').length,
-    planning: projects.filter(p => p.status === 'Chưa bắt đầu').length,
+    planning: projects.filter(p => p.status === 'Lập kế hoạch').length,
     'on-hold': projects.filter(p => p.status === 'Tạm dừng').length,
   };
 
@@ -67,7 +67,7 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
     switch (status) {
       case 'Đang hoạt động': return 'rgba(16, 185, 129, 0.1)';
       case 'Hoàn thành': return 'rgba(59, 130, 246, 0.1)';
-      case 'Chưa bắt đầu': return 'rgba(245, 158, 11, 0.1)';
+      case 'Lập kế hoạch': return 'rgba(245, 158, 11, 0.1)';
       case 'Tạm dừng': return 'rgba(239, 68, 68, 0.1)';
       default: return 'rgba(107, 114, 128, 0.1)';
     }
@@ -77,7 +77,7 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
     switch (status) {
       case 'Đang hoạt động': return '#10b981';
       case 'Hoàn thành': return '#3b82f6';
-      case 'Chưa bắt đầu': return '#f59e0b';
+      case 'Lập kế hoạch': return '#f59e0b';
       case 'Tạm dừng': return '#ef4444';
       default: return '#6b7280';
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Project } from '@/types/project';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
@@ -22,55 +22,55 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
   const [loading, setLoading] = useState(true);
   const [showAllProjects, setShowAllProjects] = useState(false);
 
-  // Fetch projects from API
-  useEffect(() => {
-    const fetchProjects = async () => {
-      // Only fetch if user is authenticated
-      if (!isAuthenticated || !user?.userId || !user?.role) {
-        console.log('User not authenticated, skipping project fetch');
-        setLoading(false);
-        return;
+  // Fetch projects from API - wrapped in useCallback to prevent infinite loop
+  const fetchProjects = useCallback(async () => {
+    // Only fetch if user is authenticated
+    if (!isAuthenticated || !user?.userId || !user?.role) {
+      console.log('User not authenticated, skipping project fetch');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let result;
+      
+      // Fetch projects based on user role
+      if (user.role === UserRole.PROJECT_MANAGER || user.role === 'ProjectManager') {
+        console.log('[Sidebar] Fetching projects managed by ProjectManager:', user.userId);
+        result = await projectService.getProjectsByManagerId(user.userId);
+      } else if (user.role === UserRole.MEMBER || user.role === 'Member') {
+        console.log('[Sidebar] Fetching projects where Member participates:', user.userId);
+        result = await projectService.getProjectsByMemberId(user.userId);
+      } else {
+        console.log('[Sidebar] Unknown role, fetching all projects');
+        result = await projectService.getAllProjects();
       }
 
-      setLoading(true);
-      try {
-        let result;
-        
-        // Fetch projects based on user role
-        if (user.role === UserRole.PROJECT_MANAGER || user.role === 'ProjectManager') {
-          console.log('[Sidebar] Fetching projects managed by ProjectManager:', user.userId);
-          result = await projectService.getProjectsByManagerId(user.userId);
-        } else if (user.role === UserRole.MEMBER || user.role === 'Member') {
-          console.log('[Sidebar] Fetching projects where Member participates:', user.userId);
-          result = await projectService.getProjectsByMemberId(user.userId);
-        } else {
-          console.log('[Sidebar] Unknown role, fetching all projects');
-          result = await projectService.getAllProjects();
-        }
-
-        if (result.success && result.data) {
-          console.log('[Sidebar] Fetched projects successfully:', result.data.items.length, 'projects');
-          setProjects(result.data.items);
-        } else {
-          console.error('[Sidebar] Failed to fetch projects:', result.error);
-          setProjects([]);
-        }
-      } catch (error) {
-        console.error('[Sidebar] Error fetching projects:', error);
+      if (result.success && result.data) {
+        console.log('[Sidebar] Fetched projects successfully:', result.data.items.length, 'projects');
+        setProjects(result.data.items);
+      } else {
+        console.error('[Sidebar] Failed to fetch projects:', result.error);
         setProjects([]);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('[Sidebar] Error fetching projects:', error);
+      setProjects([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.userId, user?.role, isAuthenticated]);
 
+  useEffect(() => {
     fetchProjects();
-  }, [user, isAuthenticated]);
+  }, [fetchProjects]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Đang hoạt động':
         return '#10b981';
-      case 'Chưa bắt đầu':
+      case 'Lập kế hoạch':
         return '#f59e0b';
       case 'Tạm dừng':
         return '#ef4444';
@@ -112,7 +112,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
     // 1. Prioritize "Đang hoạt động" (Active) projects first
     const statusPriority = {
       'Đang hoạt động': 1,
-      'Chưa bắt đầu': 2,
+      'Lập kế hoạch': 2,
       'Tạm dừng': 3,
       'Hoàn thành': 4
     };
