@@ -1,18 +1,94 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Project } from "@/types/project";
-import {
-  mockMilestones,
-  mockTasks,
-  calculateMilestoneProgress,
-  getMilestoneStatus,
-} from "@/constants/mockData";
+import { MilestoneBackend } from "@/types/milestone";
+import { GetTaskResponse } from "@/types/task";
+import { milestoneService } from "@/services/milestoneService";
+import { taskService } from "@/services/taskService";
 
 interface MilestoneProgressProps {
   project: Project;
 }
 
+interface MilestoneWithProgress extends MilestoneBackend {
+  progress: number;
+  status: string;
+  totalTasks: number;
+  completedTasks: number;
+}
+
 export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
+  const [milestones, setMilestones] = useState<MilestoneWithProgress[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch milestones and tasks from API
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!project?.id) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const [milestonesRes, tasksRes] = await Promise.all([
+          milestoneService.getMilestonesByProjectId(project.id),
+          taskService.getTasksByProjectId(project.id)
+        ]);
+
+        if (milestonesRes.success && milestonesRes.data && tasksRes.success && tasksRes.data) {
+          const milestonesData = milestonesRes.data;
+          const tasksData = tasksRes.data.items || [];
+
+          // Calculate progress for each milestone
+          const milestonesWithProgress = milestonesData.map(milestone => {
+            // Find tasks belonging to this milestone
+            const milestoneTasks = tasksData.filter(task => 
+              task.milestones && task.milestones.some(m => m.id === milestone.id)
+            );
+
+            const totalTasks = milestoneTasks.length;
+            const completedTasks = milestoneTasks.filter(task => task.status === 'Hoàn thành').length;
+            const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            // Determine status based on progress and due date
+            let status = 'pending';
+            const today = new Date();
+            const dueDate = milestone.dueDate ? new Date(milestone.dueDate) : null;
+
+            if (progress === 100) {
+              status = 'completed';
+            } else if (dueDate && dueDate < today && progress < 100) {
+              status = 'overdue';
+            } else if (progress > 0) {
+              status = 'in-progress';
+            }
+
+            return {
+              ...milestone,
+              progress,
+              status,
+              totalTasks,
+              completedTasks
+            };
+          });
+
+          setMilestones(milestonesWithProgress);
+        } else {
+          setMilestones([]);
+        }
+      } catch (error) {
+        console.error('[MilestoneProgress] Error fetching data:', error);
+        setMilestones([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [project?.id]);
+
   // Kiểm tra project có tồn tại không
   if (!project) {
     return (
@@ -30,27 +106,22 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
     );
   }
 
-  // Filter milestones for this specific project
-  const projectMilestones = mockMilestones.filter(m => m.projectId === project.id);
-  
-  const milestones = projectMilestones.map((milestone) => {
-    const progress = calculateMilestoneProgress(milestone.id);
-    const status = getMilestoneStatus(milestone.id);
-
-    return {
-      ...milestone,
-      progress: progress,
-      status: status,
-      tasks: milestone.tasks.map((taskId) => {
-        const task = mockTasks.find(t => t.id === taskId);
-        return {
-          id: taskId,
-          title: task?.title || `Task ${taskId}`,
-          completed: task?.status === "done",
-        };
-      }),
-    };
-  });
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="milestone-progress">
+        <div className="section-header">
+          <div className="section-title">
+            <h3>Tiến độ cột mốc</h3>
+            <p>Theo dõi tiến độ hoàn thành các cột mốc dự án.</p>
+          </div>
+        </div>
+        <div className="milestones-list">
+          <p>Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -87,21 +158,6 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "Hoàn thành";
-      case "in-progress":
-        return "Đang thực hiện";
-      case "pending":
-        return "Chờ thực hiện";
-      case "overdue":
-        return "Quá hạn";
-      default:
-        return status;
-    }
-  };
-
   return (
     <div className="milestone-progress">
       <div className="section-header">
@@ -124,24 +180,17 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
       </div>
 
       <div className="milestones-list">
-        {milestones.map((milestone) => (
-          <div key={milestone.id} className="milestone-item">
+        {milestones.length === 0 ? (
+          <div className="no-milestones-message">
+            <p>Chưa có cột mốc nào được tạo</p>
+          </div>
+        ) : (
+          milestones.map((milestone) => (
+            <div key={milestone.id} className="milestone-item">
             <div className="milestone-header">
               <div className="milestone-info">
                 <h4 className="milestone-title">{milestone.name}</h4>
                 <p className="milestone-description">{milestone.description}</p>
-              </div>
-              <div className="milestone-status">
-                <span
-                  className="status-badge"
-                  style={{ 
-                    backgroundColor: getStatusColor(milestone.status).background,
-                    color: getStatusColor(milestone.status).color,
-                    borderColor: getStatusColor(milestone.status).border
-                  }}
-                >
-                  {getStatusLabel(milestone.status)}
-                </span>
               </div>
             </div>
 
@@ -193,13 +242,13 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
               </div>
               <div className="milestone-tasks">
                 <span>
-                  {milestone.tasks.filter((task) => task.completed).length}/
-                  {milestone.tasks.length} công việc hoàn thành
+                  {milestone.completedTasks}/{milestone.totalTasks} công việc hoàn thành
                 </span>
               </div>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       <style jsx>{`
@@ -247,6 +296,17 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
           display: flex;
           flex-direction: column;
           gap: 20px;
+        }
+
+        .no-milestones-message {
+          text-align: center;
+          padding: 40px 20px;
+          color: #6b7280;
+          font-size: 14px;
+        }
+
+        .no-milestones-message p {
+          margin: 0;
         }
 
         .milestone-item {

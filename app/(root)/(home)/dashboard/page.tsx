@@ -11,7 +11,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // Redirect based on user role
     switch (role) {
-      case 'AdminSystem':
+      case 'Admin':
         router.push('/dashboard/admin/dashboard');
         break;
       case 'BusinessOwner':

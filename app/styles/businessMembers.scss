@@ -1,0 +1,1301 @@
+// ============================================
+// VARIABLES & COLORS - COMPACT VERSION
+// ============================================
+$primary: #ff5e13;
+$primary-light: #ff8c42;
+$primary-dark: #e04a0c;
+$success: #10b981;
+$danger: #ef4444;
+$info: #3b82f6;
+$warning: #fbbf24; // vàng
+$warning-light: #fef6de; // vàng nhạt
+
+
+$gray-50: #f9fafb;
+$gray-100: #f3f4f6;
+$gray-200: #e5e7eb;
+$gray-400: #9ca3af;
+$gray-500: #6b7280;
+$gray-600: #4b5563;
+$gray-700: #374151;
+$gray-900: #111827;
+
+$shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+
+// ============================================
+// ANIMATIONS
+// ============================================
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// ============================================
+// MAIN CONTAINER - COMPACT
+// ============================================
+.members-roles-page {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 20px 20px; // Giảm padding
+  min-height: 100vh;
+  background: #fafbfc;
+  animation: fadeIn 0.4s ease-out;
+}
+
+// ============================================
+// PAGE HEADER - COMPACT
+// ============================================
+.page-header {
+  margin-bottom: 20px; // Giảm từ 32px
+  padding-bottom: 16px;
+  border-bottom: 2px solid $gray-100;
+
+  h1 {
+    font-size: 24px; // Giảm từ 32px
+    font-weight: 700;
+    color: $gray-900;
+    margin: 0 0 4px 0;
+    background: linear-gradient(135deg, $primary, $primary-light);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  p {
+    font-size: 14px; // Giảm từ 16px
+    color: $gray-600;
+    margin: 0;
+  }
+}
+
+// ============================================
+// TABS - COMPACT
+// ============================================
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px; // Giảm từ 32px
+  padding: 4px;
+  background: white;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  border: 1px solid $gray-100;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 16px; // Giảm từ 14px 24px
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $gray-600;
+  font-weight: 600;
+  font-size: 13px; // Giảm từ 14px
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(.active) {
+    color: $primary;
+    background: $gray-50;
+  }
+
+  &.active {
+    background: linear-gradient(135deg, $primary, $primary-light);
+    color: white;
+    box-shadow: 0 2px 8px rgba($primary, 0.3);
+    transform: translateY(-1px);
+  }
+}
+
+// ============================================
+// FILTERS SECTION - COMPACT
+// ============================================
+.filters-section {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  animation: slideUp 0.5s ease-out;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+
+  svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $gray-400;
+    width: 18px;
+    height: 18px;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px 12px 10px 40px; // Giảm padding
+    border: 2px solid $gray-200;
+    border-radius: $radius-md;
+    font-size: 14px;
+    background: white;
+    transition: all 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+
+    &::placeholder {
+      color: $gray-400;
+    }
+  }
+}
+
+.role-filter {
+  select {
+    padding: 10px 36px 10px 14px; // Giảm padding
+    border: 2px solid $gray-200;
+    border-radius: $radius-md;
+    font-size: 14px;
+    font-weight: 500;
+    background: white;
+    color: $gray-700;
+    cursor: pointer;
+    transition: all 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+
+    &:focus {
+      outline: none;
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+  }
+}
+
+// ============================================
+// STATS GRID - COMPACT WITH SHADOW
+// ============================================
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); // Giảm từ 280px
+  gap: 16px; // Giảm từ 20px
+  margin-bottom: 24px;
+  animation: slideUp 0.6s ease-out;
+}
+
+.stat-card {
+  background: white;
+  border-radius: $radius-lg;
+  padding: 18px; // Giảm từ 24px
+  box-shadow: $shadow-md; // ✅ THÊM SHADOW
+  border: 1px solid $gray-100;
+  display: flex;
+  align-items: center;
+  gap: 14px; // Giảm từ 16px
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, $primary, $primary-light);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s;
+  }
+
+  &:hover {
+    transform: translateY(-3px); // Giảm từ -4px
+    box-shadow: $shadow-lg; // ✅ SHADOW KHI HOVER
+    border-color: rgba($primary, 0.2);
+
+    &::before {
+      transform: scaleX(1);
+    }
+
+    .stat-icon {
+      transform: scale(1.08) rotate(3deg);
+    }
+  }
+}
+
+.stat-icon {
+  width: 48px; // Giảm từ 56px
+  height: 48px;
+  background: linear-gradient(135deg, rgba($primary, 0.1), rgba($primary-light, 0.1));
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $primary;
+  flex-shrink: 0;
+  transition: all 0.3s;
+
+  svg {
+    width: 22px; // Giảm size icon
+    height: 22px;
+  }
+}
+
+.stat-content {
+  flex: 1;
+
+  h3 {
+    font-size: 11px; // Giảm từ 13px
+    color: $gray-500;
+    margin: 0 0 4px 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.stat-number {
+  font-size: 26px; // Giảm từ 32px
+  font-weight: 800;
+  color: $gray-900;
+  margin: 0;
+  line-height: 1;
+}
+
+// ============================================
+// MEMBERS TABLE CONTAINER - COMPACT
+// ============================================
+.members-table-container {
+  background: white;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-md;
+  overflow: hidden;
+  border: 1px solid $gray-100;
+  animation: slideUp 0.7s ease-out;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px; // Giảm từ 24px 28px
+  background: linear-gradient(135deg, $gray-50 0%, white 100%);
+  border-bottom: 2px solid $gray-100;
+}
+
+.header-left {
+  h3 {
+    font-size: 18px; // Giảm từ 20px
+    font-weight: 700;
+    color: $gray-900;
+    margin: 0 0 2px 0;
+  }
+}
+
+.member-count {
+  font-size: 13px;
+  color: $gray-500;
+  font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.add-member-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, $primary, $primary-light);
+  color: white;
+  border: none;
+  padding: 10px 20px; // Giảm từ 12px 24px
+  border-radius: $radius-md;
+  font-size: 13px; // Giảm từ 14px
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba($primary, 0.3);
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba($primary, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// ============================================
+// TABLE - COMPACT
+// ============================================
+.members-table {
+  overflow-x: auto;
+}
+
+.table-header-row {
+  display: grid;
+  grid-template-columns: 2.5fr 2fr 1.2fr 1.2fr 1fr 1.5fr;
+  gap: 12px; // Giảm từ 16px
+  padding: 12px 22px; // Giảm từ 16px 28px
+  background: $gray-50;
+  font-size: 10px; // Giảm từ 11px
+  font-weight: 700;
+  color: $gray-600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid $gray-200;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 2.5fr 2fr 1.2fr 1.2fr 1fr 1.5fr;
+  gap: 12px;
+  padding: 14px 22px; // Giảm từ 20px 28px
+  border-bottom: 1px solid $gray-100;
+  align-items: center;
+  transition: all 0.2s ease;
+  background: white;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(135deg, $primary, $primary-light);
+    transform: scaleY(0);
+    transition: transform 0.2s;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, rgba($primary, 0.02), rgba($primary-light, 0.02));
+
+    &::before {
+      transform: scaleY(1);
+    }
+
+    .member-avatar {
+      transform: scale(1.08);
+      box-shadow: 0 4px 12px rgba($primary, 0.3);
+    }
+
+    .member-name {
+      color: $primary;
+    }
+  }
+}
+
+// ============================================
+// MEMBER INFO - COMPACT
+// ============================================
+.member-info {
+  display: flex;
+  align-items: center;
+  gap: 10px; // Giảm từ 14px
+}
+
+.member-avatar {
+  width: 40px; // Giảm từ 48px
+  height: 40px;
+  background: linear-gradient(135deg, $primary, $primary-light);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px; // Giảm từ 18px
+  box-shadow: 0 2px 8px rgba($primary, 0.25);
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.member-details {
+  min-width: 0;
+}
+
+.member-name {
+  font-size: 14px; // Giảm từ 15px
+  font-weight: 700;
+  color: $gray-900;
+  transition: color 0.2s;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.join-date {
+  font-size: 11px; // Giảm từ 12px
+  color: $gray-500;
+  font-weight: 500;
+  display: block;
+  margin-top: 2px;
+}
+
+.email {
+  font-size: 13px; // Giảm từ 14px
+  color: $gray-600;
+  font-weight: 500;
+}
+
+// ============================================
+// BADGES - COMPACT
+// ============================================
+.role-badge,
+.status-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 18px;
+  border-radius: 16px;
+  margin-bottom: 4px;
+  background: $gray-200;
+  color: $gray-600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 6px 0 rgba($primary, 0.03);
+
+  &.pending {
+    background: $warning-light;
+    color: $warning;
+    border: 1px solid $warning;
+  }
+
+  &.accepted {
+    background: lighten($success, 40%);
+    color: $success;
+    border: 1px solid $success;
+  }
+
+  &.rejected,
+  &.canceled {
+    background: lighten($danger, 43%);
+    color: $danger;
+    border: 1px solid $danger;
+  }
+}
+
+.role-badge {
+  background: linear-gradient(135deg, rgba($info, 0.1), rgba($info, 0.15));
+  color: $info;
+
+  &::before {
+    background: $info;
+  }
+}
+
+.status-badge {
+  background: linear-gradient(135deg, rgba($success, 0.1), rgba($success, 0.15));
+  color: $success;
+
+  &::before {
+    background: $success;
+    animation: pulse 2s infinite;
+  }
+}
+
+.project-count {
+  font-size: 13px;
+  color: $gray-700;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: $gray-100;
+  border-radius: 16px;
+  display: inline-block;
+}
+
+// ============================================
+// ACTION BUTTONS - COMPACT
+// ============================================
+.col-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  width: 34px; // Giảm từ 40px
+  height: 34px;
+  border: none;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  &.view {
+    background: linear-gradient(135deg, rgba($success, 0.1), rgba($success, 0.15));
+    color: $success;
+
+    &:hover {
+      background: linear-gradient(135deg, $success, darken($success, 5%));
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 3px 8px rgba($success, 0.3);
+    }
+  }
+
+  &.edit {
+    background: linear-gradient(135deg, rgba($info, 0.1), rgba($info, 0.15));
+    color: $info;
+
+    &:hover {
+      background: linear-gradient(135deg, $info, darken($info, 5%));
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 3px 8px rgba($info, 0.3);
+    }
+  }
+
+  &.delete {
+    background: linear-gradient(135deg, rgba($danger, 0.1), rgba($danger, 0.15));
+    color: $danger;
+
+    &:hover {
+      background: linear-gradient(135deg, $danger, darken($danger, 5%));
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 3px 8px rgba($danger, 0.3);
+    }
+  }
+}
+
+// ============================================
+// MODALS - COMPACT
+// ============================================
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba($gray-900, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+  padding: 16px;
+}
+
+.modal {
+  background: white;
+  border-radius: $radius-xl;
+  width: 100%;
+  max-width: 560px; // Giảm từ 600px
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: $shadow-xl;
+  animation: slideUp 0.3s ease-out;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px; // Giảm từ 28px 32px
+  border-bottom: 2px solid $gray-100;
+  background: linear-gradient(135deg, $gray-50 0%, white 100%);
+
+  h3 {
+    font-size: 18px; // Giảm từ 22px
+    font-weight: 700;
+    color: $gray-900;
+    margin: 0;
+  }
+}
+
+.close-btn {
+  width: 32px; // Giảm từ 36px
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: $gray-100;
+  color: $gray-600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    background: $danger;
+    color: white;
+    transform: rotate(90deg);
+  }
+}
+
+.modal-body {
+  padding: 24px; // Giảm từ 32px
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 18px 24px; // Giảm từ 24px 32px
+  border-top: 2px solid $gray-100;
+  background: $gray-50;
+}
+
+.cancel-btn,
+.save-btn {
+  padding: 10px 24px; // Giảm từ 12px 28px
+  border-radius: $radius-md;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.cancel-btn {
+  background: white;
+  color: $gray-700;
+  border: 2px solid $gray-200;
+
+  &:hover:not(:disabled) {
+    background: $gray-50;
+    border-color: $gray-400;
+  }
+}
+
+.save-btn {
+  background: linear-gradient(135deg, $primary, $primary-light);
+  color: white;
+  box-shadow: 0 2px 8px rgba($primary, 0.3);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba($primary, 0.4);
+  }
+}
+
+// ============================================
+// FORM ELEMENTS - COMPACT
+// ============================================
+.form-group {
+  margin-bottom: 18px; // Giảm từ 24px
+
+  label {
+    display: block;
+    font-size: 13px; // Giảm từ 14px
+    font-weight: 600;
+    color: $gray-700;
+    margin-bottom: 6px;
+  }
+
+  input,
+  select {
+    width: 100%;
+    padding: 10px 14px; // Giảm từ 14px 16px
+    border: 2px solid $gray-200;
+    border-radius: $radius-md;
+    font-size: 14px;
+    background: white;
+    transition: all 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px; // Giảm từ 16px
+  margin-bottom: 18px;
+
+  .form-group {
+    margin-bottom: 0;
+  }
+}
+
+// ============================================
+// LOADING & EMPTY STATES - COMPACT
+// ============================================
+.loading-container,
+.error-container,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px; // Giảm từ 80px
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 48px; // Giảm từ 56px
+  height: 48px;
+  border: 3px solid $gray-200;
+  border-top-color: $primary;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.loading-text,
+.error-text,
+.empty-text {
+  font-size: 16px; // Giảm từ 18px
+  font-weight: 600;
+  color: $gray-900;
+  margin-bottom: 6px;
+}
+
+.error-description,
+.empty-description {
+  font-size: 14px;
+  color: $gray-600;
+}
+
+// ============================================
+// RESPONSIVE - OPTIMIZED
+// ============================================
+@media (max-width: 1024px) {
+
+  .table-header-row,
+  .table-row {
+    grid-template-columns: 2fr 1.5fr 1fr 1fr 0.8fr 1.3fr;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .members-roles-page {
+    padding: 16px 12px;
+  }
+
+  .filters-section {
+    flex-direction: column;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .table-header-row,
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .requests-card {
+    flex-direction: column;
+    align-items: stretch;
+
+    .request-status,
+    .request-actions {
+      margin: 6px 0;
+      justify-content: flex-start;
+    }
+  }
+}
+
+// ============================================
+// INVITE EMAIL STYLES - COMPACT
+// ============================================
+.invite-input-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+
+  input {
+    flex: 1;
+  }
+}
+
+.add-email-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, $primary, $primary-light);
+  color: white;
+  border: none;
+  border-radius: $radius-md;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba($primary, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.invite-emails-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.invite-email-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, rgba($primary, 0.1), rgba($primary-light, 0.1));
+  color: $gray-900;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.remove-email-btn {
+  background: none;
+  border: none;
+  color: $danger;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba($danger, 0.1);
+  }
+}
+
+.member-info-section {
+  background: linear-gradient(135deg, #f9f4ee 0%, #fff5f0 100%);
+  padding: 16px;
+  border-radius: $radius-md;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.info-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: $gray-900;
+  margin-bottom: 2px;
+}
+
+.info-email {
+  font-size: 13px;
+  color: $gray-600;
+}
+
+.info-note {
+  background: #eff6ff;
+  padding: 12px 14px;
+  border-radius: $radius-sm;
+  margin-top: 16px;
+  border: 1px solid #bfdbfe;
+
+  p {
+    font-size: 12px;
+    color: #1e40af;
+    margin: 0;
+  }
+}
+
+.status-badge.inactive {
+  background: linear-gradient(135deg, rgba($danger, 0.1), rgba($danger, 0.15));
+  color: $danger;
+
+  &::before {
+    background: $danger;
+  }
+}
+
+.requests-card {
+  display: flex;
+  justify-content: space-between; // <--- Giúp ba block trái, giữa, phải đều lề, không bị giữa trống!
+  align-items: center;
+  gap: 0;
+  padding: 16px 18px;
+  background: $gray-100;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  border: 1.5px solid $gray-100;
+  margin-bottom: 8px;
+  min-height: 74px;
+  transition: box-shadow 0.15s, border-color 0.15s, background-color 0.19s;
+
+  &:hover {
+    box-shadow: $shadow-md;
+    border-color: $primary-light;
+    background: $gray-50;
+  }
+}
+
+// LEFT: Info
+.request-info {
+  flex: 3;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+
+  .member-avatar {
+    width: 38px;
+    height: 38px;
+    background: $gray-200;
+    color: $primary-dark;
+    border-radius: 50%;
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .member-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: $gray-900;
+    }
+
+    .member-email {
+      font-size: 12px;
+      color: $gray-500;
+    }
+
+    .organization-badge {
+      background: $gray-200;
+      color: $primary-dark;
+      font-size: 11px;
+      border-radius: 10px;
+      padding: 1.5px 8px;
+      margin-top: 1px;
+      font-weight: 500;
+      display: inline-block;
+      max-width: 98px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow-x: hidden;
+    }
+  }
+}
+
+// MIDDLE: badge + ngày gửi
+.request-badge-block {
+  flex: 1.5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+
+  .status-badge {
+    margin-bottom: 7px;
+  }
+
+  .created-date {
+    font-size: 11px;
+    color: $gray-500;
+  }
+}
+
+// RIGHT: Actions
+.request-actions-group {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 8px;
+}
+
+.action-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: $radius-sm;
+  min-width: 92px;
+  border: 1.4px solid $gray-400;
+  background: white;
+  color: $primary-dark;
+  box-shadow: none;
+  transition: all 0.17s;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+
+  &.accept {
+    border-color: $success;
+    color: $success;
+
+    &:hover {
+      background: $success;
+      color: #fff;
+      border-color: $success;
+    }
+  }
+
+  &.reject {
+    border-color: $danger;
+    color: $danger;
+
+    &:hover {
+      background: $danger;
+      color: #fff;
+      border-color: $danger;
+    }
+  }
+}
+
+.invite-status-filter {
+  min-width: 170px;
+  max-width: 220px;
+  padding: 10px 32px 10px 14px;
+  border: 2px solid $gray-200;
+  border-radius: $radius-md;
+  font-size: 15px;
+  font-weight: 600;
+  color: $gray-700;
+  background: white;
+  margin-bottom: 7px;
+  transition: all 0.17s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  box-shadow: 0 2px 8px rgba($primary, 0.07);
+
+  &:focus {
+    outline: none;
+    border-color: $primary;
+    box-shadow: 0 0 0 3px rgba($primary, 0.10);
+  }
+}
+
+
+.invite-card {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  background: linear-gradient(135deg, $gray-50 70%, white 100%);
+  border-radius: $radius-md;
+  border: 1.5px solid $gray-100;
+  box-shadow: 0 4px 18px 0 rgba($primary, 0.06); // Bóng rộng, mềm và sáng
+  margin-bottom: 14px;
+  min-height: 80px;
+  transition: box-shadow 0.14s, background-color 0.14s, border-color 0.19s;
+
+  &:hover {
+    background: $gray-100;
+    border-color: $primary-light;
+    box-shadow: $shadow-md;
+  }
+
+  .request-info {
+    flex: 4;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 12px 22px;
+
+    .member-avatar {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, $primary, $primary-light);
+      color: white;
+      border-radius: 50%;
+      font-size: 17px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+
+      .avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      box-shadow: 0 2px 10px 0 rgba($primary, 0.16);
+    }
+
+    .details {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5px;
+
+      .member-name {
+        font-size: 15px;
+        font-weight: 650;
+        color: $gray-900;
+      }
+
+      .member-email {
+        font-size: 12px;
+        color: $gray-500;
+      }
+
+      .organization-badge {
+        font-size: 12px;
+        background: $gray-200;
+        color: $primary;
+        border-radius: 8px;
+        padding: 2px 10px;
+        margin: 2px 0 0 0;
+        font-weight: 600;
+        display: inline-block;
+        white-space: nowrap;
+        max-width: 130px;
+        overflow-x: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+
+  .invite-badge-block {
+    flex: 2.3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 15px;
+    min-width: 120px;
+    border-left: 1px solid $gray-200;
+
+    .status-badge {
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 8px 22px;
+      border-radius: 15px;
+      margin-bottom: 8px;
+      background: $gray-100;
+      color: $primary-dark;
+      letter-spacing: 0.03em;
+      box-shadow: 0 2px 8px 0 rgba($primary, 0.04);
+
+      &.pending {
+        background: $warning-light;
+        color: $warning; // Đang chờ: vàng
+        border: 1px solid $warning;
+      }
+
+      &.accepted {
+        background: lighten($success, 40%);
+        color: $success; // Đã nhận: xanh lá
+        border: 1px solid $success;
+      }
+
+      &.rejected,
+      &.canceled {
+        background: lighten($danger, 43%);
+        color: $danger; // Từ chối & hủy: đỏ
+        border: 1px solid $danger;
+      }
+    }
+
+    .created-date {
+      font-size: 12px;
+      color: $gray-400;
+      font-weight: 500;
+    }
+  }
+}

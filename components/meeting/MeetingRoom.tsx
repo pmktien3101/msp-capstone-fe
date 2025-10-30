@@ -28,6 +28,7 @@ import MicButton from "../ui/mic-button";
 import CameraButton from "../ui/camera-button";
 import RecordButton from "../ui/record-button";
 import { CallIndicators } from "../ui/CallIndicators";
+import { meetingService } from "@/services/meetingService";
 
 type CallLayoutType = "grid" | "speaker-left" | "speaker-right";
 
@@ -66,6 +67,206 @@ const MeetingRoom = () => {
       })();
     }
   }, [callingState, router, call]);
+
+  // --- Auto reminders (toast) + auto-end after 60 minutes ---
+  const timersRef = useRef<{ r30?: number; r15?: number; end?: number }>({});
+
+  // minimal toast implementation (self-contained)
+  const showToast = (message: string, durationMs = 6000) => {
+    try {
+      const containerId = "auto-toast-container";
+      let container = document.getElementById(containerId);
+      if (!container) {
+        container = document.createElement("div");
+        container.id = containerId;
+        // position bottom-right
+        container.style.position = "fixed";
+        container.style.right = "16px";
+        container.style.bottom = "16px";
+        container.style.zIndex = "9999";
+        container.style.display = "flex";
+        container.style.flexDirection = "column";
+        container.style.gap = "8px";
+        document.body.appendChild(container);
+      }
+
+      const toast = document.createElement("div");
+      toast.textContent = message;
+      toast.style.background = "rgba(0,0,0,0.85)";
+      toast.style.color = "white";
+      toast.style.padding = "10px 14px";
+      toast.style.borderRadius = "8px";
+      toast.style.boxShadow = "0 6px 18px rgba(0,0,0,0.3)";
+      toast.style.fontSize = "14px";
+      toast.style.maxWidth = "320px";
+      toast.style.wordBreak = "break-word";
+      toast.style.opacity = "0";
+      toast.style.transition = "opacity 180ms ease";
+
+      container.appendChild(toast);
+
+      // fade in
+      requestAnimationFrame(() => {
+        toast.style.opacity = "1";
+      });
+
+      const remove = () => {
+        toast.style.opacity = "0";
+        setTimeout(() => {
+          try {
+            toast.remove();
+            // if empty container remove it
+            if (container && container.childElementCount === 0) {
+              container.remove();
+            }
+          } catch (e) {
+            /* ignore */
+          }
+        }, 200);
+      };
+
+      const timeoutId = window.setTimeout(remove, durationMs);
+      // allow click to dismiss
+      toast.addEventListener("click", () => {
+        clearTimeout(timeoutId);
+        remove();
+      });
+    } catch (e) {
+      // fallback to console
+      // eslint-disable-next-line no-console
+      console.log("Toast:", message);
+    }
+  };
+
+  // helper: poll call.state for an endedAt timestamp (up to timeoutMs)
+  const waitForEndedAt = async (timeoutMs = 5000, intervalMs = 300) => {
+    const start = Date.now();
+    // eslint-disable-next-line no-undef
+    while (Date.now() - start < timeoutMs) {
+      const endedAt = (call as any)?.state?.endedAt;
+      if (endedAt) return endedAt;
+      // small delay
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+    return null;
+  };
+
+  const endCallDueToTimeout = async () => {
+    if (!call) return;
+    try {
+      await call.camera?.disable();
+      await call.microphone?.disable();
+      showToast("Cuộc họp đã đủ 60 phút. Đang kết thúc cuộc gọi...", 4000);
+      await call.endCall();
+
+      const endedAtRaw = await waitForEndedAt();
+      const endTime = endedAtRaw
+        ? endedAtRaw instanceof Date
+          ? endedAtRaw
+          : new Date(endedAtRaw)
+        : new Date();
+
+      try {
+        await meetingService.finishMeeting(call.id, endTime);
+        console.log("finishMeeting success (auto end)", call.id);
+      } catch (e) {
+        console.error(
+          "Error calling meetingService.finishMeeting (auto end)",
+          e
+        );
+      }
+    } catch (err) {
+      console.warn("Error auto-ending call", err);
+    } finally {
+      // navigate to meeting detail page
+      router.push(`/projects`);
+    }
+  };
+
+  useEffect(() => {
+    if (!call) return;
+
+    // determine start time (try common fields)
+    const startRaw =
+      (call as any)?.state?.createdAt ||
+      (call as any)?.state?.startedAt ||
+      (call as any)?.createdAt ||
+      (call as any)?.created_at;
+    if (!startRaw) return;
+
+    const startTime = new Date(startRaw);
+    if (Number.isNaN(startTime.getTime())) return;
+
+    const now = Date.now();
+    const msUntil30 = startTime.getTime() + 30 * 60 * 1000 - now; // 30 min after start
+    const msUntil45 = startTime.getTime() + 45 * 60 * 1000 - now; // 45 min after start (15 left)
+    const msUntilEnd = startTime.getTime() + 60 * 60 * 1000 - now; // 60 min after start
+
+    // clear existing timers
+    if (timersRef.current.r30) {
+      clearTimeout(timersRef.current.r30);
+      timersRef.current.r30 = undefined;
+    }
+    if (timersRef.current.r15) {
+      clearTimeout(timersRef.current.r15);
+      timersRef.current.r15 = undefined;
+    }
+    if (timersRef.current.end) {
+      clearTimeout(timersRef.current.end);
+      timersRef.current.end = undefined;
+    }
+
+    // schedule 30-min reminder
+    if (msUntil30 > 0) {
+      timersRef.current.r30 = window.setTimeout(() => {
+        showToast("Còn 30 phút nữa cuộc họp sẽ kết thúc.");
+      }, msUntil30);
+    } else {
+      // if already past 30 but before 45 show immediately
+      if (msUntil45 > 0) {
+        showToast("Còn 15 phút nữa cuộc họp sẽ kết thúc.");
+      }
+    }
+
+    // schedule 15-min reminder (45 min after start)
+    if (msUntil45 > 0) {
+      timersRef.current.r15 = window.setTimeout(() => {
+        showToast("Còn 15 phút nữa cuộc họp sẽ kết thúc.");
+      }, msUntil45);
+    }
+
+    // schedule auto end at 60 minutes
+    if (msUntilEnd > 0) {
+      timersRef.current.end = window.setTimeout(() => {
+        void endCallDueToTimeout();
+      }, msUntilEnd);
+    } else {
+      // if end time already passed, end immediately
+      void endCallDueToTimeout();
+    }
+
+    return () => {
+      if (timersRef.current.r30) {
+        clearTimeout(timersRef.current.r30);
+        timersRef.current.r30 = undefined;
+      }
+      if (timersRef.current.r15) {
+        clearTimeout(timersRef.current.r15);
+        timersRef.current.r15 = undefined;
+      }
+      if (timersRef.current.end) {
+        clearTimeout(timersRef.current.end);
+        timersRef.current.end = undefined;
+      }
+    };
+    // only re-run when call identity/state changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    call?.id,
+    (call as any)?.state?.createdAt,
+    (call as any)?.state?.startedAt,
+  ]);
 
   const CallLayout = () => {
     switch (layout) {

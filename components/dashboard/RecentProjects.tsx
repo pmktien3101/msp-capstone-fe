@@ -19,25 +19,25 @@ export const RecentProjects = ({ projects }: RecentProjectsProps) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
+      case 'Đang hoạt động':
         return {
           background: 'rgba(251, 146, 60, 0.1)',
           color: '#fb923c',
           border: 'rgba(251, 146, 60, 0.2)'
         };
-      case 'completed':
+      case 'Hoàn thành':
         return {
           background: 'rgba(16, 185, 129, 0.1)',
           color: '#10b981',
           border: 'rgba(16, 185, 129, 0.2)'
         };
-      case 'planning':
+      case 'Lập kế hoạch':
         return {
           background: 'rgba(107, 114, 128, 0.1)',
           color: '#6b7280',
           border: 'rgba(107, 114, 128, 0.2)'
         };
-      case 'on-hold':
+      case 'Tạm dừng':
         return {
           background: 'rgba(245, 158, 11, 0.1)',
           color: '#f59e0b',
@@ -49,16 +49,6 @@ export const RecentProjects = ({ projects }: RecentProjectsProps) => {
           color: '#6b7280',
           border: 'rgba(107, 114, 128, 0.2)'
         };
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'active': return 'Đang thực hiện';
-      case 'completed': return 'Hoàn thành';
-      case 'planning': return 'Lập kế hoạch';
-      case 'on-hold': return 'Tạm dừng';
-      default: return status;
     }
   };
 
@@ -102,28 +92,25 @@ export const RecentProjects = ({ projects }: RecentProjectsProps) => {
                     borderColor: getStatusColor(project.status).border
                   }}
                 >
-                  {getStatusLabel(project.status)}
+                  {project.status}
                 </span>
               </div>
             </div>
 
-            <div className="project-progress-bar">
+            {/* <div className="project-progress-bar">
               <div className="progress-container">
                 <div 
                   className="progress-fill"
-                  style={{ width: `${project.progress}%` }}
+                  style={{ width: `0%` }}
                 ></div>
               </div>
-              <div className="progress-text">{project.progress}%</div>
-            </div>
+              <div className="progress-text">0%</div>
+            </div> */}
 
             <div className="project-details">
-              <div className="project-meta">
-                <span className="project-members">{project.members?.length ?? 0} thành viên</span>
-              </div>
               <div className="project-dates">
-                <span className="start-date">Bắt đầu: {new Date(project.startDate).toLocaleDateString('vi-VN')}</span>
-                <span className="end-date">Kết thúc: {new Date(project.endDate).toLocaleDateString('vi-VN')}</span>
+                <span className="start-date">Bắt đầu: {project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : '-'}</span>
+                <span className="end-date">Kết thúc: {project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : '-'}</span>
               </div>
             </div>
           </div>

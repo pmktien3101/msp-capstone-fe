@@ -1,5 +1,6 @@
 export interface Member {
   id: string;
+  pmId?: string; // Project-Member ID for removal
   name: string;
   role: string;
   avatar: string;
@@ -10,4 +11,5 @@ export interface Participant {
   role: string;
   image: string;
   email: string;
+  name: string;
 }

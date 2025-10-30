@@ -22,13 +22,13 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
+      case 'Đang hoạt động':
         return '#10b981';
-      case 'planning':
+      case 'Lập kế hoạch':
         return '#f59e0b';
-      case 'on-hold':
+      case 'Tạm dừng':
         return '#ef4444';
-      case 'completed':
+      case 'Hoàn thành':
         return '#10b981';
       default:
         return '#6b7280';
@@ -37,31 +37,16 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
 
   const getStatusBackgroundColor = (status: string) => {
     switch (status) {
-      case 'active':
+      case 'Đang hoạt động':
         return '#dcfce7';
-      case 'planning':
+      case 'Lập kế hoạch':
         return '#fef3c7';
-      case 'on-hold':
+      case 'Tạm dừng':
         return '#fee2e2';
-      case 'completed':
+      case 'Hoàn thành':
         return '#dcfce7';
       default:
         return '#f3f4f6';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'Đang hoạt động';
-      case 'planning':
-        return 'Lập kế hoạch';
-      case 'on-hold':
-        return 'Tạm dừng';
-      case 'completed':
-        return 'Hoàn thành';
-      default:
-        return status;
     }
   };
 
@@ -121,19 +106,6 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
               </th>
               <th 
                 className="sortable"
-                onClick={() => handleSort('progress')}
-              >
-                <div className="th-content">
-                  <span>Tiến độ</span>
-                  <div className="sort-indicator">
-                    {sortField === 'progress' && (
-                      sortDirection === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
-                    )}
-                  </div>
-                </div>
-              </th>
-              <th 
-                className="sortable"
                 onClick={() => handleSort('startDate')}
               >
                 <div className="th-content">
@@ -158,7 +130,6 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                   </div>
                 </div>
               </th>
-              <th>Thành viên</th>
               <th>Hành động</th>
             </tr>
           </thead>
@@ -181,43 +152,14 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                       borderColor: getStatusColor(project.status)
                     }}
                   >
-                    {getStatusText(project.status)}
-                  </div>
-                </td>
-                <td className="progress-cell">
-                  <div className="progress-container">
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill" 
-                        style={{ width: `${(project as any).progress || 0}%` }}
-                      ></div>
-                    </div>
-                    <span className="progress-text">{(project as any).progress || 0}%</span>
+                    {project.status}
                   </div>
                 </td>
                 <td className="date-cell">
-                  {formatDate(project.startDate)}
+                  {project.startDate ? formatDate(project.startDate) : '-'}
                 </td>
                 <td className="date-cell">
-                  {formatDate(project.endDate)}
-                </td>
-                <td className="members-cell">
-                  <div className="members-list">
-                    {project.members && project.members.length > 0 ? (
-                      <>
-                        {project.members.slice(0, 3).map((member: any) => (
-                          <div key={member.id} className="member-avatar" title={member.name}>
-                            <span>{member.avatar}</span>
-                          </div>
-                        ))}
-                        {project.members.length > 3 && (
-                          <div className="member-count">+{project.members.length - 3}</div>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-gray-400 text-sm">Chưa có thành viên</span>
-                    )}
-                  </div>
+                  {project.endDate ? formatDate(project.endDate) : '-'}
                 </td>
                 <td className="actions-cell">
                   <div className="action-buttons">
@@ -405,6 +347,27 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
         .date-cell {
           min-width: 100px;
           font-size: 12px;
+          color: #6b7280;
+        }
+
+        .owner-cell {
+          min-width: 150px;
+        }
+
+        .owner-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .owner-name {
+          font-size: 13px;
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .owner-email {
+          font-size: 11px;
           color: #6b7280;
         }
 

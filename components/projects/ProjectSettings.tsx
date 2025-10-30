@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { Project } from "@/types/project";
+import { useState, useEffect } from "react";
+import { Project, ProjectMember } from "@/types/project";
 import { Member } from "@/types/member";
 import { AddMemberModal } from "./modals/AddMemberModal";
-import { EditMemberModal } from "./modals/EditMemberModal";
-import { AddPMModal } from "./modals/AddPMModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useUser } from "@/hooks/useUser";
+import { projectService } from "@/services/projectService";
+import { toast } from "react-toastify";
 import { 
   Plus, 
   Edit, 
@@ -35,9 +35,21 @@ interface ProjectManager {
 
 interface ProjectSettingsProps {
   project: Project;
+  availableProjectManagers?: ProjectManager[];
 }
 
-export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
+export const ProjectSettings = ({ project, availableProjectManagers = [] }: ProjectSettingsProps) => {
+  // Helper function to format ISO date to YYYY-MM-DD
+  const formatDateForInput = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    } catch {
+      return '';
+    }
+  };
+
   type Settings = {
     name: string;
     description: string;
@@ -62,9 +74,9 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
     name: project.name,
     description: project.description,
     status: project.status,
-    startDate: project.startDate,
-    endDate: project.endDate,
-    manager: project.manager ?? '',
+    startDate: formatDateForInput(project.startDate),
+    endDate: formatDateForInput(project.endDate),
+    manager: project.owner?.fullName || project.createdBy?.fullName || '',
     notifications: {
       email: true,
       slack: false,
@@ -78,38 +90,62 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
     },
   });
 
-  const [members, setMembers] = useState<Member[]>(project.members ?? []);
-  const [projectManagers, setProjectManagers] = useState<ProjectManager[]>(project.projectManagers ?? []);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  const [showAddPMModal, setShowAddPMModal] = useState(false);
-  const [editingMember, setEditingMember] = useState<Member | null>(null);
   
   // Confirm dialog states
   const [isConfirmDeleteMemberOpen, setIsConfirmDeleteMemberOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<{ id: string; name: string } | null>(null);
-  const [isConfirmDeletePMOpen, setIsConfirmDeletePMOpen] = useState(false);
-  const [pmToDelete, setPmToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const [isEditingBasicInfo, setIsEditingBasicInfo] = useState(false);
   const [tempSettings, setTempSettings] = useState<Settings>({...settings});
-
-  // Mock available PMs
-  const availableProjectManagers: ProjectManager[] = [
-    { id: '1', name: 'Nguyễn Văn A', email: 'nguyenvana@company.com' },
-    { id: '2', name: 'Trần Thị B', email: 'tranthib@company.com' },
-    { id: '3', name: 'Lê Văn C', email: 'levanc@company.com' },
-    { id: '4', name: 'Phạm Thị D', email: 'phamthid@company.com' },
-    { id: '5', name: 'Hoàng Văn E', email: 'hoangvane@company.com' },
-  ];
 
   // Get user role for permission checks
   const { role } = useUser();
   const userRole = role?.toLowerCase();
 
   // Permission checks
-  const canEditBasicInfo = userRole === 'pm' || userRole === 'businessowner';
+  const canEditBasicInfo = userRole === 'projectmanager' || userRole === 'businessowner';
   const canAddPM = userRole === 'businessowner';
-  const canAddMember = userRole === 'pm';
+  const canAddMember = userRole === 'projectmanager' || userRole === 'businessowner';
+
+  // Fetch project members from API
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!project.id) return;
+      
+      setIsLoadingMembers(true);
+      try {
+        const result = await projectService.getProjectMembers(project.id);
+        console.log('ProjectSettings - Fetched members:', result);
+        
+        if (result.success && result.data) {
+          // Transform ProjectMember[] to Member[]
+          // API returns: { id, projectId, userId, member: { id, fullName, email, role, ... }, joinedAt, leftAt }
+          const transformedMembers: Member[] = result.data
+            .filter((pm: any) => pm.member) // Only include items with member data
+            .map((pm: any) => ({
+              id: pm.member.id,
+              pmId: pm.id, // Store ProjectMember ID for deletion
+              name: pm.member.fullName || 'Unknown',
+              email: pm.member.email || '',
+              role: pm.member.role || 'Member',
+              avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase()
+            }));
+          
+          console.log('ProjectSettings - Transformed members:', transformedMembers);
+          setMembers(transformedMembers);
+        }
+      } catch (error) {
+        console.error('Error fetching project members:', error);
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
+
+    fetchMembers();
+  }, [project.id]);
 
   const handleInputChange = (field: string, value: any) => {
     setSettings((prev) => ({
@@ -138,59 +174,59 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
     console.log("Saving members:", members);
   };
 
-  const handleAddMember = (member: Member) => {
-    setMembers((prev) => [...prev, member]);
+  const handleAddMember = async (member: Member) => {
     setShowAddMemberModal(false);
-  };
-
-  const handleEditMember = (member: Member) => {
-    setEditingMember(member);
-  };
-
-  const handleUpdateMember = (updatedMember: Member) => {
-    setMembers((prev) =>
-      prev.map((m) => (m.id === updatedMember.id ? updatedMember : m))
-    );
-    setEditingMember(null);
+    
+    // Re-fetch members from API to get latest data
+    try {
+      const result = await projectService.getProjectMembers(project.id);
+      if (result.success && result.data) {
+        const transformedMembers: Member[] = result.data
+          .filter((pm: any) => pm.member)
+          .map((pm: any) => ({
+            id: pm.member.id,
+            name: pm.member.fullName || 'Unknown',
+            email: pm.member.email || '',
+            role: pm.member.role || 'Member',
+            avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase()
+          }));
+        setMembers(transformedMembers);
+      }
+    } catch (error) {
+      console.error('Error refreshing members:', error);
+    }
   };
 
   const handleDeleteMember = (memberId: string) => {
     const member = members.find(m => m.id === memberId);
     if (member) {
-      setMemberToDelete({ id: member.id, name: member.name });
+      setMemberToDelete({ id: member.pmId || member.id, name: member.name });
       setIsConfirmDeleteMemberOpen(true);
     }
   };
 
-  const confirmDeleteMember = () => {
-    if (memberToDelete) {
-      setMembers((prev) => prev.filter((m) => m.id !== memberToDelete.id));
+  const confirmDeleteMember = async () => {
+    if (!memberToDelete) return;
+
+    try {
+      // Call API to remove project member
+      const result = await projectService.removeProjectMember(memberToDelete.id);
+      
+      if (result.success) {
+        // Remove from UI on success
+        setMembers((prev) => prev.filter((m) => (m.pmId || m.id) !== memberToDelete.id));
+        console.log('Successfully deleted member:', memberToDelete.name);
+        toast.success('Đã xóa thành viên thành công!');
+      } else {
+        console.error('Failed to delete member:', result.error);
+        toast.error(`Lỗi khi xóa thành viên: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting member:', error);
+      toast.error('Đã xảy ra lỗi khi xóa thành viên');
+    } finally {
       setMemberToDelete(null);
-      console.log('Deleted member:', memberToDelete.id);
-      // In real app, call API to delete member
-    }
-  };
-
-  const handleAddPM = (pmIds: string[]) => {
-    const newPMs = availableProjectManagers.filter(pm => pmIds.includes(pm.id));
-    setProjectManagers(prev => [...prev, ...newPMs]);
-    setShowAddPMModal(false);
-  };
-
-  const handleRemovePM = (pmId: string) => {
-    const pm = projectManagers.find(p => p.id === pmId);
-    if (pm) {
-      setPmToDelete({ id: pm.id, name: pm.name });
-      setIsConfirmDeletePMOpen(true);
-    }
-  };
-
-  const confirmDeletePM = () => {
-    if (pmToDelete) {
-      setProjectManagers(prev => prev.filter(pm => pm.id !== pmToDelete.id));
-      setPmToDelete(null);
-      console.log('Deleted PM:', pmToDelete.id);
-      // In real app, call API to remove PM
+      setIsConfirmDeleteMemberOpen(false);
     }
   };
 
@@ -204,11 +240,39 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
     setIsEditingBasicInfo(false);
   };
 
-  const handleSaveBasicInfo = () => {
-    setSettings(tempSettings);
-    setIsEditingBasicInfo(false);
-    console.log("Saving basic info:", tempSettings);
-    // TODO: Call API to save
+  const handleSaveBasicInfo = async () => {
+    if (!project.id) {
+      toast.error('Không tìm thấy thông tin dự án');
+      return;
+    }
+
+    try {
+      console.log('[ProjectSettings] Saving basic info:', tempSettings);
+      
+      const updateData = {
+        id: project.id,
+        name: tempSettings.name,
+        description: tempSettings.description,
+        status: tempSettings.status,
+        startDate: tempSettings.startDate || undefined,
+        endDate: tempSettings.endDate || undefined
+      };
+
+      const result = await projectService.updateProject(updateData);
+      
+      if (result.success && result.data) {
+        console.log('[ProjectSettings] Project updated successfully:', result.data);
+        setSettings(tempSettings);
+        setIsEditingBasicInfo(false);
+        toast.success('Cập nhật thông tin dự án thành công!');
+      } else {
+        console.error('[ProjectSettings] Failed to update project:', result.error);
+        toast.error(`Lỗi: ${result.error || 'Không thể cập nhật thông tin dự án'}`);
+      }
+    } catch (error) {
+      console.error('[ProjectSettings] Error updating project:', error);
+      toast.error('Có lỗi xảy ra khi cập nhật thông tin dự án');
+    }
   };
 
   const handleTempInputChange = (field: string, value: any) => {
@@ -280,10 +344,10 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
                 className="form-select"
                 disabled={!isEditingBasicInfo}
               >
-                <option value="planning">Đang lập kế hoạch</option>
-                <option value="active">Đang hoạt động</option>
-                <option value="on-hold">Tạm dừng</option>
-                <option value="completed">Hoàn thành</option>
+                <option value="Lập kế hoạch">Lập kế hoạch</option>
+                <option value="Đang hoạt động">Đang hoạt động</option>
+                <option value="Tạm dừng">Tạm dừng</option>
+                <option value="Hoàn thành">Hoàn thành</option>
               </select>
             </div>
 
@@ -417,160 +481,6 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         <div className="settings-section">
           <div className="section-header">
             <div className="section-icon">
-              <Shield size={16} color="white" />
-            </div>
-          <h4>Quyền truy cập</h4>
-          </div>
-          
-          <div className={`checkbox-grid ${Object.keys(settings.permissions).length % 2 === 1 ? 'three-columns' : ''}`}>
-            <div className="checkbox-card">
-              <div className="checkbox-header">
-                <Shield size={16} color="#FF5E13" />
-                <span className="checkbox-title">Dự án công khai</span>
-              </div>
-              <label className="checkbox-toggle">
-              <input
-                type="checkbox"
-                checked={settings.permissions.public}
-                onChange={(e) =>
-                  handleNestedChange("permissions", "public", e.target.checked)
-                }
-              />
-                <span className="toggle-slider"></span>
-            </label>
-            </div>
-
-            <div className="checkbox-card">
-              <div className="checkbox-header">
-                <Users size={16} color="#FF5E13" />
-                <span className="checkbox-title">Chỉ thành viên</span>
-              </div>
-              <label className="checkbox-toggle">
-              <input
-                type="checkbox"
-                checked={settings.permissions.membersOnly}
-                onChange={(e) =>
-                  handleNestedChange(
-                    "permissions",
-                    "membersOnly",
-                    e.target.checked
-                  )
-                }
-              />
-                <span className="toggle-slider"></span>
-            </label>
-            </div>
-
-            <div className="checkbox-card">
-              <div className="checkbox-header">
-                <MessageSquare size={16} color="#FF5E13" />
-                <span className="checkbox-title">Cho phép bình luận</span>
-              </div>
-              <label className="checkbox-toggle">
-              <input
-                type="checkbox"
-                checked={settings.permissions.allowComments}
-                onChange={(e) =>
-                  handleNestedChange(
-                    "permissions",
-                    "allowComments",
-                    e.target.checked
-                  )
-                }
-              />
-                <span className="toggle-slider"></span>
-            </label>
-            </div>
-
-            <div className="checkbox-card">
-              <div className="checkbox-header">
-                <Paperclip size={16} color="#FF5E13" />
-                <span className="checkbox-title">Cho phép đính kèm</span>
-              </div>
-              <label className="checkbox-toggle">
-              <input
-                type="checkbox"
-                checked={settings.permissions.allowAttachments}
-                onChange={(e) =>
-                  handleNestedChange(
-                    "permissions",
-                    "allowAttachments",
-                    e.target.checked
-                  )
-                }
-              />
-                <span className="toggle-slider"></span>
-            </label>
-            </div>
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <div className="section-header">
-            <div className="section-icon">
-              <UserCog size={16} color="white" />
-            </div>
-            <h4>Project Managers ({projectManagers.length})</h4>
-            {canAddPM && (
-              <button
-                className="btn btn-primary"
-                onClick={() => setShowAddPMModal(true)}
-              >
-                <Plus size={14} />
-                Thêm PM
-              </button>
-            )}
-          </div>
-          <div className="members-list">
-            {projectManagers.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">
-                  <UserCog size={40} color="#9CA3AF" />
-                </div>
-                <h5>Chưa có Project Manager nào</h5>
-                <p>Thêm Project Manager để quản lý dự án hiệu quả hơn!</p>
-                {canAddPM && (
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => setShowAddPMModal(true)}
-                  >
-                    <Plus size={14} />
-                    Thêm PM đầu tiên
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="members-grid">
-                {projectManagers.map((pm) => (
-                  <div key={pm.id} className="member-card pm-card">
-                    <div className="pm-badge">PM</div>
-                    <div className="member-avatar">{pm.name.charAt(0)}</div>
-                    <div className="member-info">
-                      <div className="member-name">{pm.name}</div>
-                      <div className="member-role">Project Manager</div>
-                      <div className="member-email">{pm.email}</div>
-                    </div>
-                    {canAddPM && (
-                      <div className="member-actions">
-                        <button
-                          className="btn btn-sm btn-danger"
-                          onClick={() => handleRemovePM(pm.id)}
-                          title="Xóa PM"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <div className="section-header">
-            <div className="section-icon">
               <Users size={16} color="white" />
             </div>
             <h4>Thành viên dự án ({members.length})</h4>
@@ -580,12 +490,19 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
                 onClick={() => setShowAddMemberModal(true)}
               >
                 <Plus size={14} />
-                Thêm thành viên
+                {userRole === 'businessowner' ? 'Thêm người quản lý' : 'Thêm thành viên'}
               </button>
             )}
           </div>
           <div className="members-list">
-            {members.length === 0 ? (
+            {isLoadingMembers ? (
+              <div className="empty-state">
+                <div className="empty-icon">
+                  <Users size={40} color="#9CA3AF" />
+                </div>
+                <h5>Đang tải thành viên...</h5>
+              </div>
+            ) : members.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">
                   <Users size={40} color="#9CA3AF" />
@@ -598,40 +515,45 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
                     onClick={() => setShowAddMemberModal(true)}
                   >
                     <Plus size={14} />
-                    Thêm thành viên đầu tiên
+                    {userRole === 'businessowner' ? 'Thêm người quản lý đầu tiên' : 'Thêm thành viên đầu tiên'}
                   </button>
                 )}
               </div>
             ) : (
               <div className="members-grid">
-                {members.map((member) => (
-                  <div key={member.id} className="member-card">
-                  <div className="member-avatar">{member.avatar}</div>
-                  <div className="member-info">
-                    <div className="member-name">{member.name}</div>
-                    <div className="member-role">{member.role}</div>
-                    <div className="member-email">{member.email}</div>
-                  </div>
-                  {canAddMember && (
-                    <div className="member-actions">
-                      <button
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => handleEditMember(member)}
-                        title="Chỉnh sửa thành viên"
-                      >
-                        <Edit size={12} />
-                      </button>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDeleteMember(member.id)}
-                        title="Xóa thành viên"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                {members
+                  .sort((a, b) => {
+                    // Sort by role: ProjectManager first, then Member
+                    const roleA = a.role?.toLowerCase() || '';
+                    const roleB = b.role?.toLowerCase() || '';
+                    
+                    if (roleA === 'projectmanager' && roleB !== 'projectmanager') return -1;
+                    if (roleA !== 'projectmanager' && roleB === 'projectmanager') return 1;
+                    
+                    // If same role, sort by name A-Z
+                    return (a.name || '').localeCompare(b.name || '');
+                  })
+                  .map((member) => (
+                    <div key={member.id} className="member-card">
+                      <div className="member-avatar">{member.avatar}</div>
+                      <div className="member-info">
+                        <div className="member-name">{member.name}</div>
+                        <div className="member-role">{member.role}</div>
+                        <div className="member-email">{member.email}</div>
+                      </div>
+                      {canAddMember && member.role?.toLowerCase() === 'member' && (
+                        <div className="member-actions">
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleDeleteMember(member.id)}
+                            title="Xóa thành viên"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  </div>
-                ))}
+                  ))}
                 </div>
             )}
           </div>
@@ -645,25 +567,9 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         onAddMember={handleAddMember}
         onRemoveMember={handleDeleteMember}
         existingMembers={members}
-      />
-
-      {/* Edit Member Modal */}
-      <EditMemberModal
-        isOpen={!!editingMember}
-        onClose={() => setEditingMember(null)}
-        onUpdateMember={handleUpdateMember}
-        member={editingMember}
-      />
-
-      {/* Add PM Modal */}
-      <AddPMModal
-        isOpen={showAddPMModal}
-        onClose={() => setShowAddPMModal(false)}
-        onAdd={handleAddPM}
-        availableManagers={availableProjectManagers.filter(
-          pm => !projectManagers.some(existing => existing.id === pm.id)
-        )}
-        currentManagers={projectManagers}
+        projectId={project.id}
+        ownerId={project.ownerId || project.owner?.userId || ''}
+        userRole={userRole}
       />
 
       {/* Confirm Delete Member Dialog */}
@@ -676,20 +582,6 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         onConfirm={confirmDeleteMember}
         title="Xóa thành viên"
         description={`Bạn có chắc chắn muốn xóa thành viên ${memberToDelete?.name} khỏi dự án này không? Hành động này không thể hoàn tác.`}
-        confirmText="Xóa"
-        cancelText="Hủy"
-      />
-
-      {/* Confirm Delete PM Dialog */}
-      <ConfirmDialog
-        isOpen={isConfirmDeletePMOpen}
-        onClose={() => {
-          setIsConfirmDeletePMOpen(false);
-          setPmToDelete(null);
-        }}
-        onConfirm={confirmDeletePM}
-        title="Xóa Project Manager"
-        description={`Bạn có chắc chắn muốn xóa Project Manager ${pmToDelete?.name} khỏi dự án này không? Hành động này không thể hoàn tác.`}
         confirmText="Xóa"
         cancelText="Hủy"
       />

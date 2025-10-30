@@ -1,64 +1,49 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Save, Calendar, FileText, Target, Plus, Trash2, CheckCircle } from "lucide-react";
-import { mockTasks } from "@/constants/mockData";
+import { X, Save, Calendar, FileText, Target } from "lucide-react";
+import { milestoneService } from "@/services/milestoneService";
+import { MilestoneBackend } from "@/types/milestone";
+import { toast } from "react-toastify";
 
 interface UpdateMilestoneModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdateMilestone: (milestoneData: any) => void;
-  milestone: {
-    id: string;
-    name: string;
-    description: string;
-    dueDate: string;
-    status: string;
-    tasks: string[];
-    projectId: string;
-    meetings: string[];
-  } | null;
+  onUpdateMilestone?: (milestoneData: any) => void;
+  onSuccess?: () => void;
+  milestone: MilestoneBackend | null;
 }
 
 export const UpdateMilestoneModal = ({
   isOpen,
   onClose,
   onUpdateMilestone,
+  onSuccess,
   milestone,
 }: UpdateMilestoneModalProps) => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     dueDate: "",
-    status: "pending",
   });
 
-  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update form data when milestone changes
   useEffect(() => {
     if (milestone) {
+      // Format date for input (YYYY-MM-DD)
+      const formatDateForInput = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toISOString().split('T')[0];
+      };
+
       setFormData({
         name: milestone.name,
         description: milestone.description,
-        dueDate: milestone.dueDate,
-        status: milestone.status,
+        dueDate: formatDateForInput(milestone.dueDate),
       });
-      
-      // Initialize selectedTasks with task IDs
-      if (milestone.tasks && Array.isArray(milestone.tasks)) {
-        if (milestone.tasks.length > 0 && typeof milestone.tasks[0] === 'object') {
-          // milestone.tasks is array of task objects, extract IDs
-          setSelectedTasks(milestone.tasks.map((task: any) => task.id));
-        } else {
-          // milestone.tasks is array of task IDs
-          setSelectedTasks(milestone.tasks);
-        }
-      } else {
-        setSelectedTasks([]);
-      }
     }
   }, [milestone]);
 
@@ -69,15 +54,13 @@ export const UpdateMilestoneModal = ({
         name: "",
         description: "",
         dueDate: "",
-        status: "pending",
       });
-      setSelectedTasks([]);
       setErrors({});
       setIsSubmitting(false);
     }
   }, [isOpen]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -91,39 +74,6 @@ export const UpdateMilestoneModal = ({
         [name]: ""
       }));
     }
-  };
-
-  // Get tasks that are not currently selected in this milestone
-  const getAvailableTasks = () => {
-    return mockTasks.filter(task => 
-      !selectedTasks.includes(task.id)
-    );
-  };
-
-  // Get tasks that are currently assigned to this milestone
-  const getSelectedTaskObjects = () => {
-    if (!milestone?.id) return [];
-    return mockTasks.filter(task => 
-      task.milestoneIds.includes(milestone.id)
-    );
-  };
-
-  // Add task to milestone
-  const addTaskToMilestone = (taskId: string) => {
-    setSelectedTasks(prev => [...prev, taskId]);
-  };
-
-  // Remove task from milestone
-  const removeTaskFromMilestone = (taskId: string) => {
-    setSelectedTasks(prev => prev.filter(id => id !== taskId));
-  };
-
-  // Get current tasks in milestone (from selectedTasks state for real-time updates)
-  const getCurrentTasksInMilestone = () => {
-    if (!selectedTasks || selectedTasks.length === 0) return [];
-    
-    // Get task objects from selectedTasks (which contains task IDs)
-    return mockTasks.filter(task => selectedTasks.includes(task.id));
   };
 
   const validateForm = () => {
@@ -150,20 +100,6 @@ export const UpdateMilestoneModal = ({
     // Due date validation
     if (!formData.dueDate) {
       newErrors.dueDate = "Ngày hết hạn là bắt buộc";
-    } else {
-      const selectedDate = new Date(formData.dueDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (selectedDate < today) {
-        newErrors.dueDate = "Ngày hết hạn phải là ngày trong tương lai";
-      }
-    }
-
-    // Status validation
-    const validStatuses = ["pending", "in-progress", "completed", "overdue"];
-    if (!validStatuses.includes(formData.status)) {
-      newErrors.status = "Trạng thái không hợp lệ";
     }
 
     setErrors(newErrors);
@@ -173,28 +109,41 @@ export const UpdateMilestoneModal = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateForm() || !milestone || isSubmitting) {
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Prepare milestone data with all required fields
-      const milestoneData = {
-        id: milestone?.id,
+      const updateData = {
+        id: milestone.id.toString(),
         name: formData.name.trim(),
         description: formData.description.trim(),
         dueDate: formData.dueDate,
-        status: formData.status,
-        tasks: selectedTasks, // selectedTasks now contains the correct task IDs
-        projectId: milestone?.projectId || "1",
-        meetings: milestone?.meetings || []
       };
 
-      onUpdateMilestone(milestoneData);
+      const response = await milestoneService.updateMilestone(updateData);
+
+      if (response.success) {
+        // Call onUpdateMilestone if provided (for backwards compatibility)
+        if (onUpdateMilestone) {
+          onUpdateMilestone(response.data);
+        }
+        
+        // Call onSuccess to refresh the milestone list
+        if (onSuccess) {
+          onSuccess();
+        }
+        
+        toast.success('Cập nhật cột mốc thành công!');
+        onClose();
+      } else {
+        toast.error(`Lỗi: ${response.error}`);
+      }
     } catch (error) {
       console.error('Error updating milestone:', error);
+      toast.error('Có lỗi xảy ra khi cập nhật cột mốc');
     } finally {
       setIsSubmitting(false);
     }
@@ -271,126 +220,13 @@ export const UpdateMilestoneModal = ({
                 value={formData.dueDate}
                 onChange={handleInputChange}
                 className={`form-input ${errors.dueDate ? 'error' : ''}`}
-                min={new Date().toISOString().split('T')[0]}
               />
               {errors.dueDate && <span className="error-message">{errors.dueDate}</span>}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="status" className="form-label">
-                <Target size={16} />
-                Trạng thái *
-              </label>
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className={`form-select ${errors.status ? 'error' : ''}`}
-              >
-                <option value="pending">Chờ thực hiện</option>
-                <option value="in-progress">Đang thực hiện</option>
-                <option value="completed">Hoàn thành</option>
-                <option value="overdue">Quá hạn</option>
-              </select>
-              {errors.status && <span className="error-message">{errors.status}</span>}
-            </div>
-          </div>
-
-          {/* Task Management Section */}
-          <div className="task-management-section">
-            <div className="section-header">
-              <h3>Quản lý công việc</h3>
-              <p>Thêm hoặc xóa công việc khỏi cột mốc này</p>
-            </div>
-
-            {/* Selected Tasks */}
-            <div className="task-section">
-              <div className="task-section-header">
-                <h4>Công việc trong cột mốc ({selectedTasks.length})</h4>
-              </div>
-              <div className="task-list">
-                {getCurrentTasksInMilestone().map((task) => (
-                  <div key={task.id} className="task-item selected">
-                    <div className="task-info">
-                      <div className="task-icon">
-                        <CheckCircle size={16} />
-                      </div>
-                      <div className="task-details">
-                        <div className="task-id">{task.id}</div>
-                        <div className="task-title">{task.title}</div>
-                        <div className="task-status">
-                          <span className={`status-badge ${task.status}`}>
-                            {task.status === "todo" ? "Cần làm" : 
-                             task.status === "in-progress" ? "Đang làm" :
-                             task.status === "review" ? "Đang review" : "Hoàn thành"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="remove-task-btn"
-                      onClick={() => removeTaskFromMilestone(task.id)}
-                      title="Xóa khỏi cột mốc"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-                {selectedTasks.length === 0 && (
-                  <div className="empty-state">
-                    <p>Chưa có công việc nào trong cột mốc này</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Available Tasks */}
-            <div className="task-section">
-              <div className="task-section-header">
-                <h4>Công việc có thể thêm ({getAvailableTasks().length})</h4>
-              </div>
-              <div className="task-list">
-                {getAvailableTasks().map((task) => (
-                  <div key={task.id} className="task-item available">
-                    <div className="task-info">
-                      <div className="task-icon">
-                        <CheckCircle size={16} />
-                      </div>
-                      <div className="task-details">
-                        <div className="task-id">{task.id}</div>
-                        <div className="task-title">{task.title}</div>
-                        <div className="task-status">
-                          <span className={`status-badge ${task.status}`}>
-                            {task.status === "todo" ? "Cần làm" : 
-                             task.status === "in-progress" ? "Đang làm" :
-                             task.status === "review" ? "Đang review" : "Hoàn thành"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="add-task-btn"
-                      onClick={() => addTaskToMilestone(task.id)}
-                      title="Thêm vào cột mốc"
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                ))}
-                {getAvailableTasks().length === 0 && (
-                  <div className="empty-state">
-                    <p>Tất cả công việc đã được gán cho cột mốc này</p>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="btn-cancel" onClick={onClose}>
+            <button type="button" className="btn-cancel" onClick={onClose} disabled={isSubmitting}>
               Hủy
             </button>
             <button 

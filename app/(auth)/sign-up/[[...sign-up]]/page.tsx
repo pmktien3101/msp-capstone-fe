@@ -6,36 +6,38 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
+import { authService } from "@/services/authService";
 import "@/app/styles/sign-up.scss";
-import { User, Eye, EyeOff, Users, Building2 } from "lucide-react";
+import { User, Eye, EyeOff, Users, Building2, CheckCircle, XCircle } from "lucide-react";
 
 interface RegisterFormData {
   fullName: string;
-  organizationName: string;
-  phone: string;
+  organization: string;
+  phoneNumber: string;
   email: string;
   password: string;
   confirmPassword: string;
-  businessDocument?: File | null; // Thêm trường file
+  businessLicense: string; // Tên file giấy phép kinh doanh
 }
 
-type AccountType = "member" | "business";
+type Role = "Member" | "BusinessOwner";
 
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [accountType, setAccountType] = useState<AccountType>("member");
+  const [role, setRole] = useState<Role>("Member");
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
   const [registerForm, setRegisterForm] = useState<RegisterFormData>({
     fullName: "",
-    organizationName: "",
-    phone: "",
+    organization: "",
+    phoneNumber: "",
     email: "",
     password: "",
     confirmPassword: "",
-    businessDocument: null,
+    businessLicense: "",
   });
 
   // Check if user is already authenticated
@@ -98,6 +100,18 @@ export default function SignUpPage() {
             font-size: 14px;
             margin: 0;
           }
+
+
+          @keyframes slideDown {
+            from {
+              opacity: 0;
+              transform: translateY(-10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
         `}</style>
       </div>
     );
@@ -106,32 +120,53 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setMessage(null); // Clear previous messages
+
+    // Validate form before submitting
+    if (!isFormValid()) {
+      setMessage({ 
+        type: 'error', 
+        text: role === "BusinessOwner" 
+          ? "Vui lòng điền đầy đủ thông tin và chọn tệp giấy phép kinh doanh" 
+          : "Vui lòng điền đầy đủ thông tin" 
+      });
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      // TODO: Implement registration logic based on accountType
-      const formData = new FormData();
-      formData.append("fullName", registerForm.fullName);
-      formData.append("organizationName", registerForm.organizationName);
-      formData.append("phone", registerForm.phone);
-      formData.append("email", registerForm.email);
-      formData.append("password", registerForm.password);
-      formData.append("accountType", accountType);
-      if (accountType === "business" && registerForm.businessDocument) {
-        formData.append("businessDocument", registerForm.businessDocument);
-      }
+      // Prepare registration data based on role
+      const registrationData = {
+        fullName: registerForm.fullName,
+        email: registerForm.email,
+        password: registerForm.password,
+        phoneNumber: registerForm.phoneNumber,
+        role: role,
+        ...(role === "BusinessOwner" && {
+          organization: registerForm.organization,
+          businessLicense: registerForm.businessLicense, // Gửi tên file dưới dạng string
+        }),
+      };
 
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulated API call
-      console.log("Form submitted:", { ...registerForm, accountType });
+      console.log("Submitting registration:", registrationData);
 
-      if (accountType === "member") {
-        // Member registration - direct activation
-        console.log("Member registration - activating immediately");
+      const result = await authService.register(registrationData);
+
+      if (result.success) {
+        console.log("Registration successful:", result.message);
+        // Show success message
+        setMessage({ type: 'success', text: result.message || "Đăng ký thành công!" });
+        // Redirect to sign-in page after 2 seconds
+        setTimeout(() => {
+          router.push("/sign-in");
+        }, 2000);
       } else {
-        // Business registration - requires admin approval
-        console.log("Business registration - pending admin approval");
+        // Show error message
+        setMessage({ type: 'error', text: result.error || "Đăng ký thất bại. Vui lòng thử lại." });
       }
     } catch (error) {
       console.error("Registration error:", error);
+      setMessage({ type: 'error', text: "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại." });
     } finally {
       setIsLoading(false);
     }
@@ -146,28 +181,33 @@ export default function SignUpPage() {
       [name]:
         type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
+    
+    // Clear message when user starts typing
+    if (message) {
+      setMessage(null);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setRegisterForm((prev) => ({
       ...prev,
-      businessDocument: file,
+      businessLicense: file ? file.name : "",
     }));
   };
 
   const isFormValid = () => {
     const baseValid =
       registerForm.fullName &&
-      registerForm.phone &&
+      registerForm.phoneNumber &&
       registerForm.email &&
       registerForm.password &&
       registerForm.confirmPassword &&
       registerForm.password === registerForm.confirmPassword;
 
-    // Business accounts chỉ cần organizationName, không cần businessSector
-    if (accountType === "business") {
-      return baseValid && registerForm.organizationName;
+    // Business accounts cần organizationName và businessLicense
+    if (role === "BusinessOwner") {
+      return baseValid && registerForm.organization && registerForm.businessLicense;
     }
 
     return baseValid;
@@ -180,6 +220,67 @@ export default function SignUpPage() {
 
   return (
     <div className="register-container">
+      <style jsx>{`
+        .register-message {
+          padding: 16px 20px;
+          border-radius: 12px;
+          margin-bottom: 24px;
+          font-size: 16px;
+          font-weight: 600;
+          text-align: center;
+          animation: slideDown 0.4s ease-out;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          border: 2px solid;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .register-message::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, transparent, currentColor, transparent);
+          animation: shimmer 2s infinite;
+        }
+
+        .register-message-content {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .register-message.success {
+          background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+          color: #064e3b;
+          border-color: #10b981;
+        }
+
+        .register-message.error {
+          background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
+          color: #7f1d1d;
+          border-color: #ef4444;
+        }
+
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
       <div className="register-content">
         <div className="form-header">
           <div className="logo-container">
@@ -194,8 +295,8 @@ export default function SignUpPage() {
         <div className="account-type-tabs">
           <button
             type="button"
-            className={`tab-button ${accountType === "member" ? "active" : ""}`}
-            onClick={() => setAccountType("member")}
+            className={`tab-button ${role === "Member" ? "active" : ""}`}
+            onClick={() => setRole("Member")}
           >
             <Users size={20} />
             <span>Tài Khoản Cá Nhân</span>
@@ -203,9 +304,9 @@ export default function SignUpPage() {
           <button
             type="button"
             className={`tab-button ${
-              accountType === "business" ? "active" : ""
+              role === "BusinessOwner" ? "active" : ""
             }`}
-            onClick={() => setAccountType("business")}
+            onClick={() => setRole("BusinessOwner")}
           >
             <Building2 size={20} />
             <span>Tài Khoản Doanh Nghiệp</span>
@@ -214,6 +315,20 @@ export default function SignUpPage() {
 
         <div className="form-and-info-wrapper">
           <form className="register-form" onSubmit={handleSubmit}>
+            {/* Message Display */}
+            {message && (
+              <div className={`register-message ${message.type === 'success' ? 'success' : 'error'}`}>
+                <div className="register-message-content">
+                  {message.type === 'success' ? (
+                    <CheckCircle size={20} />
+                  ) : (
+                    <XCircle size={20} />
+                  )}
+                  <span>{message.text}</span>
+                </div>
+              </div>
+            )}
+            
             <div className="form-grid">
               <div className="form-group">
                 <label htmlFor="fullName">Họ và Tên *</label>
@@ -230,21 +345,21 @@ export default function SignUpPage() {
                 </div>
               </div>
 
-              {accountType === "business" && (
+              {role === "BusinessOwner" && (
                 <div className="form-group">
                   <label htmlFor="organizationName">
                     Tên Tổ Chức/Doanh Nghiệp *
                   </label>
                   <div className="input-wrapper">
-                    <input
-                      type="text"
-                      id="organizationName"
-                      name="organizationName"
-                      placeholder="Nhập tên tổ chức/doanh nghiệp"
-                      value={registerForm.organizationName}
-                      onChange={handleInputChange}
-                      required
-                    />
+                  <input
+                    type="text"
+                    id="organizationName"
+                    name="organization"
+                    placeholder="Nhập tên tổ chức/doanh nghiệp"
+                    value={registerForm.organization}
+                    onChange={handleInputChange}
+                    required
+                  />
                   </div>
                 </div>
               )}
@@ -257,9 +372,9 @@ export default function SignUpPage() {
                   <input
                     type="tel"
                     id="phone"
-                    name="phone"
+                    name="phoneNumber"
                     placeholder="Nhập số điện thoại"
-                    value={registerForm.phone}
+                    value={registerForm.phoneNumber}
                     onChange={handleInputChange}
                     required
                   />
@@ -343,50 +458,52 @@ export default function SignUpPage() {
                   )}
               </div>
 
-              {accountType === "business" && (
-                <div className="form-group">
-                  <label htmlFor="businessDocument">Giấy tờ chứng minh*</label>
-                  <div
-                    className="input-wrapper"
-                    style={{ position: "relative" }}
-                  >
-                    <input
-                      type="file"
-                      id="businessDocument"
-                      name="businessDocument"
-                      accept="image/*,.pdf"
-                      onChange={handleFileChange}
-                      required
-                      style={{
-                        display: "none",
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        document.getElementById("businessDocument")?.click()
-                      }
-                      className="custom-file-btn"
-                      style={{
-                        width: "100%",
-                        padding: "12px",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                        background: "#fff",
-                        color: "#1a1a1a",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {registerForm.businessDocument
-                        ? `Đã chọn: ${registerForm.businessDocument.name}`
-                        : "Chọn tệp giấy tờ..."}
-                    </button>
-                  </div>
-                  {!registerForm.businessDocument && (
-                    <small style={{ color: "#888" }}>Chưa chọn tệp nào</small>
-                  )}
-                </div>
-              )}
+               {role === "BusinessOwner" && (
+                 <div className="form-group">
+                   <label htmlFor="businessLicense">Giấy Phép Kinh Doanh*</label>
+                   <div
+                     className="input-wrapper"
+                     style={{ position: "relative" }}
+                   >
+                     <input
+                       type="file"
+                       id="businessLicense"
+                       name="businessLicense"
+                       accept="image/*,.pdf"
+                       onChange={handleFileChange}
+                       required
+                       style={{
+                         display: "none",
+                       }}
+                     />
+                     <button
+                       type="button"
+                       onClick={() =>
+                         document.getElementById("businessLicense")?.click()
+                       }
+                       className="custom-file-btn"
+                       style={{
+                         width: "100%",
+                         padding: "12px",
+                         border: "1px solid #e5e7eb",
+                         borderRadius: "8px",
+                         background: "#fff",
+                         color: "#1a1a1a",
+                         cursor: "pointer",
+                       }}
+                     >
+                       {registerForm.businessLicense
+                         ? `Đã chọn: ${registerForm.businessLicense}`
+                         : "Chọn tệp giấy phép kinh doanh..."}
+                     </button>
+                   </div>
+                   {!registerForm.businessLicense && role === "BusinessOwner" && (
+                     <small style={{ color: "#ef4444", fontWeight: "500" }}>
+                       Vui lòng chọn tệp giấy phép kinh doanh
+                     </small>
+                   )}
+                 </div>
+               )}
             </div>
 
             <button
@@ -410,7 +527,7 @@ export default function SignUpPage() {
 
           <div className="process-section">
             <h3 className="section-title">Quy Trình Đăng Ký</h3>
-            {accountType === "member" ? (
+            {role === "Member" ? (
               <div className="process-steps">
                 <div className="step-item">
                   <div className="step-number">1</div>

@@ -9,19 +9,26 @@ import { DeleteTaskModal } from '@/components/tasks/DeleteTaskModal';
 import { CreateMilestoneModal } from '@/components/milestones/CreateMilestoneModal';
 import { Project } from '@/types/project';
 import { Task } from '@/types/milestone';
-import { mockProjects, mockMembers, mockTasks, addMilestone } from '@/constants/mockData';
+import { mockTasks, addMilestone } from '@/constants/mockData';
 import { Plus, Calendar, Users, Target } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { useAuth } from '@/hooks/useAuth';
 import '@/app/styles/project-detail.scss';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { projectService } from '@/services/projectService';
+import { userService } from '@/services/userService';
+import { taskService } from '@/services/taskService';
+import { toast } from 'react-toastify';
 
 const ProjectDetailPage = () => {
   const params = useParams();
   const searchParams = useSearchParams();
   const projectId = params.projectId as string;
   const { role } = useUser();
-  const [project, setProject] = useState<Project | null>(null);
+  const { user } = useAuth();
+  const [project, setProject] = useState<any | null>(null); // Extended project with members
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
@@ -32,15 +39,13 @@ const ProjectDetailPage = () => {
   const [taskToDelete, setTaskToDelete] = useState<{ id: string; title: string } | null>(null);
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [projectProgress, setProjectProgress] = useState(0);
 
-  // Mock data for available project managers
-  const availableProjectManagers = [
-    { id: '1', name: 'Nguyễn Văn A', email: 'nguyenvana@company.com' },
-    { id: '2', name: 'Trần Thị B', email: 'tranthib@company.com' },
-    { id: '3', name: 'Lê Văn C', email: 'levanc@company.com' },
-    { id: '4', name: 'Phạm Thị D', email: 'phamthid@company.com' },
-    { id: '5', name: 'Hoàng Văn E', email: 'hoangvane@company.com' },
-  ];
+  // Mock data for available project managers (kept for compatibility)
+  const availableProjectManagers = allUsers.filter(user => 
+    user.role?.toLowerCase() === 'projectmanager' || user.role?.toLowerCase() === 'project manager'
+  );
 
   // Check if user has permission to create milestones
   const canCreateMilestone = role && role.toLowerCase() !== 'member';
@@ -64,31 +69,72 @@ const ProjectDetailPage = () => {
     setIsCreateTaskModalOpen(false);
   };
 
-  const handleSubmitTask = (taskData: any) => {
-    // Mock task creation - replace with actual API call
-    console.log('Creating new task:', taskData);
-    // In real implementation, this would call API to create task
-    alert('Tạo công việc thành công!');
-    setIsCreateTaskModalOpen(false);
-  };
+  const handleSubmitTask = async (taskData: any) => {
+    try {
+      if (!user?.userId) {
+        toast.error('Không tìm thấy thông tin người dùng');
+        return;
+      }
 
-  const handleDeleteTask = (taskId: string) => {
-    // Find task to get title for confirmation
-    const task = mockTasks.find(t => t.id === taskId);
-    if (task) {
-      setTaskToDelete({ id: taskId, title: task.title });
-      setIsDeleteTaskModalOpen(true);
+      // console.log('Creating new task:', taskData);
+      
+      // Prepare request data
+      const requestData = {
+        projectId: projectId,
+        userId: taskData.assignee || undefined, // Only include userId if assignee is selected
+        title: taskData.title,
+        description: taskData.description || '',
+        status: taskData.status || 'Chưa bắt đầu',
+        startDate: taskData.startDate || undefined,
+        endDate: taskData.endDate || undefined,
+        milestoneIds: taskData.milestoneIds || []
+      };
+
+      const response = await taskService.createTask(requestData);
+      
+      if (response.success) {
+        toast.success('Tạo công việc thành công!');
+        setIsCreateTaskModalOpen(false);
+        // Trigger refresh
+        setRefreshKey(prev => prev + 1);
+      } else {
+        toast.error(`Lỗi: ${response.error || 'Không thể tạo công việc'}`);
+      }
+    } catch (error: any) {
+      // console.error('Error creating task:', error);
+      toast.error('Có lỗi xảy ra khi tạo công việc. Vui lòng thử lại!');
     }
   };
 
-  const confirmDeleteTask = () => {
-    if (taskToDelete) {
-      // Mock task deletion - replace with actual API call
+  const handleDeleteTask = (taskId: string, taskTitle?: string) => {
+    // Set task to delete for confirmation modal
+    setTaskToDelete({ 
+      id: taskId, 
+      title: taskTitle || 'công việc này' 
+    });
+    setIsDeleteTaskModalOpen(true);
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return;
+
+    try {
       console.log('Deleting task:', taskToDelete.id);
-      // In real implementation, this would call API to delete task
-      alert(`Đã xóa công việc: ${taskToDelete.title}`);
-      setTaskToDelete(null);
-      setIsDeleteTaskModalOpen(false);
+      
+      const response = await taskService.deleteTask(taskToDelete.id);
+      
+      if (response.success) {
+        toast.success(`Đã xóa công việc: ${taskToDelete.title}`);
+        setTaskToDelete(null);
+        setIsDeleteTaskModalOpen(false);
+        // Trigger refresh to reload task list
+        setRefreshKey(prev => prev + 1);
+      } else {
+        toast.error(`Lỗi: ${response.error || 'Không thể xóa công việc'}`);
+      }
+    } catch (error: any) {
+      // console.error('Error deleting task:', error);
+      toast.error('Có lỗi xảy ra khi xóa công việc. Vui lòng thử lại!');
     }
   };
 
@@ -102,13 +148,43 @@ const ProjectDetailPage = () => {
     setTaskToEdit(null);
   };
 
-  const handleUpdateTask = (taskData: any) => {
-    // Mock task update - replace with actual API call
-    console.log('Updating task:', taskData);
-    // In real implementation, this would call API to update task
-    alert('Cập nhật công việc thành công!');
-    setIsEditTaskModalOpen(false);
-    setTaskToEdit(null);
+  const handleUpdateTask = async (taskData: any) => {
+    try {
+      if (!taskToEdit?.id) {
+        toast.error('Không tìm thấy thông tin công việc');
+        return;
+      }
+
+      // console.log('Updating task:', taskData);
+      
+      // Prepare request data
+      const requestData = {
+        id: taskToEdit.id,
+        projectId: projectId,
+        userId: taskData.assignee || undefined, // Only include userId if assignee is selected
+        title: taskData.title,
+        description: taskData.description || '',
+        status: taskData.status,
+        startDate: taskData.startDate || undefined,
+        endDate: taskData.endDate || undefined,
+        milestoneIds: taskData.milestoneIds || []
+      };
+
+      const response = await taskService.updateTask(requestData);
+      
+      if (response.success) {
+        toast.success('Cập nhật công việc thành công!');
+        setIsEditTaskModalOpen(false);
+        setTaskToEdit(null);
+        // Trigger refresh
+        setRefreshKey(prev => prev + 1);
+      } else {
+        toast.error(`Lỗi: ${response.error || 'Không thể cập nhật công việc'}`);
+      }
+    } catch (error: any) {
+      // console.error('Error updating task:', error);
+      toast.error('Có lỗi xảy ra khi cập nhật công việc. Vui lòng thử lại!');
+    }
   };
 
   const handleCreateMilestone = () => {
@@ -127,7 +203,7 @@ const ProjectDetailPage = () => {
     try {
       // Add milestone to mockData
       const newMilestone = addMilestone(milestoneData);
-      console.log('Created new milestone:', newMilestone);
+      // console.log('Created new milestone:', newMilestone);
       
       // Trigger UI refresh by updating refreshKey
       setRefreshKey(prev => prev + 1);
@@ -135,68 +211,149 @@ const ProjectDetailPage = () => {
       // Milestone created successfully - UI will automatically refresh
       // No need for alert since user can see the new milestone in the list
     } catch (error) {
-      console.error('Error creating milestone:', error);
-      alert('Có lỗi xảy ra khi tạo cột mốc. Vui lòng thử lại!');
+      // console.error('Error creating milestone:', error);
+      toast.error('Có lỗi xảy ra khi tạo cột mốc. Vui lòng thử lại!');
     }
   };
 
-  // Calculate project progress based on tasks for specific project
-  const calculateProjectProgress = (projectId: string) => {
-    // Get tasks for this specific project based on milestoneIds
-    const projectMilestones = mockProjects.find(p => p.id === projectId)?.milestones || [];
-    const projectTasks = mockTasks.filter(task => 
-      task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
-    );
-    
-    const completedTasks = projectTasks.filter(task => task.status === 'done').length;
-    const totalTasks = projectTasks.length;
-    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  };
-
-  // Load project data from mockData
+  // Load project data from API
   useEffect(() => {
-    // Get tab from URL parameters
-    const tabFromUrl = searchParams.get('tab');
-    if (tabFromUrl && ['summary', 'board', 'list', 'documents', 'meetings', 'settings'].includes(tabFromUrl)) {
-      setActiveTab(tabFromUrl);
-    }
+    const fetchProjectData = async () => {
+      setLoading(true);
+      setError('');
 
-    // Simulate API call delay
-    const timer = setTimeout(() => {
-      // Find the specific project
-      const currentMockProject = mockProjects.find(p => p.id === projectId);
-      
-      if (currentMockProject) {
-        // Convert mockProject to Project type with members data
-        const projectWithMembers: Project = {
-          ...currentMockProject,
-          status: currentMockProject.status as "active" | "planning" | "on-hold" | "completed",
-          manager: mockMembers[0].name,
-          members: mockMembers.filter(member => 
-            currentMockProject.members.includes(member.id)
-          ).map(member => ({
-            id: member.id,
-            name: member.name,
-            email: member.email,
-            role: member.role,
-            avatar: member.avatar
-          })),
-          // Initialize with default project managers
-          projectManagers: [
-            { id: '1', name: 'Nguyễn Văn A', email: 'nguyenvana@company.com' },
-            { id: '2', name: 'Trần Thị B', email: 'tranthib@company.com' }
-          ],
-          progress: calculateProjectProgress(projectId)
-        };
-        setProject(projectWithMembers);
-      } else {
-        setProject(null);
+      // Get tab from URL parameters
+      const tabFromUrl = searchParams.get('tab');
+      if (tabFromUrl && ['summary', 'board', 'list', 'documents', 'meetings', 'settings'].includes(tabFromUrl)) {
+        setActiveTab(tabFromUrl);
       }
-      setLoading(false);
-    }, 500);
 
-    return () => clearTimeout(timer);
+      try {
+        // Validate projectId first
+        if (!projectId || projectId === 'undefined' || projectId === 'null') {
+          // console.error('Invalid projectId:', projectId);
+          setError('ID dự án không hợp lệ');
+          setLoading(false);
+          return;
+        }
+
+        // console.log('Fetching project with ID:', projectId);
+
+        // Check if user is authenticated and has userId
+        if (!user || !user.userId) {
+          console.error('User not authenticated');
+          setError('Vui lòng đăng nhập để xem dự án');
+          setLoading(false);
+          return;
+        }
+
+        // Fetch all users first (for member lookup) - only if user is BusinessOwner
+        if (user.role?.toLowerCase() === 'businessowner') {
+          try {
+            const usersResult = await userService.getMembersByBO(user.userId);
+            if (usersResult.success && usersResult.data) {
+              setAllUsers(usersResult.data);
+            } else {
+              console.warn('Failed to fetch members:', usersResult.error);
+              // Continue anyway, just with empty users list
+            }
+          } catch (err: any) {
+            // console.warn('Error fetching members (403 expected for non-BO):', err);
+            // 403 is expected if user is not BusinessOwner, continue with empty list
+          }
+        }
+
+        // Fetch project details from API
+        const result = await projectService.getProjectById(projectId);
+        
+        if (result.success && result.data) {
+          // console.log('Project fetched successfully:', result.data);
+          
+          // Fetch project members
+          let membersResult;
+          try {
+            membersResult = await projectService.getProjectMembers(projectId);
+            
+            if (membersResult.success && membersResult.data) {
+              if (membersResult.data.length === 0) {
+                console.log('Project has no members yet (newly created project)');
+              } else {
+                // console.log('Members fetched:', membersResult.data);
+              }
+            } else {
+              console.warn('Failed to fetch members:', membersResult.error);
+            }
+          } catch (memberErr: any) {
+            console.error('Error fetching members:', memberErr);
+            membersResult = { success: true, data: [] };
+          }
+          
+          // Combine project data with members
+          const projectWithMembers = {
+            ...result.data,
+            members: membersResult.success && membersResult.data 
+              ? membersResult.data.map((memberResponse: any) => ({
+                  userId: memberResponse.id,
+                  fullName: memberResponse.fullName,
+                  email: memberResponse.email,
+                  role: memberResponse.roleName,
+                  image: memberResponse.avatarUrl || ''
+                }))
+              : [],
+            progress: 0, // TODO: Calculate from tasks/milestones
+            manager: result.data.owner?.fullName || result.data.createdBy?.fullName || 'N/A',
+            milestones: [], // TODO: Fetch milestones
+            projectManagers: [] // TODO: Fetch project managers if needed
+          };
+          
+          setProject(projectWithMembers);
+        } else {
+          setError(result.error || 'Không thể tải dự án');
+          setProject(null);
+        }
+      } catch (err) {
+        console.error('Error fetching project:', err);
+        setError('Đã xảy ra lỗi khi tải dự án');
+        setProject(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (projectId) {
+      fetchProjectData();
+    }
   }, [projectId, searchParams]);
+
+  // Fetch tasks and calculate progress
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!projectId) return;
+
+      try {
+        const tasksResult = await taskService.getTasksByProjectId(projectId);
+        
+        if (tasksResult.success && tasksResult.data) {
+          const tasks = (tasksResult.data as any).items || tasksResult.data;
+          const taskArray = Array.isArray(tasks) ? tasks : [];
+          
+          const totalTasks = taskArray.length;
+          const completedTasks = taskArray.filter((task: any) => 
+            task.status?.toLowerCase() === 'hoàn thành' || 
+            task.status?.toLowerCase() === 'completed'
+          ).length;
+          
+          const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+          setProjectProgress(progress);
+        }
+      } catch (error) {
+        console.error('Error fetching tasks for progress:', error);
+        setProjectProgress(0);
+      }
+    };
+
+    fetchProgress();
+  }, [projectId, refreshKey]); // Re-fetch when refreshKey changes
 
   if (loading) {
     return (
@@ -207,11 +364,11 @@ const ProjectDetailPage = () => {
     );
   }
 
-  if (!project) {
+  if (error || !project) {
     return (
       <div className="project-detail-error">
         <h2>Không tìm thấy dự án</h2>
-        <p>Dự án với ID "{projectId}" không tồn tại.</p>
+        <p>{error || `Dự án với ID "${projectId}" không tồn tại.`}</p>
       </div>
     );
   }
@@ -222,26 +379,33 @@ const ProjectDetailPage = () => {
         <div className="project-info">
           <div className="project-title-section">
             <h1 className="project-title">{project.name}</h1>
-            <span className={`status-badge status-${project.status}`}>
-              {project.status === 'active' && 'Đang hoạt động'}
-              {project.status === 'planning' && 'Đang lập kế hoạch'}
-              {project.status === 'on-hold' && 'Tạm dừng'}
-              {project.status === 'completed' && 'Hoàn thành'}
+            <span className={`status-badge ${
+              project.status === 'Đang hoạt động' ? 'status-active' :
+              project.status === 'Lập kế hoạch' ? 'status-planning' :
+              project.status === 'Tạm dừng' ? 'status-on-hold' :
+              project.status === 'Hoàn thành' ? 'status-completed' : ''
+            }`}>
+              {project.status === 'Đang hoạt động' && 'Đang hoạt động'}
+              {project.status === 'Lập kế hoạch' && 'Lập kế hoạch'}
+              {project.status === 'Tạm dừng' && 'Tạm dừng'}
+              {project.status === 'Hoàn thành' && 'Hoàn thành'}
             </span>
           </div>
           <p className="project-description">{project.description}</p>
           <div className="project-meta">
             <div className="meta-item">
               <Calendar size={16} />
-              <span>{new Date(project.startDate).toLocaleDateString('vi-VN')} - {new Date(project.endDate).toLocaleDateString('vi-VN')}</span>
+              <span>
+                {project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : 'N/A'} - {project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : 'N/A'}
+              </span>
             </div>
             <div className="meta-item">
               <Users size={16} />
-              <span>{project?.members?.length} thành viên</span>
+              <span>{project.members?.length || 0} thành viên</span>
             </div>
             <div className="meta-item">
               <Target size={16} />
-              <span>Tiến độ: {project.progress}%</span>
+              <span>Tiến độ: {projectProgress}%</span>
             </div>
           </div>
         </div>
@@ -268,6 +432,8 @@ const ProjectDetailPage = () => {
         onEditTask={handleEditTask}
         onTabChange={handleTabChange}
         initialActiveTab={activeTab}
+        availableProjectManagers={availableProjectManagers}
+        refreshKey={refreshKey}
       />
       
       {/* Task Detail Modal */}
@@ -275,15 +441,7 @@ const ProjectDetailPage = () => {
         <DetailTaskModal
           isOpen={isTaskModalOpen}
           onClose={handleCloseTaskModal}
-          onEdit={(task) => {
-            console.log('Editing task:', task);
-            // Handle task edit - you can implement actual edit logic here
-          }}
-          onDelete={(taskId, taskTitle) => {
-            console.log('Deleting task:', taskId, taskTitle);
-            // Handle task delete - you can implement actual delete logic here
-          }}
-          task={selectedTask}
+          task={selectedTask as any}
           projectId={projectId}
         />
       )}

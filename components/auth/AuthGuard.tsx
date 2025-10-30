@@ -3,37 +3,70 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, getCurrentUser, getAccessToken } from "@/lib/auth";
 
 interface AuthGuardProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  requiredPermissions?: string[];
+  requiredRoles?: string[];
 }
 
-const AuthGuard = ({ children, fallback }: AuthGuardProps) => {
+const AuthGuard = ({ 
+  children, 
+  fallback, 
+  requiredPermissions = [], 
+  requiredRoles = [] 
+}: AuthGuardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
+  const [hasPermission, setHasPermission] = useState(true);
   const { userId, email, role } = useUser();
   const router = useRouter();
 
   useEffect(() => {
     const checkAuth = () => {
+      const token = getAccessToken();
+      
+      // If no token at all, redirect to sign-in
+      if (!token) {
+        console.log("No access token found, redirecting to sign-in");
+        setHasPermission(false);
+        router.push("/landing");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Check if user is authenticated (don't check token expiration here)
       const authenticated = isAuthenticated();
-
+      const user = getCurrentUser();
+      
       setIsUserAuthenticated(authenticated);
-      setIsLoading(false);
-
-      if (!authenticated) {
+      
+      if (authenticated && user) {
+        // Check role-based access
+        if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
+          console.log(`User role ${user.role} not authorized for this route`);
+          setHasPermission(false);
+          router.push("/dashboard");
+          return;
+        }
+        
+        setHasPermission(true);
+      } else {
+        setHasPermission(false);
         console.log("User not authenticated, redirecting to sign-in");
         router.push("/landing");
       }
+      
+      setIsLoading(false);
     };
 
     // Small delay to ensure localStorage is available
     const timer = setTimeout(checkAuth, 100);
 
     return () => clearTimeout(timer);
-  }, [userId, email, role, router]);
+  }, [userId, email, role, router, requiredRoles, requiredPermissions]);
 
   if (isLoading) {
     return (
@@ -81,8 +114,8 @@ const AuthGuard = ({ children, fallback }: AuthGuardProps) => {
     );
   }
 
-  if (!isUserAuthenticated) {
-    return null; // Will redirect to sign-in
+  if (!isUserAuthenticated || !hasPermission) {
+    return null; // Will redirect to appropriate page
   }
 
   return <>{children}</>;

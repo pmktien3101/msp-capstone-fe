@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
 import { OverviewCards } from './OverviewCards';
 import { StatusOverview } from './StatusOverview';
@@ -8,45 +8,162 @@ import { MilestoneProgress } from './MilestoneProgress';
 import { TeamWorkload } from './TeamWorkload';
 import { TasksList } from './TasksList';
 import { UpcomingMeetings } from './UpcomingMeetings';
-import { mockProjects, mockTasks, mockMilestones, mockMeetings, mockMembers } from '@/constants/mockData';
+import { milestoneService } from '@/services/milestoneService';
+import { taskService } from '@/services/taskService';
+import { projectService } from '@/services/projectService';
+import { GetTaskResponse } from '@/types/task';
+import { MilestoneBackend } from '@/types/milestone';
 
 interface ProjectSummaryProps {
   project: Project;
 }
 
 export function ProjectSummary({ project }: ProjectSummaryProps) {
-  // Calculate stats for this specific project
-  const projectMilestones = mockMilestones.filter(m => m.projectId === project.id);
-  const projectTasks = mockTasks.filter(task => 
-    task.milestoneIds.some(milestoneId => projectMilestones.some(m => m.id === milestoneId))
-  );
+  const [projectMilestones, setProjectMilestones] = useState<MilestoneBackend[]>([]);
+  const [projectTasks, setProjectTasks] = useState<GetTaskResponse[]>([]);
+  const [projectMembers, setProjectMembers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const projectId = project?.id?.toString();
+
+  // Fetch all data for the project
+  useEffect(() => {
+    const fetchProjectData = async () => {
+      if (!projectId) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // Fetch milestones, tasks, and members in parallel
+        const [milestonesRes, tasksRes, membersRes] = await Promise.all([
+          milestoneService.getMilestonesByProjectId(projectId),
+          taskService.getTasksByProjectId(projectId),
+          projectService.getProjectMembers(projectId)
+        ]);
+
+        // Set milestones
+        if (milestonesRes.success && milestonesRes.data) {
+          setProjectMilestones(milestonesRes.data);
+        } else {
+          setProjectMilestones([]);
+        }
+
+        // Set tasks
+        if (tasksRes.success && tasksRes.data) {
+          setProjectTasks(tasksRes.data.items || []);
+        } else {
+          setProjectTasks([]);
+        }
+
+        // Set members
+        if (membersRes.success && membersRes.data) {
+          setProjectMembers(membersRes.data);
+        } else {
+          setProjectMembers([]);
+        }
+      } catch (error) {
+        console.error('[ProjectSummary] Error fetching project data:', error);
+        setProjectMilestones([]);
+        setProjectTasks([]);
+        setProjectMembers([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProjectData();
+  }, [projectId]);
   
+  // Calculate stats from API data
   const stats = {
     total: projectTasks.length,
-    completed: projectTasks.filter(task => task.status === 'done').length,
-    inProgress: projectTasks.filter(task => task.status === 'in-progress').length,
-    todo: projectTasks.filter(task => task.status === 'todo').length,
-    review: projectTasks.filter(task => task.status === 'review').length,
-    completionRate: projectTasks.length > 0 ? Math.round((projectTasks.filter(task => task.status === 'done').length / projectTasks.length) * 100) : 0,
+    completed: projectTasks.filter(task => task.status === 'Hoàn thành').length,
+    inProgress: projectTasks.filter(task => task.status === 'Đang làm').length,
+    todo: projectTasks.filter(task => task.status === 'Chưa bắt đầu').length,
+    onHold: projectTasks.filter(task => task.status === 'Tạm dừng').length,
+    completionRate: projectTasks.length > 0 
+      ? Math.round((projectTasks.filter(task => task.status === 'Hoàn thành').length / projectTasks.length) * 100) 
+      : 0,
   };
+
+  if (isLoading) {
+    return (
+      <div className="project-summary">
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <p>Đang tải dữ liệu tổng quan...</p>
+        </div>
+        <style jsx>{`
+          .project-summary {
+            width: 100%;
+            padding: 24px;
+          }
+          
+          .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+            color: #64748b;
+          }
+
+          .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #FF5E13;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+          }
+
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+
+          .loading-state p {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 500;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="project-summary">
       {/* Overview Cards */}
-      <OverviewCards project={project} stats={stats} />
+      <OverviewCards 
+        project={project} 
+        stats={stats}
+      />
 
       {/* Main Content Grid */}
       <div className="summary-content">
         {/* Left Column */}
         <div className="summary-left">
-          <MilestoneProgress project={project} />
-          <TasksList project={project} />
+          <MilestoneProgress 
+            project={project}
+          />
+          <TasksList 
+            project={project}
+          />
         </div>
 
         {/* Right Column */}
         <div className="summary-right">
-          <StatusOverview project={project} stats={stats} />
-          <TeamWorkload project={project} />
+          <StatusOverview 
+            project={project} 
+            stats={stats}
+          />
+          <TeamWorkload 
+            project={project}
+          />
           <UpcomingMeetings project={project} />
         </div>
       </div>
