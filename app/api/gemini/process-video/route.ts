@@ -178,6 +178,24 @@ const parseImprovedTranscript = (improvedText: string, originalSegments: any[]) 
     }));
 };
 
+// Hàm để cập nhật speakerIds trong improvedTranscript dựa trên originalTranscriptions
+function updateSpeakerIds(originalTrans: any[], improvedTrans: any[]) {
+    // 1. Lấy unique speakerId theo thứ tự xuất hiện
+    const speakerMap: string[] = [];
+    const seen = new Set();
+    for (const seg of originalTrans) {
+        if (!seen.has(seg.speakerId)) {
+            speakerMap.push(seg.speakerId);
+            seen.add(seg.speakerId);
+        }
+    }
+    // 2. Gán lại speakerId cho improved transcript (cứ lặp lại đúng thứ tự speakerMap)
+    return improvedTrans.map((seg, i) => ({
+        ...seg,
+        speakerId: speakerMap[i % speakerMap.length]
+    }));
+}
+
 // ===== API ROUTE HANDLER =====
 export async function POST(request: NextRequest) {
     console.log('🚀 API Route: process-video bắt đầu');
@@ -269,6 +287,8 @@ export async function POST(request: NextRequest) {
 
             improvedText = improvedResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
             improvedTranscript = parseImprovedTranscript(improvedText, transcriptSegments);
+            improvedTranscript = updateSpeakerIds(transcriptSegments, improvedTranscript);
+            improvedText = transcriptArrayToText(improvedTranscript);
 
         } catch (error: any) {
             console.warn('⚠️ Bước 2 thất bại sau khi retry, sử dụng transcript gốc:', error.message);
@@ -304,8 +324,6 @@ export async function POST(request: NextRequest) {
                                     Yêu cầu:
                                     - Tóm tắt nội dung chính của cuộc họp (3-5 câu)
                                     - Liệt kê các chủ đề được thảo luận
-                                    - Ghi lại các quyết định quan trọng (nếu có)
-                                    - Lưu ý các điểm nổi bật hoặc tranh luận
                                     - Định dạng rõ ràng với các mục bullet point
 
                                     Transcript:

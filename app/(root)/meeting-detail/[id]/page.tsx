@@ -4,6 +4,7 @@ import { useState, useEffect, use, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import ReactMarkdown from 'react-markdown';
 import {
   ArrowLeft,
   Video,
@@ -30,6 +31,7 @@ import { mockMilestones, mockParticipants } from "@/constants/mockData";
 import { toast } from "react-toastify";
 import { meetingService } from "@/services/meetingService";
 import { todoService } from "@/services/todoService";
+import { da } from "zod/v4/locales";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -61,7 +63,7 @@ export default function MeetingDetailPage() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editedTask, setEditedTask] = useState<any>(null);
   const [editMode, setEditMode] = useState<{ [key: string]: boolean }>({});
-  const [transcriptions, setTranscriptions] = useState<any[]>([]);
+  const [originalTranscriptions, setOriginalTranscriptions] = useState<any[]>([]);
   const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(false);
   const [transcriptionsError, setTranscriptionsError] = useState<string | null>(
     null
@@ -90,8 +92,7 @@ export default function MeetingDetailPage() {
   const [improvedTranscript, setImprovedTranscript] = useState<any[]>([]);
   const [summary, setSummary] = useState<string>("");
   const [todoList, setTodoList] = useState<any[]>([]);
-  const [isProcessingMeetingAI, setIsProcessingMeetingAI] =
-    useState<boolean>(false);
+  const [isProcessingMeetingAI, setIsProcessingMeetingAI] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch recordings when switching to recording tab and call is available
@@ -138,8 +139,8 @@ export default function MeetingDetailPage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log("Transcriptions data:", data);
-        setTranscriptions(data || []);
+        console.log("Original Transcriptions data:", data);
+        setOriginalTranscriptions(data || []);
       } catch (e: any) {
         // console.error("Failed to fetch transcriptions", e);
         setTranscriptionsError("Không tải được transcript");
@@ -180,8 +181,9 @@ export default function MeetingDetailPage() {
 
       if (data.success) {
         // Cập nhật state với kết quả
+        // const updatedImprovedTranscript = updateSpeakerIds(transcriptions, data.data.improvedTranscript);
         setImprovedTranscript(data.data.improvedTranscript);
-        // console.log('✅ Improved Transcript set:', data.data.improvedTranscript);
+        console.log('Improved Transcripts data:', data.data.improvedTranscript);
         // Map assigneeId thành tên trong summary
         const processedSummary = mapSummaryAssigneeIds(data.data.summary);
         setSummary(processedSummary);
@@ -299,20 +301,9 @@ export default function MeetingDetailPage() {
       setIsProcessingMeetingAI(false);
     }
   };
+
+  // useEffect để tự động gọi processVideo khi có đủ dữ liệu và chưa có kết quả
   useEffect(() => {
-    // console.log("🔄 useEffect triggered:", {
-    //   hasTranscriptions: !!transcriptions?.length,
-    //   hasRecording: !!recordings[0]?.url,
-    //   hasProcessed: hasProcessedRef.current,
-    //   hasExistingData: !!(
-    //     meetingInfo?.summary ||
-    //     meetingInfo?.transcription ||
-    //     todosFromDB.length > 0
-    //   ),
-    //   isLoadingMeeting,
-    //   meetingInfo: meetingInfo ? "loaded" : "not loaded",
-    //   todosFromDB: todosFromDB.length,
-    // });
 
     // Chỉ xử lý khi đã load xong meetingInfo
     if (isLoadingMeeting) {
@@ -326,11 +317,11 @@ export default function MeetingDetailPage() {
       meetingInfo?.transcription ||
       todosFromDB.length > 0
     ) {
-      // console.log("📋 Using existing AI data from DB");
       // Parse dữ liệu từ DB và hiển thị
       if (meetingInfo.transcription) {
         const parsedTranscript = parseTranscription(meetingInfo.transcription);
         setImprovedTranscript(parsedTranscript);
+        console.log("Transcript from DB:", parsedTranscript);
       }
       if (meetingInfo.summary) {
         // Map assigneeId thành tên trong summary từ DB
@@ -346,7 +337,7 @@ export default function MeetingDetailPage() {
     }
 
     // Chỉ call AI khi chưa có dữ liệu và có đủ thông tin cần thiết
-    if (!transcriptions || transcriptions.length === 0 || !recordings[0]?.url) {
+    if (!originalTranscriptions || originalTranscriptions.length === 0 || !recordings[0]?.url) {
       // console.log("⏸️ Missing data for AI processing");
       return;
     }
@@ -358,8 +349,8 @@ export default function MeetingDetailPage() {
 
     // console.log("▶️ Starting AI processing - no existing data found");
     hasProcessedRef.current = true;
-    processVideo(recordings[0], transcriptions);
-  }, [transcriptions, recordings, meetingInfo, isLoadingMeeting, todosFromDB]);
+    processVideo(recordings[0], originalTranscriptions);
+  }, [originalTranscriptions, recordings, meetingInfo, isLoadingMeeting, todosFromDB]);
 
   useEffect(() => {
     if (improvedTranscript && summary && todoList) {
@@ -428,9 +419,9 @@ export default function MeetingDetailPage() {
         (att: any) => att.id === speakerId
       );
       if (attendee?.fullName) {
-          // console.log(
-          //   `✅ Mapped speakerId ${speakerId} to fullName: ${attendee.fullName}`
-          // );
+        // console.log(
+        //   `✅ Mapped speakerId ${speakerId} to fullName: ${attendee.fullName}`
+        // );
         return attendee.fullName;
       }
     }
@@ -529,111 +520,6 @@ export default function MeetingDetailPage() {
 
     // console.log("Processed summary:", processedSummary);
     return processedSummary;
-  };
-
-  // Format date to dd-mm-yyyy
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "Chưa rõ";
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return "Chưa rõ";
-
-      const day = String(date.getDate()).padStart(2, "0");
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const year = date.getFullYear();
-
-      return `${day}-${month}-${year}`;
-    } catch (error) {
-      return "Chưa rõ";
-    }
-  };
-
-  // Function to find best matching participant by name similarity
-  const findBestMatch = (aiAssigneeName: string, participants: any[]) => {
-    if (!aiAssigneeName || !participants.length) return "";
-
-    const normalizedAiName = aiAssigneeName.toLowerCase().trim();
-
-    // First try exact match
-    let bestMatch = participants.find(
-      (p) =>
-        p.name.toLowerCase() === normalizedAiName ||
-        p.displayName.toLowerCase() === normalizedAiName
-    );
-
-    if (bestMatch) return bestMatch.email;
-
-    // Then try partial match (contains)
-    bestMatch = participants.find(
-      (p) =>
-        p.name.toLowerCase().includes(normalizedAiName) ||
-        normalizedAiName.includes(p.name.toLowerCase()) ||
-        p.displayName.toLowerCase().includes(normalizedAiName) ||
-        normalizedAiName.includes(p.displayName.toLowerCase())
-    );
-
-    if (bestMatch) return bestMatch.email;
-
-    // Try matching first name or last name
-    const aiNameParts = normalizedAiName.split(/\s+/);
-    bestMatch = participants.find((p) => {
-      const participantNameParts = p.name.toLowerCase().split(/\s+/);
-      return aiNameParts.some((part) =>
-        participantNameParts.some(
-          (pPart: string) =>
-            part.length > 2 &&
-            pPart.length > 2 &&
-            (part.includes(pPart) || pPart.includes(part))
-        )
-      );
-    });
-
-    if (bestMatch) return bestMatch.email;
-
-    // Try matching with email prefix
-    bestMatch = participants.find((p) => {
-      const emailPrefix = p.email.split("@")[0].toLowerCase();
-      return (
-        emailPrefix.includes(normalizedAiName) ||
-        normalizedAiName.includes(emailPrefix)
-      );
-    });
-
-    if (bestMatch) return bestMatch.email;
-
-    return ""; // No match found
-  };
-
-  // Convert date from dd-mm-yyyy to yyyy-mm-dd for input
-  const formatDateForInput = (dateString: string) => {
-    if (!dateString) return "";
-    try {
-      // If already in yyyy-mm-dd format, return as is
-      if (dateString.includes("-") && dateString.split("-")[0].length === 4) {
-        return dateString;
-      }
-
-      // If in dd-mm-yyyy format, convert to yyyy-mm-dd
-      if (dateString.includes("-") && dateString.split("-")[0].length === 2) {
-        const parts = dateString.split("-");
-        if (parts.length === 3) {
-          const [day, month, year] = parts;
-          return `${year}-${month}-${day}`;
-        }
-      }
-
-      // Try to parse as regular date
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return "";
-
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-
-      return `${year}-${month}-${day}`;
-    } catch (error) {
-      return "";
-    }
   };
 
   // Xử lý chỉnh sửa task
@@ -1557,7 +1443,7 @@ export default function MeetingDetailPage() {
                 )}
                 {!isLoadingTranscriptions &&
                   !transcriptionsError &&
-                  transcriptions.length === 0 && (
+                  originalTranscriptions.length === 0 && (
                     <div className="transcript-empty">
                       Chưa có transcript cho cuộc họp này
                     </div>
@@ -1582,20 +1468,18 @@ export default function MeetingDetailPage() {
                 {!isProcessingMeetingAI && improvedTranscript.length > 0 && (
                   <>
                     <div
-                      className={`transcript-content ${
-                        isTranscriptExpanded ? "expanded" : ""
-                      } ${
-                        improvedTranscript.length <= 4
+                      className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
+                        } ${improvedTranscript.length <= 4
                           ? "no-expand"
                           : ""
-                      }`}
+                        }`}
                       style={{
                         maxHeight:
                           improvedTranscript.length <= 4
                             ? "none"
                             : isTranscriptExpanded
-                            ? "none"
-                            : "200px",
+                              ? "none"
+                              : "200px",
                       }}
                     >
                       {improvedTranscript.map((item, index) => (
@@ -1657,7 +1541,7 @@ export default function MeetingDetailPage() {
                       <span>Đang tạo tóm tắt...</span>
                     </div>
                   )}
-                  {!isProcessingMeetingAI && summary && <p>{summary}</p>}
+                  {!isProcessingMeetingAI && summary && <ReactMarkdown>{summary}</ReactMarkdown>}
                 </div>
               </div>
 

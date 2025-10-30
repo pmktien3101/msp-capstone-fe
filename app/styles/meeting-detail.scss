@@ -133,7 +133,7 @@
         margin: 0 0 12px 0;
         line-height: 1.2;
         background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-        -webkit-background-clip: text;
+        background-clip: text;
         -webkit-text-fill-color: transparent;
       }
 
@@ -642,7 +642,7 @@
             color: #1f2937;
             margin: 0;
             background: linear-gradient(135deg, #1f2937 0%, #92400e 100%);
-            -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
           }
 
@@ -1439,3 +1439,8 @@
     }
   }
 }
+
+h2 { font-size: 2rem; margin-bottom: 1.5rem; }
+strong { font-weight: bold; }
+ul { margin-left: 2rem; }
+li { margin-top: 0.3rem; }
