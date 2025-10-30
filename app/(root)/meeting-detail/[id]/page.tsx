@@ -9,7 +9,6 @@ import {
   Video,
   FileText,
   Paperclip,
-  CheckSquare,
   Play,
   Download,
   Sparkles,
@@ -29,7 +28,6 @@ import { useGetCallById } from "@/hooks/useGetCallById";
 import { Call, CallRecording } from "@stream-io/video-react-sdk";
 import { mockMilestones, mockParticipants } from "@/constants/mockData";
 import { toast } from "react-toastify";
-import { is } from "zod/v4/locales";
 import { meetingService } from "@/services/meetingService";
 import { todoService } from "@/services/todoService";
 
@@ -71,7 +69,6 @@ export default function MeetingDetailPage() {
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
-  const [showJoinFlow, setShowJoinFlow] = useState(false);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
     isOpen: boolean;
     taskId: string | null;
@@ -104,7 +101,7 @@ export default function MeetingDetailPage() {
 
       // Nếu đã có recordUrl trong DB thì không cần load từ Stream
       if (meetingInfo?.recordUrl) {
-        console.log("Using recordUrl from DB, skipping Stream recordings");
+        // console.log("Using recordUrl from DB, skipping Stream recordings");
         setRecordings([]);
         setIsLoadingRecordings(false);
         return;
@@ -116,7 +113,7 @@ export default function MeetingDetailPage() {
         const res = await call.queryRecordings();
         setRecordings(res.recordings || []);
       } catch (e: any) {
-        console.error("Failed to fetch call recordings", e);
+        // console.error("Failed to fetch call recordings", e);
         setRecordingsError("Không tải được bản ghi cuộc họp");
       } finally {
         setIsLoadingRecordings(false);
@@ -144,7 +141,7 @@ export default function MeetingDetailPage() {
         console.log("Transcriptions data:", data);
         setTranscriptions(data || []);
       } catch (e: any) {
-        console.error("Failed to fetch transcriptions", e);
+        // console.error("Failed to fetch transcriptions", e);
         setTranscriptionsError("Không tải được transcript");
       } finally {
         setIsLoadingTranscriptions(false);
@@ -175,7 +172,7 @@ export default function MeetingDetailPage() {
 
       const data = await response.json();
 
-      console.log("GEMINI API Response:", data);
+      // console.log("GEMINI API Response:", data);
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to process video");
@@ -184,7 +181,7 @@ export default function MeetingDetailPage() {
       if (data.success) {
         // Cập nhật state với kết quả
         setImprovedTranscript(data.data.improvedTranscript);
-        console.log('✅ Improved Transcript set:', data.data.improvedTranscript);
+        // console.log('✅ Improved Transcript set:', data.data.improvedTranscript);
         // Map assigneeId thành tên trong summary
         const processedSummary = mapSummaryAssigneeIds(data.data.summary);
         setSummary(processedSummary);
@@ -201,7 +198,7 @@ export default function MeetingDetailPage() {
           });
 
           if (updateResult.success) {
-            console.log("Meeting updated successfully with AI data");
+            // console.log("Meeting updated successfully with AI data");
             // Cập nhật meetingInfo với data mới
             setMeetingInfo((prev: any) => ({
               ...prev,
@@ -211,19 +208,19 @@ export default function MeetingDetailPage() {
               todoList: JSON.stringify(data.data.todoList),
             }));
           } else {
-            console.error("Failed to update meeting:", updateResult.error);
+            // console.error("Failed to update meeting:", updateResult.error);
             // Không throw error vì AI processing đã thành công
             // Chỉ log warning
           }
         } catch (updateError) {
-          console.error("Error updating meeting with AI data:", updateError);
+          // console.error("Error updating meeting with AI data:", updateError);
           // Không throw error vì AI processing đã thành công
         }
 
         // Tạo todos từ AI response nếu có
         if (data.data.todoList && data.data.todoList.length > 0) {
           try {
-            console.log("Creating todos from AI response:", data.data.todoList);
+            // console.log("Creating todos from AI response:", data.data.todoList);
 
             // Map assigneeId từ AI với attendees trong meeting
             const mappedTodoList = data.data.todoList.map((todo: any) => {
@@ -235,9 +232,9 @@ export default function MeetingDetailPage() {
                   (att: any) => att.id === todo.assigneeId
                 );
                 if (!attendee) {
-                  console.warn(
-                    `AssigneeId ${todo.assigneeId} not found in attendees, using fallback`
-                  );
+                  // console.warn(
+                  //   `AssigneeId ${todo.assigneeId} not found in attendees, using fallback`
+                  // );
                   validAssigneeId = meetingInfo?.createdById;
                 }
               } else {
@@ -250,10 +247,10 @@ export default function MeetingDetailPage() {
               };
             });
 
-            console.log(
-              "Mapped todoList with valid assigneeIds:",
-              mappedTodoList
-            );
+            // console.log(
+            //   "Mapped todoList with valid assigneeIds:",
+            //   mappedTodoList
+            // );
 
             const createTodosResult = await todoService.createTodosFromAI(
               params.id as string,
@@ -261,10 +258,10 @@ export default function MeetingDetailPage() {
             );
 
             if (createTodosResult.success) {
-              console.log(
-                "Todos created successfully:",
-                createTodosResult.data
-              );
+              // console.log(
+              //   "Todos created successfully:",
+              //   createTodosResult.data
+              // );
               toast.success(
                 `${createTodosResult.data?.length || 0
                 } công việc đã được tạo từ AI`
@@ -278,48 +275,48 @@ export default function MeetingDetailPage() {
                 setTodoList(refreshResult.data);
               }
             } else {
-              console.error("Failed to create todos:", createTodosResult.error);
+              // console.error("Failed to create todos:", createTodosResult.error);
               toast.warning(
                 "Tạo công việc từ AI thất bại: " + createTodosResult.error
               );
             }
           } catch (todoError) {
-            console.error("Error creating todos from AI:", todoError);
+            // console.error("Error creating todos from AI:", todoError);
             toast.error("Lỗi khi tạo công việc từ AI");
           }
         } else {
-          console.log("No todoList in AI response or empty list");
+          // console.log("No todoList in AI response or empty list");
         }
 
-        console.log("Processing complete!", data.data);
+        // console.log("Processing complete!", data.data);
       } else {
         throw new Error(data.error || "Unknown error");
       }
     } catch (err: any) {
-      console.error("Error processing video:", err);
+      // console.error("Error processing video:", err);
       setError(err.message || "Không thể xử lý video. Vui lòng thử lại.");
     } finally {
       setIsProcessingMeetingAI(false);
     }
   };
   useEffect(() => {
-    console.log("🔄 useEffect triggered:", {
-      hasTranscriptions: !!transcriptions?.length,
-      hasRecording: !!recordings[0]?.url,
-      hasProcessed: hasProcessedRef.current,
-      hasExistingData: !!(
-        meetingInfo?.summary ||
-        meetingInfo?.transcription ||
-        todosFromDB.length > 0
-      ),
-      isLoadingMeeting,
-      meetingInfo: meetingInfo ? "loaded" : "not loaded",
-      todosFromDB: todosFromDB.length,
-    });
+    // console.log("🔄 useEffect triggered:", {
+    //   hasTranscriptions: !!transcriptions?.length,
+    //   hasRecording: !!recordings[0]?.url,
+    //   hasProcessed: hasProcessedRef.current,
+    //   hasExistingData: !!(
+    //     meetingInfo?.summary ||
+    //     meetingInfo?.transcription ||
+    //     todosFromDB.length > 0
+    //   ),
+    //   isLoadingMeeting,
+    //   meetingInfo: meetingInfo ? "loaded" : "not loaded",
+    //   todosFromDB: todosFromDB.length,
+    // });
 
     // Chỉ xử lý khi đã load xong meetingInfo
     if (isLoadingMeeting) {
-      console.log("⏸️ Still loading meeting info");
+      // console.log("⏸️ Still loading meeting info");
       return;
     }
 
@@ -329,7 +326,7 @@ export default function MeetingDetailPage() {
       meetingInfo?.transcription ||
       todosFromDB.length > 0
     ) {
-      console.log("📋 Using existing AI data from DB");
+      // console.log("📋 Using existing AI data from DB");
       // Parse dữ liệu từ DB và hiển thị
       if (meetingInfo.transcription) {
         const parsedTranscript = parseTranscription(meetingInfo.transcription);
@@ -350,27 +347,27 @@ export default function MeetingDetailPage() {
 
     // Chỉ call AI khi chưa có dữ liệu và có đủ thông tin cần thiết
     if (!transcriptions || transcriptions.length === 0 || !recordings[0]?.url) {
-      console.log("⏸️ Missing data for AI processing");
+      // console.log("⏸️ Missing data for AI processing");
       return;
     }
 
     if (hasProcessedRef.current) {
-      console.log("⏸️ Already processed");
+      // console.log("⏸️ Already processed");
       return;
     }
 
-    console.log("▶️ Starting AI processing - no existing data found");
+    // console.log("▶️ Starting AI processing - no existing data found");
     hasProcessedRef.current = true;
     processVideo(recordings[0], transcriptions);
   }, [transcriptions, recordings, meetingInfo, isLoadingMeeting, todosFromDB]);
 
   useEffect(() => {
     if (improvedTranscript && summary && todoList) {
-      console.log("✅ All data ready:", {
-        transcriptCount: improvedTranscript.length,
-        hasSummary: !!summary,
-        hasTodoList: !!todoList,
-      });
+      // console.log("✅ All data ready:", {
+      //   transcriptCount: improvedTranscript.length,
+      //   hasSummary: !!summary,
+      //   hasTodoList: !!todoList,
+      // });
     }
   }, [improvedTranscript, summary, todoList]);
 
@@ -431,9 +428,9 @@ export default function MeetingDetailPage() {
         (att: any) => att.id === speakerId
       );
       if (attendee?.fullName) {
-        console.log(
-          `✅ Mapped speakerId ${speakerId} to fullName: ${attendee.fullName}`
-        );
+          // console.log(
+          //   `✅ Mapped speakerId ${speakerId} to fullName: ${attendee.fullName}`
+          // );
         return attendee.fullName;
       }
     }
@@ -445,9 +442,9 @@ export default function MeetingDetailPage() {
     };
 
     const fallbackName = speakerMap[speakerId] || `Speaker ${speakerId}`;
-    console.log(
-      `⚠️ Using fallback for speakerId ${speakerId}: ${fallbackName}`
-    );
+    // console.log(
+    //   `⚠️ Using fallback for speakerId ${speakerId}: ${fallbackName}`
+    // );
     return fallbackName;
   };
 
@@ -457,7 +454,7 @@ export default function MeetingDetailPage() {
     try {
       return JSON.parse(transcriptionString);
     } catch (error) {
-      console.error("Error parsing transcription:", error);
+      // console.error("Error parsing transcription:", error);
       return [];
     }
   };
@@ -510,10 +507,10 @@ export default function MeetingDetailPage() {
     if (!summaryText || !meetingInfo?.attendees) return summaryText;
 
     let processedSummary = summaryText;
-    console.log("Mapping summary assigneeIds:", {
-      originalSummary: summaryText,
-      attendees: meetingInfo.attendees,
-    });
+    // console.log("Mapping summary assigneeIds:", {
+    //   originalSummary: summaryText,
+    //   attendees: meetingInfo.attendees,
+    // });
 
     meetingInfo.attendees.forEach((attendee: any) => {
       const regex = new RegExp(attendee.id, "g");
@@ -524,13 +521,13 @@ export default function MeetingDetailPage() {
       );
 
       if (beforeReplace !== processedSummary) {
-        console.log(
-          `Replaced ${attendee.id} with ${attendee.fullName || attendee.email}`
-        );
+        // console.log(
+        //   `Replaced ${attendee.id} with ${attendee.fullName || attendee.email}`
+        // );
       }
     });
 
-    console.log("Processed summary:", processedSummary);
+    // console.log("Processed summary:", processedSummary);
     return processedSummary;
   };
 
@@ -674,7 +671,7 @@ export default function MeetingDetailPage() {
         toast.error("Cập nhật công việc thất bại: " + updateResult.error);
       }
     } catch (error) {
-      console.error("Error updating todo:", error);
+      // console.error("Error updating todo:", error);
       toast.error("Lỗi khi cập nhật công việc");
     }
   };
@@ -714,7 +711,7 @@ export default function MeetingDetailPage() {
         toast.error("Xóa công việc thất bại: " + deleteResult.error);
       }
     } catch (error) {
-      console.error("Error deleting todo:", error);
+      // console.error("Error deleting todo:", error);
       toast.error("Lỗi khi xóa công việc");
     }
   };
@@ -754,7 +751,7 @@ export default function MeetingDetailPage() {
   // Xử lý confirm convert
   const handleConfirmConvert = () => {
     // TODO: Implement convert logic
-    console.log("Converting tasks:", selectedTasks);
+    // console.log("Converting tasks:", selectedTasks);
 
     // Show success toast
     toast.success(
@@ -1012,7 +1009,7 @@ export default function MeetingDetailPage() {
                         );
                       }
                     } catch (error) {
-                      console.error("Error updating todo:", error);
+                      // console.error("Error updating todo:", error);
                       toast.error("Lỗi khi cập nhật công việc");
                     }
                   }}
@@ -1100,8 +1097,8 @@ export default function MeetingDetailPage() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("Download recording error", err);
-      alert("Tải xuống thất bại. Vui lòng thử lại.");
+      // console.error("Download recording error", err);
+      toast.error("Tải xuống thất bại. Vui lòng thử lại.");
     } finally {
       setDownloadingId(null);
     }
@@ -1109,21 +1106,21 @@ export default function MeetingDetailPage() {
 
   useEffect(() => {
     async function fetchMeeting() {
-      console.log("🔄 Fetching meeting info for ID:", params.id);
+      // console.log("🔄 Fetching meeting info for ID:", params.id);
       setIsLoadingMeeting(true);
       try {
         const res = await meetingService.getMeetingById(params.id as string);
-        console.log("📋 Meeting fetch response:", res);
+        // console.log("📋 Meeting fetch response:", res);
 
         if (res.success && res.data) {
           setMeetingInfo(res.data);
-          console.log("✅ Meeting info loaded:", res.data);
+          // console.log("✅ Meeting info loaded:", res.data);
         } else {
-          console.log("❌ Failed to load meeting info");
+          // console.log("❌ Failed to load meeting info");
           setMeetingInfo(null);
         }
       } catch (err) {
-        console.error("❌ Error loading meeting info:", err);
+        // console.error("❌ Error loading meeting info:", err);
         setMeetingInfo(null);
       } finally {
         setIsLoadingMeeting(false);
@@ -1136,25 +1133,25 @@ export default function MeetingDetailPage() {
   useEffect(() => {
     async function fetchTodos() {
       if (!params.id) {
-        console.log("❌ No meeting ID, skipping todo fetch");
+        // console.log("❌ No meeting ID, skipping todo fetch");
         return;
       }
 
-      console.log("🔄 Fetching todos for meeting:", params.id);
+      // console.log("🔄 Fetching todos for meeting:", params.id);
       setIsLoadingTodos(true);
       try {
         const res = await todoService.getTodosByMeetingId(params.id as string);
-        console.log("📋 Todo fetch response:", res);
+        // console.log("📋 Todo fetch response:", res);
 
         if (res.success && res.data) {
           setTodosFromDB(res.data);
-          console.log("✅ Loaded todos from DB:", res.data);
+          // console.log("✅ Loaded todos from DB:", res.data);
         } else {
-          console.log("ℹ️ No todos found in DB or API error");
+          // console.log("ℹ️ No todos found in DB or API error");
           setTodosFromDB([]);
         }
       } catch (err) {
-        console.error("❌ Error loading todos:", err);
+        // console.error("❌ Error loading todos:", err);
         setTodosFromDB([]);
       } finally {
         setIsLoadingTodos(false);
@@ -1217,7 +1214,6 @@ export default function MeetingDetailPage() {
     displayParticipants.map(getParticipantEmail);
   // Xử lý khi nhấn tham gia cuộc họp
   const handleClickJoinMeeting = () => {
-    setShowJoinFlow(true);
     router.push(
       `${process.env.NEXT_PUBLIC_BASE_URL}/meeting/${meetingInfo.id}`
     );
@@ -1411,51 +1407,6 @@ export default function MeetingDetailPage() {
                   {recordingsError && !isLoadingRecordings && (
                     <div className="recording-error">{recordingsError}</div>
                   )}
-                  {/* {!isLoadingRecordings &&
-                    !recordingsError &&
-                    recordings.length === 0 && (
-                      <div className="recording-item mock-recording">
-                        <div className="recording-info">
-                          <Video size={20} />
-                          <div>
-                            <h5>Mock Data Bản Ghi Cuộc Họp</h5>
-                            <p>
-                              {new Date().toLocaleString("vi-VN")}
-                              <span className="recording-duration">
-                                {" "}
-                                · Thời lượng: 45:30
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                        <div className="recording-actions">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              alert(
-                                "Đây là mock data - không có bản ghi thực tế"
-                              )
-                            }
-                          >
-                            <Play size={16} />
-                            Xem
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              alert(
-                                "Đây là mock data - không có bản ghi thực tế"
-                              )
-                            }
-                          >
-                            <Download size={16} />
-                            Tải xuống
-                          </Button>
-                        </div>
-                      </div>
-                    )} */}
                   {!isLoadingRecordings &&
                     !recordingsError &&
                     (() => {
@@ -1629,43 +1580,74 @@ export default function MeetingDetailPage() {
                   </div>
                 )}
                 {!isProcessingMeetingAI && improvedTranscript.length > 0 && (
-                  <div
-                    className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
+                  <>
+                    <div
+                      className={`transcript-content ${
+                        isTranscriptExpanded ? "expanded" : ""
+                      } ${
+                        improvedTranscript.length <= 4
+                          ? "no-expand"
+                          : ""
                       }`}
-                    onClick={() =>
-                      setIsTranscriptExpanded(!isTranscriptExpanded)
-                    }
-                  >
-                    {improvedTranscript.map((item, index) => (
-                      <div key={index} className="transcript-item">
-                        <span className="timestamp">
-                          {formatTimestamp(item.startTs)}
-                        </span>
-                        <div className="transcript-text">
-                          <strong>{getSpeakerName(item.speakerId)}:</strong>{" "}
-                          {item.text}
+                      style={{
+                        maxHeight:
+                          improvedTranscript.length <= 4
+                            ? "none"
+                            : isTranscriptExpanded
+                            ? "none"
+                            : "200px",
+                      }}
+                    >
+                      {improvedTranscript.map((item, index) => (
+                        <div key={index} className="transcript-item">
+                          <span className="timestamp">
+                            {formatTimestamp(item.startTs)}
+                          </span>
+                          <div className="transcript-text">
+                            <strong>{getSpeakerName(item.speakerId)}:</strong>{" "}
+                            {item.text}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {!isProcessingMeetingAI &&
-                  improvedTranscript.length > 0 &&
-                  !isTranscriptExpanded && (
-                    <div className="transcript-expand-hint">
-                      <span>Click để xem toàn bộ lời thoại</span>
+                      ))}
                     </div>
-                  )}
+
+                    {improvedTranscript.length > 4 && (
+                      <div
+                        className="transcript-expand-hint"
+                        onClick={() =>
+                          setIsTranscriptExpanded(!isTranscriptExpanded)
+                        }
+                      >
+                        {isTranscriptExpanded ? (
+                          <>
+                            <span>Thu gọn lời thoại</span>
+                            <ArrowLeft size={16} style={{ transform: 'rotate(90deg)' }} />
+                          </>
+                        ) : (
+                          <>
+                            <span>Xem toàn bộ lời thoại ({improvedTranscript.length} đoạn)</span>
+                            <ArrowLeft size={16} style={{ transform: 'rotate(-90deg)' }} />
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               <div className="summary">
                 <div className="summary-header">
                   <div className="summary-title">
                     <div className="ai-icon">
-                      <Sparkles size={20} />
+                      <Sparkles size={24} />
                     </div>
-                    <h4>Tóm tắt AI</h4>
-                    <div className="ai-badge">Powered by AI</div>
+                    <div className="summary-title-text">
+                      <h4>Tóm tắt cuộc họp bằng AI</h4>
+                      <div className="ai-badge">
+                        <Sparkles size={10} />
+                        <span>Powered by Gemini AI</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="summary-content">
@@ -1675,11 +1657,6 @@ export default function MeetingDetailPage() {
                       <span>Đang tạo tóm tắt...</span>
                     </div>
                   )}
-                  {/* {summaryError && !isLoadingSummary && (
-                    <div className="summary-error">
-                      <p>{summaryError}</p>
-                    </div>
-                  )} */}
                   {!isProcessingMeetingAI && summary && <p>{summary}</p>}
                 </div>
               </div>
