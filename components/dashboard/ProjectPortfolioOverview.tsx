@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Project } from '@/types/project';
-import { mockProjects } from '@/constants/mockData';
 import { 
   FolderOpen, 
   CheckCircle, 
@@ -17,9 +16,10 @@ import {
 
 interface ProjectPortfolioOverviewProps {
   projects: Project[];
+  tasks?: any[];
 }
 
-export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewProps) => {
+export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfolioOverviewProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const router = useRouter();
 
@@ -27,17 +27,35 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
     router.push(`/projects/${projectId}`);
   };
 
+  // Calculate progress for a project
+  const calculateProgress = (projectId: string) => {
+    const projectTasks = tasks.filter((task: any) => task.projectId === projectId);
+    if (projectTasks.length === 0) return 0;
+    
+    const completedTasks = projectTasks.filter((task: any) => task.status === 'Hoàn thành').length;
+    return Math.round((completedTasks / projectTasks.length) * 100);
+  };
+
+  // Calculate member count for a project
+  const getMemberCount = (projectId: string) => {
+    const projectTasks = tasks.filter((task: any) => task.projectId === projectId);
+    const uniqueUsers = new Set(projectTasks.map((task: any) => task.userId).filter(Boolean));
+    return uniqueUsers.size;
+  };
+
   // Tính toán thống kê theo trạng thái
   const statusStats = {
-    active: projects.filter(p => p.status === 'active').length,
-    completed: projects.filter(p => p.status === 'completed').length,
-    planning: projects.filter(p => p.status === 'planning').length,
-    'on-hold': projects.filter(p => p.status === 'on-hold').length,
+    active: projects.filter(p => p.status === 'Đang hoạt động').length,
+    completed: projects.filter(p => p.status === 'Hoàn thành').length,
+    planning: projects.filter(p => p.status === 'Lập kế hoạch').length,
+    'on-hold': projects.filter(p => p.status === 'Tạm dừng').length,
   };
 
   const totalProjects = projects.length;
+  
+  // Calculate average progress from tasks
   const averageProgress = projects.length > 0 
-    ? Math.round(projects.reduce((sum, p) => sum + (p.progress ?? 0), 0) / projects.length)
+    ? Math.round(projects.reduce((sum, p) => sum + calculateProgress(p.id), 0) / projects.length)
     : 0;
 
   // Lọc dự án theo trạng thái
@@ -47,31 +65,21 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'rgba(16, 185, 129, 0.1)';
-      case 'completed': return 'rgba(59, 130, 246, 0.1)';
-      case 'planning': return 'rgba(245, 158, 11, 0.1)';
-      case 'on-hold': return 'rgba(239, 68, 68, 0.1)';
+      case 'Đang hoạt động': return 'rgba(16, 185, 129, 0.1)';
+      case 'Hoàn thành': return 'rgba(59, 130, 246, 0.1)';
+      case 'Lập kế hoạch': return 'rgba(245, 158, 11, 0.1)';
+      case 'Tạm dừng': return 'rgba(239, 68, 68, 0.1)';
       default: return 'rgba(107, 114, 128, 0.1)';
     }
   };
 
   const getStatusTextColor = (status: string) => {
     switch (status) {
-      case 'active': return '#10b981';
-      case 'completed': return '#3b82f6';
-      case 'planning': return '#f59e0b';
-      case 'on-hold': return '#ef4444';
+      case 'Đang hoạt động': return '#10b981';
+      case 'Hoàn thành': return '#3b82f6';
+      case 'Lập kế hoạch': return '#f59e0b';
+      case 'Tạm dừng': return '#ef4444';
       default: return '#6b7280';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'active': return 'Đang triển khai';
-      case 'completed': return 'Hoàn thành';
-      case 'planning': return 'Lập kế hoạch';
-      case 'on-hold': return 'Tạm dừng';
-      default: return status;
     }
   };
 
@@ -131,10 +139,9 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
           </div>
         </div>
 
-
         <div className="stat-card">
           <div className="stat-icon">
-            <Calendar size={24} />
+            <TrendingUp size={24} />
           </div>
           <div className="stat-content">
             <h3>{averageProgress}%</h3>
@@ -159,7 +166,11 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
               </tr>
             </thead>
             <tbody>
-              {filteredProjects.map(project => (
+              {filteredProjects.map(project => {
+                const progress = calculateProgress(project.id);
+                const memberCount = getMemberCount(project.id);
+                
+                return (
                 <tr key={project.id} className="project-row" onClick={() => handleProjectClick(project.id)}>
                   <td className="project-name-cell">
                     <div className="project-name-info">
@@ -175,24 +186,27 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
                         color: getStatusTextColor(project.status)
                       }}
                     >
-                      {getStatusLabel(project.status)}
+                      {project.status}
                     </div>
                   </td>
                   <td className="members-cell">
                     <div className="members-info">
                       <Users size={16} />
-                      <span>{project.members?.length ?? 0} thành viên</span>
+                      <span>{memberCount} thành viên</span>
                     </div>
                   </td>
                   <td className="progress-cell">
                     <div className="progress-info">
                       <div className="progress-header">
-                        <span>{(project.progress ?? 0)}%</span>
+                        <span>{progress}%</span>
                       </div>
                       <div className="progress-bar">
                         <div 
                           className="progress-fill"
-                          style={{ width: `${project.progress ?? 0}%` }}
+                          style={{ 
+                            width: `${progress}%`,
+                            backgroundColor: progress === 100 ? '#10b981' : progress > 50 ? '#3b82f6' : '#f59e0b'
+                          }}
                         />
                       </div>
                     </div>
@@ -200,17 +214,18 @@ export const ProjectPortfolioOverview = ({ projects }: ProjectPortfolioOverviewP
                   <td className="date-cell">
                     <div className="date-info">
                       <Calendar size={16} />
-                      <span>{new Date(project.startDate).toLocaleDateString('vi-VN')}</span>
+                      <span>{project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : '-'}</span>
                     </div>
                   </td>
                   <td className="date-cell">
                     <div className="date-info">
                       <Calendar size={16} />
-                      <span>{new Date(project.endDate).toLocaleDateString('vi-VN')}</span>
+                      <span>{project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : '-'}</span>
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

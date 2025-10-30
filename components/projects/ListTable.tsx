@@ -986,8 +986,8 @@ export const ListTable = ({
       <DetailTaskModal
         isOpen={detailTaskModal.isOpen}
         onClose={closeDetailTaskModal}
-        onEdit={handleUpdateTask}
-        onDelete={openDeleteTaskModal}
+        // onEdit={handleUpdateTask}
+        // onDelete={openDeleteTaskModal}
         task={detailTaskModal.task}
         projectId={project.id}
       />

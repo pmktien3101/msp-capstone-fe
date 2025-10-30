@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Project } from '@/types/project';
-import { mockProjects, mockMilestones, mockTasks, mockMembers } from '@/constants/mockData';
 import { 
   AlertTriangle, 
   Clock, 
@@ -14,16 +13,19 @@ import {
   AlertCircle,
   CheckCircle2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Activity
 } from 'lucide-react';
 
 interface ProjectHighlightsProps {
   projects: Project[];
+  tasks: any[];
+  milestones: any[];
 }
 
-export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
+export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighlightsProps) => {
   const router = useRouter();
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['priority', 'milestones', 'overdue', 'review']));
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['priority', 'milestones', 'onHold', 'inProgress']));
 
   const handleProjectClick = (projectId: string) => {
     router.push(`/projects/${projectId}`);
@@ -43,8 +45,9 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
   // Tính toán các dự án ưu tiên (dự án đang thực hiện có endDate gần nhất)
   const getPriorityProjects = () => {
     return projects
-      .filter(project => project.status === 'active') // Chỉ lấy dự án đang thực hiện
+      .filter(project => project.status === 'Đang hoạt động') // Chỉ lấy dự án đang thực hiện
       .sort((a, b) => {
+        if (!a.endDate || !b.endDate) return 0;
         const aEndDate = new Date(a.endDate);
         const bEndDate = new Date(b.endDate);
         return aEndDate.getTime() - bEndDate.getTime(); // Sắp xếp theo endDate gần nhất
@@ -57,53 +60,39 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
     const now = new Date();
     const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
     
-    return mockMilestones
-      .filter(milestone => {
+    return milestones
+      .filter((milestone: any) => {
         const dueDate = new Date(milestone.dueDate);
         return dueDate >= now && dueDate <= fourteenDaysFromNow;
       })
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
       .slice(0, 3);
   };
 
-  // Task quá hạn và blocked
-  const getOverdueAndBlockedTasks = () => {
-    const now = new Date();
-    
-    // Lấy danh sách milestone của các dự án đang hoạt động
-    const activeProjectIds = projects
-      .filter(project => project.status === 'active')
-      .map(project => project.id);
-    
-    const activeMilestoneIds = mockMilestones
-      .filter(milestone => activeProjectIds.includes(milestone.projectId))
-      .map(milestone => milestone.id);
-    
-    // Lọc task quá hạn từ các dự án đang hoạt động
-    const overdueTasks = mockTasks.filter(task => {
-      const endDate = new Date(task.endDate);
-      return endDate < now && 
-             task.status === 'overdue' && 
-             task.milestoneIds.some(milestoneId => activeMilestoneIds.includes(milestoneId));
-    });
+  // Task tạm dừng và đang làm
+  const getTasksByStatus = () => {
+    // Lọc task tạm dừng
+    const onHoldTasks = tasks.filter((task: any) => 
+      task.status === 'Tạm dừng'
+    );
 
-    // Lọc task cần review từ các dự án đang hoạt động
-    const reviewTasks = mockTasks.filter(task => 
-      task.status === 'review' &&
-      task.milestoneIds.some(milestoneId => activeMilestoneIds.includes(milestoneId))
+    // Lọc task đang làm
+    const inProgressTasks = tasks.filter((task: any) => 
+      task.status === 'Đang làm'
     );
 
     return {
-      overdue: overdueTasks.slice(0, 5),
-      review: reviewTasks.slice(0, 5)
+      onHold: onHoldTasks.slice(0, 5),
+      inProgress: inProgressTasks.slice(0, 5)
     };
   };
 
   const priorityProjects = getPriorityProjects();
   const upcomingMilestones = getUpcomingMilestones();
-  const { overdue, review } = getOverdueAndBlockedTasks();
+  const { onHold, inProgress } = getTasksByStatus();
 
   const getPriorityLevel = (project: Project) => {
+    if (!project.endDate) return 'medium';
     const now = new Date();
     const endDate = new Date(project.endDate);
     const daysUntilDeadline = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -162,8 +151,14 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
             ) : (
               priorityProjects.map(project => {
                 const priority = getPriorityLevel(project);
+                if (!project.endDate) return null;
                 const endDate = new Date(project.endDate);
                 const daysUntilDeadline = Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                
+                // Calculate progress from tasks
+                const projectTasks = tasks.filter((task: any) => task.projectId === project.id);
+                const completedTasks = projectTasks.filter((task: any) => task.status === 'Hoàn thành').length;
+                const progress = projectTasks.length > 0 ? Math.round((completedTasks / projectTasks.length) * 100) : 0;
                 
                 return (
                   <div key={project.id} className="priority-item" onClick={() => handleProjectClick(project.id)}>
@@ -175,7 +170,16 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
                           <Calendar size={14} />
                           {'Còn lại: ' + (daysUntilDeadline > 0 ? `${daysUntilDeadline} ngày` : 'Quá hạn')}
                         </span>
-                        <span className="progress">{project.progress}%</span>
+                        <span className="progress">{progress}%</span>
+                      </div>
+                      <div className="progress-bar">
+                        <div 
+                          className="progress-fill" 
+                          style={{ 
+                            width: `${progress}%`,
+                            backgroundColor: progress === 100 ? '#10b981' : progress > 50 ? '#3b82f6' : '#f59e0b'
+                          }} 
+                        />
                       </div>
                     </div>
                   </div>
@@ -205,8 +209,8 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
                 <p>Không có cột mốc sắp đến hạn</p>
               </div>
             ) : (
-              upcomingMilestones.map(milestone => {
-                const project = mockProjects.find(p => p.milestones.includes(milestone.id));
+              upcomingMilestones.map((milestone: any) => {
+                const project = projects.find((p: any) => p.id === milestone.projectId);
                 const dueDate = new Date(milestone.dueDate);
                 const daysUntilDue = Math.ceil((dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                 
@@ -218,7 +222,7 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
                         className="project-link"
                         onClick={() => project && handleProjectClick(project.id)}
                       >
-                        {project?.name}
+                        {milestone.projectName || project?.name}
                       </p>
                     </div>
                     <div className="milestone-due">
@@ -232,48 +236,45 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
           </div>
         </div>
 
-        {/* Overdue Tasks */}
+        {/* On Hold Tasks */}
         <div className="highlight-card">
-          <div className="card-header" onClick={() => toggleCard('overdue')}>
+          <div className="card-header" onClick={() => toggleCard('onHold')}>
             <div className="card-title">
-              <TrendingDown size={20} />
-              <h3>Công việc quá hạn</h3>
+              <AlertTriangle size={20} />
+              <h3>Công việc tạm dừng</h3>
             </div>
             <div className="card-header-right">
-              <span className="count-badge">{overdue.length}</span>
-              {expandedCards.has('overdue') ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              <span className="count-badge">{onHold.length}</span>
+              {expandedCards.has('onHold') ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </div>
           </div>
           
-          <div className={`card-content ${expandedCards.has('overdue') ? 'expanded' : 'collapsed'}`}>
-            {overdue.length === 0 ? (
+          <div className={`card-content ${expandedCards.has('onHold') ? 'expanded' : 'collapsed'}`}>
+            {onHold.length === 0 ? (
               <div className="empty-state">
                 <CheckCircle2 size={32} />
-                <p>Không có công việc quá hạn</p>
+                <p>Không có công việc tạm dừng</p>
               </div>
             ) : (
-              overdue.map(task => {
-                const assignee = mockMembers.find(member => member.id === task.assignee);
-                const project = mockProjects.find(p => 
-                  p.milestones.some(milestoneId => task.milestoneIds.includes(milestoneId))
-                );
+              onHold.map((task: any) => {
+                const project = projects.find((p: any) => p.id === task.projectId);
                 return (
                   <div key={task.id} className="task-item">
                     <div className="task-info">
-                      <h4>{task.title}</h4>
+                      <h4>{task.name}</h4>
                       <div className="task-meta">
-                        <p className="assignee">{assignee?.name || task.assignee}</p>
+                        <p className="assignee">{task.user?.fullName || 'Chưa phân công'}</p>
                         <p 
                           className="project project-link"
                           onClick={() => project && handleProjectClick(project.id)}
                         >
-                          {project?.name}
+                          {task.projectName || project?.name}
                         </p>
                       </div>
                     </div>
-                    <div className="task-status overdue">
+                    <div className="task-status on-hold">
                       <AlertCircle size={14} />
-                      <span>Quá hạn</span>
+                      <span>Tạm dừng</span>
                     </div>
                   </div>
                 );
@@ -282,48 +283,45 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
           </div>
         </div>
 
-        {/* Review Tasks */}
+        {/* In Progress Tasks */}
         <div className="highlight-card">
-          <div className="card-header" onClick={() => toggleCard('review')}>
+          <div className="card-header" onClick={() => toggleCard('inProgress')}>
             <div className="card-title">
-              <AlertCircle size={20} />
-              <h3>Công việc cần review</h3>
+              <Activity size={20} />
+              <h3>Công việc đang làm</h3>
             </div>
             <div className="card-header-right">
-              <span className="count-badge">{review.length}</span>
-              {expandedCards.has('review') ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              <span className="count-badge">{inProgress.length}</span>
+              {expandedCards.has('inProgress') ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </div>
           </div>
           
-          <div className={`card-content ${expandedCards.has('review') ? 'expanded' : 'collapsed'}`}>
-            {review.length === 0 ? (
+          <div className={`card-content ${expandedCards.has('inProgress') ? 'expanded' : 'collapsed'}`}>
+            {inProgress.length === 0 ? (
               <div className="empty-state">
                 <CheckCircle2 size={32} />
-                <p>Không có công việc cần review</p>
+                <p>Không có công việc đang làm</p>
               </div>
             ) : (
-              review.map(task => {
-                const assignee = mockMembers.find(member => member.id === task.assignee);
-                const project = mockProjects.find(p => 
-                  p.milestones.some(milestoneId => task.milestoneIds.includes(milestoneId))
-                );
+              inProgress.map((task: any) => {
+                const project = projects.find((p: any) => p.id === task.projectId);
                 return (
                   <div key={task.id} className="task-item">
                     <div className="task-info">
-                      <h4>{task.title}</h4>
+                      <h4>{task.name}</h4>
                       <div className="task-meta">
-                        <p className="assignee">{assignee?.name || task.assignee}</p>
+                        <p className="assignee">{task.user?.fullName || 'Chưa phân công'}</p>
                         <p 
                           className="project project-link"
                           onClick={() => project && handleProjectClick(project.id)}
                         >
-                          {project?.name}
+                          {task.projectName || project?.name}
                         </p>
                       </div>
                     </div>
-                    <div className="task-status review">
-                      <AlertCircle size={14} />
-                      <span>Cần review</span>
+                    <div className="task-status in-progress">
+                      <Activity size={14} />
+                      <span>Đang làm</span>
                     </div>
                   </div>
                 );
@@ -499,6 +497,21 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
           gap: 4px;
         }
 
+        .progress-bar {
+          width: 100%;
+          height: 6px;
+          background: #e5e7eb;
+          border-radius: 3px;
+          overflow: hidden;
+          margin-top: 8px;
+        }
+
+        .progress-fill {
+          height: 100%;
+          border-radius: 3px;
+          transition: width 0.3s ease;
+        }
+
 
         .milestone-item {
           display: flex;
@@ -594,6 +607,16 @@ export const ProjectHighlights = ({ projects }: ProjectHighlightsProps) => {
         .task-status.overdue {
           background: #fef2f2;
           color: #ef4444;
+        }
+
+        .task-status.on-hold {
+          background: #fef3c7;
+          color: #f59e0b;
+        }
+
+        .task-status.in-progress {
+          background: #dbeafe;
+          color: #3b82f6;
         }
 
         .task-status.review {

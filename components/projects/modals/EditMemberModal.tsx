@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Member } from '@/types/member';
 import { X } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 interface EditMemberModalProps {
   isOpen: boolean;
@@ -38,7 +39,7 @@ export function EditMemberModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.role) {
-      alert('Vui lòng điền đầy đủ thông tin!');
+      toast.error('Vui lòng điền đầy đủ thông tin!');
       return;
     }
 

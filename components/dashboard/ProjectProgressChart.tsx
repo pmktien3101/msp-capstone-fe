@@ -68,7 +68,7 @@ export const ProjectProgressChart = ({ projectId = "1" }: ProjectProgressChartPr
       case 'in-progress':
         return 'Đang thực hiện';
       case 'pending':
-        return 'Chưa bắt đầu';
+        return 'Lập kế hoạch';
       case 'overdue':
         return 'Trễ hạn';
       default:

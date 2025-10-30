@@ -1,13 +1,81 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
-import { mockTasks, mockMembers, mockMilestones } from '@/constants/mockData';
+import { GetTaskResponse } from '@/types/task';
+import { taskService } from '@/services/taskService';
+import { projectService } from '@/services/projectService';
 
 interface TeamWorkloadProps {
   project: Project;
 }
 
 export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
+  const [tasks, setTasks] = useState<GetTaskResponse[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch tasks and members from API
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!project?.id) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const [tasksRes, membersRes] = await Promise.all([
+          taskService.getTasksByProjectId(project.id),
+          projectService.getProjectMembers(project.id)
+        ]);
+
+        if (tasksRes.success && tasksRes.data) {
+          setTasks(tasksRes.data.items || []);
+        } else {
+          setTasks([]);
+        }
+
+        if (membersRes.success && membersRes.data) {
+          setMembers(membersRes.data);
+        } else {
+          setMembers([]);
+        }
+      } catch (error) {
+        console.error('[TeamWorkload] Error fetching data:', error);
+        setTasks([]);
+        setMembers([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [project?.id]);
+
+  // Generate consistent gradient color from name
+  const getAvatarColor = (name: string): string => {
+    const gradients = [
+      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+      'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+      'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+      'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+      'linear-gradient(135deg, #ff6e7f 0%, #bfe9ff 100%)',
+    ];
+    
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    return gradients[Math.abs(hash) % gradients.length];
+  };
+
   // Kiểm tra project có tồn tại không
   if (!project) {
     return (
@@ -25,30 +93,62 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
     );
   }
 
-  // Filter tasks for this specific project
-  const projectMilestones = mockMilestones.filter(m => m.projectId === project.id);
-  const projectTasks = mockTasks.filter(task => 
-    task.milestoneIds.some(milestoneId => projectMilestones.some(m => m.id === milestoneId))
-  );
-  
-  const assigneeCounts = projectTasks.reduce((acc, task) => {
-    const assignee = task.assignee || 'unassigned';
-    acc[assignee] = (acc[assignee] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="team-workload">
+        <div className="section-header">
+          <div className="section-title">
+            <h3>Các thành viên trong nhóm</h3>
+            <p>Danh sách thành viên và công việc được giao.</p>
+          </div>
+        </div>
+        <div className="workload-content">
+          <p>Đang tải dữ liệu...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const totalTasks = projectTasks.length;
+  // Calculate workload by user
+  const assigneeCounts: Record<string, number> = {};
+  const assigneeMap: Record<string, any> = {}; // Map userId to user info
   
-  const workloadData = Object.entries(assigneeCounts).map(([assigneeId, count]) => {
-    const member = mockMembers.find(m => m.id === assigneeId);
+  tasks.forEach(task => {
+    if (task.user && task.userId) {
+      assigneeCounts[task.userId] = (assigneeCounts[task.userId] || 0) + 1;
+      assigneeMap[task.userId] = task.user;
+    } else {
+      // Unassigned tasks
+      assigneeCounts['unassigned'] = (assigneeCounts['unassigned'] || 0) + 1;
+    }
+  });
+
+  const totalTasks = tasks.length;
+  
+  const workloadData = Object.entries(assigneeCounts).map(([userId, count]) => {
+    if (userId === 'unassigned') {
+      return {
+        assignee: 'Chưa giao',
+        percentage: totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0,
+        color: '#6b7280',
+        gradient: null,
+        avatar: null,
+        taskCount: count
+      };
+    }
+
+    const user = assigneeMap[userId];
+    const fullName = user?.fullName || 'Unknown';
     return {
-      assignee: assigneeId === 'unassigned' ? 'Chưa giao' : (member?.name || assigneeId),
-      percentage: Math.round((count / totalTasks) * 100),
-      color: assigneeId === 'unassigned' ? '#6b7280' : '#fb923c',
-      avatar: assigneeId === 'unassigned' ? null : (member?.avatar || assigneeId),
+      assignee: fullName,
+      percentage: totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0,
+      color: '#fb923c',
+      gradient: getAvatarColor(fullName),
+      avatar: fullName.charAt(0).toUpperCase(),
       taskCount: count
     };
-  });
+  }).sort((a, b) => b.taskCount - a.taskCount); // Sort by task count descending
 
   return (
     <div className="team-workload">
@@ -66,7 +166,7 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
               <div className="workload-header">
                 <div className="assignee-info">
                   {item.avatar ? (
-                    <div className="assignee-avatar" style={{ backgroundColor: item.color }}>
+                    <div className="assignee-avatar" style={{ background: item.gradient || item.color }}>
                       {item.avatar}
                     </div>
                   ) : (

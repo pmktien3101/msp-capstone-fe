@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { X, Calendar, User, Flag, FileText, Layers } from "lucide-react";
-import { mockMembers, mockMilestones, mockProjects } from "@/constants/mockData";
+import { milestoneService } from "@/services/milestoneService";
+import { projectService } from "@/services/projectService";
+import { useAuth } from "@/hooks/useAuth";
+import { UserRole } from "@/lib/rbac";
+import type { MilestoneBackend } from "@/types/milestone";
+import type { ProjectMember } from "@/types/project";
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -18,65 +23,144 @@ export const CreateTaskModal = ({
   isOpen, 
   onClose, 
   milestoneId, 
-  defaultStatus = "todo",
+  defaultStatus = "Chưa bắt đầu",
   onCreateTask,
   projectId, // Destructured projectId
   taskToEdit // Destructured taskToEdit
 }: CreateTaskModalProps) => {
+  const { user } = useAuth();
+  const userRole = user?.role;
+  
+  // Check if user is Member (cannot edit assignee)
+  const isMember = userRole === UserRole.MEMBER || userRole === 'Member';
+  
   const [formData, setFormData] = useState({
     title: taskToEdit?.title || "",
     description: taskToEdit?.description || "",
     milestoneIds: taskToEdit?.milestoneIds || (milestoneId ? [milestoneId] : []),
     status: taskToEdit?.status || defaultStatus,
-    priority: taskToEdit?.priority || "medium",
     assignee: taskToEdit?.assignee || "",
     startDate: taskToEdit?.startDate || "",
     endDate: taskToEdit?.endDate || ""
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [milestones, setMilestones] = useState<MilestoneBackend[]>([]);
+  const [members, setMembers] = useState<ProjectMember[]>([]);
+  const [isLoadingMilestones, setIsLoadingMilestones] = useState(false);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
+  // Fetch milestones when projectId is available
+  useEffect(() => {
+    const fetchMilestones = async () => {
+      if (!projectId) return;
+      
+      setIsLoadingMilestones(true);
+      try {
+        const response = await milestoneService.getMilestonesByProjectId(projectId);
+        if (response.success && response.data) {
+          setMilestones(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching milestones:', error);
+      } finally {
+        setIsLoadingMilestones(false);
+      }
+    };
+
+    fetchMilestones();
+  }, [projectId]);
+
+  // Fetch project members (only role Member)
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!projectId) return;
+      
+      setIsLoadingMembers(true);
+      try {
+        const response = await projectService.getProjectMembers(projectId);
+        // console.log('[CreateTaskModal] Fetched members response:', response);
+        
+        if (response.success && response.data) {
+          // console.log('[CreateTaskModal] All members:', response.data);
+          
+          // Log each member to see structure
+          // response.data.forEach(pm => {
+          //   console.log('[CreateTaskModal] Member:', {
+          //     id: pm.id,
+          //     userId: pm.userId,
+          //     role: pm.member?.role,
+          //     fullName: pm.member?.fullName,
+          //     email: pm.member?.email
+          //   });
+          // });
+          
+          // Filter only users with role "Member"
+          const memberUsers = response.data.filter(pm => 
+            pm.member?.role === "Member"
+          );
+          // console.log('[CreateTaskModal] Filtered members (role=Member):', memberUsers);
+          // console.log('[CreateTaskModal] Total filtered:', memberUsers.length);
+          setMembers(memberUsers);
+        }
+      } catch (error) {
+        console.error('Error fetching members:', error);
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
+
+    fetchMembers();
+  }, [projectId]);
 
   // Update form data when taskToEdit changes
   useEffect(() => {
     if (taskToEdit) {
+      // Handle milestoneIds - could be milestoneIds array or milestones object array
+      let milestoneIdsArray: string[] = [];
+      if (taskToEdit.milestoneIds && Array.isArray(taskToEdit.milestoneIds)) {
+        milestoneIdsArray = taskToEdit.milestoneIds.map((id: any) => id.toString());
+      } else if (taskToEdit.milestones && Array.isArray(taskToEdit.milestones)) {
+        // If it's GetTaskResponse format with milestones array
+        milestoneIdsArray = taskToEdit.milestones.map((m: any) => m.id?.toString() || m);
+      } else if (milestoneId) {
+        milestoneIdsArray = [milestoneId];
+      }
+
+      // Handle assignee - could be assignee string or userId
+      let assigneeId = "";
+      if (taskToEdit.assignee) {
+        assigneeId = taskToEdit.assignee;
+      } else if (taskToEdit.userId) {
+        assigneeId = taskToEdit.userId;
+      }
+
+      // Handle dates - convert from ISO to yyyy-MM-dd for input
+      const formatDateForInput = (dateStr: string) => {
+        if (!dateStr) return "";
+        try {
+          const date = new Date(dateStr);
+          return date.toISOString().split('T')[0]; // Get yyyy-MM-dd part
+        } catch {
+          return "";
+        }
+      };
+
       setFormData({
         title: taskToEdit.title || "",
         description: taskToEdit.description || "",
-        milestoneIds: taskToEdit.milestoneIds || (milestoneId ? [milestoneId] : []),
+        milestoneIds: milestoneIdsArray,
         status: taskToEdit.status || defaultStatus,
-        priority: taskToEdit.priority || "medium",
-        assignee: taskToEdit.assignee || "",
-        startDate: taskToEdit.startDate || "",
-        endDate: taskToEdit.endDate || ""
+        assignee: assigneeId,
+        startDate: formatDateForInput(taskToEdit.startDate || ""),
+        endDate: formatDateForInput(taskToEdit.endDate || "")
       });
     }
   }, [taskToEdit, milestoneId, defaultStatus]);
 
-  // Get milestones for the current project only
-  const getProjectMilestones = () => {
-    if (!projectId) return mockMilestones; // Fallback to all milestones if no projectId
-    
-    const project = mockProjects.find(p => p.id === projectId);
-    if (!project) return mockMilestones; // Fallback to all milestones if project not found
-    
-    return mockMilestones.filter(milestone => 
-      project.milestones.includes(milestone.id)
-    );
-  };
-
   const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "todo":
-        return "Cần làm";
-      case "in-progress":
-        return "Đang làm";
-      case "review":
-        return "Đang review";
-      case "done":
-        return "Hoàn thành";
-      default:
-        return "Cần làm";
-    }
+    // Status in DB: "Chưa bắt đầu", "Đang làm", "Tạm dừng", "Hoàn thành"
+    return status;
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -134,8 +218,7 @@ export const CreateTaskModal = ({
         title: "",
         description: "",
         milestoneIds: milestoneId ? [milestoneId] : [],
-        status: "todo",
-        priority: "medium",
+        status: "Chưa bắt đầu",
         assignee: "",
         startDate: "",
         endDate: ""
@@ -151,7 +234,6 @@ export const CreateTaskModal = ({
       description: "",
       milestoneIds: milestoneId ? [milestoneId] : [],
       status: defaultStatus,
-      priority: "medium",
       assignee: "",
       startDate: "",
       endDate: ""
@@ -215,51 +297,47 @@ export const CreateTaskModal = ({
                 <Layers size={16} />
                 Cột mốc liên quan
               </label>
-              <div className="milestone-selection">
-                {getProjectMilestones().map((milestone) => (
-                  <label key={milestone.id} className="milestone-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={formData.milestoneIds.includes(milestone.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          handleInputChange("milestoneIds", [...formData.milestoneIds, milestone.id]);
-                        } else {
-                          handleInputChange("milestoneIds", formData.milestoneIds.filter((id: string) => id !== milestone.id));
-                        }
-                      }}
-                    />
-                    <span className="milestone-name">{milestone.name}</span>
-                  </label>
-                ))}
-              </div>
+              {isLoadingMilestones ? (
+                <div className="loading-state">Đang tải cột mốc...</div>
+              ) : milestones.length === 0 ? (
+                <div className="empty-state">Không có cột mốc nào</div>
+              ) : (
+                <div className="milestone-selection">
+                  {milestones.map((milestone) => (
+                    <label key={milestone.id} className="milestone-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={formData.milestoneIds.includes(milestone.id.toString())}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            handleInputChange("milestoneIds", [...formData.milestoneIds, milestone.id.toString()]);
+                          } else {
+                            handleInputChange("milestoneIds", formData.milestoneIds.filter((id: string) => id !== milestone.id.toString()));
+                          }
+                        }}
+                      />
+                      <span className="milestone-name">{milestone.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Status - Read Only */}
+            {/* Status */}
             <div className="form-group">
               <label className="form-label">
                 <Flag size={16} />
                 Trạng thái
               </label>
-              <div className="status-display">
-                <span className={`status-badge status-${formData.status}`}>{getStatusLabel(formData.status)}</span>
-              </div>
-            </div>
-
-            {/* Priority */}
-            <div className="form-group">
-              <label className="form-label">
-                <Flag size={16} />
-                Độ ưu tiên
-              </label>
               <select
-                value={formData.priority}
-                onChange={(e) => handleInputChange("priority", e.target.value)}
+                value={formData.status}
+                onChange={(e) => handleInputChange("status", e.target.value)}
                 className="form-select"
               >
-                <option value="low">Thấp</option>
-                <option value="medium">Trung bình</option>
-                <option value="high">Cao</option>
+                <option value="Chưa bắt đầu">Chưa bắt đầu</option>
+                <option value="Đang làm">Đang làm</option>
+                <option value="Tạm dừng">Tạm dừng</option>
+                <option value="Hoàn thành">Hoàn thành</option>
               </select>
             </div>
 
@@ -268,19 +346,35 @@ export const CreateTaskModal = ({
               <label className="form-label">
                 <User size={16} />
                 Người thực hiện
+                {/* {isMember && (
+                  <span className="role-restriction-badge" title="Thành viên không thể thay đổi người thực hiện">
+                    🔒
+                  </span>
+                )} */}
               </label>
-              <select
-                value={formData.assignee}
-                onChange={(e) => handleInputChange("assignee", e.target.value)}
-                className="form-select"
-              >
-                <option value="">Chưa giao</option>
-                {mockMembers.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name} ({member.role})
-                  </option>
-                ))}
-              </select>
+              {isLoadingMembers ? (
+                <div className="loading-state">Đang tải thành viên...</div>
+              ) : (
+                <select
+                  value={formData.assignee}
+                  onChange={(e) => handleInputChange("assignee", e.target.value)}
+                  className={`form-select ${isMember ? 'disabled' : ''}`}
+                  disabled={isMember}
+                  title={isMember ? "Bạn không có quyền thay đổi người thực hiện" : ""}
+                >
+                  <option value="">Chưa giao</option>
+                  {members.map((projectMember) => (
+                    <option key={projectMember.id} value={projectMember.userId}>
+                      {projectMember.member?.fullName || projectMember.member?.email || 'Unknown'}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {/* {isMember && (
+                <div className="help-text restriction-text">
+                  ⓘ Chỉ PM mới có quyền phân công công việc
+                </div>
+              )} */}
             </div>
 
             {/* Date Range */}
@@ -543,6 +637,38 @@ export const CreateTaskModal = ({
 
         .status-done {
           background: #10b981;
+        }
+
+        .role-restriction-badge {
+          display: inline-block;
+          margin-left: 8px;
+          font-size: 14px;
+          cursor: help;
+        }
+
+        .form-select.disabled {
+          background: #f3f4f6;
+          color: #9ca3af;
+          cursor: not-allowed;
+          border-color: #e5e7eb;
+        }
+
+        .form-select.disabled:hover {
+          border-color: #e5e7eb;
+        }
+
+        .help-text {
+          font-size: 12px;
+          color: #6b7280;
+          margin-top: 6px;
+        }
+
+        .restriction-text {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: #f59e0b;
+          font-weight: 500;
         }
 
         .date-range-group {

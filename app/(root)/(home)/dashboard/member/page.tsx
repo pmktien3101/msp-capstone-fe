@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import { Project } from "@/types/project";
 import { mockTasks } from "@/constants/mockData";
-import { MemberProjectCard } from "@/components/projects/MemberProjectCard";
 import { MemberTaskCard } from "@/components/tasks/MemberTaskCard";
 import "@/app/styles/dashboard.scss";
 
@@ -19,62 +18,12 @@ export default function MemberDashboardPage() {
   const [showAllTasks, setShowAllTasks] = useState(false);
 
   // Mock data for member's assigned projects
+    // ...existing code...
+  
   const mockAssignedProjects: Project[] = [
-    {
-      id: "1",
-      name: "Project Management System",
-      description: "A system to manage company projects and resources",
-      status: "active" as const,
-      startDate: "2025-09-01",
-      endDate: "2025-12-31",
-      manager: "John Doe",
-      members: [
-        {
-          id: "1",
-          name: "John Doe",
-          role: "Project Manager",
-          email: "john.doe@example.com",
-          avatar: "/avatars/john.png",
-        },
-        {
-          id: "4",
-          name: "Member",
-          role: "Developer",
-          email: email || "member@gmail.com",
-          avatar: image || "/avatars/member.png",
-        },
-      ],
-      milestones: ["1", "2"], // Added
-      progress: 75,
-    },
-    {
-      id: "4",
-      name: "E-commerce Platform",
-      description: "Online shopping platform with payment integration",
-      status: "active" as const,
-      startDate: "2025-08-01",
-      endDate: "2026-02-28",
-      manager: "Alice Johnson",
-      members: [
-        {
-          id: "7",
-          name: "Alice Johnson",
-          role: "Product Manager",
-          email: "alice.johnson@example.com",
-          avatar: "/avatars/alice.png",
-        },
-        {
-          id: "4",
-          name: "Member",
-          role: "Frontend Developer",
-          email: email || "member@gmail.com",
-          avatar: image || "/avatars/member.png",
-        },
-      ],
-      milestones: ["4", "5"], // Added
-      progress: 45,
-    },
   ];
+  
+  // ...existing code...
 
   // Get tasks assigned to current member
   const getMyTasks = () => {
@@ -453,13 +402,13 @@ export default function MemberDashboardPage() {
                 </div>
               ) : (
                 <div className="projects-list">
-                  {assignedProjects.map((project, index) => (
+                  {/* {assignedProjects.map((project, index) => (
                     <MemberProjectCard
                       key={project.id}
                       project={project}
                       index={index}
                     />
-                  ))}
+                  ))} */}
                 </div>
               )}
             </div>

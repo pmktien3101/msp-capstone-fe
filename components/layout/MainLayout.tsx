@@ -3,6 +3,7 @@
 import React, { ReactNode, useState, useEffect } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import { GlobalModals } from './GlobalModals';
 import LoadingSkeleton from '@/components/ui/LoadingSkeleton';
 
 interface MainLayoutProps {
@@ -40,6 +41,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           {children}
         </div>
       </div>
+
+      {/* Global Modals */}
+      <GlobalModals />
 
       <style jsx>{`
         .main-layout {

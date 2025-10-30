@@ -5,79 +5,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
-import { setAccessToken, isAuthenticated } from "@/lib/auth";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { isAuthenticated } from "@/lib/auth";
+import { authService } from "@/services/authService";
+import { extractUserFromToken } from "@/lib/jwt";
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import "../../../styles/auth.scss";
-
-// Mock user data for testing
-const MOCK_USERS = [
-  {
-    email: "pm@gmail.com",
-    password: "123",
-    userData: {
-      userId: "1",
-      email: "pm@gmail.com",
-      role: "pm",
-      image: "https://getstream.io/random_svg/?id=1&name=pm",
-    },
-  },
-  {
-    email: "admin@gmail.com",
-    password: "123",
-    userData: {
-      userId: "2",
-      email: "admin@gmail.com",
-      role: "AdminSystem",
-      image: "https://getstream.io/random_svg/?id=2&name=admin",
-    },
-  },
-  {
-    email: "business@gmail.com",
-    password: "123",
-    userData: {
-      userId: "3",
-      email: "business@gmail.com",
-      role: "BusinessOwner",
-      image: "https://getstream.io/random_svg/?id=3&name=business",
-    },
-  },
-  {
-    email: "member1@gmail.com",
-    password: "123",
-    userData: {
-      userId: "4",
-      email: "member1@gmail.com",
-      role: "Member",
-      image: "https://getstream.io/random_svg/?id=4&name=staff",
-    },
-  },
-  {
-    email: "member2@gmail.com",
-    password: "123",
-    userData: {
-      userId: "5",
-      email: "member2@gmail.com",
-      role: "Member",
-      image: "https://getstream.io/random_svg/?id=4&name=staff",
-    },
-  },
-  {
-    email: "member3@gmail.com",
-    password: "123",
-    userData: {
-      userId: "6",
-      email: "member3@gmail.com",
-      role: "Member",
-      image: "https://getstream.io/random_svg/?id=4&name=staff",
-    },
-  },
-];
 
 export default function SignInPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -113,34 +52,46 @@ export default function SignInPage() {
     e.preventDefault();
     console.log("Form submitted");
     setIsLoading(true);
+    setError(null);
 
     try {
-      // Mock authentication check
-      const foundUser = MOCK_USERS.find(
-        (user) =>
-          user.email === formData.email && user.password === formData.password
-      );
+      const result = await authService.login({
+        email: formData.email,
+        password: formData.password
+      }, formData.rememberMe);
 
-      if (foundUser) {
-        // Store token using utility function
-        setAccessToken("mock-token-123", formData.rememberMe);
+      if (result.success && result.data) {
+        // User data is already processed and stored by authService
+        // We just need to get it from the processed data
+        const userInfo = extractUserFromToken(result.data.accessToken);
+        if (userInfo) {
+          // Normalize role
+          const normalizedRole = userInfo.role === 'Admin' ? 'Admin' :
+                                 userInfo.role === 'ProjectManager' ? 'ProjectManager' :
+                                 userInfo.role;
+          
+          setUserData({
+            userId: userInfo.userId,
+            email: userInfo.email,
+            role: normalizedRole,
+            image: `https://getstream.io/random_svg/?id=${userInfo.userId}&name=${userInfo.fullName}`
+          });
 
-        // Set user data
-        setUserData(foundUser.userData);
+          if (formData.rememberMe) {
+            localStorage.setItem("rememberedEmail", formData.email);
+          }
 
-        if (formData.rememberMe) {
-          localStorage.setItem("rememberedEmail", formData.email);
+          // Redirect to dashboard
+          router.push("/dashboard");
+        } else {
+          setError("Invalid token format received from server");
         }
-
-        // Redirect to dashboard
-        router.push("/dashboard");
       } else {
-        alert(
-          "Invalid email or password. Try:\n- pm@gmail.com / pm123\n- admin@gmail.com / admin123\n- business@gmail.com / business123"
-        );
+        setError(result.error || "Login failed. Please check your credentials.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
+      setError(error.message || "An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -240,6 +191,13 @@ export default function SignInPage() {
             </div>
 
             <form className="login-form" onSubmit={handleSubmit}>
+              {error && (
+                <div className="error-message">
+                  <AlertCircle size={16} />
+                  <span>{error}</span>
+                </div>
+              )}
+
               <div className="form-group">
                 <label htmlFor="email">Email</label>
                 <div className="input-wrapper">

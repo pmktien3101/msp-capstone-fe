@@ -5,13 +5,15 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/Avatar";
 import { useUser } from "@/hooks/useUser";
+import { UserRole } from "@/lib/rbac";
+import { useAuth } from "@/hooks/useAuth";
 
 const Header = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const { email, role, logout } = useUser();
+  const { email, fullName, role, logout } = useUser();
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
-
+  const { user} = useAuth();
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -39,6 +41,9 @@ const Header = () => {
   };
 
   const getUserDisplayName = () => {
+    if (user?.fullName) {
+      return user.fullName;
+    }
     if (email) {
       return email.split("@")[0];
     }
@@ -47,12 +52,14 @@ const Header = () => {
 
   const getRoleDisplayName = () => {
     switch (role) {
-      case "pm":
+      case UserRole.PROJECT_MANAGER:
         return "Project Manager";
-      case "AdminSystem":
-        return "System Administrator";
-      case "BusinessOwner":
+      case UserRole.ADMIN:
+        return "Administrator";
+      case UserRole.BUSINESS_OWNER:
         return "Business Owner";
+      case UserRole.MEMBER:
+        return "Team Member";
       default:
         return "User";
     }

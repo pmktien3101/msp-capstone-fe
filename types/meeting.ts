@@ -39,3 +39,54 @@ export interface UpdateMeetingDto {
   roomUrl?: string;
   milestoneId?: string | null;
 }
+
+export interface CreateMeetingRequest {
+  createdById: string;
+  projectId: string;
+  milestoneId?: string | null;
+  title: string;
+  description: string;
+  startTime: string;
+  attendeeIds: string[];
+}
+
+export interface UpdateMeetingRequest {
+  meetingId: string;
+  createdById?: string;
+  projectId?: string;
+  milestoneId?: string | null;
+  title?: string;
+  description?: string;
+  startTime?: string;
+  attendeeIds?: string[];
+  status?: MeetingStatus;
+  summary?: string;
+  transcription?: string;
+  recordUrl?: string;
+}
+
+export interface MeetingItem {
+  id: string;
+  title: string;
+  description?: string;
+  startTime?: string;
+  endTime?: string;
+  status: "Scheduled" | "Ongoing" | "Finished" | "Cancel" | string;
+  createdById?: string;
+  createdByEmail?: string;
+  projectId?: string;
+  projectName?: string;
+  milestoneId?: string;
+  milestoneName?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  summary?: string;
+  transcription?: string;
+  recordUrl?: string;
+  attendees?: {
+    id: string;
+    email: string;
+    avatarUrl?: string | null;
+    fullName?: string;
+  }[];
+}

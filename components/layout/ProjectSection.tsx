@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Project } from '@/types/project';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
-import { mockTasks, mockProjects, mockMembers, mockMilestones } from '@/constants/mockData';
+import { projectService } from '@/services/projectService';
+import { useAuth } from '@/hooks/useAuth';
+import { UserRole } from '@/lib/rbac';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -15,60 +17,64 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
   const router = useRouter();
   const pathname = usePathname();
   const { openCreateModal } = useProjectModal();
+  const { user, isAuthenticated } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllProjects, setShowAllProjects] = useState(false);
 
-  // Calculate progress based on tasks for each project
-  const calculateProjectProgress = (projectId: string) => {
-    // Get tasks for this specific project based on milestoneIds
-    const projectMilestones = mockProjects.find(p => p.id === projectId)?.milestones || [];
-    const projectTasks = mockTasks.filter(task => 
-      task.milestoneIds.some(milestoneId => projectMilestones.includes(milestoneId))
-    );
-    
-    const completedTasks = projectTasks.filter(task => task.status === 'done').length;
-    const totalTasks = projectTasks.length;
-    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  };
+  // Fetch projects from API - wrapped in useCallback to prevent infinite loop
+  const fetchProjects = useCallback(async () => {
+    // Only fetch if user is authenticated
+    if (!isAuthenticated || !user?.userId || !user?.role) {
+      console.log('User not authenticated, skipping project fetch');
+      setLoading(false);
+      return;
+    }
 
-  // Mock data - using data from constants/mockData.ts
+    setLoading(true);
+    try {
+      let result;
+      
+      // Fetch projects based on user role
+      if (user.role === UserRole.PROJECT_MANAGER || user.role === 'ProjectManager') {
+        console.log('[Sidebar] Fetching projects managed by ProjectManager:', user.userId);
+        result = await projectService.getProjectsByManagerId(user.userId);
+      } else if (user.role === UserRole.MEMBER || user.role === 'Member') {
+        console.log('[Sidebar] Fetching projects where Member participates:', user.userId);
+        result = await projectService.getProjectsByMemberId(user.userId);
+      } else {
+        console.log('[Sidebar] Unknown role, fetching all projects');
+        result = await projectService.getAllProjects();
+      }
+
+      if (result.success && result.data) {
+        console.log('[Sidebar] Fetched projects successfully:', result.data.items.length, 'projects');
+        setProjects(result.data.items);
+      } else {
+        console.error('[Sidebar] Failed to fetch projects:', result.error);
+        setProjects([]);
+      }
+    } catch (error) {
+      console.error('[Sidebar] Error fetching projects:', error);
+      setProjects([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.userId, user?.role, isAuthenticated]);
+
   useEffect(() => {
-    // Convert all mockProjects to Project format
-    const allProjects: Project[] = mockProjects.map(mockProject => ({
-      id: mockProject.id,
-      name: mockProject.name,
-      description: mockProject.description,
-      status: mockProject.status as 'active' | 'planning' | 'completed' | 'on-hold',
-      startDate: mockProject.startDate,
-      endDate: mockProject.endDate,
-      manager: 'Quang Long', // From mockMembers
-      members: mockMembers.filter(member => 
-        mockProject.members.includes(member.id)
-      ).map(member => ({
-        id: member.id,
-        name: member.name,
-        role: member.role,
-        email: member.email,
-        avatar: `/avatars/${member.avatar.toLowerCase()}.png`
-      })),
-      milestones: mockProject.milestones, // Added - required by Project type
-      progress: calculateProjectProgress(mockProject.id)
-    }));
-
-    setProjects(allProjects);
-    setLoading(false);
-  }, []);
+    fetchProjects();
+  }, [fetchProjects]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
+      case 'Đang hoạt động':
         return '#10b981';
-      case 'planning':
+      case 'Lập kế hoạch':
         return '#f59e0b';
-      case 'on-hold':
+      case 'Tạm dừng':
         return '#ef4444';
-      case 'completed':
+      case 'Hoàn thành':
         return '#6b7280';
       default:
         return '#6b7280';
@@ -101,6 +107,40 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
   const isAnyProjectActive = projects.some(project => isProjectActive(project.id));
 
+  // Sort projects: Active projects with nearest deadline first
+  const sortedProjects = [...projects].sort((a, b) => {
+    // 1. Prioritize "Đang hoạt động" (Active) projects first
+    const statusPriority = {
+      'Đang hoạt động': 1,
+      'Lập kế hoạch': 2,
+      'Tạm dừng': 3,
+      'Hoàn thành': 4
+    };
+    
+    const aPriority = statusPriority[a.status as keyof typeof statusPriority] || 5;
+    const bPriority = statusPriority[b.status as keyof typeof statusPriority] || 5;
+    
+    if (aPriority !== bPriority) {
+      return aPriority - bPriority;
+    }
+    
+    // 2. For same status, sort by nearest endDate (deadline)
+    if (a.endDate && b.endDate) {
+      return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+    }
+    
+    // 3. Projects with endDate come before those without
+    if (a.endDate && !b.endDate) return -1;
+    if (!a.endDate && b.endDate) return 1;
+    
+    // 4. Finally, sort by startDate
+    if (a.startDate && b.startDate) {
+      return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+    }
+    
+    return 0;
+  });
+
   return (
     <div className="project-section">
       {/* Section Header */}
@@ -120,19 +160,22 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
           <span>Dự án</span>
         </div>
         <div className="section-actions">
-          <button 
-            className="add-project-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCreateProject();
-            }}
-            title="Tạo dự án mới"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+          {/* Chỉ hiện nút tạo dự án cho PM */}
+          {(user?.role === UserRole.PROJECT_MANAGER || user?.role === 'ProjectManager') && (
+            <button 
+              className="add-project-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCreateProject();
+              }}
+              title="Tạo dự án mới"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          )}
           <div 
             className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
           >
@@ -154,16 +197,19 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
           ) : projects.length === 0 ? (
             <div className="empty-state">
               <p>Chưa có dự án</p>
-              <button 
-                className="create-project-btn"
-                onClick={handleCreateProject}
-              >
-                Tạo dự án
-              </button>
+              {/* Chỉ hiện nút tạo dự án cho PM */}
+              {(user?.role === UserRole.PROJECT_MANAGER || user?.role === 'ProjectManager') && (
+                <button 
+                  className="create-project-btn"
+                  onClick={handleCreateProject}
+                >
+                  Tạo dự án
+                </button>
+              )}
             </div>
           ) : (
             <>
-              {(showAllProjects ? projects : projects.slice(0, 3)).map((project) => (
+              {(showAllProjects ? sortedProjects : sortedProjects.slice(0, 3)).map((project) => (
                 <div
                   key={project.id}
                   className={`project-item ${isProjectActive(project.id) ? 'active' : ''}`}
@@ -172,7 +218,13 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
                   <div className="project-content">
                     <div className="project-name">{project.name}</div>
                     <div className="project-meta">
-                      <span className="project-progress">{project.progress}%</span>
+                      <div 
+                        className="status-dot" 
+                        style={{ backgroundColor: getStatusColor(project.status) }}
+                      ></div>
+                      <span className="project-status">
+                        {project.status}
+                      </span>
                     </div>
                   </div>
                   {isProjectActive(project.id) && (
@@ -182,7 +234,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
               ))}
               
               <div className="view-all-section">
-                {!showAllProjects && projects.length > 3 ? (
+                {!showAllProjects && sortedProjects.length > 3 ? (
                   <button 
                     className="view-all-btn"
                     onClick={handleShowMoreProjects}
@@ -190,9 +242,9 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                       <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    <span>Xem thêm ({projects.length - 3} dự án)</span>
+                    <span>Xem thêm ({sortedProjects.length - 3} dự án)</span>
                   </button>
-                ) : showAllProjects && projects.length > 3 ? (
+                ) : showAllProjects && sortedProjects.length > 3 ? (
                   <button 
                     className="view-all-btn"
                     onClick={handleShowLessProjects}
@@ -353,22 +405,26 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
         .project-meta {
           display: flex;
-          justify-content: space-between;
           align-items: center;
           font-size: 10px;
           color: #6b7280;
           margin-top: 2px;
-          gap: 6px;
+          gap: 4px;
         }
 
+        .status-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
 
-        .project-progress {
-          font-weight: 600;
-          color: #fb923c;
-          background: rgba(251, 146, 60, 0.1);
-          padding: 1px 4px;
-          border-radius: 3px;
-          font-size: 9px;
+        .project-status {
+          font-weight: 500;
+          font-size: 10px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .active-indicator {

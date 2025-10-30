@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Member } from '@/types/member';
-import { Plus, Search, X, Trash2, Mail } from 'lucide-react';
+import { Plus, Search, X, Trash2, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { userService } from '@/services/userService';
+import { projectService } from '@/services/projectService';
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -12,6 +14,9 @@ interface AddMemberModalProps {
   onAddMember: (member: Member) => void;
   onRemoveMember: (memberId: string) => void;
   existingMembers: Member[];
+  projectId: string;
+  ownerId: string;
+  userRole?: string;
 }
 
 export function AddMemberModal({ 
@@ -19,117 +24,158 @@ export function AddMemberModal({
   onClose, 
   onAddMember, 
   onRemoveMember,
-  existingMembers 
+  existingMembers,
+  projectId,
+  ownerId,
+  userRole
 }: AddMemberModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
 
-  // Mock available users - in real app this would come from API
-  const availableUsers: Member[] = [
-    {
-      id: 'user-1',
-      name: 'Nguyễn Văn A',
-      email: 'a@msp.com',
-      role: 'Developer',
-      avatar: 'NA'
-    },
-    {
-      id: 'user-2',
-      name: 'Trần Thị B',
-      email: 'b@msp.com',
-      role: 'Designer',
-      avatar: 'TB'
-    },
-    {
-      id: 'user-3',
-      name: 'Lê Văn C',
-      email: 'c@msp.com',
-      role: 'QA Tester',
-      avatar: 'LC'
-    },
-    {
-      id: 'user-4',
-      name: 'Phạm Thị D',
-      email: 'd@msp.com',
-      role: 'DevOps Engineer',
-      avatar: 'PD'
-    },
-    {
-      id: 'user-5',
-      name: 'Hoàng Văn E',
-      email: 'e@msp.com',
-      role: 'Business Analyst',
-      avatar: 'HE'
-    },
-    {
-      id: 'user-6',
-      name: 'Vũ Thị F',
-      email: 'f@msp.com',
-      role: 'Product Manager',
-      avatar: 'VF'
+  // Fetch available users when modal opens
+  useEffect(() => {
+    if (isOpen && ownerId) {
+      fetchAvailableUsers();
     }
-  ];
+  }, [isOpen, ownerId]);
 
-  const existingMemberIds = existingMembers.map(m => m.id);
-  const filteredUsers = availableUsers.filter(user => 
-    !existingMemberIds.includes(user.id) &&
-    (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     user.role.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const handleAddExistingMember = (member: Member) => {
-    onAddMember(member);
-    handleClose();
+  const fetchAvailableUsers = async () => {
+    if (!ownerId) {
+      setError('Không tìm thấy Owner ID');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await userService.getMembersByBO(ownerId);
+      
+      if (result.success && result.data) {
+        setAvailableUsers(result.data);
+      } else {
+        setError(result.error || 'Không thể tải danh sách người dùng');
+      }
+    } catch (err: any) {
+      console.error('Error fetching users:', err);
+      setError(err.message || 'Đã xảy ra lỗi khi tải người dùng');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddNewMember = () => {
-    if (!newMemberEmail.trim()) {
-      alert('Vui lòng nhập email!');
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newMemberEmail)) {
-      alert('Vui lòng nhập email hợp lệ!');
-      return;
-    }
-
-    // Check if email already exists
-    const emailExists = existingMembers.some(member => 
-      member.email.toLowerCase() === newMemberEmail.toLowerCase()
-    );
+  // Filter out existing members and apply search
+  // Support both Member format (id) and User format (userId or id)
+  const existingMemberUserIds = existingMembers.map(m => m.id || (m as any).userId).filter(Boolean);
+  const existingMemberEmails = existingMembers.map(m => m.email?.toLowerCase()).filter(Boolean);
+  
+  const filteredUsers = availableUsers.filter(availableUser => {
+    // Get user ID - API might return 'id' or 'userId'
+    const userIdentifier = availableUser.userId || availableUser.id;
     
-    if (emailExists) {
-      alert('Email này đã tồn tại trong dự án!');
+    // Check if user already exists by ID or email
+    const isExistingMemberById = existingMemberUserIds.includes(userIdentifier);
+    const isExistingMemberByEmail = existingMemberEmails.includes(availableUser.email?.toLowerCase());
+    const isExistingMember = isExistingMemberById || isExistingMemberByEmail;
+    
+    // Role-based filtering
+    const userRoleValue = availableUser.role || availableUser.roleName || '';
+    const userRoleLower = userRoleValue.toLowerCase();
+    
+    // If user is Business Owner, only show ProjectManager role
+    if (userRole === 'businessowner') {
+      const isProjectManager = userRoleLower === 'projectmanager';
+      if (!isProjectManager) return false;
+    }
+    
+    // If user is Project Manager, only show Member role
+    if (userRole === 'projectmanager') {
+      const isMember = userRoleLower === 'member';
+      if (!isMember) return false;
+    }
+    
+    // Apply search filter
+    const matchesSearch = !searchQuery || 
+      availableUser.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      availableUser.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      userRoleValue.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return !isExistingMember && matchesSearch;
+  });
+
+  const handleAddMember = async (selectedUser: any) => {
+    if (!projectId) {
+      setError('Không tìm thấy ID dự án');
       return;
     }
 
-    // Generate name from email (before @)
-    const nameFromEmail = newMemberEmail.split('@')[0].replace(/[._-]/g, ' ');
-    const formattedName = nameFromEmail
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+    // Get user ID - API might return 'userId' or 'id'
+    const userIdToAdd = selectedUser.userId || selectedUser.id;
+    
+    if (!userIdToAdd) {
+      setError('User ID không hợp lệ');
+      console.error('Invalid user selected:', selectedUser);
+      return;
+    }
 
-    const newMember: Member = {
-      id: `new-${Date.now()}`,
-      name: formattedName,
-      email: newMemberEmail,
-      role: 'Member', // Default role
-      avatar: formattedName.split(' ').map(n => n[0]).join('').toUpperCase()
-    };
+    setAdding(true);
+    setError('');
+    setSuccess('');
 
-    onAddMember(newMember);
-    handleClose();
+    try {
+      console.log('Adding member to project:', { 
+        projectId, 
+        userId: userIdToAdd,
+        userName: selectedUser.fullName,
+        userEmail: selectedUser.email 
+      });
+      
+      const result = await projectService.addProjectMember(projectId, userIdToAdd);
+      
+      if (result.success && result.data) {
+        console.log('Member added successfully:', result.data);
+        
+        // Convert to Member format for UI
+        const newMember: Member = {
+          id: userIdToAdd,
+          name: selectedUser.fullName,
+          email: selectedUser.email,
+          role: selectedUser.role || selectedUser.roleName || 'Member',
+          avatar: selectedUser.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+        };
+        
+        onAddMember(newMember);
+        setSuccess(`Đã thêm ${selectedUser.fullName} vào dự án!`);
+        
+        // Refresh available users list
+        await fetchAvailableUsers();
+        
+        // Close modal after 1.5 seconds
+        setTimeout(() => {
+          handleClose();
+        }, 1500);
+      } else {
+        const errorMsg = result.error || 'Không thể thêm thành viên';
+        setError(errorMsg);
+        console.error('Add member failed:', errorMsg);
+      }
+    } catch (err: any) {
+      console.error('Error adding member:', err);
+      const errorMsg = err.response?.data?.message || err.message || 'Đã xảy ra lỗi khi thêm thành viên';
+      setError(errorMsg);
+    } finally {
+      setAdding(false);
+    }
   };
 
   const handleClose = () => {
     setSearchQuery('');
-    setSelectedMember(null);
-    setNewMemberEmail('');
+    setError('');
+    setSuccess('');
     onClose();
   };
 
@@ -183,7 +229,7 @@ export function AddMemberModal({
               margin: 0
             }}
           >
-            Thêm thành viên
+            {userRole === 'businessowner' ? 'Thêm người quản lý' : 'Thêm thành viên'}
           </h2>
           <button
             style={{
@@ -224,6 +270,58 @@ export function AddMemberModal({
             overflowY: 'auto'
           }}
         >
+          {/* Error Message */}
+          {error && (
+            <div
+              style={{
+                padding: '12px 16px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <AlertCircle size={16} style={{ color: '#dc2626', flexShrink: 0 }} />
+              <span style={{ color: '#991b1b', fontSize: '14px' }}>{error}</span>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div
+              style={{
+                padding: '12px 16px',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <CheckCircle size={16} style={{ color: '#16a34a', flexShrink: 0 }} />
+              <span style={{ color: '#15803d', fontSize: '14px' }}>{success}</span>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div
+              style={{
+                padding: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px'
+              }}
+            >
+              <Loader2 size={20} style={{ color: '#FF5E13', animation: 'spin 1s linear infinite' }} />
+              <span style={{ color: '#6b7280', fontSize: '14px' }}>Đang tải danh sách thành viên...</span>
+            </div>
+          )}
+
           {/* Search */}
           <div>
             <label
@@ -286,9 +384,9 @@ export function AddMemberModal({
                   borderRadius: '8px'
                 }}
               >
-                {existingMembers.map((member) => (
+                {existingMembers.map((member, index) => (
                   <div
-                    key={member.id}
+                    key={member.id || (member as any).userId || `existing-${index}`}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -370,7 +468,7 @@ export function AddMemberModal({
           )}
 
           {/* Available Users */}
-          {filteredUsers.length > 0 && (
+          {!loading && filteredUsers.length > 0 && (
             <div>
               <h4
                 style={{
@@ -390,182 +488,104 @@ export function AddMemberModal({
                   borderRadius: '8px'
                 }}
               >
-                {filteredUsers.map((user) => (
-                  <div
-                    key={user.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px',
-                      borderBottom: '1px solid #f3f4f6',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s ease'
-                    }}
-                    onClick={() => handleAddExistingMember(user)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f9fafb';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
+                {filteredUsers.map((availableUser, index) => {
+                  const userId = availableUser.userId || availableUser.id;
+                  const userRole = availableUser.role || availableUser.roleName || 'Member';
+                  
+                  return (
                     <div
+                      key={userId || availableUser.email || `available-${index}`}
                       style={{
-                        width: '40px',
-                        height: '40px',
-                        background: '#10b981',
-                        color: 'white',
-                        borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '14px',
-                        fontWeight: 600
+                        gap: '12px',
+                        padding: '12px',
+                        borderBottom: '1px solid #f3f4f6',
+                        cursor: adding ? 'not-allowed' : 'pointer',
+                        opacity: adding ? 0.6 : 1,
+                        transition: 'background-color 0.2s ease'
+                      }}
+                      onClick={() => !adding && handleAddMember(availableUser)}
+                      onMouseEnter={(e) => {
+                        if (!adding) e.currentTarget.style.backgroundColor = '#f9fafb';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
-                      {user.avatar}
-                    </div>
-                    <div style={{ flex: 1 }}>
                       <div
                         style={{
-                          fontWeight: 500,
-                          color: '#374151',
-                          fontSize: '14px'
+                          width: '40px',
+                          height: '40px',
+                          background: '#10b981',
+                          color: 'white',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '14px',
+                          fontWeight: 600
                         }}
                       >
-                        {user.name}
+                        {availableUser.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                       </div>
-                      <div
-                        style={{
-                          fontSize: '12px',
-                          color: '#6b7280'
-                        }}
-                      >
-                        {user.email} • {user.role}
+                      <div style={{ flex: 1 }}>
+                        <div
+                          style={{
+                            fontWeight: 500,
+                            color: '#374151',
+                            fontSize: '14px'
+                          }}
+                        >
+                          {availableUser.fullName}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            color: '#6b7280'
+                          }}
+                        >
+                          {availableUser.email} • {userRole}
+                        </div>
                       </div>
+                      {adding ? (
+                        <Loader2 size={16} style={{ color: '#FF5E13', animation: 'spin 1s linear infinite' }} />
+                      ) : (
+                        <Plus size={16} style={{ color: '#10b981' }} />
+                      )}
                     </div>
-                    <Plus size={16} style={{ color: '#10b981' }} />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Divider */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              color: '#6b7280',
-              fontSize: '14px'
-            }}
-          >
-            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
-            <span>hoặc</span>
-            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
-          </div>
-
-          {/* Add New Member by Email */}
-          <div>
-            <h4
-              style={{
-                fontSize: '16px',
-                fontWeight: 600,
-                color: '#374151',
-                margin: '0 0 16px 0'
-              }}
-            >
-              Thêm thành viên mới
-            </h4>
+          {/* No Available Users */}
+          {!loading && filteredUsers.length === 0 && availableUsers.length > 0 && (
             <div
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px'
+                padding: '24px',
+                textAlign: 'center',
+                color: '#6b7280',
+                fontSize: '14px'
               }}
             >
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    color: '#374151',
-                    marginBottom: '6px'
-                  }}
-                >
-                  Email <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Mail
-                    size={16}
-                    style={{
-                      position: 'absolute',
-                      left: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: '#6b7280'
-                    }}
-                  />
-                  <Input
-                    type="email"
-                    placeholder="Nhập email thành viên mới"
-                    value={newMemberEmail}
-                    onChange={(e) => setNewMemberEmail(e.target.value)}
-                    style={{
-                      width: '100%',
-                      paddingLeft: '40px',
-                      padding: '12px 12px 12px 40px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                  />
-                </div>
-                <p
-                  style={{
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    margin: '6px 0 0 0'
-                  }}
-                >
-                  Tên và vai trò sẽ được tự động tạo từ email
-                </p>
-              </div>
-
-              <Button
-                onClick={handleAddNewMember}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  fontSize: '14px',
-                  background: 'transparent',
-                  color: '#FF5E13',
-                  border: '1px solid #FF5E13',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#FF5E13';
-                  e.currentTarget.style.color = 'white';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = '#FF5E13';
-                }}
-              >
-                <Plus size={16} />
-                Thêm thành viên mới
-              </Button>
+              Không tìm thấy thành viên phù hợp với tìm kiếm của bạn
             </div>
-          </div>
+          )}
+
+          {!loading && availableUsers.length === 0 && (
+            <div
+              style={{
+                padding: '24px',
+                textAlign: 'center',
+                color: '#6b7280',
+                fontSize: '14px'
+              }}
+            >
+              Không có thành viên khả dụng để thêm vào dự án
+            </div>
+          )}
         </div>
       </div>
     </div>
