@@ -219,72 +219,72 @@ export default function MeetingDetailPage() {
         }
 
         // Tạo todos từ AI response nếu có
-        // if (data.data.todoList && data.data.todoList.length > 0) {
-        //   try {
-        //     // console.log("Creating todos from AI response:", data.data.todoList);
+        if (data.data.todoList && data.data.todoList.length > 0) {
+          try {
+            // console.log("Creating todos from AI response:", data.data.todoList);
 
-        //     // Map assigneeId từ AI với attendees trong meeting
-        //     const mappedTodoList = data.data.todoList.map((todo: any) => {
-        //       // Tìm assigneeId hợp lệ trong attendees
-        //       let validAssigneeId = todo.assigneeId;
+            // Map assigneeId từ AI với attendees trong meeting
+            const mappedTodoList = data.data.todoList.map((todo: any) => {
+              // Tìm assigneeId hợp lệ trong attendees
+              let validAssigneeId = todo.assigneeId;
 
-        //       if (todo.assigneeId && meetingInfo?.attendees) {
-        //         const attendee = meetingInfo.attendees.find(
-        //           (att: any) => att.id === todo.assigneeId
-        //         );
-        //         if (!attendee) {
-        //           validAssigneeId = meetingInfo?.createdById;
-        //         }
-        //       } else {
-        //         validAssigneeId = meetingInfo?.createdById;
-        //       }
+              if (todo.assigneeId && meetingInfo?.attendees) {
+                const attendee = meetingInfo.attendees.find(
+                  (att: any) => att.id === todo.assigneeId
+                );
+                if (!attendee) {
+                  validAssigneeId = meetingInfo?.createdById;
+                }
+              } else {
+                validAssigneeId = meetingInfo?.createdById;
+              }
 
-        //       return {
-        //         ...todo,
-        //         assigneeId: validAssigneeId,
-        //       };
-        //     });
+              return {
+                ...todo,
+                assigneeId: validAssigneeId,
+              };
+            });
 
-        //     // console.log(
-        //     //   "Mapped todoList with valid assigneeIds:",
-        //     //   mappedTodoList
-        //     // );
+            // console.log(
+            //   "Mapped todoList with valid assigneeIds:",
+            //   mappedTodoList
+            // );
 
-        //     const createTodosResult = await todoService.createTodosFromAI(
-        //       params.id as string,
-        //       mappedTodoList
-        //     );
+            const createTodosResult = await todoService.createTodosFromAI(
+              params.id as string,
+              mappedTodoList
+            );
 
-        //     if (createTodosResult.success) {
-        //       // console.log(
-        //       //   "Todos created successfully:",
-        //       //   createTodosResult.data
-        //       // );
-        //       toast.success(
-        //         `${createTodosResult.data?.length || 0
-        //         } công việc đã được tạo từ AI`
-        //       );
-        //       // Refresh todos from DB
-        //       const refreshResult = await todoService.getTodosByMeetingId(
-        //         params.id as string
-        //       );
-        //       if (refreshResult.success && refreshResult.data) {
-        //         setTodosFromDB(refreshResult.data);
-        //         setTodoList(refreshResult.data);
-        //       }
-        //     } else {
-        //       // console.error("Failed to create todos:", createTodosResult.error);
-        //       toast.warning(
-        //         "Tạo công việc từ AI thất bại: " + createTodosResult.error
-        //       );
-        //     }
-        //   } catch (todoError) {
-        //     // console.error("Error creating todos from AI:", todoError);
-        //     toast.error("Lỗi khi tạo công việc từ AI");
-        //   }
-        // } else {
-        //   // console.log("No todoList in AI response or empty list");
-        // }
+            if (createTodosResult.success) {
+              // console.log(
+              //   "Todos created successfully:",
+              //   createTodosResult.data
+              // );
+              toast.success(
+                `${createTodosResult.data?.length || 0
+                } công việc đã được tạo từ AI`
+              );
+              // Refresh todos from DB
+              const refreshResult = await todoService.getTodosByMeetingId(
+                params.id as string
+              );
+              if (refreshResult.success && refreshResult.data) {
+                setTodosFromDB(refreshResult.data);
+                setTodoList(refreshResult.data);
+              }
+            } else {
+              // console.error("Failed to create todos:", createTodosResult.error);
+              toast.warning(
+                "Tạo công việc từ AI thất bại: " + createTodosResult.error
+              );
+            }
+          } catch (todoError) {
+            // console.error("Error creating todos from AI:", todoError);
+            toast.error("Lỗi khi tạo công việc từ AI");
+          }
+        } else {
+          // console.log("No todoList in AI response or empty list");
+        }
 
         // console.log("Processing complete!", data.data);
       } else {
@@ -329,6 +329,7 @@ export default function MeetingDetailPage() {
         setTodoList(todosFromDB);
       }
       hasProcessedRef.current = true;
+      console.log(todoList);
       return;
     }
 
@@ -506,6 +507,16 @@ export default function MeetingDetailPage() {
     return processedSummary;
   };
 
+  function isValidTodo(todo: any) {
+    return (
+      !!todo.title &&
+      !!todo.description &&
+      !!todo.startDate &&
+      !!todo.endDate &&
+      !!getTodoAssigneeId(todo)
+    );
+  }
+
   // Xử lý chỉnh sửa task
   const handleEditTask = (task: any) => {
     setEditingTaskId(task.id);
@@ -597,6 +608,11 @@ export default function MeetingDetailPage() {
 
   // Xử lý select/deselect task
   const handleSelectTask = (taskId: string) => {
+    const todo = todoList.find(t => t.id === taskId);
+    if (!isValidTodo(todo)) {
+      toast.warning("Cần điền đầy đủ thông tin trước khi chọn chuyển đổi thành công việc chính thức.");
+      return;
+    }
     setSelectedTasks((prev) =>
       prev.includes(taskId)
         ? prev.filter((id) => id !== taskId)
@@ -606,11 +622,9 @@ export default function MeetingDetailPage() {
 
   // Xử lý select all tasks
   const handleSelectAllTasks = () => {
-    if (selectedTasks.length === todoList.length) {
-      setSelectedTasks([]);
-    } else {
-      setSelectedTasks(todoList.map((todo) => todo.id));
-    }
+    const eligibleIds = todoList.filter(isValidTodo).map(t => t.id);
+    if (selectedTasks.length === eligibleIds.length) setSelectedTasks([]);
+    else setSelectedTasks(eligibleIds);
   };
 
   // Xử lý mở modal confirm convert
@@ -619,14 +633,38 @@ export default function MeetingDetailPage() {
   };
 
   // Xử lý confirm convert
-  const handleConfirmConvert = () => {
-    // TODO: Implement convert logic
-    // console.log("Converting tasks:", selectedTasks);
+  const handleConfirmConvert = async () => {
+    if (selectedTasks.length === 0) {
+      toast.warning("Bạn phải chọn ít nhất một To-do để chuyển!");
+      return;
+    }
 
-    // Show success toast
-    toast.success(
-      `${selectedTasks.length} công việc đã được tạo và phân công thành công cho các thành viên trong nhóm.`
-    );
+    // Có thể hiển thị loading ở đây nếu muốn
+    try {
+      const result = await todoService.convertTodosToTasks(selectedTasks);
+
+      if (result.success) {
+        toast.success(`Chuyển thành công ${result.data?.length} công việc cho dự án!`);
+        // Xoá selection và đóng modal
+        setSelectedTasks([]);
+        setConvertConfirmModal({ isOpen: false, taskCount: 0 });
+
+        // Refresh lại danh sách todo (nếu còn trong DB thì lọc IsDeleted)
+        const refreshedTodos = await todoService.getTodosByMeetingId(meetingInfo.id);
+        if (refreshedTodos.success) {
+          setTodosFromDB(refreshedTodos.data ?? []);
+          setTodoList(refreshedTodos.data ?? []);
+        }
+
+        // Nếu có list task trả về, có thể push vào ProjectTask trong frontend/project context nếu cần
+      } else {
+        toast.error(result.error || "Không thể chuyển đổi các To-do đã chọn!");
+        setConvertConfirmModal({ isOpen: false, taskCount: 0 });
+      }
+    } catch (error) {
+      toast.error("Có lỗi kết nối khi chuyển đổi công việc!");
+      setConvertConfirmModal({ isOpen: false, taskCount: 0 });
+    }
 
     // Close modal and clear selection
     setConvertConfirmModal({ isOpen: false, taskCount: 0 });
@@ -670,6 +708,7 @@ export default function MeetingDetailPage() {
           <div className="task-checkbox">
             <Checkbox
               checked={selectedTasks.includes(todo.id)}
+              disabled={!isValidTodo(todo)}
               onCheckedChange={() => handleSelectTask(todo.id)}
               className="task-select-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
             />
@@ -1643,15 +1682,15 @@ export default function MeetingDetailPage() {
 
             {/* Title */}
             <h3 className="text-lg font-semibold mb-2">
-              Chuyển đổi thành Nhiệm vụ Chính thức?
+              Chuyển đổi thành Công việc Chính thức?
             </h3>
 
             {/* Content */}
             <div className="delete-modal-content mb-4">
               <p>
                 Bạn sắp chuyển đổi{" "}
-                <strong>{convertConfirmModal.taskCount} việc cần làm</strong> do
-                AI tạo thành công việc chính thức. Những việc này sẽ được thêm
+                <strong>{convertConfirmModal.taskCount} to-do</strong> do
+                AI tạo thành "công việc chính thức". Những việc này sẽ được thêm
                 vào trong dự án của bạn và các thành viên liên quan trong nhóm
                 sẽ nhận được thông báo.
               </p>
@@ -1671,7 +1710,7 @@ export default function MeetingDetailPage() {
                 className="confirm-delete-btn"
                 style={{ background: "#FF5E13" }}
               >
-                Xác nhận chuyển đổi
+                Xác nhận
               </Button>
             </div>
           </div>

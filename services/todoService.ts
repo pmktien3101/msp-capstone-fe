@@ -54,9 +54,24 @@ export const todoService = {
     data: UpdateTodoRequest
   ): Promise<{ success: boolean; data?: Todo; error?: string }> {
     try {
+
+      // Làm sạch input
+      const requestData = {
+        ...data,
+        startDate: data.startDate
+          ? new Date(data.startDate).toISOString()
+          : null,
+        endDate: data.endDate
+          ? new Date(data.endDate).toISOString()
+          : null,
+        assigneeId: data.assigneeId || null,
+        title: data.title?.trim() || null,
+        description: data.description?.trim() || null,
+      };
+
       const response = await api.put<ApiResponse<Todo>>(
         `/todos/${todoId}`,
-        data
+        requestData
       );
 
       if (response.data.success && response.data.data) {
@@ -122,13 +137,13 @@ export const todoService = {
       );
 
       if (response.data.success && response.data.data) {
-        console.log('Todos fetched successfully:', response.data.data);    
+        console.log('Todos fetched successfully:', response.data.data);
         return {
           success: true,
           data: response.data.data,
         };
 
-        
+
       } else {
         return {
           success: false,
@@ -154,7 +169,7 @@ export const todoService = {
     fallbackUserId?: string
   ): Promise<{ success: boolean; data?: Todo[]; error?: string }> {
     try {
-      const createPromises = todoList.map(todo => 
+      const createPromises = todoList.map(todo =>
         this.createTodo({
           meetingId,
           assigneeId: todo.assigneeId || fallbackUserId, // Use fallback if assigneeId is null/undefined
@@ -166,7 +181,7 @@ export const todoService = {
       );
 
       const results = await Promise.all(createPromises);
-      
+
       // Check if all creations were successful
       const successfulTodos = results
         .filter(result => result.success)
@@ -191,4 +206,38 @@ export const todoService = {
       };
     }
   },
+  // Convert nhiều todos sang tasks
+  async convertTodosToTasks(
+    todoIds: string[]
+  ): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    try {
+      const response = await api.post<ApiResponse<any[]>>(
+        "/todos/convert-to-tasks",
+        {
+          todoIds, // truyền danh sách id
+        }
+      );
+
+      if (response.data.success && response.data.data) {
+        return {
+          success: true,
+          data: response.data.data,
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message || "Failed to convert todos to tasks",
+        };
+      }
+    } catch (error: any) {
+      console.error("Convert todos to tasks error:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to convert todos to tasks",
+      };
+    }
+  }
 };

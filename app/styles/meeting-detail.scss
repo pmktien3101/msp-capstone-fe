@@ -1081,16 +1081,16 @@
         .task-details {
           display: flex;
           flex-wrap: wrap;
-          gap: 8px;
+          gap: 12px;
           width: 100%;
           padding: 8px 0;
 
           .detail-item {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 4px;
             flex: 1;
-            min-width: 0;
+            min-width: 150px;
 
             .detail-label {
               font-size: 11px;
@@ -1098,19 +1098,53 @@
               color: #6b7280;
               text-transform: uppercase;
               letter-spacing: 0.5px;
+              white-space: nowrap;
             }
 
             .detail-value {
+              display: flex;
+              align-items: center;
+              gap: 6px;
               background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-              padding: 6px 10px;
+              padding: 6px 12px;
               border-radius: 16px;
               font-size: 12px;
               color: #374151;
               font-weight: 600;
               border: 1px solid #e5e7eb;
+              min-width: 0;
 
               svg {
                 color: #9ca3af;
+                flex-shrink: 0;
+              }
+
+              span {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                flex: 1;
+              }
+
+              .date-input,
+              .assignee-select {
+                border: none;
+                background: transparent;
+                font-size: 12px;
+                color: #374151;
+                font-weight: 600;
+                flex: 1;
+                min-width: 0;
+                padding: 0;
+                width: 100%;
+
+                &:focus {
+                  outline: none;
+                }
+              }
+
+              .assignee-select {
+                cursor: pointer;
               }
             }
           }
@@ -1417,9 +1451,20 @@
 
       .task-content .task-details {
         flex-direction: column;
+        gap: 10px;
 
         .detail-item {
           width: 100%;
+          min-width: auto;
+
+          .detail-value {
+            width: 100%;
+
+            .date-input,
+            .assignee-select {
+              width: 100%;
+            }
+          }
         }
       }
 
