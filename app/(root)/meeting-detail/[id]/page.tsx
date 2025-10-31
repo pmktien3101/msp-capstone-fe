@@ -32,6 +32,8 @@ import { toast } from "react-toastify";
 import { meetingService } from "@/services/meetingService";
 import { todoService } from "@/services/todoService";
 import { da } from "zod/v4/locales";
+import EditableTranscriptItem from "@/components/meeting/EditableTranscriptItem";
+import TranscriptPanel from "@/components/meeting/TranscriptPanel";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -139,7 +141,6 @@ export default function MeetingDetailPage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log("Original Transcriptions data:", data);
         setOriginalTranscriptions(data || []);
       } catch (e: any) {
         // console.error("Failed to fetch transcriptions", e);
@@ -181,9 +182,7 @@ export default function MeetingDetailPage() {
 
       if (data.success) {
         // Cập nhật state với kết quả
-        // const updatedImprovedTranscript = updateSpeakerIds(transcriptions, data.data.improvedTranscript);
         setImprovedTranscript(data.data.improvedTranscript);
-        console.log('Improved Transcripts data:', data.data.improvedTranscript);
         // Map assigneeId thành tên trong summary
         const processedSummary = mapSummaryAssigneeIds(data.data.summary);
         setSummary(processedSummary);
@@ -220,75 +219,72 @@ export default function MeetingDetailPage() {
         }
 
         // Tạo todos từ AI response nếu có
-        if (data.data.todoList && data.data.todoList.length > 0) {
-          try {
-            // console.log("Creating todos from AI response:", data.data.todoList);
+        // if (data.data.todoList && data.data.todoList.length > 0) {
+        //   try {
+        //     // console.log("Creating todos from AI response:", data.data.todoList);
 
-            // Map assigneeId từ AI với attendees trong meeting
-            const mappedTodoList = data.data.todoList.map((todo: any) => {
-              // Tìm assigneeId hợp lệ trong attendees
-              let validAssigneeId = todo.assigneeId;
+        //     // Map assigneeId từ AI với attendees trong meeting
+        //     const mappedTodoList = data.data.todoList.map((todo: any) => {
+        //       // Tìm assigneeId hợp lệ trong attendees
+        //       let validAssigneeId = todo.assigneeId;
 
-              if (todo.assigneeId && meetingInfo?.attendees) {
-                const attendee = meetingInfo.attendees.find(
-                  (att: any) => att.id === todo.assigneeId
-                );
-                if (!attendee) {
-                  // console.warn(
-                  //   `AssigneeId ${todo.assigneeId} not found in attendees, using fallback`
-                  // );
-                  validAssigneeId = meetingInfo?.createdById;
-                }
-              } else {
-                validAssigneeId = meetingInfo?.createdById;
-              }
+        //       if (todo.assigneeId && meetingInfo?.attendees) {
+        //         const attendee = meetingInfo.attendees.find(
+        //           (att: any) => att.id === todo.assigneeId
+        //         );
+        //         if (!attendee) {
+        //           validAssigneeId = meetingInfo?.createdById;
+        //         }
+        //       } else {
+        //         validAssigneeId = meetingInfo?.createdById;
+        //       }
 
-              return {
-                ...todo,
-                assigneeId: validAssigneeId,
-              };
-            });
+        //       return {
+        //         ...todo,
+        //         assigneeId: validAssigneeId,
+        //       };
+        //     });
 
-            // console.log(
-            //   "Mapped todoList with valid assigneeIds:",
-            //   mappedTodoList
-            // );
+        //     // console.log(
+        //     //   "Mapped todoList with valid assigneeIds:",
+        //     //   mappedTodoList
+        //     // );
 
-            const createTodosResult = await todoService.createTodosFromAI(
-              params.id as string,
-              mappedTodoList
-            );
+        //     const createTodosResult = await todoService.createTodosFromAI(
+        //       params.id as string,
+        //       mappedTodoList
+        //     );
 
-            if (createTodosResult.success) {
-              // console.log(
-              //   "Todos created successfully:",
-              //   createTodosResult.data
-              // );
-              toast.success(
-                `${createTodosResult.data?.length || 0
-                } công việc đã được tạo từ AI`
-              );
-              // Refresh todos from DB
-              const refreshResult = await todoService.getTodosByMeetingId(
-                params.id as string
-              );
-              if (refreshResult.success && refreshResult.data) {
-                setTodosFromDB(refreshResult.data);
-                setTodoList(refreshResult.data);
-              }
-            } else {
-              // console.error("Failed to create todos:", createTodosResult.error);
-              toast.warning(
-                "Tạo công việc từ AI thất bại: " + createTodosResult.error
-              );
-            }
-          } catch (todoError) {
-            // console.error("Error creating todos from AI:", todoError);
-            toast.error("Lỗi khi tạo công việc từ AI");
-          }
-        } else {
-          // console.log("No todoList in AI response or empty list");
-        }
+        //     if (createTodosResult.success) {
+        //       // console.log(
+        //       //   "Todos created successfully:",
+        //       //   createTodosResult.data
+        //       // );
+        //       toast.success(
+        //         `${createTodosResult.data?.length || 0
+        //         } công việc đã được tạo từ AI`
+        //       );
+        //       // Refresh todos from DB
+        //       const refreshResult = await todoService.getTodosByMeetingId(
+        //         params.id as string
+        //       );
+        //       if (refreshResult.success && refreshResult.data) {
+        //         setTodosFromDB(refreshResult.data);
+        //         setTodoList(refreshResult.data);
+        //       }
+        //     } else {
+        //       // console.error("Failed to create todos:", createTodosResult.error);
+        //       toast.warning(
+        //         "Tạo công việc từ AI thất bại: " + createTodosResult.error
+        //       );
+        //     }
+        //   } catch (todoError) {
+        //     // console.error("Error creating todos from AI:", todoError);
+        //     toast.error("Lỗi khi tạo công việc từ AI");
+        //   }
+        // } else {
+        //   // console.log("No todoList in AI response or empty list");
+        // }
 
         // console.log("Processing complete!", data.data);
       } else {
@@ -321,7 +317,7 @@ export default function MeetingDetailPage() {
       if (meetingInfo.transcription) {
         const parsedTranscript = parseTranscription(meetingInfo.transcription);
         setImprovedTranscript(parsedTranscript);
-        console.log("Transcript from DB:", parsedTranscript);
+        // console.log("Transcript from DB:", parsedTranscript);
       }
       if (meetingInfo.summary) {
         // Map assigneeId thành tên trong summary từ DB
@@ -425,18 +421,6 @@ export default function MeetingDetailPage() {
         return attendee.fullName;
       }
     }
-
-    // Fallback to old mapping for external speakers or unknown IDs
-    const speakerMap: { [key: string]: string } = {
-      "male-voice": "Giọng Nam Bên Ngoài",
-      "female-voice": "Giọng Nữ Bên Ngoài",
-    };
-
-    const fallbackName = speakerMap[speakerId] || `Speaker ${speakerId}`;
-    // console.log(
-    //   `⚠️ Using fallback for speakerId ${speakerId}: ${fallbackName}`
-    // );
-    return fallbackName;
   };
 
   // Helper function to parse transcription from string to array
@@ -1482,17 +1466,14 @@ export default function MeetingDetailPage() {
                               : "200px",
                       }}
                     >
-                      {improvedTranscript.map((item, index) => (
-                        <div key={index} className="transcript-item">
-                          <span className="timestamp">
-                            {formatTimestamp(item.startTs)}
-                          </span>
-                          <div className="transcript-text">
-                            <strong>{getSpeakerName(item.speakerId)}:</strong>{" "}
-                            {item.text}
-                          </div>
-                        </div>
-                      ))}
+                      <TranscriptPanel
+                        meetingId={params.id as string}
+                        transcriptItems={improvedTranscript}
+                        setTranscriptItems={setImprovedTranscript}
+                        allSpeakers={meetingInfo?.attendees ?? []}
+                        getSpeakerName={getSpeakerName}
+                        formatTimestamp={formatTimestamp}
+                      />
                     </div>
 
                     {improvedTranscript.length > 4 && (

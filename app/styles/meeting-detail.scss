@@ -1,3 +1,6 @@
+// ======================
+// 1. Trang chính & trạng thái tổng thể
+// ======================
 .meeting-detail-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -84,6 +87,9 @@
   }
 }
 
+// ======================
+// 2. Header cuộc họp & tiêu đề/trạng thái
+// ======================
 .meeting-header {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border-bottom: 1px solid #e5e7eb;
@@ -189,6 +195,9 @@
   }
 }
 
+// ======================
+// 3. Tabs navigation meeting detail
+// ======================
 .meeting-tabs {
   background: white;
   border-bottom: 2px solid #f1f5f9;
@@ -237,6 +246,9 @@
   }
 }
 
+// ======================
+// 4. Nội dung meeting – tổng quan & dự án
+// ======================
 .meeting-content {
   padding: 40px;
   max-width: 1400px;
@@ -359,6 +371,9 @@
   }
 }
 
+// ======================
+// 5. Recording: bản ghi, transcript
+// ======================
 .recording-section {
   background: white;
   border-radius: 16px;
@@ -561,6 +576,9 @@
     }
   }
 
+  // ======================
+  // 6. Meeting summary + keywords
+  // ======================
   .summary {
     margin-bottom: 32px;
 
@@ -581,12 +599,10 @@
         right: -50%;
         width: 200%;
         height: 200%;
-        background: linear-gradient(
-          45deg,
-          transparent,
-          rgba(251, 191, 36, 0.1),
-          transparent
-        );
+        background: linear-gradient(45deg,
+            transparent,
+            rgba(251, 191, 36, 0.1),
+            transparent);
         animation: shimmer 3s infinite;
       }
 
@@ -594,6 +610,7 @@
         0% {
           transform: translateX(-100%) translateY(-100%) rotate(45deg);
         }
+
         100% {
           transform: translateX(100%) translateY(100%) rotate(45deg);
         }
@@ -619,10 +636,13 @@
           animation: pulse-glow 2s ease-in-out infinite;
 
           @keyframes pulse-glow {
-            0%, 100% {
+
+            0%,
+            100% {
               box-shadow: 0 6px 16px rgba(251, 191, 36, 0.4);
               transform: scale(1);
             }
+
             50% {
               box-shadow: 0 8px 24px rgba(251, 191, 36, 0.6);
               transform: scale(1.05);
@@ -719,6 +739,9 @@
   }
 }
 
+// ======================
+// 7. Tasks: bảng nhiệm vụ, AI Generated Tasks
+// ======================
 .tasks-section {
   background: white;
   border-radius: 12px;
@@ -1198,6 +1221,9 @@
   }
 }
 
+// ======================
+// 8. Hint mở rộng transcript
+// ======================
 .transcript-expand-hint {
   text-align: center;
   padding: 16px;
@@ -1230,7 +1256,9 @@
   }
 }
 
-// Delete modal improvements
+// ======================
+// 9. Modal xác nhận
+// ======================
 .delete-modal-overlay {
   position: fixed;
   top: 0;
@@ -1337,7 +1365,9 @@
   }
 }
 
-// Responsive improvements
+// ======================
+// 10. Responsive
+// ======================
 @media (max-width: 1024px) {
   .meeting-content {
     padding: 24px;
@@ -1440,7 +1470,244 @@
   }
 }
 
-h2 { font-size: 2rem; margin-bottom: 1.5rem; }
-strong { font-weight: bold; }
-ul { margin-left: 2rem; }
-li { margin-top: 0.3rem; }
+// ======================
+// 11. Markdown custom
+// ======================
+h2 {
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+strong {
+  font-weight: bold;
+}
+
+ul {
+  margin-left: 2rem;
+}
+
+li {
+  margin-top: 0.3rem;
+}
+
+// ======================
+// 12. Editable Transcript Styles
+// ======================
+.transcript-item {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  border-left: 3px solid #FF5E13;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateX(4px);
+  }
+}
+
+.transcript-view-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+
+  .timestamp {
+    color: #FF5E13;
+    font-weight: 700;
+    font-size: 13px;
+    min-width: 50px;
+    flex-shrink: 0;
+    background: #fff7f0;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+
+  .speaker-name {
+    font-weight: 600;
+    color: #1f2937;
+    min-width: 120px;
+    flex-shrink: 0;
+  }
+
+  .transcript-text {
+    flex: 1;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #374151;
+  }
+
+  button {
+    flex-shrink: 0;
+    border-radius: 6px;
+    font-size: 13px;
+    padding: 6px 12px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: #fff7f0;
+      border-color: #FF5E13;
+      color: #FF5E13;
+    }
+  }
+}
+
+.transcript-edit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-left-color: #60a5fa;
+
+  .transcript-edit-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+
+    .timestamp {
+      font-weight: 700;
+      font-size: 13px;
+      color: #FF5E13;
+      min-width: 50px;
+      background: #fff7f0;
+      padding: 4px 8px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .edit-speaker {
+      min-width: 175px;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      border: 1.5px solid #e5e7eb;
+      background: white;
+      color: #374151;
+      transition: all 0.3s ease;
+      cursor: pointer;
+
+      &:hover {
+        border-color: #60a5fa;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+      }
+    }
+  }
+
+  .edit-text {
+    width: 100%;
+    border-radius: 8px;
+    border: 1.5px solid #e5e7eb;
+    padding: 10px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 6px;
+    background: white;
+    color: #374151;
+    resize: vertical;
+    min-height: 60px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: #cbd5e1;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+    }
+  }
+
+  .transcript-edit-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+
+    button {
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      cursor: pointer;
+
+      &:first-child {
+        background: linear-gradient(135deg, #FF5E13 0%, #ff7a3d 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 2px 6px rgba(255, 94, 19, 0.25);
+
+        &:hover {
+          background: linear-gradient(135deg, #e54e0a 0%, #FF5E13 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.35);
+        }
+      }
+
+      &:last-child {
+        background: white;
+        color: #6b7280;
+        border: 1.5px solid #e5e7eb;
+
+        &:hover {
+          background: #f9fafb;
+          border-color: #d1d5db;
+        }
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+}
+
+// Responsive cho transcript editing
+@media (max-width: 768px) {
+  .transcript-view-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+
+    .timestamp {
+      min-width: auto;
+    }
+
+    .speaker-name {
+      min-width: auto;
+    }
+
+    button {
+      align-self: flex-start;
+    }
+  }
+
+  .transcript-edit-row {
+    .transcript-edit-header {
+      flex-direction: column;
+      align-items: flex-start;
+
+      .edit-speaker {
+        width: 100%;
+        min-width: auto;
+      }
+    }
+
+    .transcript-edit-actions {
+      flex-direction: column;
+
+      button {
+        width: 100%;
+      }
+    }
+  }
+}

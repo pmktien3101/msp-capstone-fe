@@ -256,4 +256,47 @@ export const meetingService = {
       };
     }
   },
+
+  // Update Transcript
+  async updateTranscript(
+    meetingId: string,
+    transcript: any[]
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const transcriptJson = JSON.stringify(transcript);
+      const payload = JSON.stringify(transcriptJson); // double-stringify -> JSON string literal
+
+      const response = await api.put<ApiResponse>(
+        `/meetings/${meetingId}/transcript`,
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.data,
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message || "Failed to update transcript",
+        };
+      }
+    } catch (error: any) {
+      console.error("Update transcript error:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update transcript",
+      };
+    }
+  },
 };
+
