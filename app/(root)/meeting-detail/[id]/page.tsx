@@ -31,9 +31,10 @@ import { mockMilestones, mockParticipants } from "@/constants/mockData";
 import { toast } from "react-toastify";
 import { meetingService } from "@/services/meetingService";
 import { todoService } from "@/services/todoService";
-import { da } from "zod/v4/locales";
-import EditableTranscriptItem from "@/components/meeting/EditableTranscriptItem";
 import TranscriptPanel from "@/components/meeting/TranscriptPanel";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { Todo } from "@/types/todo";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -60,26 +61,17 @@ export default function MeetingDetailPage() {
   const [recordingsError, setRecordingsError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
-  const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
-  const [generatedTasks, setGeneratedTasks] = useState<any[]>([]);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [editedTask, setEditedTask] = useState<any>(null);
   const [editMode, setEditMode] = useState<{ [key: string]: boolean }>({});
+  const [originalTodoCache, setOriginalTodoCache] = useState<{ [id: string]: Todo }>({});
   const [originalTranscriptions, setOriginalTranscriptions] = useState<any[]>([]);
   const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(false);
   const [transcriptionsError, setTranscriptionsError] = useState<string | null>(
     null
   );
-  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
-  const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
     isOpen: boolean;
     taskId: string | null;
   }>({ isOpen: false, taskId: null });
-  const [isTaskCreated, setIsTaskCreated] = useState<{
-    [key: string]: boolean;
-  }>({});
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [convertConfirmModal, setConvertConfirmModal] = useState<{
     isOpen: boolean;
@@ -153,6 +145,25 @@ export default function MeetingDetailPage() {
       loadTranscriptions();
     }
   }, [activeTab, call]);
+
+  // Fetch lại active tab từ localStorage khi mount page
+  useEffect(() => {
+    // Fetch lại active tab từ localStorage khi mount page
+    const savedTab = localStorage.getItem("meetingDetailActiveTab");
+    if (savedTab) {
+      setActiveTab(savedTab);
+    }
+    // Cleanup: khi page/component bị unmount thì xóa lưu tab
+    return () => {
+      localStorage.removeItem("meetingDetailActiveTab");
+    };
+  }, []);
+
+  // Khi user đổi tab:
+  const handleChangeTab = (tabKey: any) => {
+    setActiveTab(tabKey);
+    localStorage.setItem("meetingDetailActiveTab", tabKey);
+  };
 
   const hasProcessedRef = useRef(false);
   // Định nghĩa async function xử lý video
@@ -329,7 +340,7 @@ export default function MeetingDetailPage() {
         setTodoList(todosFromDB);
       }
       hasProcessedRef.current = true;
-      console.log(todoList);
+      // console.log(todoList);
       return;
     }
 
@@ -507,6 +518,18 @@ export default function MeetingDetailPage() {
     return processedSummary;
   };
 
+  // Helper to format date to DD/MM/YYYY
+  function formatDate(dateString?: string | Date): string {
+    if (!dateString) return "--/--/----";
+    const dateObj = typeof dateString === "string" ? new Date(dateString) : dateString;
+    if (isNaN(dateObj.getTime())) return "--/--/----";
+    const dd = String(dateObj.getDate()).padStart(2, "0");
+    const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const yyyy = dateObj.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  // Helper to validate todo has all required fields
   function isValidTodo(todo: any) {
     return (
       !!todo.title &&
@@ -518,49 +541,49 @@ export default function MeetingDetailPage() {
   }
 
   // Xử lý chỉnh sửa task
-  const handleEditTask = (task: any) => {
-    setEditingTaskId(task.id);
-    setEditedTask({ ...task });
-  };
+  // const handleEditTask = (task: any) => {
+  //   // setEditingTaskId(task.id);
+  //   setEditedTask({ ...task });
+  // };
 
-  const handleSaveTask = async () => {
-    if (!editedTask) return;
+  // const handleSaveTask = async () => {
+  //   if (!editedTask) return;
 
-    try {
-      // Gọi API update todo
-      const updateResult = await todoService.updateTodo(editedTask.id, {
-        title: editedTask.title,
-        description: editedTask.description,
-        startDate: editedTask.startDate,
-        endDate: editedTask.endDate,
-        assigneeId: editedTask.assigneeId || editedTask.assignee?.id,
-      });
+  //   try {
+  //     // Gọi API update todo
+  //     const updateResult = await todoService.updateTodo(editedTask.id, {
+  //       title: editedTask.title,
+  //       description: editedTask.description,
+  //       startDate: editedTask.startDate,
+  //       endDate: editedTask.endDate,
+  //       assigneeId: editedTask.assigneeId || editedTask.assignee?.id,
+  //     });
 
-      if (updateResult.success) {
-        // Cập nhật local state
-        setTodoList((prev) =>
-          prev.map((task) => (task.id === editedTask.id ? editedTask : task))
-        );
-        setTodosFromDB((prev) =>
-          prev.map((task) => (task.id === editedTask.id ? editedTask : task))
-        );
+  //     if (updateResult.success) {
+  //       // Cập nhật local state
+  //       setTodoList((prev) =>
+  //         prev.map((task) => (task.id === editedTask.id ? editedTask : task))
+  //       );
+  //       setTodosFromDB((prev) =>
+  //         prev.map((task) => (task.id === editedTask.id ? editedTask : task))
+  //       );
 
-        toast.success("Cập nhật công việc thành công");
-        setEditingTaskId(null);
-        setEditedTask(null);
-      } else {
-        toast.error("Cập nhật công việc thất bại: " + updateResult.error);
-      }
-    } catch (error) {
-      // console.error("Error updating todo:", error);
-      toast.error("Lỗi khi cập nhật công việc");
-    }
-  };
+  //       toast.success("Cập nhật công việc thành công");
+  //       setEditingTaskId(null);
+  //       setEditedTask(null);
+  //     } else {
+  //       toast.error("Cập nhật công việc thất bại: " + updateResult.error);
+  //     }
+  //   } catch (error) {
+  //     // console.error("Error updating todo:", error);
+  //     toast.error("Lỗi khi cập nhật công việc");
+  //   }
+  // };
 
-  const handleCancelEdit = () => {
-    setEditingTaskId(null);
-    setEditedTask(null);
-  };
+  // const handleCancelEdit = () => {
+  //   setEditingTaskId(null);
+  //   setEditedTask(null);
+  // };
 
   // Xử lý mở modal xác nhận xóa task
   const handleOpenDeleteModal = (taskId: string) => {
@@ -600,10 +623,6 @@ export default function MeetingDetailPage() {
   // Xử lý hủy xóa task
   const handleCancelDelete = () => {
     setDeleteConfirmModal({ isOpen: false, taskId: null });
-  };
-  // Xử lý tạo task từ todo
-  const handleCreateTask = (taskId: string) => {
-    setIsTaskCreated((prev) => ({ ...prev, [taskId]: true }));
   };
 
   // Xử lý select/deselect task
@@ -650,10 +669,18 @@ export default function MeetingDetailPage() {
         setConvertConfirmModal({ isOpen: false, taskCount: 0 });
 
         // Refresh lại danh sách todo (nếu còn trong DB thì lọc IsDeleted)
-        const refreshedTodos = await todoService.getTodosByMeetingId(meetingInfo.id);
-        if (refreshedTodos.success) {
-          setTodosFromDB(refreshedTodos.data ?? []);
-          setTodoList(refreshedTodos.data ?? []);
+        // const refreshedTodos = await todoService.getTodosByMeetingId(meetingInfo.id);
+        // if (refreshedTodos.success) {
+        //   setTodosFromDB(refreshedTodos.data ?? []);
+        //   setTodoList(refreshedTodos.data ?? []);
+        // }
+
+
+        if (meetingInfo?.projectId) {
+          // Chuyển về trang chi tiết project
+          setTimeout(() => {
+            router.push(`/projects/${meetingInfo.projectId}`);
+          }, 600);
         }
 
         // Nếu có list task trả về, có thể push vào ProjectTask trong frontend/project context nếu cần
@@ -783,23 +810,23 @@ export default function MeetingDetailPage() {
                 <div className="detail-value">
                   <Calendar size={14} />
                   {editMode[todo.id] ? (
-                    <input
-                      type="date"
-                      value={todo.startDate || ""}
-                      onChange={(e) => {
-                        const newStartDate = e.target.value;
+                    <DatePicker
+                      selected={todo.startDate ? new Date(todo.startDate) : null}
+                      onChange={(date) => {
                         setTodoList((prev) =>
                           prev.map((t) =>
                             t.id === todo.id
-                              ? { ...t, startDate: newStartDate }
+                              ? { ...t, startDate: date?.toISOString() || null }
                               : t
                           )
                         );
                       }}
+                      dateFormat="dd/MM/yyyy"
+                      placeholderText="dd/mm/yyyy"
                       className="date-input"
                     />
                   ) : (
-                    <span>{todo.startDate || "--/--/----"}</span>
+                    <span>{formatDate(todo.startDate) || "--/--/----"}</span>
                   )}
                 </div>
               </div>
@@ -809,21 +836,23 @@ export default function MeetingDetailPage() {
                 <div className="detail-value">
                   <Calendar size={14} />
                   {editMode[todo.id] ? (
-                    <input
-                      type="date"
-                      value={todo.endDate || ""}
-                      onChange={(e) => {
-                        const newEndDate = e.target.value;
+                    <DatePicker
+                      selected={todo.endDate ? new Date(todo.endDate) : null}
+                      onChange={(date) => {
                         setTodoList((prev) =>
                           prev.map((t) =>
-                            t.id === todo.id ? { ...t, endDate: newEndDate } : t
+                            t.id === todo.id
+                              ? { ...t, endDate: date?.toISOString() || null }
+                              : t
                           )
                         );
                       }}
+                      dateFormat="dd/MM/yyyy"
+                      placeholderText="dd/mm/yyyy"
                       className="date-input"
                     />
                   ) : (
-                    <span>{todo.endDate || "--/--/----"}</span>
+                    <span>{formatDate(todo.endDate) || "--/--/----"}</span>
                   )}
                 </div>
               </div>
@@ -836,24 +865,31 @@ export default function MeetingDetailPage() {
                     <select
                       value={currentAssignee || ""}
                       onChange={(e) => {
-                        const newAssignee =
+                        const newAssigneeId =
                           e.target.value === "" ? null : e.target.value;
+
+                        // Tìm thông tin đầy đủ của assignee mới
+                        const newAssigneeInfo = newAssigneeId
+                          ? meetingInfo?.attendees?.find(
+                            (att: any) => att.id === newAssigneeId
+                          )
+                          : null;
+
                         setTodoList((prev) =>
                           prev.map((t) => {
                             if (t.id === todo.id) {
-                              // Handle both AI format (assigneeId) and DB format (assignee object)
-                              if (t.assignee) {
-                                // DB format: update assignee object
-                                return {
-                                  ...t,
-                                  assignee: newAssignee
-                                    ? { ...t.assignee, id: newAssignee }
-                                    : null,
-                                };
-                              } else {
-                                // AI format: update assigneeId
-                                return { ...t, assigneeId: newAssignee };
-                              }
+                              // Đồng bộ cả assigneeId và assignee object
+                              return {
+                                ...t,
+                                assigneeId: newAssigneeId,
+                                assignee: newAssigneeInfo
+                                  ? {
+                                    id: newAssigneeInfo.id,
+                                    fullName: newAssigneeInfo.fullName,
+                                    email: newAssigneeInfo.email,
+                                  }
+                                  : null,
+                              };
                             }
                             return t;
                           })
@@ -888,6 +924,9 @@ export default function MeetingDetailPage() {
                     e.stopPropagation();
 
                     try {
+                      // Lấy assigneeId mới
+                      const newAssigneeId = todo.assigneeId || todo.assignee?.id;
+
                       // Gọi API update todo
                       const updateResult = await todoService.updateTodo(
                         todo.id,
@@ -896,13 +935,28 @@ export default function MeetingDetailPage() {
                           description: todo.description,
                           startDate: todo.startDate,
                           endDate: todo.endDate,
-                          assigneeId: todo.assigneeId || todo.assignee?.id,
+                          assigneeId: newAssigneeId,
                         }
                       );
 
                       if (updateResult.success) {
-                        // Chỉ cập nhật local state một lần
-                        const updatedTodo = { ...todo };
+                        // Tìm thông tin assignee mới từ meetingInfo.attendees
+                        const newAssignee = meetingInfo?.attendees?.find(
+                          (att: any) => att.id === newAssigneeId
+                        );
+
+                        // Tạo updated todo với cả assignee object và assigneeId được đồng bộ
+                        const updatedTodo = {
+                          ...todo,
+                          assigneeId: newAssigneeId,
+                          assignee: newAssignee ? {
+                            id: newAssignee.id,
+                            fullName: newAssignee.fullName,
+                            email: newAssignee.email
+                          } : null
+                        };
+
+                        // Cập nhật local state
                         setTodoList((prev) =>
                           prev.map((t) => (t.id === todo.id ? updatedTodo : t))
                         );
@@ -911,6 +965,14 @@ export default function MeetingDetailPage() {
                         );
 
                         toast.success("Cập nhật công việc thành công");
+
+                        // Xóa cache
+                        setOriginalTodoCache((prev) => {
+                          const copy = { ...prev };
+                          delete copy[todo.id];
+                          return copy;
+                        });
+
                         setEditMode((prev) => ({ ...prev, [todo.id]: false }));
                       } else {
                         toast.error(
@@ -932,6 +994,22 @@ export default function MeetingDetailPage() {
                   variant="outline"
                   onClick={(e) => {
                     e.stopPropagation();
+
+                    if (originalTodoCache[todo.id]) {
+                      // Trả lại giá trị ban đầu từ cache
+                      setTodoList((prev) =>
+                        prev.map((t) => (t.id === todo.id ? originalTodoCache[todo.id] : t))
+                      );
+                      setTodosFromDB((prev) =>
+                        prev.map((t) => (t.id === todo.id ? originalTodoCache[todo.id] : t))
+                      );
+                      setOriginalTodoCache((prev) => {
+                        const c = { ...prev };
+                        delete c[todo.id];
+                        return c;
+                      });
+                    }
+
                     setEditMode((prev) => ({ ...prev, [todo.id]: false }));
                   }}
                   className="cancel-btn"
@@ -948,6 +1026,10 @@ export default function MeetingDetailPage() {
                   onClick={(e) => {
                     e.stopPropagation();
                     setEditMode((prev) => ({ ...prev, [todo.id]: true }));
+                    setOriginalTodoCache((prev) => ({
+                      ...prev,
+                      [todo.id]: { ...todo } // Lưu bản gốc trước khi user sửa
+                    }));
                   }}
                   className="edit-btn"
                   title="Chỉnh sửa"
@@ -1165,21 +1247,21 @@ export default function MeetingDetailPage() {
       <div className="meeting-tabs">
         <button
           className={`tab ${activeTab === "overview" ? "active" : ""}`}
-          onClick={() => setActiveTab("overview")}
+          onClick={() => handleChangeTab("overview")}
         >
           <FileText size={16} />
           Tổng quan
         </button>
         <button
           className={`tab ${activeTab === "recording" ? "active" : ""}`}
-          onClick={() => setActiveTab("recording")}
+          onClick={() => handleChangeTab("recording")}
         >
           <Video size={16} />
           Bản ghi cuộc họp
         </button>
         <button
           className={`tab ${activeTab === "attachments" ? "active" : ""}`}
-          onClick={() => setActiveTab("attachments")}
+          onClick={() => handleChangeTab("attachments")}
         >
           <Paperclip size={16} />
           Tài liệu
