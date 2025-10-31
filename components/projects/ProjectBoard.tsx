@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { Project } from "@/types/project";
 import { BoardHeader } from "./BoardHeader";
-import { mockTasks, mockMembers } from "@/constants/mockData";
 import { Trash2, Eye, Edit, MoreVertical } from "lucide-react";
 import { taskService } from "@/services/taskService";
 import { projectService } from "@/services/projectService";
 import { GetTaskResponse } from "@/types/task";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/lib/rbac";
+import Pagination from "@/components/ui/Pagination";
 
 interface ProjectBoardProps {
   project: Project;
@@ -44,6 +44,9 @@ export const ProjectBoard = ({
   const [members, setMembers] = useState<any[]>([]);
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
+  // Pagination state for each group
+  const [groupPages, setGroupPages] = useState<Record<string, number>>({});
 
   const projectId = project?.id?.toString();
   const userRole = user?.role;
@@ -246,6 +249,51 @@ export const ProjectBoard = ({
 
   const groupedTasks = groupTasks(filteredTasks);
 
+  // Reset pagination when groupBy changes
+  useEffect(() => {
+    setGroupPages({});
+  }, [groupBy]);
+
+  // Helper to get current page for a group
+  const getGroupPage = (groupName: string) => groupPages[groupName] || 1;
+
+  // Helper to set page for a group
+  const setGroupPage = (groupName: string, page: number) => {
+    setGroupPages(prev => ({ ...prev, [groupName]: page }));
+  };
+
+  // Calculate paginated data for each group (client-side pagination)
+  const paginatedGroups = Object.entries(groupedTasks).reduce((acc, [groupName, groupTasks]) => {
+    const itemsPerPage = 5;
+    const currentPage = getGroupPage(groupName);
+    const totalPages = Math.ceil(groupTasks.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedData = groupTasks.slice(startIndex, endIndex);
+
+    acc[groupName] = {
+      allTasks: groupTasks,
+      paginatedData,
+      currentPage,
+      totalPages,
+      totalItems: groupTasks.length,
+      startIndex,
+      endIndex,
+      itemsPerPage,
+    };
+
+    return acc;
+  }, {} as Record<string, {
+    allTasks: GetTaskResponse[];
+    paginatedData: GetTaskResponse[];
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    startIndex: number;
+    endIndex: number;
+    itemsPerPage: number;
+  }>);
+
   const handleDeleteTask = (e: React.MouseEvent, taskId: string, taskTitle: string) => {
     e.stopPropagation(); // Ngăn chặn event bubbling để không trigger onTaskClick
     if (onDeleteTask) {
@@ -298,59 +346,62 @@ export const ProjectBoard = ({
             )}
           </div>
         ) : (
-          Object.entries(groupedTasks).map(([groupName, tasks]) => (
-          <div key={groupName} className="task-group">
-            {groupBy !== "none" && (
-              <div className="group-header">
-                <h3 className="group-title">{groupName}</h3>
-                <span className="group-count">({tasks.length} công việc)</span>
-              </div>
-            )}
-            
-            <table>
-              <thead>
-                <tr>
-                  <th>STT</th>
-                  <th>Tiêu đề</th>
-                  <th>Mô tả</th>
-                  <th>Trạng thái</th>
-                  <th>Người thực hiện</th>
-                  <th>Bắt đầu</th>
-                  <th>Kết thúc</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task, index) => (
-                  <tr key={task.id}>
-                    <td className="stt-cell">{index + 1}</td>
-                    <td className="title-cell" title={task.title}>
-                      <span className="title-text">{task.title}</span>
-                    </td>
-                    <td className="description-cell" title={task.description}>
-                      <span className="description-text">{task.description}</span>
-                    </td>
-                    <td className="status-cell">
-                      <span 
-                        className="status-badge"
-                        style={{ backgroundColor: getStatusColor(task.status) }}
-                      >
-                        {getStatusLabel(task.status)}
-                      </span>
-                    </td>
-                    <td className="assignee-cell" title={getTaskAssignee(task) || "Chưa giao"}>
-                      <span className="assignee-text">
-                        {getTaskAssignee(task) || "Chưa giao"}
-                      </span>
-                    </td>
-                    <td className="date-cell">{formatDate(task.startDate || '')}</td>
-                    <td className="date-cell">{formatDate(task.endDate || '')}</td>
-                    <td className="actions-cell">
-                      <div className="action-buttons">
-                        <button
-                          className="action-btn view-btn"
-                          onClick={(e) => handleViewTask(e, task)}
-                          title="Xem chi tiết"
+          Object.entries(paginatedGroups).map(([groupName, pagination]) => {
+            return (
+              <div key={groupName} className="task-group">
+                {groupBy !== "none" && (
+                  <div className="group-header">
+                    <h3 className="group-title">{groupName}</h3>
+                    <span className="group-count">({pagination.totalItems} công việc)</span>
+                  </div>
+                )}
+                
+                <table>
+                  <thead>
+                    <tr>
+                      <th>STT</th>
+                      <th>Tiêu đề</th>
+                      <th>Mô tả</th>
+                      <th>Trạng thái</th>
+                      <th>Người thực hiện</th>
+                      <th>Bắt đầu</th>
+                      <th>Kết thúc</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagination.paginatedData.map((task, index) => {
+                      const actualIndex = pagination.startIndex + index;
+                      return (
+                        <tr key={task.id}>
+                          <td className="stt-cell">{actualIndex + 1}</td>
+                          <td className="title-cell" title={task.title}>
+                            <span className="title-text">{task.title}</span>
+                          </td>
+                          <td className="description-cell" title={task.description}>
+                            <span className="description-text">{task.description}</span>
+                          </td>
+                          <td className="status-cell">
+                            <span 
+                              className="status-badge"
+                              style={{ backgroundColor: getStatusColor(task.status) }}
+                            >
+                              {getStatusLabel(task.status)}
+                            </span>
+                          </td>
+                          <td className="assignee-cell" title={getTaskAssignee(task) || "Chưa giao"}>
+                            <span className="assignee-text">
+                              {getTaskAssignee(task) || "Chưa giao"}
+                            </span>
+                          </td>
+                          <td className="date-cell">{formatDate(task.startDate || '')}</td>
+                          <td className="date-cell">{formatDate(task.endDate || '')}</td>
+                          <td className="actions-cell">
+                            <div className="action-buttons">
+                              <button
+                                className="action-btn view-btn"
+                                onClick={(e) => handleViewTask(e, task)}
+                                title="Xem chi tiết"
                         >
                           <Eye size={14} />
                         </button>
@@ -371,11 +422,25 @@ export const ProjectBoard = ({
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          ))
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* Pagination for this group */}
+                {pagination.totalItems > 0 && (
+                  <Pagination
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.totalItems}
+                    itemsPerPage={pagination.itemsPerPage}
+                    onPageChange={(page) => setGroupPage(groupName, page)}
+                    showInfo={true}
+                  />
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
 import { GetTaskResponse } from '@/types/task';
 import { taskService } from '@/services/taskService';
+import { usePagination } from '@/hooks/usePagination';
+import Pagination from '@/components/ui/Pagination';
 
 interface TasksListProps {
   project: Project;
@@ -132,6 +134,12 @@ export const TasksList = ({ project }: TasksListProps) => {
     return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
   });
 
+  // Use pagination hook
+  const pagination = usePagination({
+    data: sortedTasks,
+    itemsPerPage: 5,
+  });
+
   // Loading state
   if (isLoading) {
     return (
@@ -183,9 +191,11 @@ export const TasksList = ({ project }: TasksListProps) => {
               <p>Tất cả công việc đang chờ bắt đầu hoặc đã hoàn thành.</p>
             </div>
           ) : (
-            sortedTasks.map((task) => {
+            pagination.paginatedData.map((task, index) => {
+            const actualIndex = pagination.startIndex + index;
             return (
               <div key={task.id} className="task-item">
+                <div className="task-number">#{actualIndex + 1}</div>
                 <div className="task-content">
                   <h4 className="task-title">{task.title}</h4>
                 </div>
@@ -236,6 +246,18 @@ export const TasksList = ({ project }: TasksListProps) => {
           })
           )}
       </div>
+
+      {/* Pagination */}
+      {sortedTasks.length > 0 && (
+        <Pagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          itemsPerPage={5}
+          onPageChange={pagination.setCurrentPage}
+          showInfo={true}
+        />
+      )}
 
       <style jsx>{`
         .tasks-list {
@@ -295,8 +317,8 @@ export const TasksList = ({ project }: TasksListProps) => {
         }
 
         .tasks-content {
-          max-height: 600px;
-          overflow-y: auto;
+          min-height: 200px;
+          margin-bottom: 16px;
         }
 
         .no-tasks-message {
@@ -336,9 +358,9 @@ export const TasksList = ({ project }: TasksListProps) => {
 
         .task-item {
           display: grid;
-          grid-template-columns: 1fr 140px 120px 100px;
+          grid-template-columns: 50px 1fr 140px 120px 100px;
           align-items: center;
-          gap: 20px;
+          gap: 16px;
           padding: 20px;
           background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
           border: 1px solid #e2e8f0;
@@ -346,6 +368,18 @@ export const TasksList = ({ project }: TasksListProps) => {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
+        }
+
+        .task-number {
+          font-size: 14px;
+          font-weight: 700;
+          color: #FF5E13;
+          background: linear-gradient(135deg, #FFF5F0 0%, #FFE8DB 100%);
+          border: 1px solid #FFD4B8;
+          border-radius: 8px;
+          padding: 6px 12px;
+          text-align: center;
+          min-width: 40px;
         }
 
         .task-item::before {
@@ -471,25 +505,6 @@ export const TasksList = ({ project }: TasksListProps) => {
           border: 1px solid rgba(251, 146, 60, 0.2);
         }
 
-        /* Scrollbar styling */
-        .tasks-content::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .tasks-content::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 3px;
-        }
-
-        .tasks-content::-webkit-scrollbar-thumb {
-          background: #fb923c;
-          border-radius: 3px;
-        }
-
-        .tasks-content::-webkit-scrollbar-thumb:hover {
-          background: #f97316;
-        }
-
         /* Tablet (768px - 1023px) */
         @media (max-width: 1023px) and (min-width: 769px) {
           .tasks-list {
@@ -497,7 +512,7 @@ export const TasksList = ({ project }: TasksListProps) => {
           }
 
           .task-item {
-            grid-template-columns: 1fr 120px 100px 80px;
+            grid-template-columns: 50px 1fr 120px 100px 80px;
             gap: 12px;
             padding: 14px;
           }
@@ -554,6 +569,15 @@ export const TasksList = ({ project }: TasksListProps) => {
             padding: 12px;
           }
 
+          .task-number {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 12px;
+            padding: 4px 8px;
+            min-width: 32px;
+          }
+
           .task-content {
             order: 1;
           }
@@ -561,6 +585,7 @@ export const TasksList = ({ project }: TasksListProps) => {
           .task-title {
             font-size: 14px;
             margin-bottom: 8px;
+            padding-right: 50px;
           }
 
           .task-assignee {
@@ -628,9 +653,19 @@ export const TasksList = ({ project }: TasksListProps) => {
             padding: 10px;
           }
 
+          .task-number {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 11px;
+            padding: 3px 6px;
+            min-width: 28px;
+          }
+
           .task-title {
             font-size: 13px;
             margin-bottom: 6px;
+            padding-right: 45px;
           }
 
           .task-assignee {
