@@ -679,7 +679,7 @@ export default function MeetingDetailPage() {
         if (meetingInfo?.projectId) {
           // Chuyển về trang chi tiết project
           setTimeout(() => {
-            router.push(`/projects/${meetingInfo.projectId}`);
+            router.push(`/projects/${meetingInfo.projectId}?tab=board`);
           }, 600);
         }
 

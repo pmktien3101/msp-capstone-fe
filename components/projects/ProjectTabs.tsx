@@ -20,6 +20,7 @@ import { ProjectSettings } from "./ProjectSettings";
 import { MeetingTab } from "./MeetingTab";
 import { ProjectDocuments } from "./ProjectDocuments";
 import { BiTask } from "react-icons/bi";
+import { useSearchParams } from "next/navigation";
 
 interface ProjectTabsProps {
   project: Project;
@@ -46,6 +47,9 @@ export const ProjectTabs = ({
 }: ProjectTabsProps) => {
   const [activeTab, setActiveTab] = useState(initialActiveTab);
 
+  // Get initial tab from URL query parameter
+  const searchParams = useSearchParams();
+  const initialTabFromQuery = searchParams.get("tab");
   // Listen for navigation events from "Xem tất cả" buttons
   useEffect(() => {
     const handleNavigateToTab = (event: CustomEvent) => {
@@ -57,11 +61,18 @@ export const ProjectTabs = ({
     };
 
     window.addEventListener('navigateToTab', handleNavigateToTab as EventListener);
-    
+
     return () => {
       window.removeEventListener('navigateToTab', handleNavigateToTab as EventListener);
     };
   }, [onTabChange]);
+
+  useEffect(() => {
+    if (initialTabFromQuery && initialTabFromQuery !== activeTab) {
+      setActiveTab(initialTabFromQuery);
+      onTabChange?.(initialTabFromQuery);
+    }
+  }, [initialTabFromQuery]);
 
   const tabs = [
     {
