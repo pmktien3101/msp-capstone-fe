@@ -32,6 +32,7 @@ interface ProjectTabsProps {
   initialActiveTab?: string;
   availableProjectManagers?: any[];
   refreshKey?: number;
+  onProjectUpdate?: () => void;
 }
 
 export const ProjectTabs = ({
@@ -44,6 +45,7 @@ export const ProjectTabs = ({
   initialActiveTab = "summary",
   availableProjectManagers = [],
   refreshKey = 0,
+  onProjectUpdate,
 }: ProjectTabsProps) => {
   const [activeTab, setActiveTab] = useState(initialActiveTab);
 
@@ -136,7 +138,7 @@ export const ProjectTabs = ({
       // case "reports":
       //   return <ProjectReports project={project} />;
       case "settings":
-        return <ProjectSettings project={project} availableProjectManagers={availableProjectManagers} />;
+        return <ProjectSettings project={project} availableProjectManagers={availableProjectManagers} onProjectUpdate={onProjectUpdate} />;
       default:
         return <ProjectSummary project={project} />;
     }

@@ -2252,11 +2252,11 @@ export const MilestoneListView = ({ project, refreshKey = 0 }: MilestoneListView
         if (response.success && response.data) {
           setProjectMilestones(response.data);
         } else {
-          console.error('Failed to fetch milestones:', response.error);
+          // console.error('Failed to fetch milestones:', response.error);
           setProjectMilestones([]);
         }
       } catch (error) {
-        console.error('Error fetching milestones:', error);
+        // console.error('Error fetching milestones:', error);
         setProjectMilestones([]);
       } finally {
         setIsLoading(false);
@@ -2282,7 +2282,7 @@ export const MilestoneListView = ({ project, refreshKey = 0 }: MilestoneListView
           const tasks = (response.data as any).items || response.data;
           setAllProjectTasks(Array.isArray(tasks) ? tasks : []);
         } else {
-          console.error('Failed to fetch all project tasks:', response.error);
+          // console.error('Failed to fetch all project tasks:', response.error);
           setAllProjectTasks([]);
         }
       } catch (error) {

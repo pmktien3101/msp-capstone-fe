@@ -50,10 +50,10 @@ export const CreateTaskModal = ({
   const [isLoadingMilestones, setIsLoadingMilestones] = useState(false);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
-  // Fetch milestones when projectId is available
+  // Fetch milestones when projectId is available or when modal is opened
   useEffect(() => {
     const fetchMilestones = async () => {
-      if (!projectId) return;
+      if (!projectId || !isOpen) return;
       
       setIsLoadingMilestones(true);
       try {
@@ -69,7 +69,7 @@ export const CreateTaskModal = ({
     };
 
     fetchMilestones();
-  }, [projectId]);
+  }, [projectId, isOpen]);
 
   // Fetch project members (only role Member)
   useEffect(() => {

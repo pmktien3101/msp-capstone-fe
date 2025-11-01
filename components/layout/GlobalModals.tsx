@@ -4,7 +4,12 @@ import { useProjectModal } from '@/contexts/ProjectModalContext'
 import { CreateProjectModal } from '@/components/projects/modals/CreateProjectModal'
 
 export function GlobalModals() {
-  const { isCreateModalOpen, closeCreateModal } = useProjectModal();
+  const { isCreateModalOpen, closeCreateModal, triggerProjectRefresh } = useProjectModal();
+
+  const handleProjectCreated = () => {
+    triggerProjectRefresh();
+    closeCreateModal();
+  };
 
   return (
     <>
@@ -13,6 +18,7 @@ export function GlobalModals() {
         <CreateProjectModal 
           isOpen={isCreateModalOpen} 
           onClose={closeCreateModal}
+          onCreateProject={handleProjectCreated}
         />
       )}
     </>

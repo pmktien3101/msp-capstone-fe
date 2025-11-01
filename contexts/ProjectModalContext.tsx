@@ -6,21 +6,27 @@ interface ProjectModalContextType {
   isCreateModalOpen: boolean;
   openCreateModal: () => void;
   closeCreateModal: () => void;
+  triggerProjectRefresh: () => void;
+  projectRefreshTrigger: number;
 }
 
 const ProjectModalContext = createContext<ProjectModalContextType | undefined>(undefined);
 
 export function ProjectModalProvider({ children }: { children: ReactNode }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [projectRefreshTrigger, setProjectRefreshTrigger] = useState(0);
 
   const openCreateModal = () => setIsCreateModalOpen(true);
   const closeCreateModal = () => setIsCreateModalOpen(false);
+  const triggerProjectRefresh = () => setProjectRefreshTrigger(prev => prev + 1);
 
   return (
     <ProjectModalContext.Provider value={{
       isCreateModalOpen,
       openCreateModal,
-      closeCreateModal
+      closeCreateModal,
+      triggerProjectRefresh,
+      projectRefreshTrigger
     }}>
       {children}
     </ProjectModalContext.Provider>

@@ -16,7 +16,7 @@ interface ProjectSectionProps {
 export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { openCreateModal } = useProjectModal();
+  const { openCreateModal, projectRefreshTrigger } = useProjectModal();
   const { user, isAuthenticated } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +64,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
   useEffect(() => {
     fetchProjects();
-  }, [fetchProjects]);
+  }, [fetchProjects, projectRefreshTrigger]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

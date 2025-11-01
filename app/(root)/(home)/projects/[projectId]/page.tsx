@@ -19,10 +19,12 @@ import { projectService } from '@/services/projectService';
 import { userService } from '@/services/userService';
 import { taskService } from '@/services/taskService';
 import { toast } from 'react-toastify';
+import { useProjectModal } from '@/contexts/ProjectModalContext';
 
 const ProjectDetailPage = () => {
   const params = useParams();
   const searchParams = useSearchParams();
+  const { triggerProjectRefresh } = useProjectModal();
   const projectId = params.projectId as string;
   const { role } = useUser();
   const { user } = useAuth();
@@ -199,6 +201,13 @@ const ProjectDetailPage = () => {
     setActiveTab(tabId);
   };
 
+  const handleProjectUpdate = () => {
+    // Trigger refresh by updating refreshKey
+    setRefreshKey(prev => prev + 1);
+    // Also trigger sidebar refresh
+    triggerProjectRefresh();
+  };
+
   const handleSubmitMilestone = (milestoneData: any) => {
     try {
       // Add milestone to mockData
@@ -323,7 +332,7 @@ const ProjectDetailPage = () => {
     if (projectId) {
       fetchProjectData();
     }
-  }, [projectId, searchParams]);
+  }, [projectId, searchParams, refreshKey]);
 
   // Fetch tasks and calculate progress
   useEffect(() => {
@@ -434,6 +443,7 @@ const ProjectDetailPage = () => {
         initialActiveTab={activeTab}
         availableProjectManagers={availableProjectManagers}
         refreshKey={refreshKey}
+        onProjectUpdate={handleProjectUpdate}
       />
       
       {/* Task Detail Modal */}
