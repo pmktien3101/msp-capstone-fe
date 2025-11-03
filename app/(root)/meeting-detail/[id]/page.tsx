@@ -4,7 +4,7 @@ import { useState, useEffect, use, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from "react-markdown";
 import {
   ArrowLeft,
   Video,
@@ -35,6 +35,7 @@ import TranscriptPanel from "@/components/meeting/TranscriptPanel";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { Todo } from "@/types/todo";
+import { uploadFileToCloudinary } from "@/services/uploadFileService";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -62,8 +63,12 @@ export default function MeetingDetailPage() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
   const [editMode, setEditMode] = useState<{ [key: string]: boolean }>({});
-  const [originalTodoCache, setOriginalTodoCache] = useState<{ [id: string]: Todo }>({});
-  const [originalTranscriptions, setOriginalTranscriptions] = useState<any[]>([]);
+  const [originalTodoCache, setOriginalTodoCache] = useState<{
+    [id: string]: Todo;
+  }>({});
+  const [originalTranscriptions, setOriginalTranscriptions] = useState<any[]>(
+    []
+  );
   const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(false);
   const [transcriptionsError, setTranscriptionsError] = useState<string | null>(
     null
@@ -86,7 +91,8 @@ export default function MeetingDetailPage() {
   const [improvedTranscript, setImprovedTranscript] = useState<any[]>([]);
   const [summary, setSummary] = useState<string>("");
   const [todoList, setTodoList] = useState<any[]>([]);
-  const [isProcessingMeetingAI, setIsProcessingMeetingAI] = useState<boolean>(false);
+  const [isProcessingMeetingAI, setIsProcessingMeetingAI] =
+    useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch recordings when switching to recording tab and call is available
@@ -159,7 +165,6 @@ export default function MeetingDetailPage() {
     };
   }, []);
 
-  // Khi user đổi tab:
   const handleChangeTab = (tabKey: any) => {
     setActiveTab(tabKey);
     localStorage.setItem("meetingDetailActiveTab", tabKey);
@@ -167,78 +172,134 @@ export default function MeetingDetailPage() {
 
   const hasProcessedRef = useRef(false);
   // Định nghĩa async function xử lý video
+  const uploadRecordingUrlToCloud = async (recordUrl: string) => {
+    // Nếu đã có recordUrl trỏ tới Cloudinary (hoặc đã upload trước) thì trả về luôn
+    if (!recordUrl) throw new Error("No recording URL to upload");
+    try {
+      console.debug("uploadRecordingUrlToCloud - recordUrl:", recordUrl);
+      const res = await fetch(recordUrl);
+      console.debug("uploadRecordingUrlToCloud - fetch response:", {
+        ok: res.ok,
+        status: res.status,
+        statusText: res.statusText,
+        contentType: res.headers?.get?.("content-type") ?? "(no header)",
+      });
+      if (!res.ok) throw new Error("Failed to fetch recording for upload");
+      const blob = await res.blob();
+      console.debug("uploadRecordingUrlToCloud - blob:", {
+        size: blob.size,
+        type: blob.type,
+      });
+      const contentType = blob.type || "video/mp4";
+      const ext = contentType.includes("webm") ? "webm" : "mp4";
+      // Lấy tên file hợp lý
+      const urlParts = (recordUrl || "").split("/");
+      let filename = urlParts[urlParts.length - 1] || `recording.${ext}`;
+      // sanitize
+      filename = filename.split("?")[0].replace(/[^a-zA-Z0-9-_\.]/g, "-");
+      const file = new File([blob], filename, { type: contentType });
+      console.debug("uploadRecordingUrlToCloud - prepared file:", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+      // uploadFileToCloudinary đã được import từ services
+      try {
+        const cloudUrl = await uploadFileToCloudinary(file);
+        console.debug("uploadRecordingUrlToCloud - upload success:", cloudUrl);
+        return cloudUrl;
+      } catch (uploadErr: any) {
+        console.error("uploadRecordingUrlToCloud - uploadErr:", uploadErr);
+        throw uploadErr;
+      }
+    } catch (err: any) {
+      // propagate meaningful error
+      console.error("uploadRecordingUrlToCloud - error:", err);
+      throw new Error(
+        err?.message || "Không thể tải lên cloud. Vui lòng thử lại."
+      );
+    }
+  };
+
   const processVideo = async (recording: any, transcriptions: any) => {
     setIsProcessingMeetingAI(true);
     setError(null);
 
     try {
+      // 1) Upload recording từ Stream lên Cloud (nếu chưa có trong DB)
+      let cloudRecordingUrl = meetingInfo?.recordUrl || null;
+      if (!cloudRecordingUrl) {
+        if (!recording?.url)
+          throw new Error("Không tìm thấy URL bản ghi để upload");
+        try {
+          cloudRecordingUrl = await uploadRecordingUrlToCloud(recording.url);
+          // cập nhật local ngay để tránh upload lại
+          setMeetingInfo((prev: any) => ({
+            ...(prev || {}),
+            recordUrl: cloudRecordingUrl,
+          }));
+        } catch (uploadErr: any) {
+          // Nếu upload thất bại thì dừng và báo lỗi
+          throw new Error(
+            uploadErr?.message || "Tải lên bản ghi lên cloud thất bại"
+          );
+        }
+      }
+
+      // 2) Gọi API xử lý video (gửi URL trên cloud thay vì URL từ Stream)
       const response = await fetch("/api/gemini/process-video", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          videoUrl: recording.url, // Lấy URL từ recording object
+          videoUrl: cloudRecordingUrl, // dùng cloud URL
           transcriptSegments: transcriptions,
         }),
       });
 
       const data = await response.json();
 
-      // console.log("GEMINI API Response:", data);
-
       if (!response.ok) {
         throw new Error(data.error || "Failed to process video");
       }
 
       if (data.success) {
-        // Cập nhật state với kết quả
+        // Cập nhật state với kết quả AI
         setImprovedTranscript(data.data.improvedTranscript);
-        // Map assigneeId thành tên trong summary
         const processedSummary = mapSummaryAssigneeIds(data.data.summary);
         setSummary(processedSummary);
-
         setTodoList(data.data.todoList);
 
-        // Cập nhật meeting khi call AI thành công
+        // 3) Cập nhật meeting trên server với cloudRecordingUrl (không dùng URL Stream)
         try {
           const updateResult = await meetingService.updateMeeting({
             meetingId: params.id as string,
             summary: data.data.summary,
             transcription: JSON.stringify(data.data.improvedTranscript),
-            recordUrl: recording.url,
+            recordUrl: cloudRecordingUrl, // lưu URL trên cloud
           });
 
           if (updateResult.success) {
-            // console.log("Meeting updated successfully with AI data");
-            // Cập nhật meetingInfo với data mới
             setMeetingInfo((prev: any) => ({
               ...prev,
               summary: data.data.summary,
               transcription: JSON.stringify(data.data.improvedTranscript),
-              recordUrl: recording.url,
+              recordUrl: cloudRecordingUrl,
               todoList: JSON.stringify(data.data.todoList),
             }));
           } else {
-            // console.error("Failed to update meeting:", updateResult.error);
-            // Không throw error vì AI processing đã thành công
-            // Chỉ log warning
+            // không throw, chỉ log/hiện thông báo nhẹ nếu cần
           }
         } catch (updateError) {
-          // console.error("Error updating meeting with AI data:", updateError);
-          // Không throw error vì AI processing đã thành công
+          // Không throw tiếp để không làm mất kết quả AI, nhưng thông báo lỗi local nếu muốn
         }
 
-        // Tạo todos từ AI response nếu có
+        // 4) Tạo todos từ AI nếu có (giữ logic hiện tại, dùng meetingInfo để map assignee)
         if (data.data.todoList && data.data.todoList.length > 0) {
           try {
-            // console.log("Creating todos from AI response:", data.data.todoList);
-
-            // Map assigneeId từ AI với attendees trong meeting
             const mappedTodoList = data.data.todoList.map((todo: any) => {
-              // Tìm assigneeId hợp lệ trong attendees
               let validAssigneeId = todo.assigneeId;
-
               if (todo.assigneeId && meetingInfo?.attendees) {
                 const attendee = meetingInfo.attendees.find(
                   (att: any) => att.id === todo.assigneeId
@@ -249,17 +310,8 @@ export default function MeetingDetailPage() {
               } else {
                 validAssigneeId = meetingInfo?.createdById;
               }
-
-              return {
-                ...todo,
-                assigneeId: validAssigneeId,
-              };
+              return { ...todo, assigneeId: validAssigneeId };
             });
-
-            // console.log(
-            //   "Mapped todoList with valid assigneeIds:",
-            //   mappedTodoList
-            // );
 
             const createTodosResult = await todoService.createTodosFromAI(
               params.id as string,
@@ -267,15 +319,11 @@ export default function MeetingDetailPage() {
             );
 
             if (createTodosResult.success) {
-              // console.log(
-              //   "Todos created successfully:",
-              //   createTodosResult.data
-              // );
               toast.success(
-                `${createTodosResult.data?.length || 0
+                `${
+                  createTodosResult.data?.length || 0
                 } công việc đã được tạo từ AI`
               );
-              // Refresh todos from DB
               const refreshResult = await todoService.getTodosByMeetingId(
                 params.id as string
               );
@@ -284,25 +332,18 @@ export default function MeetingDetailPage() {
                 setTodoList(refreshResult.data);
               }
             } else {
-              // console.error("Failed to create todos:", createTodosResult.error);
               toast.warning(
                 "Tạo công việc từ AI thất bại: " + createTodosResult.error
               );
             }
           } catch (todoError) {
-            // console.error("Error creating todos from AI:", todoError);
             toast.error("Lỗi khi tạo công việc từ AI");
           }
-        } else {
-          // console.log("No todoList in AI response or empty list");
         }
-
-        // console.log("Processing complete!", data.data);
       } else {
         throw new Error(data.error || "Unknown error");
       }
     } catch (err: any) {
-      // console.error("Error processing video:", err);
       setError(err.message || "Không thể xử lý video. Vui lòng thử lại.");
     } finally {
       setIsProcessingMeetingAI(false);
@@ -311,7 +352,6 @@ export default function MeetingDetailPage() {
 
   // useEffect để tự động gọi processVideo khi có đủ dữ liệu và chưa có kết quả
   useEffect(() => {
-
     // Chỉ xử lý khi đã load xong meetingInfo
     if (isLoadingMeeting) {
       // console.log("⏸️ Still loading meeting info");
@@ -345,7 +385,11 @@ export default function MeetingDetailPage() {
     }
 
     // Chỉ call AI khi chưa có dữ liệu và có đủ thông tin cần thiết
-    if (!originalTranscriptions || originalTranscriptions.length === 0 || !recordings[0]?.url) {
+    if (
+      !originalTranscriptions ||
+      originalTranscriptions.length === 0 ||
+      !recordings[0]?.url
+    ) {
       // console.log("⏸️ Missing data for AI processing");
       return;
     }
@@ -358,7 +402,13 @@ export default function MeetingDetailPage() {
     // console.log("▶️ Starting AI processing - no existing data found");
     hasProcessedRef.current = true;
     processVideo(recordings[0], originalTranscriptions);
-  }, [originalTranscriptions, recordings, meetingInfo, isLoadingMeeting, todosFromDB]);
+  }, [
+    originalTranscriptions,
+    recordings,
+    meetingInfo,
+    isLoadingMeeting,
+    todosFromDB,
+  ]);
 
   useEffect(() => {
     if (improvedTranscript && summary && todoList) {
@@ -521,7 +571,8 @@ export default function MeetingDetailPage() {
   // Helper to format date to DD/MM/YYYY
   function formatDate(dateString?: string | Date): string {
     if (!dateString) return "--/--/----";
-    const dateObj = typeof dateString === "string" ? new Date(dateString) : dateString;
+    const dateObj =
+      typeof dateString === "string" ? new Date(dateString) : dateString;
     if (isNaN(dateObj.getTime())) return "--/--/----";
     const dd = String(dateObj.getDate()).padStart(2, "0");
     const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -627,9 +678,11 @@ export default function MeetingDetailPage() {
 
   // Xử lý select/deselect task
   const handleSelectTask = (taskId: string) => {
-    const todo = todoList.find(t => t.id === taskId);
+    const todo = todoList.find((t) => t.id === taskId);
     if (!isValidTodo(todo)) {
-      toast.warning("Cần điền đầy đủ thông tin trước khi chọn chuyển đổi thành công việc chính thức.");
+      toast.warning(
+        "Cần điền đầy đủ thông tin trước khi chọn chuyển đổi thành công việc chính thức."
+      );
       return;
     }
     setSelectedTasks((prev) =>
@@ -641,7 +694,7 @@ export default function MeetingDetailPage() {
 
   // Xử lý select all tasks
   const handleSelectAllTasks = () => {
-    const eligibleIds = todoList.filter(isValidTodo).map(t => t.id);
+    const eligibleIds = todoList.filter(isValidTodo).map((t) => t.id);
     if (selectedTasks.length === eligibleIds.length) setSelectedTasks([]);
     else setSelectedTasks(eligibleIds);
   };
@@ -663,7 +716,9 @@ export default function MeetingDetailPage() {
       const result = await todoService.convertTodosToTasks(selectedTasks);
 
       if (result.success) {
-        toast.success(`Chuyển thành công ${result.data?.length} công việc cho dự án!`);
+        toast.success(
+          `Chuyển thành công ${result.data?.length} công việc cho dự án!`
+        );
         // Xoá selection và đóng modal
         setSelectedTasks([]);
         setConvertConfirmModal({ isOpen: false, taskCount: 0 });
@@ -674,7 +729,6 @@ export default function MeetingDetailPage() {
         //   setTodosFromDB(refreshedTodos.data ?? []);
         //   setTodoList(refreshedTodos.data ?? []);
         // }
-
 
         if (meetingInfo?.projectId) {
           // Chuyển về trang chi tiết project
@@ -711,8 +765,9 @@ export default function MeetingDetailPage() {
 
       return (
         <div
-          className={`task-item ai-task ${selectedTasks.includes(todo.id) ? "selected" : ""
-            } ${editMode[todo.id] ? "edit-mode" : ""}`}
+          className={`task-item ai-task ${
+            selectedTasks.includes(todo.id) ? "selected" : ""
+          } ${editMode[todo.id] ? "edit-mode" : ""}`}
           key={`todo-${todo.id}-${index}`}
           data-task-id={todo.id}
           onClick={(e) => {
@@ -811,7 +866,9 @@ export default function MeetingDetailPage() {
                   <Calendar size={14} />
                   {editMode[todo.id] ? (
                     <DatePicker
-                      selected={todo.startDate ? new Date(todo.startDate) : null}
+                      selected={
+                        todo.startDate ? new Date(todo.startDate) : null
+                      }
                       onChange={(date) => {
                         setTodoList((prev) =>
                           prev.map((t) =>
@@ -871,8 +928,8 @@ export default function MeetingDetailPage() {
                         // Tìm thông tin đầy đủ của assignee mới
                         const newAssigneeInfo = newAssigneeId
                           ? meetingInfo?.attendees?.find(
-                            (att: any) => att.id === newAssigneeId
-                          )
+                              (att: any) => att.id === newAssigneeId
+                            )
                           : null;
 
                         setTodoList((prev) =>
@@ -884,10 +941,10 @@ export default function MeetingDetailPage() {
                                 assigneeId: newAssigneeId,
                                 assignee: newAssigneeInfo
                                   ? {
-                                    id: newAssigneeInfo.id,
-                                    fullName: newAssigneeInfo.fullName,
-                                    email: newAssigneeInfo.email,
-                                  }
+                                      id: newAssigneeInfo.id,
+                                      fullName: newAssigneeInfo.fullName,
+                                      email: newAssigneeInfo.email,
+                                    }
                                   : null,
                               };
                             }
@@ -925,7 +982,8 @@ export default function MeetingDetailPage() {
 
                     try {
                       // Lấy assigneeId mới
-                      const newAssigneeId = todo.assigneeId || todo.assignee?.id;
+                      const newAssigneeId =
+                        todo.assigneeId || todo.assignee?.id;
 
                       // Gọi API update todo
                       const updateResult = await todoService.updateTodo(
@@ -949,11 +1007,13 @@ export default function MeetingDetailPage() {
                         const updatedTodo = {
                           ...todo,
                           assigneeId: newAssigneeId,
-                          assignee: newAssignee ? {
-                            id: newAssignee.id,
-                            fullName: newAssignee.fullName,
-                            email: newAssignee.email
-                          } : null
+                          assignee: newAssignee
+                            ? {
+                                id: newAssignee.id,
+                                fullName: newAssignee.fullName,
+                                email: newAssignee.email,
+                              }
+                            : null,
                         };
 
                         // Cập nhật local state
@@ -998,10 +1058,14 @@ export default function MeetingDetailPage() {
                     if (originalTodoCache[todo.id]) {
                       // Trả lại giá trị ban đầu từ cache
                       setTodoList((prev) =>
-                        prev.map((t) => (t.id === todo.id ? originalTodoCache[todo.id] : t))
+                        prev.map((t) =>
+                          t.id === todo.id ? originalTodoCache[todo.id] : t
+                        )
                       );
                       setTodosFromDB((prev) =>
-                        prev.map((t) => (t.id === todo.id ? originalTodoCache[todo.id] : t))
+                        prev.map((t) =>
+                          t.id === todo.id ? originalTodoCache[todo.id] : t
+                        )
                       );
                       setOriginalTodoCache((prev) => {
                         const c = { ...prev };
@@ -1028,7 +1092,7 @@ export default function MeetingDetailPage() {
                     setEditMode((prev) => ({ ...prev, [todo.id]: true }));
                     setOriginalTodoCache((prev) => ({
                       ...prev,
-                      [todo.id]: { ...todo } // Lưu bản gốc trước khi user sửa
+                      [todo.id]: { ...todo }, // Lưu bản gốc trước khi user sửa
                     }));
                   }}
                   className="edit-btn"
@@ -1069,8 +1133,8 @@ export default function MeetingDetailPage() {
       const extensionFromType = contentType.includes("mp4")
         ? "mp4"
         : contentType.includes("webm")
-          ? "webm"
-          : "mp4";
+        ? "webm"
+        : "mp4";
       const baseName =
         rec.filename
           ?.replace(/\s+/g, "-")
@@ -1278,18 +1342,18 @@ export default function MeetingDetailPage() {
                 {(meetingInfo?.endTime
                   ? new Date(meetingInfo.endTime) > new Date()
                   : endsAt
-                    ? endsAt > new Date()
-                    : false) && (
-                    <Button
-                      variant="default"
-                      className="join-now-btn bg-orange-600 hover:bg-orange-700 cursor-pointer"
-                      style={{ marginTop: 12 }}
-                      onClick={() => handleClickJoinMeeting()}
-                    >
-                      <Video size={16} style={{ marginRight: 6 }} />
-                      Tham gia ngay
-                    </Button>
-                  )}
+                  ? endsAt > new Date()
+                  : false) && (
+                  <Button
+                    variant="default"
+                    className="join-now-btn bg-orange-600 hover:bg-orange-700 cursor-pointer"
+                    style={{ marginTop: 12 }}
+                    onClick={() => handleClickJoinMeeting()}
+                  >
+                    <Video size={16} style={{ marginRight: 6 }} />
+                    Tham gia ngay
+                  </Button>
+                )}
               </div>
 
               <div className="info-grid">
@@ -1412,8 +1476,8 @@ export default function MeetingDetailPage() {
                                 <p>
                                   {meetingInfo.updatedAt
                                     ? new Date(
-                                      meetingInfo.updatedAt
-                                    ).toLocaleString("vi-VN")
+                                        meetingInfo.updatedAt
+                                      ).toLocaleString("vi-VN")
                                     : "-"}
                                 </p>
                               </div>
@@ -1479,9 +1543,9 @@ export default function MeetingDetailPage() {
                         const duration =
                           rec.start_time && rec.end_time
                             ? formatDuration(
-                              new Date(rec.end_time).getTime() -
-                              new Date(rec.start_time).getTime()
-                            )
+                                new Date(rec.end_time).getTime() -
+                                  new Date(rec.start_time).getTime()
+                              )
                             : null;
                         return (
                           <div className="recording-item" key={rec.url || idx}>
@@ -1573,18 +1637,16 @@ export default function MeetingDetailPage() {
                 {!isProcessingMeetingAI && improvedTranscript.length > 0 && (
                   <>
                     <div
-                      className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
-                        } ${improvedTranscript.length <= 4
-                          ? "no-expand"
-                          : ""
-                        }`}
+                      className={`transcript-content ${
+                        isTranscriptExpanded ? "expanded" : ""
+                      } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
                       style={{
                         maxHeight:
                           improvedTranscript.length <= 4
                             ? "none"
                             : isTranscriptExpanded
-                              ? "none"
-                              : "200px",
+                            ? "none"
+                            : "200px",
                       }}
                     >
                       <TranscriptPanel
@@ -1607,12 +1669,21 @@ export default function MeetingDetailPage() {
                         {isTranscriptExpanded ? (
                           <>
                             <span>Thu gọn lời thoại</span>
-                            <ArrowLeft size={16} style={{ transform: 'rotate(90deg)' }} />
+                            <ArrowLeft
+                              size={16}
+                              style={{ transform: "rotate(90deg)" }}
+                            />
                           </>
                         ) : (
                           <>
-                            <span>Xem toàn bộ lời thoại ({improvedTranscript.length} đoạn)</span>
-                            <ArrowLeft size={16} style={{ transform: 'rotate(-90deg)' }} />
+                            <span>
+                              Xem toàn bộ lời thoại ({improvedTranscript.length}{" "}
+                              đoạn)
+                            </span>
+                            <ArrowLeft
+                              size={16}
+                              style={{ transform: "rotate(-90deg)" }}
+                            />
                           </>
                         )}
                       </div>
@@ -1643,7 +1714,9 @@ export default function MeetingDetailPage() {
                       <span>Đang tạo tóm tắt...</span>
                     </div>
                   )}
-                  {!isProcessingMeetingAI && summary && <ReactMarkdown>{summary}</ReactMarkdown>}
+                  {!isProcessingMeetingAI && summary && (
+                    <ReactMarkdown>{summary}</ReactMarkdown>
+                  )}
                 </div>
               </div>
 
@@ -1771,10 +1844,10 @@ export default function MeetingDetailPage() {
             <div className="delete-modal-content mb-4">
               <p>
                 Bạn sắp chuyển đổi{" "}
-                <strong>{convertConfirmModal.taskCount} to-do</strong> do
-                AI tạo thành "công việc chính thức". Những việc này sẽ được thêm
-                vào trong dự án của bạn và các thành viên liên quan trong nhóm
-                sẽ nhận được thông báo.
+                <strong>{convertConfirmModal.taskCount} to-do</strong> do AI tạo
+                thành "công việc chính thức". Những việc này sẽ được thêm vào
+                trong dự án của bạn và các thành viên liên quan trong nhóm sẽ
+                nhận được thông báo.
               </p>
             </div>
 
