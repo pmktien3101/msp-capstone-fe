@@ -134,7 +134,7 @@ const transcriptArrayToText = (transcripts: any[]): string => {
 const parseImprovedTranscript = (improvedText: string, originalSegments: any[]) => {
     const lines = improvedText.split('\n').filter(line => line.trim());
     const result: any[] = [];
-    const regex = /\[(\d{2}:\d{2}(?::\d{2})?)\]\s*Speaker\s*([^\s:]+):\s*(.+)/i;
+    const regex = /\[(\d{1,2}:\d{2}(?::\d{2})?)\]\s*Speaker\s*([^\s:]+):\s*(.+)/i;
 
     lines.forEach((line, index) => {
         const match = line.match(regex);
