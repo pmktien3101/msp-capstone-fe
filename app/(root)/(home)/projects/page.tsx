@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ProjectsTable } from '@/components/projects/ProjectsTable';
 import { EditProjectModal } from '@/components/projects/modals/EditProjectModal';
@@ -24,16 +24,7 @@ const ProjectsPage = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-
-  // Fetch projects on component mount
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchProjects();
-    } else {
-      setLoading(false);
-      setError('Vui lòng đăng nhập để xem dự án');
-    }
-  }, [isAuthenticated, user]);
+  const hasFetchedRef = useRef(false);
 
   const fetchProjects = async () => {
     if (!user?.userId || !user?.role) {
@@ -74,6 +65,17 @@ const ProjectsPage = () => {
       setLoading(false);
     }
   };
+
+  // Fetch projects only once when user is authenticated - runs ONLY ONCE
+  useEffect(() => {
+    if (isAuthenticated && user?.userId && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchProjects();
+    } else if (!isAuthenticated) {
+      setLoading(false);
+      setError('Vui lòng đăng nhập để xem dự án');
+    }
+  }, [isAuthenticated, user?.userId]); // Only depend on user.userId (stable value), not entire user object
 
   // Handlers
   const handleEditProject = (project: Project) => {
