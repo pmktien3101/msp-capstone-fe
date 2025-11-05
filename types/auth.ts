@@ -18,6 +18,7 @@ export interface User {
     fullName: string;
     role: string;
     image?: string;
+    avatarUrl?: string;
     createdAt?: Date;
     updatedAt?: Date;
 }

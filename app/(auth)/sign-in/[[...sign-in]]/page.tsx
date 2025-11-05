@@ -72,9 +72,10 @@ export default function SignInPage() {
           
           setUserData({
             userId: userInfo.userId,
+            fullName: userInfo.fullName,
             email: userInfo.email,
             role: normalizedRole,
-            image: `https://getstream.io/random_svg/?id=${userInfo.userId}&name=${userInfo.fullName}`
+            avatarUrl: userInfo.avatarUrl,
           });
 
           if (formData.rememberMe) {

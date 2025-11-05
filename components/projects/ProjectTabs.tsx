@@ -11,6 +11,7 @@ import {
   BarChart3,
   Settings,
   Flag,
+  UserPlus,
 } from "lucide-react";
 import { ProjectSummary } from "./ProjectSummary";
 import { ProjectBoard } from "./ProjectBoard";
@@ -19,6 +20,7 @@ import { ProjectList } from "./ProjectList";
 import { ProjectSettings } from "./ProjectSettings";
 import { MeetingTab } from "./MeetingTab";
 import { ProjectDocuments } from "./ProjectDocuments";
+import { TaskReassignmentTab } from "./TaskReassignmentTab";
 import { BiTask } from "react-icons/bi";
 import { useSearchParams } from "next/navigation";
 
@@ -88,6 +90,11 @@ export const ProjectTabs = ({
       icon: <BiTask size={20} />,
     },
     {
+      id: "reassign",
+      label: "Chuyển giao công việc",
+      icon: <UserPlus size={20} />,
+    },
+    {
       id: "list",
       label: "Cột mốc",
       icon: <Flag size={20} />,
@@ -135,6 +142,8 @@ export const ProjectTabs = ({
         return <ProjectDocuments project={project} />;
       case "meetings":
         return <MeetingTab project={project} />;
+      case "reassign":
+        return <TaskReassignmentTab project={project} refreshKey={refreshKey} />;
       // case "reports":
       //   return <ProjectReports project={project} />;
       case "settings":
