@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { Project } from "@/types/project";
 import { BoardHeader } from "./BoardHeader";
-import { Trash2, Eye, Edit, MoreVertical } from "lucide-react";
+import { Trash2, Eye, Edit, MoreVertical, ArrowRight, UserPlus, UserPlus2 } from "lucide-react";
 import { taskService } from "@/services/taskService";
 import { projectService } from "@/services/projectService";
 import { GetTaskResponse } from "@/types/task";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/lib/rbac";
 import Pagination from "@/components/ui/Pagination";
+import { ReassignTaskModal } from "./ReassignTaskModal";
 
 interface ProjectBoardProps {
   project: Project;
@@ -51,6 +52,16 @@ export const ProjectBoard = ({
   const projectId = project?.id?.toString();
   const userRole = user?.role;
   const userId = user?.userId;
+
+  // Check if user is Member (Member can reassign tasks, but cannot create/delete)
+  const isMember = userRole === UserRole.MEMBER || userRole === 'Member';
+  const isProjectManager = userRole === UserRole.PROJECT_MANAGER || userRole === 'ProjectManager' || 
+                           userRole === UserRole.BUSINESS_OWNER || userRole === 'BusinessOwner' ||
+                           userRole === UserRole.ADMIN || userRole === 'Admin';
+
+  // Modal state for reassign
+  const [selectedTask, setSelectedTask] = useState<GetTaskResponse | null>(null);
+  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
 
   // Fetch tasks from API
   const fetchTasks = useCallback(async () => {
@@ -315,6 +326,19 @@ export const ProjectBoard = ({
     }
   };
 
+  const handleReassignClick = (e: React.MouseEvent, task: GetTaskResponse) => {
+    e.stopPropagation();
+    setSelectedTask(task);
+    setIsReassignModalOpen(true);
+  };
+
+  const handleReassignSuccess = () => {
+    setIsReassignModalOpen(false);
+    setSelectedTask(null);
+    // Refresh tasks
+    fetchTasks();
+  };
+
   return (
     <div className="project-board">
       <BoardHeader
@@ -325,7 +349,7 @@ export const ProjectBoard = ({
         members={members}
         userRole={userRole}
       />
-      {onCreateTask && (
+      {onCreateTask && isProjectManager && (
         <div className="create-task-container">
           <button onClick={onCreateTask}>Tạo công việc mới</button>
         </div>
@@ -341,7 +365,7 @@ export const ProjectBoard = ({
         ) : tasks.length === 0 ? (
           <div className="empty-state">
             <p>Chưa có công việc nào trong dự án này</p>
-            {onCreateTask && (
+            {onCreateTask && isProjectManager && (
               <button onClick={onCreateTask}>Tạo công việc đầu tiên</button>
             )}
           </div>
@@ -405,20 +429,33 @@ export const ProjectBoard = ({
                         >
                           <Eye size={14} />
                         </button>
-                        <button
-                          className="action-btn edit-btn"
-                          onClick={(e) => handleEditTask(e, task)}
-                          title="Chỉnh sửa"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button
-                          className="action-btn delete-btn"
-                          onClick={(e) => handleDeleteTask(e, task.id, task.title)}
-                          title="Xóa công việc"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {onEditTask && (
+                          <button
+                            className="action-btn edit-btn"
+                            onClick={(e) => handleEditTask(e, task)}
+                            title="Chỉnh sửa"
+                          >
+                            <Edit size={14} />
+                          </button>
+                        )}
+                        {isProjectManager && onDeleteTask && (
+                          <button
+                            className="action-btn delete-btn"
+                            onClick={(e) => handleDeleteTask(e, task.id, task.title)}
+                            title="Xóa công việc"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                        {isMember && task.userId === userId && (
+                          <button
+                            className="action-btn reassign-btn"
+                            onClick={(e) => handleReassignClick(e, task)}
+                            title="Chuyển giao công việc"
+                          >
+                            <UserPlus size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -822,7 +859,39 @@ export const ProjectBoard = ({
             height: 28px;
           }
         }
+
+        .reassign-btn {
+          background: linear-gradient(135deg, #ff5e13 0%, #e54d00 100%);
+          color: white;
+          border: none;
+          padding: 6px 10px;
+          border-radius: 4px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+
+        .reassign-btn:hover {
+          background: linear-gradient(135deg, #e54d00 0%, #cc3e00 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(255, 94, 19, 0.3);
+        }
       `}</style>
+
+      {/* Reassign Task Modal */}
+      {isReassignModalOpen && selectedTask && (
+        <ReassignTaskModal
+          isOpen={isReassignModalOpen}
+          onClose={() => {
+            setIsReassignModalOpen(false);
+            setSelectedTask(null);
+          }}
+          task={selectedTask}
+          onSuccess={handleReassignSuccess}
+        />
+      )}
     </div>
   );
 };
