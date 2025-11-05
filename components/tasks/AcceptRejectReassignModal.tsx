@@ -3,34 +3,36 @@
 import { useState } from "react";
 import { X, CheckCircle2, XCircle } from "lucide-react";
 import { taskReassignRequestService } from "@/services/taskReassignRequestService";
+import { TaskReassignRequest } from "@/types/taskReassignRequest";
+import { toast } from "react-toastify";
 
-interface TaskReassignRequest {
-  id: string;
-  taskId: string;
-  fromUserId: string;
-  toUserId: string;
-  description: string;
-  status: string;
-  responseMessage?: string;
-  createdAt: string;
-  updatedAt: string;
-  task?: {
-    id: string;
-    title: string;
-    description?: string;
-    status: string;
-  };
-  fromUser?: {
-    id: string;
-    fullName: string;
-    email: string;
-  };
-  toUser?: {
-    id: string;
-    fullName: string;
-    email: string;
-  };
-}
+// interface TaskReassignRequest {
+//   id: string;
+//   taskId: string;
+//   fromUserId: string;
+//   toUserId: string;
+//   description: string;
+//   status: string;
+//   responseMessage?: string;
+//   createdAt: string;
+//   updatedAt: string;
+//   task?: {
+//     id: string;
+//     title: string;
+//     description?: string;
+//     status: string;
+//   };
+//   fromUser?: {
+//     id: string;
+//     fullName: string;
+//     email: string;
+//   };
+//   toUser?: {
+//     id: string;
+//     fullName: string;
+//     email: string;
+//   };
+// }
 
 interface AcceptRejectReassignModalProps {
   isOpen: boolean;
@@ -38,7 +40,31 @@ interface AcceptRejectReassignModalProps {
   request: TaskReassignRequest;
   onSuccess: () => void;
 }
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "Pending":
+        return "Chờ xử lý";
+      case "Accepted":
+        return "Đã chấp nhận";
+      case "Rejected":
+        return "Đã từ chối";
+      default:
+        return status;
+    }
+  };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Pending":
+        return "#f59e0b";
+      case "Accepted":
+        return "#10b981";
+      case "Rejected":
+        return "#ef4444";
+      default:
+        return "#6b7280";
+    }
+  };
 export const AcceptRejectReassignModal = ({
   isOpen,
   onClose,
@@ -79,16 +105,25 @@ export const AcceptRejectReassignModal = ({
         : await taskReassignRequestService.rejectTaskReassignRequest(request.id, {
             responseMessage: responseMessage.trim() || undefined,
           });
-
+          console.log("111", response);
+          
       if (response.success) {
+        // Show success toast based on action
+        if (action === "accept") {
+          toast.success(response.message || "Đã chấp nhận yêu cầu chuyển giao công việc!");
+        } else {
+          toast.success(response.message || "Đã từ chối yêu cầu chuyển giao công việc!");
+        }
         onSuccess();
       } else {
-        setError(response.error || `Không thể ${action === "accept" ? "chấp nhận" : "từ chối"} yêu cầu`);
+        setError(response.message || `Không thể ${action === "accept" ? "chấp nhận" : "từ chối"} yêu cầu`);
         setIsSubmitting(false);
       }
     } catch (error: any) {
       console.error(`Error ${action === "accept" ? "accepting" : "rejecting"} request:`, error);
-      setError(`Có lỗi xảy ra khi ${action === "accept" ? "chấp nhận" : "từ chối"} yêu cầu`);
+      const errorMsg = `Có lỗi xảy ra khi ${action === "accept" ? "chấp nhận" : "từ chối"} yêu cầu`;
+      setError(errorMsg);
+      toast.error(errorMsg);
       setIsSubmitting(false);
     }
   };
@@ -140,7 +175,7 @@ export const AcceptRejectReassignModal = ({
               </div>
               <div className="info-item">
                 <span className="info-label">Trạng thái:</span>
-                <span className="info-value">{request.status}</span>
+                <span className="info-value">{getStatusLabel(request.status)}</span>
               </div>
             </div>
           </div>

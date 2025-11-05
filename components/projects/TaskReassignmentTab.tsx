@@ -6,7 +6,7 @@ import { taskService } from "@/services/taskService";
 import { taskReassignRequestService } from "@/services/taskReassignRequestService";
 import { useAuth } from "@/hooks/useAuth";
 import { AcceptRejectReassignModal } from "@/components/tasks/AcceptRejectReassignModal";
-import { TaskReassignRequest } from "@/types/taskReassignRequest";
+import { TaskReassignRequest} from "@/types/taskReassignRequest";
 
 interface TaskReassignmentTabProps {
   project: Project;
@@ -223,7 +223,7 @@ export const TaskReassignmentTab = ({
                     <td className="user-cell">
                       {request.toUser?.fullName || request.toUserId}
                     </td>
-                    <td className="description-cell" title={request.description}>
+                    <td className="description-cell" title={request.description || undefined}>
                       <span className="description-text">
                         {request.description || "-"}
                       </span>
@@ -231,16 +231,16 @@ export const TaskReassignmentTab = ({
                     <td className="status-cell">
                       <span
                         className="status-badge"
-                        style={{ backgroundColor: getStatusColor(request.status) }}
+                        style={{ backgroundColor: getStatusColor(request?.status) }}
                       >
-                        {getStatusLabel(request.status)}
+                        {getStatusLabel(request?.status)}
                       </span>
                     </td>
                     <td className="date-cell">
-                      {formatDate(request.createdAt)}
+                      {formatDate(request?.createdAt)}
                     </td>
                     <td className="date-cell">
-                      {formatDate(request.respondedAt || request.updatedAt)}
+                      {formatDate(request?.respondedAt || request?.updatedAt)}
                     </td>
                     <td className="actions-cell">
                       {canActOnRequest(request) ? (
@@ -264,7 +264,7 @@ export const TaskReassignmentTab = ({
       </div>
 
       {/* Modals */}
-      {isAcceptRejectModalOpen && selectedRequest && (
+      {isAcceptRejectModalOpen && selectedRequest && selectedRequest.taskId && (
         <AcceptRejectReassignModal
           isOpen={isAcceptRejectModalOpen}
           onClose={() => {
