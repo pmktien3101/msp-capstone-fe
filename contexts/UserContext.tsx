@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { userService } from '@/services/userService';
 import { UserDetail } from '@/types/user';
-import { useAuth } from '@/hooks/useAuth';
+import { useUser } from '@/hooks/useUser';
 
 interface UserContextType {
   userDetail: UserDetail | null;
@@ -21,7 +21,7 @@ interface UserProviderProps {
 }
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const { user } = useAuth(); // Lấy userId từ auth
+  const { userId } = useUser(); // Lấy userId từ store
   const [userDetail, setUserDetail] = useState<UserDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,17 +51,17 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   // ✅ Auto fetch khi userId thay đổi
   useEffect(() => {
-    if (user?.userId) {
-      fetchUserDetail(user.userId);
+    if (userId) {
+      fetchUserDetail(userId);
     } else {
       setUserDetail(null);
     }
-  }, [user?.userId]);
+  }, [userId]);
 
   // ✅ Refresh function
   const refreshUserDetail = async () => {
-    if (user?.userId) {
-      await fetchUserDetail(user.userId);
+    if (userId) {
+      await fetchUserDetail(userId);
     }
   };
 
