@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,6 +36,9 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { Todo } from "@/types/todo";
 import { uploadFileToCloudinary } from "@/services/uploadFileService";
+import { taskService } from "@/services/taskService";
+import { PagingRequest } from "@/types/project";
+import { GetTaskResponse } from "@/types/task";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -93,7 +96,20 @@ export default function MeetingDetailPage() {
   const [todoList, setTodoList] = useState<any[]>([]);
   const [isProcessingMeetingAI, setIsProcessingMeetingAI] =
     useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+
+  const [projectTasks, setProjectTasks] = useState<any[]>([]);
+
+  const fetchProjectTasks = async (
+    projectId: string,
+    params: PagingRequest = { pageIndex: 1, pageSize: 100 }
+  ) => {
+    const tasksResponse = await taskService.getTasksByProjectId(projectId, params);
+    if (tasksResponse.success && tasksResponse.data) {
+      setProjectTasks(tasksResponse.data.items || []);
+    } else {
+      setProjectTasks([]);
+    }
+  };
 
   // Fetch recordings when switching to recording tab and call is available
   useEffect(() => {
@@ -149,6 +165,7 @@ export default function MeetingDetailPage() {
     };
     if (activeTab === "recording") {
       loadTranscriptions();
+      fetchProjectTasks(meetingInfo?.projectId);
     }
   }, [activeTab, call]);
 
@@ -221,9 +238,8 @@ export default function MeetingDetailPage() {
     }
   };
 
-  const processVideo = async (recording: any, transcriptions: any) => {
+  const processVideo = async (recording: any, transcriptions: any, tasks: any[]) => {
     setIsProcessingMeetingAI(true);
-    setError(null);
 
     try {
       // 1) Upload recording từ Stream lên Cloud (nếu chưa có trong DB)
@@ -255,6 +271,7 @@ export default function MeetingDetailPage() {
         body: JSON.stringify({
           videoUrl: cloudRecordingUrl, // dùng cloud URL
           transcriptSegments: transcriptions,
+          tasks: tasks,
         }),
       });
 
@@ -310,8 +327,30 @@ export default function MeetingDetailPage() {
               } else {
                 validAssigneeId = meetingInfo?.createdById;
               }
-              return { ...todo, assigneeId: validAssigneeId };
+
+              function normalizeDate(val: any) {
+                if (!val) return null;
+                if (typeof val === "string" && /^\d{2}-\d{2}-\d{4}$/.test(val)) {
+                  const [dd, mm, yyyy] = val.split("-");
+                  return new Date(`${yyyy}-${mm}-${dd}`).toISOString();
+                }
+                // Nếu là YYYY-MM-DD, chuyển thành ISO luôn cho chắc
+                if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                  return new Date(val).toISOString();
+                }
+                // Nếu đã là Date object
+                if (val instanceof Date) return val.toISOString();
+                return val;
+              }
+
+              return {
+                ...todo,
+                assigneeId: validAssigneeId,
+                endDate: normalizeDate(todo.endDate),
+                startDate: normalizeDate(todo.startDate),
+              };
             });
+
 
             const createTodosResult = await todoService.createTodosFromAI(
               params.id as string,
@@ -343,7 +382,6 @@ export default function MeetingDetailPage() {
         throw new Error(data.error || "Unknown error");
       }
     } catch (err: any) {
-      setError(err.message || "Không thể xử lý video. Vui lòng thử lại.");
     } finally {
       setIsProcessingMeetingAI(false);
     }
@@ -400,7 +438,7 @@ export default function MeetingDetailPage() {
 
     // console.log("▶️ Starting AI processing - no existing data found");
     hasProcessedRef.current = true;
-    processVideo(recordings[0], originalTranscriptions);
+    processVideo(recordings[0], originalTranscriptions, projectTasks);
   }, [
     originalTranscriptions,
     recordings,
@@ -408,16 +446,6 @@ export default function MeetingDetailPage() {
     isLoadingMeeting,
     todosFromDB,
   ]);
-
-  useEffect(() => {
-    if (improvedTranscript && summary && todoList) {
-      // console.log("✅ All data ready:", {
-      //   transcriptCount: improvedTranscript.length,
-      //   hasSummary: !!summary,
-      //   hasTodoList: !!todoList,
-      // });
-    }
-  }, [improvedTranscript, summary, todoList]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

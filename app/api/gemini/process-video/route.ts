@@ -201,11 +201,12 @@ export async function POST(request: NextRequest) {
     console.log('🚀 API Route: process-video bắt đầu');
 
     try {
-        const { videoUrl, transcriptSegments } = await request.json();
+        const { videoUrl, transcriptSegments, tasks } = await request.json();
 
         console.log('📋 Request:', {
             hasVideoUrl: !!videoUrl,
-            transcriptCount: transcriptSegments?.length
+            transcriptCount: transcriptSegments?.length,
+            taskCount: tasks?.length || 0,
         });
 
         // Validate input
@@ -307,7 +308,7 @@ export async function POST(request: NextRequest) {
 
         let summary = "Không có kết quả.";
         let todoList: any[] = [];
-
+        const projectTasksJson = JSON.stringify(tasks);
         try {
             const [summaryResponse, todoResponse] = await Promise.all([
                 // Summary với retry
@@ -323,6 +324,7 @@ export async function POST(request: NextRequest) {
 
                                     Yêu cầu:
                                     - Tóm tắt nội dung chính của cuộc họp (3-5 câu)
+                                    - Không sử dụng Speakder ID trong tóm tắt.
                                     - Liệt kê các chủ đề được thảo luận
                                     - Định dạng rõ ràng với các mục bullet point
 
@@ -347,7 +349,8 @@ export async function POST(request: NextRequest) {
                             parts: [{
                                 text: `
                                     Dựa trên transcript cuộc họp sau, hãy tạo một danh sách todo/action items chi tiết bằng tiếng Việt.
-
+                                    Các task đã có trong project (ProjectTasks):
+                                    ${projectTasksJson}
                                     Yêu cầu:
                                     - Xác định tất cả các nhiệm vụ/công việc cần làm được đề cập
                                     - Gán người chịu trách nhiệm cho từng task (dựa vào Speaker ID trong transcript)
@@ -357,6 +360,9 @@ export async function POST(request: NextRequest) {
                                     - endDate mặc định null nếu không được nhắc
                                     - assigneeId lấy từ Speaker ID trong transcript, mặc định là null nếu không rõ
                                     - Mỗi task nên ngắn gọn, rõ ràng
+                                    - Khi sinh todo mới, kiểm tra nó có liên quan/tiếp nối task cũ nào không. Nếu có, ghi rõ "[Việc cũ liên quan: <task title> - Ngày: <task startDate DD/MM/YYYY>]" vào trường description của todo.
+                                    - Nếu còn bổ sung, hoàn thành, chia nhỏ từ task cũ thì ghi rõ.
+                                    - Nếu không liên quan task nào, chỉ ghi mô tả todo như bình thường.
 
                                     **BẮT BUỘC: Trả về ONLY JSON array, KHÔNG có markdown, KHÔNG có text thừa.**
 
@@ -365,18 +371,10 @@ export async function POST(request: NextRequest) {
                                       {
                                         "id": "todo-1",
                                         "title": "Tên task ngắn gọn",
-                                        "description": "Mô tả chi tiết task",
+                                        "description": "Mô tả. Nếu liên quan task cũ thì ghi rõ ở đầu description.",
                                         "assigneeId": "1",
                                         "startDate": "13-10-2025",
                                         "endDate": "20-10-2025"
-                                      },
-                                      {
-                                        "id": "todo-2",
-                                        "title": "Task khác",
-                                        "description": "Mô tả",
-                                        "assigneeId": null,
-                                        "startDate": null,
-                                        "endDate": null
                                       }
                                     ]
 
