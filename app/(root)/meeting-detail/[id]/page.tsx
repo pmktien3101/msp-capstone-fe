@@ -351,7 +351,6 @@ export default function MeetingDetailPage() {
               };
             });
 
-
             const createTodosResult = await todoService.createTodosFromAI(
               params.id as string,
               mappedTodoList

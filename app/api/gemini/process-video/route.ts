@@ -134,7 +134,7 @@ const transcriptArrayToText = (transcripts: any[]): string => {
 const parseImprovedTranscript = (improvedText: string, originalSegments: any[]) => {
     const lines = improvedText.split('\n').filter(line => line.trim());
     const result: any[] = [];
-    const regex = /\[(\d+:\d+(?::\d+)?)\]\s*Speaker\s*(\d+|male-voice|female-voice):\s*(.+)/i;
+    const regex = /\[(\d{2}:\d{2}(?::\d{2})?)\]\s*Speaker\s*([^\s:]+):\s*(.+)/i;
 
     lines.forEach((line, index) => {
         const match = line.match(regex);
@@ -267,6 +267,7 @@ export async function POST(request: NextRequest) {
                                     - Chia đoạn văn hợp lý
                                     - Giữ nguyên ý nghĩa và ngữ cảnh
                                     - Định dạng rõ ràng, dễ đọc
+                                    - Giữ nguyên Speaker ID như trong transcript gốc
                                     
                                     Trả về transcript đã cải thiện theo định dạng:
                                     [timestamp] Speaker X: <nội dung đã sửa>
@@ -287,8 +288,12 @@ export async function POST(request: NextRequest) {
             );
 
             improvedText = improvedResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+            console.log('✅ Đã nhận được improved transcript, độ dài:', improvedText.length);
+            console.log('📄 Improved Transcript Preview:', improvedText);
             improvedTranscript = parseImprovedTranscript(improvedText, transcriptSegments);
-            improvedTranscript = updateSpeakerIds(transcriptSegments, improvedTranscript);
+            // improvedTranscript = updateSpeakerIds(transcriptSegments, improvedTranscript);
+            console.log('✅ Đã parse improved transcript thành array: ', improvedTranscript.length, 'segments');
+            console.log('📄 Improved Transcript Array Preview:', improvedTranscript.slice(0, 3));
             improvedText = transcriptArrayToText(improvedTranscript);
 
         } catch (error: any) {
