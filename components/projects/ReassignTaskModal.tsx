@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { GetTaskResponse } from "@/types/task";
 import { taskReassignRequestService } from "@/services/taskReassignRequestService";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "react-toastify";
 
 interface ReassignTaskModalProps {
   isOpen: boolean;
@@ -59,14 +60,15 @@ export const ReassignTaskModal = ({
         fromUserId
       );
 
-      if (response.success && response.data) {
+      console.log("Available users response:", response);
+      if (response.data.success && response.data.data) {
         // Handle both array and object with items
-        const users = Array.isArray(response.data)
-          ? response.data
-          : response.data.items || [];
+        const users = Array.isArray(response.data.data)
+          ? response.data.data
+          : response.data.data.items || [];
         setAvailableUsers(users);
       } else {
-        setError(response.error || "Không thể tải danh sách người dùng");
+        setError(response.message || "Không thể tải danh sách người dùng");
         setAvailableUsers([]);
       }
     } catch (error: any) {
@@ -101,11 +103,14 @@ export const ReassignTaskModal = ({
         toUserId: selectedUserId,
         description: description.trim(),
       });
-
+      console.log(response);
+      
       if (response.success) {
+        toast.success(response.message || "Yêu cầu chuyển giao công việc đã được gửi!");
         onSuccess();
+
       } else {
-        setError(response.error || "Không thể tạo yêu cầu chuyển giao");
+        setError(response.message || "Không thể tạo yêu cầu chuyển giao");
       }
     } catch (error: any) {
       console.error("Error creating reassignment request:", error);
