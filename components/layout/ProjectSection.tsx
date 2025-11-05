@@ -37,25 +37,25 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
       
       // Fetch projects based on user role
       if (user.role === UserRole.PROJECT_MANAGER || user.role === 'ProjectManager') {
-        console.log('[Sidebar] Fetching projects managed by ProjectManager:', user.userId);
+        // console.log('[Sidebar] Fetching projects managed by ProjectManager:', user.userId);
         result = await projectService.getProjectsByManagerId(user.userId);
       } else if (user.role === UserRole.MEMBER || user.role === 'Member') {
-        console.log('[Sidebar] Fetching projects where Member participates:', user.userId);
+        // console.log('[Sidebar] Fetching projects where Member participates:', user.userId);
         result = await projectService.getProjectsByMemberId(user.userId);
       } else {
-        console.log('[Sidebar] Unknown role, fetching all projects');
+        // console.log('[Sidebar] Unknown role, fetching all projects');
         result = await projectService.getAllProjects();
       }
 
       if (result.success && result.data) {
-        console.log('[Sidebar] Fetched projects successfully:', result.data.items.length, 'projects');
+        // console.log('[Sidebar] Fetched projects successfully:', result.data.items.length, 'projects');
         setProjects(result.data.items);
       } else {
-        console.error('[Sidebar] Failed to fetch projects:', result.error);
+        // console.error('[Sidebar] Failed to fetch projects:', result.error);
         setProjects([]);
       }
     } catch (error) {
-      console.error('[Sidebar] Error fetching projects:', error);
+      // console.error('[Sidebar] Error fetching projects:', error);
       setProjects([]);
     } finally {
       setLoading(false);

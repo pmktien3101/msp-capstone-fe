@@ -142,7 +142,7 @@ export default function MeetingDetailPage() {
         setOriginalTranscriptions(data || []);
       } catch (e: any) {
         // console.error("Failed to fetch transcriptions", e);
-        setTranscriptionsError("Không tải được transcript");
+        // setTranscriptionsError("Không tải được transcript");
       } finally {
         setIsLoadingTranscriptions(false);
       }
@@ -320,8 +320,7 @@ export default function MeetingDetailPage() {
 
             if (createTodosResult.success) {
               toast.success(
-                `${
-                  createTodosResult.data?.length || 0
+                `${createTodosResult.data?.length || 0
                 } công việc đã được tạo từ AI`
               );
               const refreshResult = await todoService.getTodosByMeetingId(
@@ -378,9 +377,9 @@ export default function MeetingDetailPage() {
       // Sử dụng todos từ DB thay vì từ meetingInfo
       if (todosFromDB.length > 0) {
         setTodoList(todosFromDB);
+        console.log("Todos from DB:", todosFromDB);
       }
       hasProcessedRef.current = true;
-      // console.log(todoList);
       return;
     }
 
@@ -591,51 +590,6 @@ export default function MeetingDetailPage() {
     );
   }
 
-  // Xử lý chỉnh sửa task
-  // const handleEditTask = (task: any) => {
-  //   // setEditingTaskId(task.id);
-  //   setEditedTask({ ...task });
-  // };
-
-  // const handleSaveTask = async () => {
-  //   if (!editedTask) return;
-
-  //   try {
-  //     // Gọi API update todo
-  //     const updateResult = await todoService.updateTodo(editedTask.id, {
-  //       title: editedTask.title,
-  //       description: editedTask.description,
-  //       startDate: editedTask.startDate,
-  //       endDate: editedTask.endDate,
-  //       assigneeId: editedTask.assigneeId || editedTask.assignee?.id,
-  //     });
-
-  //     if (updateResult.success) {
-  //       // Cập nhật local state
-  //       setTodoList((prev) =>
-  //         prev.map((task) => (task.id === editedTask.id ? editedTask : task))
-  //       );
-  //       setTodosFromDB((prev) =>
-  //         prev.map((task) => (task.id === editedTask.id ? editedTask : task))
-  //       );
-
-  //       toast.success("Cập nhật công việc thành công");
-  //       setEditingTaskId(null);
-  //       setEditedTask(null);
-  //     } else {
-  //       toast.error("Cập nhật công việc thất bại: " + updateResult.error);
-  //     }
-  //   } catch (error) {
-  //     // console.error("Error updating todo:", error);
-  //     toast.error("Lỗi khi cập nhật công việc");
-  //   }
-  // };
-
-  // const handleCancelEdit = () => {
-  //   setEditingTaskId(null);
-  //   setEditedTask(null);
-  // };
-
   // Xử lý mở modal xác nhận xóa task
   const handleOpenDeleteModal = (taskId: string) => {
     setDeleteConfirmModal({ isOpen: true, taskId });
@@ -679,9 +633,12 @@ export default function MeetingDetailPage() {
   // Xử lý select/deselect task
   const handleSelectTask = (taskId: string) => {
     const todo = todoList.find((t) => t.id === taskId);
-    if (!isValidTodo(todo)) {
+    if (!isValidTodo(todo) ||
+      todo.status === 2 || // ConvertedToTask
+      todo.status === 3   // Deleted
+    ) {
       toast.warning(
-        "Cần điền đầy đủ thông tin trước khi chọn chuyển đổi thành công việc chính thức."
+        "To-do đã được chuyển đổi hoặc thiếu thông tin cần thiết"
       );
       return;
     }
@@ -694,8 +651,12 @@ export default function MeetingDetailPage() {
 
   // Xử lý select all tasks
   const handleSelectAllTasks = () => {
-    const eligibleIds = todoList.filter(isValidTodo).map((t) => t.id);
-    if (selectedTasks.length === eligibleIds.length) setSelectedTasks([]);
+    const eligibleIds = todoList.filter(t => isValidTodo(t)
+      && t.status !== 2 // ConvertedToTask
+      && t.status !== 3 // Deleted
+    ).map((t) => t.id);
+    if (selectedTasks.length === eligibleIds.length)
+      setSelectedTasks([]);
     else setSelectedTasks(eligibleIds);
   };
 
@@ -757,6 +718,53 @@ export default function MeetingDetailPage() {
     setConvertConfirmModal({ isOpen: false, taskCount: 0 });
   };
 
+  // Helper function to get status badge style
+  const getTodoStatusStyle = (status: number) => {
+    switch (status) {
+      case 0: // Generated
+        return {
+          background: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
+          color: "white",
+        };
+      case 1: // UnderReview
+        return {
+          background: "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
+          color: "white",
+        };
+      case 2: // ConvertedToTask
+        return {
+          background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+          color: "white",
+        };
+      case 3: // Deleted
+        return {
+          background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+          color: "white",
+        };
+      default:
+        return {
+          background: "#f3f4f6",
+          color: "#6b7280",
+        };
+    }
+  };
+
+  // Helper function to get status label
+  const getTodoStatusLabel = (statusDisplay: string) => {
+    switch (statusDisplay) {
+      case "Generated":
+        return "Mới tạo";
+      case "UnderReview":
+        return "Đã chỉnh sửa";
+      case "ConvertedToTask":
+        return "Đã chuyển đổi thành công việc";
+      case "Deleted":
+        return "Đã xóa";
+      default:
+        return statusDisplay;
+    }
+  };
+
   // Memoize todo list rendering to prevent unnecessary re-renders
   const memoizedTodoList = useMemo(() => {
     return todoList.map((todo, index) => {
@@ -765,9 +773,8 @@ export default function MeetingDetailPage() {
 
       return (
         <div
-          className={`task-item ai-task ${
-            selectedTasks.includes(todo.id) ? "selected" : ""
-          } ${editMode[todo.id] ? "edit-mode" : ""}`}
+          className={`task-item ai-task ${selectedTasks.includes(todo.id) ? "selected" : ""
+            } ${editMode[todo.id] ? "edit-mode" : ""}`}
           key={`todo-${todo.id}-${index}`}
           data-task-id={todo.id}
           onClick={(e) => {
@@ -798,6 +805,16 @@ export default function MeetingDetailPage() {
           <div className="task-number">{index + 1}</div>
 
           <div className="task-content">
+            {/* Status Badge */}
+            <div className="task-status-badge">
+              <span
+                className="status-badge"
+                style={getTodoStatusStyle(todo.status)}
+              >
+                {getTodoStatusLabel(todo.statusDisplay)}
+              </span>
+            </div>
+
             <div className="task-title">
               <label
                 className="detail-label"
@@ -928,8 +945,8 @@ export default function MeetingDetailPage() {
                         // Tìm thông tin đầy đủ của assignee mới
                         const newAssigneeInfo = newAssigneeId
                           ? meetingInfo?.attendees?.find(
-                              (att: any) => att.id === newAssigneeId
-                            )
+                            (att: any) => att.id === newAssigneeId
+                          )
                           : null;
 
                         setTodoList((prev) =>
@@ -941,10 +958,10 @@ export default function MeetingDetailPage() {
                                 assigneeId: newAssigneeId,
                                 assignee: newAssigneeInfo
                                   ? {
-                                      id: newAssigneeInfo.id,
-                                      fullName: newAssigneeInfo.fullName,
-                                      email: newAssigneeInfo.email,
-                                    }
+                                    id: newAssigneeInfo.id,
+                                    fullName: newAssigneeInfo.fullName,
+                                    email: newAssigneeInfo.email,
+                                  }
                                   : null,
                               };
                             }
@@ -1009,11 +1026,13 @@ export default function MeetingDetailPage() {
                           assigneeId: newAssigneeId,
                           assignee: newAssignee
                             ? {
-                                id: newAssignee.id,
-                                fullName: newAssignee.fullName,
-                                email: newAssignee.email,
-                              }
+                              id: newAssignee.id,
+                              fullName: newAssignee.fullName,
+                              email: newAssignee.email,
+                            }
                             : null,
+                          status: updateResult?.data?.status,
+                          statusDisplay: updateResult?.data?.statusDisplay,
                         };
 
                         // Cập nhật local state
@@ -1133,8 +1152,8 @@ export default function MeetingDetailPage() {
       const extensionFromType = contentType.includes("mp4")
         ? "mp4"
         : contentType.includes("webm")
-        ? "webm"
-        : "mp4";
+          ? "webm"
+          : "mp4";
       const baseName =
         rec.filename
           ?.replace(/\s+/g, "-")
@@ -1342,18 +1361,18 @@ export default function MeetingDetailPage() {
                 {(meetingInfo?.endTime
                   ? new Date(meetingInfo.endTime) > new Date()
                   : endsAt
-                  ? endsAt > new Date()
-                  : false) && (
-                  <Button
-                    variant="default"
-                    className="join-now-btn bg-orange-600 hover:bg-orange-700 cursor-pointer"
-                    style={{ marginTop: 12 }}
-                    onClick={() => handleClickJoinMeeting()}
-                  >
-                    <Video size={16} style={{ marginRight: 6 }} />
-                    Tham gia ngay
-                  </Button>
-                )}
+                    ? endsAt > new Date()
+                    : false) && (
+                    <Button
+                      variant="default"
+                      className="join-now-btn bg-orange-600 hover:bg-orange-700 cursor-pointer"
+                      style={{ marginTop: 12 }}
+                      onClick={() => handleClickJoinMeeting()}
+                    >
+                      <Video size={16} style={{ marginRight: 6 }} />
+                      Tham gia ngay
+                    </Button>
+                  )}
               </div>
 
               <div className="info-grid">
@@ -1476,8 +1495,8 @@ export default function MeetingDetailPage() {
                                 <p>
                                   {meetingInfo.updatedAt
                                     ? new Date(
-                                        meetingInfo.updatedAt
-                                      ).toLocaleString("vi-VN")
+                                      meetingInfo.updatedAt
+                                    ).toLocaleString("vi-VN")
                                     : "-"}
                                 </p>
                               </div>
@@ -1543,9 +1562,9 @@ export default function MeetingDetailPage() {
                         const duration =
                           rec.start_time && rec.end_time
                             ? formatDuration(
-                                new Date(rec.end_time).getTime() -
-                                  new Date(rec.start_time).getTime()
-                              )
+                              new Date(rec.end_time).getTime() -
+                              new Date(rec.start_time).getTime()
+                            )
                             : null;
                         return (
                           <div className="recording-item" key={rec.url || idx}>
@@ -1607,12 +1626,8 @@ export default function MeetingDetailPage() {
                     Đang tải lời thoại...
                   </div>
                 )}
-                {transcriptionsError && !isLoadingTranscriptions && (
-                  <div className="transcript-error">{transcriptionsError}</div>
-                )}
                 {!isLoadingTranscriptions &&
-                  !transcriptionsError &&
-                  originalTranscriptions.length === 0 && (
+                  (originalTranscriptions.length === 0 && improvedTranscript.length === 0) && (
                     <div className="transcript-empty">
                       Chưa có transcript cho cuộc họp này
                     </div>
@@ -1637,16 +1652,15 @@ export default function MeetingDetailPage() {
                 {!isProcessingMeetingAI && improvedTranscript.length > 0 && (
                   <>
                     <div
-                      className={`transcript-content ${
-                        isTranscriptExpanded ? "expanded" : ""
-                      } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
+                      className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
+                        } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
                       style={{
                         maxHeight:
                           improvedTranscript.length <= 4
                             ? "none"
                             : isTranscriptExpanded
-                            ? "none"
-                            : "200px",
+                              ? "none"
+                              : "200px",
                       }}
                     >
                       <TranscriptPanel

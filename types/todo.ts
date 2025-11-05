@@ -24,7 +24,8 @@ export interface CreateTodoRequest {
     endDate?: string;
     assigneeId?: string | null;
     assignee?: Assignee | null;
-    
+    status: number; // 0: Generated, 1: UnderReview, 2: ConvertedToTask, 3: Deleted
+    statusDisplay: "Generated" | "UnderReview" | "ConvertedToTask" | "Deleted";
   }
 
   export interface Assignee {
