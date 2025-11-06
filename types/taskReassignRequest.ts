@@ -26,15 +26,19 @@ export interface TaskReassignRequest {
     description?: string;
     status: string;
     projectId: string;
+    startDate?: string;
+    endDate?: string;
   };
   fromUser?: {
     id: string;
     fullName: string;
     email: string;
+    avatarUrl?: string;
   };
   toUser?: {
     id: string;
     fullName: string;
     email: string;
+    avatarUrl?: string;
   };
 }

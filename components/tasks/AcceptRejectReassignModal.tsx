@@ -232,7 +232,7 @@ export const AcceptRejectReassignModal = ({
                 </h4>
                 <p className="confirm-message">
                   {action === "accept"
-                    ? "Bạn có chắc chắn muốn nhận công việc này không? Sau khi nhận, bạn sẽ không thể chuyển giao công việc này cho người khác."
+                    ? "Bạn có chắc chắn muốn nhận công việc này không? Sau khi chấp nhận, bạn sẽ chịu trách nhiệm hoàn toàn trong việc thực hiện và hoàn thành công việc."
                     : "Bạn có chắc chắn muốn từ chối yêu cầu chuyển giao công việc này không? Người gửi sẽ được thông báo về quyết định của bạn."}
                 </p>
                 <div className="confirm-actions">

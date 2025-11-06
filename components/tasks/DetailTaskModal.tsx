@@ -17,11 +17,15 @@ import {
   EyeOff,
   MessageCircle,
   Send,
-  MoreVertical
+  MoreVertical,
+  History
 } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
 import { milestoneService } from "@/services/milestoneService";
+import { taskReassignRequestService } from "@/services/taskReassignRequestService";
+import { ReassignmentHistoryTable } from "@/components/tasks/ReassignmentHistoryTable";
+import { TaskReassignRequest } from "@/types/taskReassignRequest";
 import type { GetTaskResponse } from "@/types/task";
 import type { ProjectMember } from "@/types/project";
 import type { MilestoneBackend } from "@/types/milestone";
@@ -43,6 +47,8 @@ export const DetailTaskModal = ({
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [reassignmentHistory, setReassignmentHistory] = useState<TaskReassignRequest[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Fetch members when modal opens (for displaying assignee name)
   useEffect(() => {
@@ -66,6 +72,38 @@ export const DetailTaskModal = ({
       fetchMembers();
     }
   }, [isOpen, projectId]);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!task?.id) return;
+
+      setIsLoadingHistory(true);
+      try {
+        const response = await taskReassignRequestService.getAcceptedTaskReassignRequestsByTaskId(task.id);
+        
+        if (response.success && response.data) {
+          let historyData: TaskReassignRequest[] = [];
+          if (Array.isArray(response.data)) {
+            historyData = response.data;
+          } else if (response.data.items) {
+            historyData = response.data.items;
+          }
+          setReassignmentHistory(historyData);
+        } else {
+          setReassignmentHistory([]);
+        }
+      } catch (error) {
+        console.error('Error fetching reassignment history:', error);
+        setReassignmentHistory([]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    if (isOpen && task?.id) {
+      fetchHistory();
+    }
+  }, [isOpen, task?.id]);
 
   if (!isOpen || !task) return null;
 
@@ -286,6 +324,21 @@ export const DetailTaskModal = ({
               </div>
             </div>
           </div>
+
+          {/* Reassignment History Section */}
+          {reassignmentHistory.length > 0 && (
+            <div className="reassignment-history-section">
+              <div className="section-header">
+                <History size={16} />
+                <span>Lịch sử chuyển giao</span>
+              </div>
+              
+              <ReassignmentHistoryTable 
+                history={reassignmentHistory}
+                isLoading={isLoadingHistory}
+              />
+            </div>
+          )}
 
         </div>
 
@@ -1014,6 +1067,12 @@ export const DetailTaskModal = ({
           .btn-close {
             width: 100%;
           }
+        }
+
+        .reassignment-history-section {
+          margin-top: 32px;
+          padding-top: 24px;
+          border-top: 2px solid #e5e7eb;
         }
       `}</style>
     </div>
