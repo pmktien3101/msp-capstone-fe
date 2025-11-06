@@ -1,19 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { Eye } from "lucide-react";
 import { Project } from "@/types/project";
 import { taskService } from "@/services/taskService";
 import { taskReassignRequestService } from "@/services/taskReassignRequestService";
 import { useAuth } from "@/hooks/useAuth";
 import { AcceptRejectReassignModal } from "@/components/tasks/AcceptRejectReassignModal";
+import { ReassignmentHistoryModal} from "@/components/tasks/ReassignmentHistoryModal";
 import { TaskReassignRequest} from "@/types/taskReassignRequest";
 
 interface TaskReassignmentTabProps {
   project: Project;
   refreshKey?: number;
 }
-
-
 
 const formatDate = (dateStr: string) => {
   if (!dateStr) return "";
@@ -33,7 +33,7 @@ export const TaskReassignmentTab = ({
   const userRole = user?.role;
   const projectId = project?.id?.toString();
 
-  const [activeSubTab, setActiveSubTab] = useState<"sent" | "received">("sent");
+  const [activeSubTab, setActiveSubTab] = useState<"sent" | "received">("received");
   
   // History tab state
   const [requests, setRequests] = useState<TaskReassignRequest[]>([]);
@@ -42,6 +42,11 @@ export const TaskReassignmentTab = ({
   // Modal states
   const [selectedRequest, setSelectedRequest] = useState<TaskReassignRequest | null>(null);
   const [isAcceptRejectModalOpen, setIsAcceptRejectModalOpen] = useState(false);
+  
+  // History modal state
+  const [historyTaskId, setHistoryTaskId] = useState<string | null>(null);
+  const [historyTaskTitle, setHistoryTaskTitle] = useState<string>("");
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   // Fetch reassignment requests
   const fetchRequests = useCallback(async () => {
@@ -116,6 +121,12 @@ export const TaskReassignmentTab = ({
     fetchRequests();
   };
 
+  const handleViewHistoryClick = (taskId: string, taskTitle: string) => {
+    setHistoryTaskId(taskId);
+    setHistoryTaskTitle(taskTitle);
+    setIsHistoryModalOpen(true);
+  };
+
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "Pending":
@@ -171,16 +182,16 @@ export const TaskReassignmentTab = ({
       {/* Sub-tabs */}
       <div className="sub-tabs-header">
         <button
-          className={`sub-tab-button ${activeSubTab === "sent" ? "active" : ""}`}
-          onClick={() => setActiveSubTab("sent")}
-        >
-          Đã gửi
-        </button>
-        <button
           className={`sub-tab-button ${activeSubTab === "received" ? "active" : ""}`}
           onClick={() => setActiveSubTab("received")}
         >
           Đã nhận
+        </button>
+        <button
+          className={`sub-tab-button ${activeSubTab === "sent" ? "active" : ""}`}
+          onClick={() => setActiveSubTab("sent")}
+        >
+          Đã gửi
         </button>
       </div>
 
@@ -214,7 +225,7 @@ export const TaskReassignmentTab = ({
                 {filteredRequests.map((request, index) => (
                   <tr key={request.id}>
                     <td className="stt-cell">{index + 1}</td>
-                    <td className="task-cell">
+                    <td className="user-cell">
                       {request.task?.title || "N/A"}
                     </td>
                     <td className="user-cell">
@@ -243,17 +254,26 @@ export const TaskReassignmentTab = ({
                       {formatDate(request?.respondedAt || request?.updatedAt)}
                     </td>
                     <td className="actions-cell">
-                      {canActOnRequest(request) ? (
+                      <div className="action-buttons-group">
                         <button
-                          className="action-button accept-reject-button"
-                          onClick={() => handleAcceptRejectClick(request)}
-                          title="Chấp nhận/Từ chối"
+                          className="action-button view-history-button"
+                          onClick={() => handleViewHistoryClick(request.taskId, request.task?.title || "Công việc")}
+                          title="Xem lịch sử chuyển giao"
                         >
-                          Xử lý
+                          <Eye size={14} />
                         </button>
-                      ) : (
-                        <span className="read-only">Chỉ xem</span>
-                      )}
+                        {canActOnRequest(request) ? (
+                          <button
+                            className="action-button accept-reject-button"
+                            onClick={() => handleAcceptRejectClick(request)}
+                            title="Chấp nhận/Từ chối"
+                          >
+                            Xử lý
+                          </button>
+                        ) : (
+                          <></>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -275,6 +295,18 @@ export const TaskReassignmentTab = ({
           onSuccess={handleAcceptRejectSuccess}
         />
       )}
+
+      {/* Reassignment History Modal */}
+      <ReassignmentHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => {
+          setIsHistoryModalOpen(false);
+          setHistoryTaskId(null);
+          setHistoryTaskTitle("");
+        }}
+        taskId={historyTaskId || ""}
+        taskTitle={historyTaskTitle}
+      />
 
       <style jsx>{`
         .task-reassignment-tab {
@@ -422,9 +454,18 @@ export const TaskReassignmentTab = ({
           white-space: nowrap;
         }
 
+        .action-buttons-group {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          justify-content: center;
+          flex-wrap: nowrap;
+        }
+
         .action-button {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 6px;
           padding: 6px 12px;
           border: none;
@@ -433,6 +474,7 @@ export const TaskReassignmentTab = ({
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
+          white-space: nowrap;
         }
 
         .reassign-button {
@@ -447,10 +489,24 @@ export const TaskReassignmentTab = ({
         .accept-reject-button {
           background: #3b82f6;
           color: white;
+          min-width: 50px;
         }
 
         .accept-reject-button:hover {
           background: #2563eb;
+        }
+
+        .view-history-button {
+          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+          color: white;
+          padding: 6px 8px;
+          min-width: 32px;
+        }
+
+        .view-history-button:hover {
+          background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
         }
 
         .read-only {

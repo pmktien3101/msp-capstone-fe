@@ -17,7 +17,7 @@ export const taskReassignRequestService = {
         '/TaskReassignRequests/available-users',
         { params: { taskId, fromUserId } }
       );
-      return response;
+      return response.data;
     } catch (error: any) {
       return {
         success: false,
@@ -109,6 +109,26 @@ export const taskReassignRequestService = {
       };
     }
   },
+
+    async getAcceptedTaskReassignRequestsByTaskId(
+    taskId: string
+  ): Promise<ApiResponse> {
+    try {
+      const response = await api.get<ApiResponse>(
+        `/TaskReassignRequests/accepted-by-task/${taskId}`
+      );
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          'Failed to fetch requests by task',
+      };
+    }
+  },
+
 
   async getTaskReassignRequestsForUser(
     userId: string
