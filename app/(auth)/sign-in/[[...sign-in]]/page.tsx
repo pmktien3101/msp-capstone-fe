@@ -6,14 +6,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import { isAuthenticated } from "@/lib/auth";
-import { authService } from "@/services/authService";
-import { extractUserFromToken } from "@/lib/jwt";
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import "../../../styles/auth.scss";
 
 export default function SignInPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +21,7 @@ export default function SignInPage() {
   });
 
   // Always call hooks at the top level
-  const { setUserData } = useUser();
+  const { login, isLoading: authLoading } = useUser();
 
   // Check if user is already authenticated
   useEffect(() => {
@@ -48,52 +45,31 @@ export default function SignInPage() {
       [name]: type === "checkbox" ? checked : value,
     }));
   };
+  
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Form submitted");
-    setIsLoading(true);
     setError(null);
 
     try {
-      const result = await authService.login({
+      const result = await login({
         email: formData.email,
         password: formData.password
-      }, formData.rememberMe);
+      });
 
-      if (result.success && result.data) {
-        // User data is already processed and stored by authService
-        // We just need to get it from the processed data
-        const userInfo = extractUserFromToken(result.data.accessToken);
-        if (userInfo) {
-          // Normalize role
-          const normalizedRole = userInfo.role === 'Admin' ? 'Admin' :
-                                 userInfo.role === 'ProjectManager' ? 'ProjectManager' :
-                                 userInfo.role;
-          
-          setUserData({
-            userId: userInfo.userId,
-            email: userInfo.email,
-            role: normalizedRole,
-            image: `https://getstream.io/random_svg/?id=${userInfo.userId}&name=${userInfo.fullName}`
-          });
-
-          if (formData.rememberMe) {
-            localStorage.setItem("rememberedEmail", formData.email);
-          }
-
-          // Redirect to dashboard
-          router.push("/dashboard");
-        } else {
-          setError("Invalid token format received from server");
+      if (result.success) {
+        if (formData.rememberMe) {
+          localStorage.setItem("rememberedEmail", formData.email);
         }
+
+        // Redirect to dashboard
+        router.push("/dashboard");
       } else {
         setError(result.error || "Login failed. Please check your credentials.");
       }
     } catch (error: any) {
       console.error("Login error:", error);
       setError(error.message || "An unexpected error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -258,8 +234,8 @@ export default function SignInPage() {
                 </Link>
               </div>
 
-              <button type="submit" className="login-btn" disabled={isLoading}>
-                {isLoading ? <div className="loading-spinner" /> : "Đăng Nhập"}
+              <button type="submit" className="login-btn" disabled={authLoading}>
+                {authLoading ? <div className="loading-spinner" /> : "Đăng Nhập"}
               </button>
 
               <div className="divider">

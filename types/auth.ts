@@ -18,6 +18,8 @@ export interface User {
     fullName: string;
     role: string;
     image?: string;
+    avatarUrl?: string;
+    phoneNumber?: string;
     createdAt?: Date;
     updatedAt?: Date;
 }

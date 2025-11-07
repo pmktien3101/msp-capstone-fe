@@ -10,7 +10,7 @@ import "@/app/styles/dashboard.scss";
 
 export default function MemberDashboardPage() {
   const router = useRouter();
-  const { email, image } = useUser();
+  const { email, avatarUrl, fullName } = useUser();
   const [assignedProjects, setAssignedProjects] = useState<Project[]>([]);
   const [myTasks, setMyTasks] = useState<any[]>([]);
   const [upcomingMeetings, setUpcomingMeetings] = useState<any[]>([]);
@@ -162,7 +162,7 @@ export default function MemberDashboardPage() {
       <div className="dashboard-header">
         <div className="header-content">
           <div className="welcome-section">
-            <h1>Chào mừng, Member!</h1>
+            <h1>Chào mừng, {fullName}!</h1>
             <p>Đây là tổng quan về công việc của bạn</p>
           </div>
           <button

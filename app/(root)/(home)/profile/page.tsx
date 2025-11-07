@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { useUser } from "@/hooks/useUser";
+import { useAuth } from "@/hooks/useAuth";
 
 type UserRole = "member" | "admin" | "business_owner" | "project_manager";
 
@@ -35,19 +36,19 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
-  const { userId = "", email = "", role = "", image = "" } = useUser();
-
+  const { userId = "", email = "", role = "", avatarUrl = "", fullName = "" } = useUser();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(image);
+  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(avatarUrl);
 
   useEffect(() => {
     setProfile({
       id: userId,
-      name: "",
+      name: fullName,
       email: email,
-      phone: "",
-      avatar: image,
+      phone: user?.phoneNumber || "",
+      avatar: avatarUrl,
       bio: "",
       role: role,
       businessName: "",
@@ -56,8 +57,8 @@ export default function ProfilePage() {
       department: "",
       projectCount: undefined,
     });
-    setAvatarPreview(image);
-  }, [userId, email, role, image]);
+    setAvatarPreview(avatarUrl);
+  }, [userId, email, role, avatarUrl, fullName]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

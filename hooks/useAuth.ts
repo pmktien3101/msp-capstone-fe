@@ -1,39 +1,31 @@
-import { useAuthContext } from '@/contexts/AuthContext';
 import { useUser } from './useUser';
 import { hasPermission, hasRole, hasAnyRole, canManageProjects, canManageUsers, canManageMeetings, canManageTasks, canViewReports, isAdmin, isBusinessOwnerOrAdmin } from '@/lib/rbac';
 import { UserRole, Permission } from '@/lib/rbac';
 import { User } from '@/types/auth';
 
 export const useAuth = () => {
-  const authContext = useAuthContext();
   const userStore = useUser();
 
-  // Combine context and store data
-  const user = authContext.user || (userStore.userId ? {
+  // Build user object from store data
+  const user: User | null = userStore.userId ? {
     userId: userStore.userId,
     email: userStore.email,
     fullName: userStore.fullName,
     role: userStore.role,
-    image: userStore.image
-  } : null);
+    avatarUrl: userStore.avatarUrl
+  } : null;
 
   return {
     // Auth state
     user,
-    isAuthenticated: authContext.isAuthenticated || userStore.isAuthenticated(),
-    isLoading: authContext.isLoading,
+    isAuthenticated: userStore.isAuthenticated(),
+    isLoading: userStore.isLoading,
     
     // Auth actions
-    login: authContext.login,
-    register: authContext.register,
-    logout: async () => {
-      await authContext.logout();
-      await userStore.logout();
-    },
-    refreshUser: async () => {
-      await authContext.refreshUser();
-      await userStore.refreshUser();
-    },
+    login: userStore.login,
+    register: userStore.register,
+    logout: userStore.logout,
+    refreshUser: userStore.refreshUser,
     
     // Permission checks
     hasPermission: (permission: Permission) => hasPermission(user, permission),
@@ -71,9 +63,12 @@ export const useAuth = () => {
       email: string;
       fullName?: string;
       role: string;
-      image: string;
+      avatarUrl: string;
     }) => {
       userStore.setUserData(data);
-    }
+    },
+    
+    // Direct access to setUser
+    setUser: userStore.setUser
   };
 };
