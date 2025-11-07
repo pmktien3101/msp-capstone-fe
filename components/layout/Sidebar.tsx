@@ -49,7 +49,7 @@ const Sidebar = () => {
     },
     {
       id: "business-owners",
-      label: "Business Owners",
+      label: "Chủ doanh nghiệp",
       route: "/dashboard/admin/business",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

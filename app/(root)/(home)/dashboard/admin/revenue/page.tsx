@@ -88,7 +88,7 @@ const AdminRevenue = () => {
     <div className="admin-revenue">
       <div className="page-header">
         <h1>Quản Lý Doanh Thu</h1>
-        <p>Danh sách các gói dịch vụ mà Business Owner đã thanh toán.</p>
+        <p>Danh sách các gói dịch vụ mà chủ doanh nghiệp đã thanh toán</p>
       </div>
 
       {/* Filters */}
@@ -96,7 +96,7 @@ const AdminRevenue = () => {
         <div className="search-box">
           <input
             type="text"
-            placeholder="Tìm kiếm theo tên Business Owner hoặc gói..."
+            placeholder="Tìm kiếm theo tên chủ doanh nghiệp hoặc gói..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -142,7 +142,7 @@ const AdminRevenue = () => {
       {/* Revenue Table */}
       <div className="revenue-table">
         <div className="table-header">
-          <div className="table-cell">Business Owner</div>
+          <div className="table-cell">Chủ doanh nghiệp</div>
           <div className="table-cell">Gói dịch vụ</div>
           <div className="table-cell">Số tiền</div>
           <div className="table-cell">Ngày thanh toán</div>

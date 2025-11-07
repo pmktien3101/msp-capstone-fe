@@ -28,7 +28,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import "../../../styles/member-roles-page.scss";
+import "../../../styles/business.scss";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "react-toastify";
@@ -38,13 +38,20 @@ import { userService } from "@/services/userService";
 import { OrganizationInvitationResponse } from "@/types/organizeInvitation";
 import { organizeInvitationService } from "@/services/organizeInvitationService";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function BusinessDashboard() {
   const { userDetail, isLoading, error, refreshUserDetail } = useUserDetail();
 
   // States
-  const [currentBusiness, setCurrentBusiness] = useState<BusinessResponse | null>(null);
+  const [currentBusiness, setCurrentBusiness] =
+    useState<BusinessResponse | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<BusinessResponse[]>([]);
   const [allBusinesses, setAllBusinesses] = useState<BusinessResponse[]>([]);
@@ -56,8 +63,12 @@ export default function BusinessDashboard() {
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
 
   // Invitations and Requests States
-  const [invitations, setInvitations] = useState<OrganizationInvitationResponse[]>([]);
-  const [sentJoinRequests, setSentJoinRequests] = useState<OrganizationInvitationResponse[]>([]);
+  const [invitations, setInvitations] = useState<
+    OrganizationInvitationResponse[]
+  >([]);
+  const [sentJoinRequests, setSentJoinRequests] = useState<
+    OrganizationInvitationResponse[]
+  >([]);
 
   // Reject invitation modal
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -69,46 +80,48 @@ export default function BusinessDashboard() {
   const [leavingLoading, setLeavingLoading] = useState(false);
 
   // Filter for sent requests States
-  const [requestStatusFilter, setRequestStatusFilter] = useState<string>("Pending");
+  const [requestStatusFilter, setRequestStatusFilter] =
+    useState<string>("Pending");
 
-  // Status options
+  // Status options (use semantic class names instead of Tailwind utility tokens)
   const statusOptions = [
     {
       value: "All",
       label: "Tất cả",
-      icon: <MinusCircle className="h-4 w-4 text-gray-400 mr-1" />,
-      color: "text-gray-700 bg-gray-100"
+      icon: <MinusCircle className="icon-xs icon-gray mr-1" />,
+      colorClass: "status-all",
     },
     {
       value: "Pending",
       label: "Đang chờ duyệt",
-      icon: <Hourglass className="h-4 w-4 text-yellow-400 mr-1" />,
-      color: "text-yellow-700 bg-yellow-50"
+      icon: <Hourglass className="icon-xs icon-yellow mr-1" />,
+      colorClass: "status-pending",
     },
     {
       value: "Accepted",
       label: "Đã chấp nhận",
-      icon: <BadgeCheck className="h-4 w-4 text-green-500 mr-1" />,
-      color: "text-green-700 bg-green-50"
+      icon: <BadgeCheck className="icon-xs icon-green mr-1" />,
+      colorClass: "status-accepted",
     },
     {
       value: "Rejected",
       label: "Đã từ chối",
-      icon: <XCircle className="h-4 w-4 text-red-500 mr-1" />,
-      color: "text-red-700 bg-red-50"
+      icon: <XCircle className="icon-xs icon-red mr-1" />,
+      colorClass: "status-rejected",
     },
     {
       value: "Canceled",
       label: "Đã hủy",
-      icon: <MinusCircle className="h-4 w-4 text-gray-400 mr-1" />,
-      color: "text-gray-700 bg-gray-100"
-    }
+      icon: <MinusCircle className="icon-xs icon-gray mr-1" />,
+      colorClass: "status-canceled",
+    },
   ];
 
   // Filtered requests based on status
-  const filteredSentRequests = sentJoinRequests.filter((request) =>
-    requestStatusFilter === "All" ||
-    request.statusDisplay?.toLowerCase() === requestStatusFilter.toLowerCase()
+  const filteredSentRequests = sentJoinRequests.filter(
+    (request) =>
+      requestStatusFilter === "All" ||
+      request.statusDisplay?.toLowerCase() === requestStatusFilter.toLowerCase()
   );
 
   // Fetch business detail when user has organization
@@ -162,7 +175,10 @@ export default function BusinessDashboard() {
   const fetchReceivedInvitations = async (memberId: string) => {
     setIsLoadingInvitations(true);
     try {
-      const res = await organizeInvitationService.getReceivedInvitationsByMemberId(memberId);
+      const res =
+        await organizeInvitationService.getReceivedInvitationsByMemberId(
+          memberId
+        );
       if (res.success) {
         setInvitations(res.data ?? []);
       } else {
@@ -179,7 +195,9 @@ export default function BusinessDashboard() {
   const fetchSentRequests = async (memberId: string) => {
     setIsLoadingRequests(true);
     try {
-      const res = await organizeInvitationService.getSentRequestsByMemberId(memberId);
+      const res = await organizeInvitationService.getSentRequestsByMemberId(
+        memberId
+      );
       if (res.success) {
         setSentJoinRequests(res.data ?? []);
       } else {
@@ -210,9 +228,14 @@ export default function BusinessDashboard() {
     setIsSearching(true);
 
     // Filter from allBusinesses
-    const filtered = allBusinesses.filter(business =>
-      business.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      business.businessOwnerName.toLowerCase().includes(searchQuery.toLowerCase())
+    const filtered = allBusinesses.filter(
+      (business) =>
+        business.businessName
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        business.businessOwnerName
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
     );
 
     setSearchResults(filtered);
@@ -228,9 +251,14 @@ export default function BusinessDashboard() {
     if (!searchQuery) {
       setSearchResults([]);
     }
-    const filtered = allBusinesses.filter(business =>
-      business.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      business.businessOwnerName.toLowerCase().includes(searchQuery.toLowerCase())
+    const filtered = allBusinesses.filter(
+      (business) =>
+        business.businessName
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        business.businessOwnerName
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
     );
     setSearchResults(filtered);
   }, [searchQuery]);
@@ -265,13 +293,14 @@ export default function BusinessDashboard() {
     }
   };
 
-
-
   const handleJoinBusiness = async (businessId: string) => {
-    const business = allBusinesses.find(b => b.id === businessId);
+    const business = allBusinesses.find((b) => b.id === businessId);
     if (!business || !userDetail?.id || !business.id) return;
 
-    const result = await organizeInvitationService.requestJoinOrganization(userDetail.id, business.id);
+    const result = await organizeInvitationService.requestJoinOrganization(
+      userDetail.id,
+      business.id
+    );
     if (result.success) {
       toast.success("Đã gửi yêu cầu tham gia!");
       // Lấy lại danh sách request mới cho tab update luôn trạng thái
@@ -302,7 +331,8 @@ export default function BusinessDashboard() {
           i.organizationName &&
           business.businessName &&
           business.id == i.businessOwnerId &&
-          i.organizationName.trim().toLowerCase() === business.businessName.trim().toLowerCase() &&
+          i.organizationName.trim().toLowerCase() ===
+            business.businessName.trim().toLowerCase() &&
           i.statusDisplay === "Pending"
       ) ||
       sentJoinRequests.some(
@@ -310,7 +340,8 @@ export default function BusinessDashboard() {
           r.organizationName &&
           business.businessName &&
           business.id == r.businessOwnerId &&
-          r.organizationName.trim().toLowerCase() === business.businessName.trim().toLowerCase() &&
+          r.organizationName.trim().toLowerCase() ===
+            business.businessName.trim().toLowerCase() &&
           r.statusDisplay === "Pending"
       )
     );
@@ -318,95 +349,104 @@ export default function BusinessDashboard() {
 
   if (isLoadingBusiness || isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="loading-state">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-orange-500 mx-auto mb-4" />
-          <p className="text-muted-foreground">Đang tải thông tin...</p>
+          <Loader2 className="loader-large spinner centered mb-4" />
+          <p className="muted-foreground">Đang tải thông tin...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="business-page">
+      <div className="business-container">
         {/* Header */}
-        <div className="mb-10">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
-              <Building2 className="h-6 w-6 text-white" />
+        <div className="header-wrap">
+          <div className="business-header">
+            <div className="business-avatar-small">
+              <Building2 className="icon-md icon-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold mb-1 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-500 bg-clip-text text-transparent">
+              <h1 className="business-title">
                 {userDetail?.organization || "Tìm Kiếm Doanh Nghiệp"}
               </h1>
-              <p className="text-muted-foreground text-base flex items-center gap-2">
-                {currentBusiness ? "Thông tin doanh nghiệp" : "Khám phá và tham gia doanh nghiệp"}
+              <p className="business-subtitle">
+                {currentBusiness
+                  ? "Thông tin doanh nghiệp"
+                  : "Khám phá và tham gia doanh nghiệp"}
               </p>
             </div>
           </div>
         </div>
 
-        <Tabs defaultValue="my-business" className="w-full">
-          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between mb-8">
-            <TabsList className="bg-white shadow-md border">
-              <TabsTrigger value="my-business" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-orange-600 data-[state=active]:text-white">
-                <Building2 className="h-4 w-4" />
+        <Tabs defaultValue="my-business" className="tabs-root">
+          <div className="tabs-header">
+            <TabsList className="tabs-list">
+              <TabsTrigger value="my-business" className="tabs-trigger">
+                <Building2 className="icon-xs" />
                 {currentBusiness ? "Doanh Nghiệp" : "Tìm Kiếm"}
               </TabsTrigger>
-              <TabsTrigger value="invitations" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-orange-600 data-[state=active]:text-white">
-                <Mail className="h-4 w-4" />
+              <TabsTrigger value="invitations" className="tabs-trigger">
+                <Mail className="icon-xs" />
                 Lời Mời ({invitations.length})
               </TabsTrigger>
-              <TabsTrigger value="send-join-request" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-orange-600 data-[state=active]:text-white">
-                <Send className="h-4 w-4" />
+              <TabsTrigger value="send-join-request" className="tabs-trigger">
+                <Send className="icon-xs" />
                 Yêu Cầu Đã Gửi ({sentJoinRequests.length})
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="my-business" className="space-y-6 mt-6">
+          <TabsContent value="my-business" className="tabs-section stack-lg">
             {currentBusiness ? (
               // User has organization -> Show business detail
               <>
-                <Card className="border-2 overflow-hidden relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 via-transparent to-orange-50/30 pointer-events-none" />
-                  <CardHeader className="relative">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/40 transform hover:scale-105 transition-transform">
-                          <Building2 className="h-10 w-10 text-white" />
+                <Card className="card">
+                  <div className="card-overlay" />
+                  <CardHeader className="card-header">
+                    <div className="card-top">
+                      <div className="card-main-row">
+                        <div className="avatar-gradient-lg">
+                          <Building2 className="icon-lg icon-white" />
                         </div>
                         <div>
-                          <CardTitle className="text-3xl mb-2">
+                          <CardTitle className="card-title">
                             {currentBusiness.businessName}
                           </CardTitle>
-                          <p className="text-muted-foreground flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            Chủ doanh nghiệp: <strong>{currentBusiness.businessOwnerName}</strong>
+                          <p className="info-row">
+                            <Users className="icon-xs" />
+                            Chủ doanh nghiệp:{" "}
+                            <strong>{currentBusiness.businessOwnerName}</strong>
                           </p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                            <Calendar className="h-4 w-4" />
-                            Tạo ngày: {new Date(currentBusiness.createdAt).toLocaleDateString('vi-VN')}
+                          <p className="small-info">
+                            <Calendar className="icon-xs" />
+                            Tạo ngày:{" "}
+                            {new Date(
+                              currentBusiness.createdAt
+                            ).toLocaleDateString("vi-VN")}
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-start md:items-end gap-3">
-                        <Badge className="text-sm px-4 py-1.5 bg-gradient-to-r from-orange-100 to-orange-200 text-orange-700 border-orange-300 shadow-sm">
-                          <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse mr-2" />
-                          {userDetail?.roleName === "Member" ? "Thành Viên" :
-                            userDetail?.roleName === "ProjectManager" ? "Quản Lý Dự Án" :
-                              userDetail?.roleName === "BusinessOwner" ? "Chủ Doanh Nghiệp" :
-                                userDetail?.roleName}
+                      <div className="info-actions">
+                        <Badge className="badge badge-role">
+                          <div className="status-dot mr-1" />
+                          {userDetail?.roleName === "Member"
+                            ? "Thành Viên"
+                            : userDetail?.roleName === "ProjectManager"
+                            ? "Quản Lý Dự Án"
+                            : userDetail?.roleName === "BusinessOwner"
+                            ? "Chủ Doanh Nghiệp"
+                            : userDetail?.roleName}
                         </Badge>
                         {userDetail?.roleName !== "BusinessOwner" && (
                           <Button
                             variant="outline"
                             size="sm"
-                            className="border-2 border-orange-500 text-orange-600 hover:bg-orange-50 hover:border-orange-600 transition-all"
+                            className="btn-outline btn-sm"
                             onClick={() => setShowLeaveModal(true)}
                           >
-                            <X className="h-4 w-4 mr-2" />
+                            <X className="icon-xs mr-1" />
                             Rời Doanh Nghiệp
                           </Button>
                         )}
@@ -416,43 +456,43 @@ export default function BusinessDashboard() {
                 </Card>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card className="border-2 hover:shadow-xl transition-all duration-300 group overflow-hidden relative">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-blue-600" />
-                    <CardHeader className="pb-3">
-                      <CardDescription className="flex items-center gap-2 font-semibold">
-                        <div className="p-2 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
-                          <Users className="h-5 w-5 text-blue-600" />
+                <div className="grid-responsive">
+                  <Card className="card card--hover-shadow">
+                    <div className="card-top-bar card-top-bar--blue" />
+                    <CardHeader className="card-header--pb">
+                      <CardDescription className="card-description">
+                        <div className="icon-wrap icon-wrap--blue">
+                          <Users className="icon-sm icon-blue" />
                         </div>
                         Tổng Thành Viên
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
+                      <div className="stat-number">
                         {currentBusiness.memberCount}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-2 flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3 text-green-500" />
-                        Đang hoạt động
+                      <p className="small-info muted-foreground">
+                        <TrendingUp className="icon-xs icon-green" /> Đang hoạt
+                        động
                       </p>
                     </CardContent>
                   </Card>
 
-                  <Card className="border-2 hover:shadow-xl transition-all duration-300 group overflow-hidden relative">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-600" />
-                    <CardHeader className="pb-3">
-                      <CardDescription className="flex items-center gap-2 font-semibold">
-                        <div className="p-2 rounded-lg bg-orange-100 group-hover:bg-orange-200 transition-colors">
-                          <FolderKanban className="h-5 w-5 text-orange-600" />
+                  <Card className="card card--hover-shadow">
+                    <div className="card-top-bar card-top-bar--orange" />
+                    <CardHeader className="card-header--pb">
+                      <CardDescription className="card-description">
+                        <div className="icon-wrap icon-wrap--orange">
+                          <FolderKanban className="icon-sm icon-orange" />
                         </div>
                         Dự Án
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">
+                      <div className="stat-number">
                         {currentBusiness.projectCount}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-2">
+                      <p className="small-info muted-foreground">
                         Đang triển khai
                       </p>
                     </CardContent>
@@ -462,42 +502,43 @@ export default function BusinessDashboard() {
             ) : (
               // User doesn't have organization -> Show search
               <>
-                <Card className="border-2">
+                <Card className="card">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Search className="h-5 w-5 text-orange-500" />
-                      Tìm Kiếm Doanh Nghiệp
+                    <CardTitle className="section-title">
+                      <Search className="icon-sm icon-orange" /> Tìm Kiếm Doanh
+                      Nghiệp
                     </CardTitle>
                     <CardDescription className="text-base">
-                      Bạn chưa tham gia doanh nghiệp nào. Tìm kiếm và gửi yêu cầu tham gia.
+                      Bạn chưa tham gia doanh nghiệp nào. Tìm kiếm và gửi yêu
+                      cầu tham gia.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex gap-3">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <div className="search-row">
+                      <div className="search-input-wrap">
+                        <Search className="search-icon" />
                         <Input
                           placeholder="Nhập tên business để tìm kiếm..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                          className="pl-10 h-12 border-2 focus:border-orange-500"
+                          className="input-search"
                           disabled={isSearching}
                         />
                       </div>
                       <Button
                         onClick={handleSearch}
                         disabled={isSearching}
-                        className="h-12 px-8 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/30"
+                        className="btn btn-gradient btn-lg"
                       >
                         {isSearching ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <Loader2 className="spinner icon-sm mr-1" />
                             Đang tìm...
                           </>
                         ) : (
                           <>
-                            <Search className="h-4 w-4 mr-2" />
+                            <Search className="icon-sm mr-1" />
                             Tìm Kiếm
                           </>
                         )}
@@ -507,142 +548,180 @@ export default function BusinessDashboard() {
                 </Card>
 
                 {/* All Businesses Display hoặc Search Results */}
-                <div className="space-y-4">
-                  <h3 className="text-xl font-bold flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-orange-500" />
-                    {(searchQuery ? "Kết Quả Tìm Kiếm" : "Tất Cả Doanh Nghiệp") +
-                      " (" + (searchQuery ? searchResults.length : allBusinesses.length) + ")"}
+                <div className="stack-md">
+                  <h3 className="section-title">
+                    <Building2 className="icon-sm icon-orange" />
+                    {(searchQuery
+                      ? "Kết Quả Tìm Kiếm"
+                      : "Tất Cả Doanh Nghiệp") +
+                      " (" +
+                      (searchQuery
+                        ? searchResults.length
+                        : allBusinesses.length) +
+                      ")"}
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(searchQuery ? searchResults : allBusinesses).map((business, index) => (
-                      <Card key={business.id} className="border-2 hover:shadow-xl transition-all group">
-                        <CardContent className="pt-6">
-                          <div className="flex gap-4 items-start">
-                            <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform">
-                              <Building2 className="h-8 w-8 text-white" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-lg mb-1 group-hover:text-orange-600 transition-colors truncate">
-                                {business.businessName}
-                              </h4>
-                              <p className="text-sm text-muted-foreground mb-2">
-                                Chủ doanh nghiệp: {business.businessOwnerName}
-                              </p>
-                              <div className="flex gap-4 text-sm text-muted-foreground mb-3">
-                                <span className="flex items-center gap-1">
-                                  <Users className="h-4 w-4" />
-                                  {business.memberCount} thành viên
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <FolderKanban className="h-4 w-4" />
-                                  {business.projectCount} dự án
-                                </span>
+                  <div className="grid-responsive">
+                    {(searchQuery ? searchResults : allBusinesses).map(
+                      (business, index) => (
+                        <Card
+                          key={business.id}
+                          className="card card--hover-shadow"
+                        >
+                          <CardContent className="card-content--pt6">
+                            <div className="list-row">
+                              <div className="avatar-gradient-sm">
+                                <Building2 className="icon-md icon-white" />
                               </div>
-                              <Button
-                                onClick={() => handleJoinBusiness(business.id)}
-                                size="sm"
-                                className={
-                                  `w-full shadow-lg shadow-orange-500/30 ` +
-                                  (isPendingRequestOrInvite(business)
-                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed opacity-80"
-                                    : "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700")
-                                }
-                                disabled={isPendingRequestOrInvite(business)}
-                              >
-                                <Send className="h-4 w-4 mr-2" />
-                                {isPendingRequestOrInvite(business)
-                                  ? "Không thể gửi yêu cầu"
-                                  : "Gửi Yêu Cầu Tham Gia"}
-                              </Button>
+                              <div className="list-body">
+                                <h4 className="card-item-title">
+                                  {business.businessName}
+                                </h4>
+                                <p className="muted-foreground">
+                                  Chủ doanh nghiệp: {business.businessOwnerName}
+                                </p>
+                                <div className="list-stats muted-foreground">
+                                  <span className="stat-item">
+                                    <Users className="icon-sm" />
+                                    {business.memberCount} thành viên
+                                  </span>
+                                  <span className="stat-item">
+                                    <FolderKanban className="icon-sm" />
+                                    {business.projectCount} dự án
+                                  </span>
+                                </div>
+                                <Button
+                                  onClick={() =>
+                                    handleJoinBusiness(business.id)
+                                  }
+                                  size="sm"
+                                  className={
+                                    `btn btn-full btn-elevated ` +
+                                    (isPendingRequestOrInvite(business)
+                                      ? "btn-disabled"
+                                      : "btn-gradient")
+                                  }
+                                  disabled={isPendingRequestOrInvite(business)}
+                                >
+                                  <Send className="icon-sm mr-1" />
+                                  {isPendingRequestOrInvite(business)
+                                    ? "Không thể gửi yêu cầu"
+                                    : "Gửi Yêu Cầu Tham Gia"}
+                                </Button>
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      )
+                    )}
                   </div>
                 </div>
               </>
             )}
           </TabsContent>
 
-          <TabsContent value="invitations" className="space-y-4 mt-6">
+          <TabsContent value="invitations" className="stack-md mt-lg">
             {isLoadingInvitations ? (
-              <div className="text-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-4" />
-                <p className="text-muted-foreground">Đang tải lời mời...</p>
+              <div className="text-center padded-xxl">
+                <Loader2 className="loader-medium spinner centered mb-4" />
+                <p className="muted-foreground">Đang tải lời mời...</p>
               </div>
             ) : invitations.length === 0 ? (
-              <Card className="border-2 border-dashed">
-                <CardContent className="pt-12 pb-12 text-center">
-                  <Mail className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <p className="text-lg text-muted-foreground">Bạn chưa có lời mời nào</p>
+              <Card className="card card--dashed">
+                <CardContent className="padded-xxl text-center">
+                  <Mail className="icon-xl muted-foreground centered mb-4 opacity-50" />
+                  <p className="text-lg muted-foreground">
+                    Bạn chưa có lời mời nào
+                  </p>
                 </CardContent>
               </Card>
             ) : (
               invitations.map((invitation) => (
-                <Card key={invitation.id} className="border-2 hover:shadow-lg transition-all">
-                  <CardContent className="py-5 flex flex-col md:flex-row items-center gap-4">
+                <Card key={invitation.id} className="card card--hover-shadow">
+                  <CardContent className="invite-row">
                     {/* Tổ chức + Avatar chủ doanh nghiệp */}
-                    <div className="flex gap-4 items-center w-full md:w-1/3">
-                      <div className="h-14 w-14 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center flex-shrink-0">
+                    <div className="invite-left">
+                      <div className="invite-avatar">
                         {invitation.businessOwnerAvatar ? (
-                          <img src={invitation.businessOwnerAvatar} alt="avatar" className="w-12 h-12 object-cover rounded-full" />
+                          <img
+                            src={invitation.businessOwnerAvatar}
+                            alt="avatar"
+                            className="avatar-img"
+                          />
                         ) : (
-                          <Mail className="h-7 w-7 text-white" />
+                          <Mail className="icon-md icon-white" />
                         )}
                       </div>
                       <div>
-                        <h4 className="font-bold text-lg">{invitation.organizationName}</h4>
-                        <div className="text-xs text-gray-500 flex whitespace-nowrap">
-                          Mời bởi chủ DN: <span className="font-semibold ml-1">{invitation.businessOwnerName}</span>
+                        <h4 className="font-bold text-lg">
+                          {invitation.organizationName}
+                        </h4>
+                        <div className="meta-row">
+                          Mời bởi chủ DN:{" "}
+                          <span className="font-semibold ml-1">
+                            {invitation.businessOwnerName}
+                          </span>
                         </div>
-                        <div className="text-xs text-gray-400 whitespace-nowrap">
+                        <div className="meta-row muted-foreground">
                           {invitation.businessOwnerEmail}
                         </div>
                       </div>
                     </div>
                     {/* Thông tin chi tiết và trạng thái */}
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <div className="flex items-center text-sm mb-0.5">
-                        <span className="text-muted-foreground mr-3">Gửi tới: </span>
-                        <span className="font-semibold">{invitation.memberEmail}</span>
+                    <div className="invite-body">
+                      <div className="meta-row small-info">
+                        <span className="muted-foreground mr-3">Gửi tới: </span>
+                        <span className="font-semibold">
+                          {invitation.memberEmail}
+                        </span>
                       </div>
-                      <div className="flex gap-2 text-xs text-gray-500">
-                        <span>Ngày mời: {new Date(invitation.createdAt).toLocaleDateString("vi-VN")}</span>
-                        {invitation.statusDisplay === "Accepted" && invitation.respondedAt && (
-                          <span>- Đã duyệt ngày: {new Date(invitation.respondedAt).toLocaleDateString("vi-VN")}</span>
-                        )}
+                      <div className="meta-row muted-foreground small-info">
+                        <span>
+                          Ngày mời:{" "}
+                          {new Date(invitation.createdAt).toLocaleDateString(
+                            "vi-VN"
+                          )}
+                        </span>
+                        {invitation.statusDisplay === "Accepted" &&
+                          invitation.respondedAt && (
+                            <span>
+                              - Đã duyệt ngày:{" "}
+                              {new Date(
+                                invitation.respondedAt
+                              ).toLocaleDateString("vi-VN")}
+                            </span>
+                          )}
                       </div>
                     </div>
                     {/* Phản hồi */}
-                    <div className="flex flex-col-reverse md:flex-col items-center gap-2 md:gap-0 min-w-[120px]">
+                    <div className="response-col">
                       <Badge
                         className={
                           invitation.statusDisplay === "Pending"
-                            ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+                            ? "badge badge-pending"
                             : invitation.statusDisplay === "Accepted"
-                              ? "bg-green-100 text-green-700 border-green-300"
-                              : "bg-red-100 text-red-600 border-red-300"
+                            ? "badge badge-accepted"
+                            : "badge badge-rejected"
                         }
                       >
                         {invitation.statusDisplay === "Pending"
                           ? "Đang chờ phản hồi"
                           : invitation.statusDisplay === "Accepted"
-                            ? "Đã chấp nhận"
-                            : invitation.statusDisplay === "Rejected"
-                              ? "Đã từ chối"
-                              : "Đã được hủy tự động"}
+                          ? "Đã chấp nhận"
+                          : invitation.statusDisplay === "Rejected"
+                          ? "Đã từ chối"
+                          : "Đã được hủy tự động"}
                       </Badge>
                       {/* Chỉ show button khi đang chờ, có thể tuỳ chỉnh logic */}
                       {invitation.statusDisplay === "Pending" && (
-                        <div className="flex gap-2 mt-1">
+                        <div className="action-row">
                           <Button
-                            onClick={() => handleAcceptInvitation(invitation.id)}
-                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() =>
+                              handleAcceptInvitation(invitation.id)
+                            }
+                            className="btn btn-accept btn-sm"
                             size="sm"
                           >
-                            <Check className="h-4 w-4 mr-2" />
-                            Chấp Nhận
+                            <Check className="icon-sm mr-1" /> Chấp Nhận
                           </Button>
                           <Button
                             variant="outline"
@@ -651,10 +730,9 @@ export default function BusinessDashboard() {
                               setShowRejectModal(true);
                             }}
                             size="sm"
-                            className="border-2 border-red-500 text-red-600 hover:bg-red-50"
+                            className="btn btn-outline-danger btn-sm"
                           >
-                            <X className="h-4 w-4 mr-2" />
-                            Từ Chối
+                            <X className="icon-sm mr-1" /> Từ Chối
                           </Button>
                         </div>
                       )}
@@ -665,36 +743,53 @@ export default function BusinessDashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="send-join-request" className="space-y-4 mt-6">
+          <TabsContent value="send-join-request" className="stack-md mt-lg">
             {/* Filter Section */}
-            <div className="flex items-center justify-between">
+            <div className="filter-row">
               <h3 className="text-lg font-semibold">Yêu cầu đã gửi</h3>
-              <div className="flex items-center gap-2">
+              <div className="filter-controls">
                 <span className="text-sm text-muted-foreground">Lọc theo:</span>
-                <Select value={requestStatusFilter} onValueChange={setRequestStatusFilter}>
-                  <SelectTrigger className={`w-[160px] ${statusOptions.find(o => o.value === requestStatusFilter)?.color || ""}`}>
+                <Select
+                  value={requestStatusFilter}
+                  onValueChange={setRequestStatusFilter}
+                >
+                  <SelectTrigger
+                    className={`select-trigger ${
+                      statusOptions.find((o) => o.value === requestStatusFilter)
+                        ?.colorClass || ""
+                    }`}
+                  >
                     <SelectValue
                       placeholder="Chọn trạng thái"
-                      className="flex items-center gap-1"
+                      className="select-value"
                     >
-                      {statusOptions.find(o => o.value === requestStatusFilter)?.icon}
-                      {statusOptions.find(o => o.value === requestStatusFilter)?.label}
+                      {
+                        statusOptions.find(
+                          (o) => o.value === requestStatusFilter
+                        )?.icon
+                      }
+                      {
+                        statusOptions.find(
+                          (o) => o.value === requestStatusFilter
+                        )?.label
+                      }
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {statusOptions.map(option => (
+                    {statusOptions.map((option) => (
                       <SelectItem
                         key={option.value}
                         value={option.value}
-                        className={`flex items-center gap-1 px-2 py-2 my-3 rounded-md cursor-pointer 
-                          ${option.color}
-                          ${requestStatusFilter === option.value ? "ring-2 ring-orange-500 font-bold shadow" : ""}`
-                        }
+                        className={`select-item ${option.colorClass} ${
+                          requestStatusFilter === option.value
+                            ? "select-item-selected"
+                            : ""
+                        }`}
                       >
                         {option.icon}
                         <span>{option.label}</span>
                         {requestStatusFilter === option.value && (
-                          <CheckCircle className="ml-auto h-4 w-4 text-orange-600" />
+                          <CheckCircle className="check-icon" />
                         )}
                       </SelectItem>
                     ))}
@@ -704,79 +799,102 @@ export default function BusinessDashboard() {
             </div>
 
             {isLoadingRequests ? (
-              <div className="text-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-4" />
-                <p className="text-muted-foreground">Đang tải yêu cầu...</p>
+              <div className="text-center padded-xxl">
+                <Loader2 className="loader-medium spinner centered mb-4" />
+                <p className="muted-foreground">Đang tải yêu cầu...</p>
               </div>
             ) : filteredSentRequests.length === 0 ? (
-              <Card className="border-2 border-dashed">
-                <CardContent className="pt-12 pb-12 text-center">
-                  <Send className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <p className="text-lg text-muted-foreground">
+              <Card className="card card--dashed">
+                <CardContent className="padded-xxl text-center">
+                  <Send className="icon-xl muted-foreground centered mb-4 opacity-50" />
+                  <p className="text-lg muted-foreground">
                     {requestStatusFilter === "All"
                       ? "Bạn chưa gửi yêu cầu nào"
-                      : `Không có yêu cầu nào với trạng thái "${statusOptions.find(o => o.value === requestStatusFilter)?.label || requestStatusFilter}"`}
+                      : `Không có yêu cầu nào với trạng thái "${
+                          statusOptions.find(
+                            (o) => o.value === requestStatusFilter
+                          )?.label || requestStatusFilter
+                        }"`}
                   </p>
                 </CardContent>
               </Card>
             ) : (
               filteredSentRequests.map((request) => (
-                <Card key={request.id} className="border-2 hover:shadow transition-all">
-                  <CardContent className="py-5 flex flex-col md:flex-row items-center gap-4">
+                <Card key={request.id} className="card card--hover-shadow">
+                  <CardContent className="card-content list-row-compact">
                     {/* Avatar, tên tổ chức */}
-                    <div className="flex gap-4 items-center w-full md:w-1/3">
-                      <div className="h-14 w-14 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0">
+                    <div className="list-left">
+                      <div className="avatar-gradient-lg">
                         {request.businessOwnerAvatar ? (
-                          <img src={request.businessOwnerAvatar} alt="avatar" className="w-12 h-12 object-cover rounded-full" />
+                          <img
+                            src={request.businessOwnerAvatar}
+                            alt="avatar"
+                            className="avatar-img"
+                          />
                         ) : (
-                          <Send className="h-7 w-7 text-white" />
+                          <Send className="icon-md icon-white" />
                         )}
                       </div>
                       <div>
-                        <h4 className="font-bold text-lg">{request.organizationName}</h4>
-                        <div className="text-xs text-gray-500 flex whitespace-nowrap">
-                          Chủ DN: <span className="font-semibold ml-1">{request.businessOwnerName}</span>
+                        <h4 className="font-bold text-lg">
+                          {request.organizationName}
+                        </h4>
+                        <div className="meta-row">
+                          Chủ DN:{" "}
+                          <span className="font-semibold ml-1">
+                            {request.businessOwnerName}
+                          </span>
                         </div>
-                        <div className="text-xs text-gray-400 whitespace-nowrap">
+                        <div className="meta-row muted-foreground">
                           {request.businessOwnerEmail}
                         </div>
                       </div>
                     </div>
                     {/* trạng thái */}
-                    <div className="flex-1 flex flex-col min-w-0">
-                      <div className="text-xs text-gray-500">
-                        Gửi ngày: {new Date(request.createdAt).toLocaleDateString("vi-VN")}
+                    <div className="list-body-compact">
+                      <div className="meta-row muted-foreground">
+                        Gửi ngày:{" "}
+                        {new Date(request.createdAt).toLocaleDateString(
+                          "vi-VN"
+                        )}
                       </div>
                       {request.statusDisplay === "Accepted" && (
-                        <div className="text-xs text-green-600">Đã được duyệt: {request.respondedAt ? new Date(request.respondedAt).toLocaleDateString("vi-VN") : null}</div>
+                        <div className="text-xs text-success">
+                          Đã được duyệt:{" "}
+                          {request.respondedAt
+                            ? new Date(request.respondedAt).toLocaleDateString(
+                                "vi-VN"
+                              )
+                            : null}
+                        </div>
                       )}
                       {request.statusDisplay === "Rejected" && (
-                        <div className="text-xs text-red-600">Bị từ chối</div>
+                        <div className="text-xs text-error">Bị từ chối</div>
                       )}
                       {request.statusDisplay === "Canceled" && (
-                        <div className="text-xs text-gray-400">Đã hủy</div>
+                        <div className="text-xs text-muted">Đã hủy</div>
                       )}
                     </div>
                     <Badge
                       className={
                         request.statusDisplay === "Pending"
-                          ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+                          ? "badge badge-pending"
                           : request.statusDisplay === "Accepted"
-                            ? "bg-green-100 text-green-700 border-green-300"
-                            : request.statusDisplay === "Rejected"
-                              ? "bg-red-100 text-red-600 border-red-300"
-                              : "bg-gray-100 text-red-600 border-red-300"
+                          ? "badge badge-accepted"
+                          : request.statusDisplay === "Rejected"
+                          ? "badge badge-rejected"
+                          : "badge badge-canceled"
                       }
                     >
                       {request.statusDisplay === "Pending"
                         ? "Đang chờ duyệt"
                         : request.statusDisplay === "Accepted"
-                          ? "Đã chấp nhận"
-                          : request.statusDisplay === "Rejected"
-                            ? "Đã từ chối"
-                            : request.statusDisplay === "Canceled"
-                              ? "Đã được hủy tự động"
-                              : request.statusDisplay}
+                        ? "Đã chấp nhận"
+                        : request.statusDisplay === "Rejected"
+                        ? "Đã từ chối"
+                        : request.statusDisplay === "Canceled"
+                        ? "Đã được hủy tự động"
+                        : request.statusDisplay}
                     </Badge>
                   </CardContent>
                 </Card>
