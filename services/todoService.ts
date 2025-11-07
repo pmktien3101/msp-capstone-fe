@@ -17,7 +17,7 @@ export const todoService = {
     data: CreateTodoRequest
   ): Promise<{ success: boolean; data?: Todo; error?: string }> {
     try {
-      console.log('Creating todo with data:', data);
+      // console.log('Creating todo with data:', data);
       const response = await api.post<ApiResponse<Todo>>(
         "/todos",
         data
@@ -176,7 +176,8 @@ export const todoService = {
           title: todo.title,
           description: todo.description,
           startDate: todo.startDate,
-          endDate: todo.endDate
+          endDate: todo.endDate,
+          referenceTaskIds: todo.referenceTaskIds || [],
         })
       );
 

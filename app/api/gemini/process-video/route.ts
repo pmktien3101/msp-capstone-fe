@@ -61,7 +61,7 @@ const callGeminiWithRetry = async (
  * Convert video URL thành base64 string
  */
 const videoUrlToBase64 = async (videoUrl: string): Promise<string> => {
-    console.log('📥 Đang tải video từ URL');
+    // console.log('📥 Đang tải video từ URL');
 
     try {
         const response = await fetch(videoUrl, {
@@ -93,7 +93,7 @@ const videoUrlToBase64 = async (videoUrl: string): Promise<string> => {
             )
         );
 
-        console.log('✅ Video đã được convert sang base64');
+        // console.log('✅ Video đã được convert sang base64');
         return base64;
     } catch (error: any) {
         console.error('❌ Lỗi videoUrlToBase64:', error.message);
@@ -198,16 +198,16 @@ function updateSpeakerIds(originalTrans: any[], improvedTrans: any[]) {
 
 // ===== API ROUTE HANDLER =====
 export async function POST(request: NextRequest) {
-    console.log('🚀 API Route: process-video bắt đầu');
+    // console.log('🚀 API Route: process-video bắt đầu');
 
     try {
         const { videoUrl, transcriptSegments, tasks } = await request.json();
 
-        console.log('📋 Request:', {
-            hasVideoUrl: !!videoUrl,
-            transcriptCount: transcriptSegments?.length,
-            taskCount: tasks?.length || 0,
-        });
+        // console.log('📋 Request:', {
+        //     hasVideoUrl: !!videoUrl,
+        //     transcriptCount: transcriptSegments?.length,
+        //     taskCount: tasks?.length || 0,
+        // });
 
         // Validate input
         if (!videoUrl || !transcriptSegments) {
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.log('✅ GEMINI_API_KEY tồn tại');
+        // console.log('✅ GEMINI_API_KEY tồn tại');
 
         // Khởi tạo AI client
         const ai = new GoogleGenAI({
@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
         const base64 = await videoUrlToBase64(videoUrl);
 
         const transcriptText = transcriptArrayToText(transcriptSegments);
-        console.log('📝 Transcript đã chuẩn bị, độ dài:', transcriptText.length);
+        // console.log('📝 Transcript đã chuẩn bị, độ dài:', transcriptText.length);
 
         // ===== BƯỚC 2: Cải thiện Transcript với RETRY =====
         console.log('🤖 Bước 2: Đang cải thiện transcript với Gemini 2.5 Pro (có video)...');
@@ -287,8 +287,12 @@ export async function POST(request: NextRequest) {
             );
 
             improvedText = improvedResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+            // console.log('✅ Đã nhận được improved transcript, độ dài:', improvedText.length);
+            // console.log('📄 Improved Transcript Preview:', improvedText);
             improvedTranscript = parseImprovedTranscript(improvedText, transcriptSegments);
-            improvedTranscript = updateSpeakerIds(transcriptSegments, improvedTranscript);
+            // improvedTranscript = updateSpeakerIds(transcriptSegments, improvedTranscript);
+            // console.log('✅ Đã parse improved transcript thành array: ', improvedTranscript.length, 'segments');
+            // console.log('📄 Improved Transcript Array Preview:', improvedTranscript.slice(0, 3));
             improvedText = transcriptArrayToText(improvedTranscript);
 
         } catch (error: any) {
@@ -301,7 +305,7 @@ export async function POST(request: NextRequest) {
             }));
         }
 
-        console.log('✅ Đã parse improved transcript:', improvedTranscript.length, 'segments');
+        // console.log('✅ Đã parse improved transcript:', improvedTranscript.length, 'segments');
 
         // ===== BƯỚC 3: Tạo Summary + Todo List với RETRY (parallel) =====
         console.log('🤖 Bước 3: Đang tạo summary và todo list với Gemini 2.0 Flash (parallel, chỉ text)...');
@@ -354,14 +358,12 @@ export async function POST(request: NextRequest) {
                                     Yêu cầu:
                                     - Xác định tất cả các nhiệm vụ/công việc cần làm được đề cập
                                     - Gán người chịu trách nhiệm cho từng task (dựa vào Speaker ID trong transcript)
-                                    - Ước lượng deadline nếu được nhắc đến (format: DD-MM-YYYY)
-                                    - Nếu không có deadline rõ ràng, để null
-                                    - startDate mặc định null nếu không được nhắc
-                                    - endDate mặc định null nếu không được nhắc
-                                    - assigneeId lấy từ Speaker ID trong transcript, mặc định là null nếu không rõ
+                                    - Ước lượng thời gian bắt đầu và kết thúc nếu được nhắc đến (format: DD-MM-YYYY)
+                                    - Nếu không có thời gian rõ ràng, để null
                                     - Mỗi task nên ngắn gọn, rõ ràng
-                                    - Khi sinh todo mới, kiểm tra nó có liên quan/tiếp nối task cũ nào không. Nếu có, ghi rõ "[Việc cũ liên quan: <task title> - Ngày: <task startDate DD/MM/YYYY>]" vào trường description của todo.
-                                    - Nếu còn bổ sung, hoàn thành, chia nhỏ từ task cũ thì ghi rõ.
+                                    - Xác định các task cũ liên quan (nếu có) và ghi ID vào mảng referenceTaskIds
+                                    - Khi sinh todo mới, kiểm tra nó có liên quan/tiếp nối task cũ nào không
+                                    - Nếu có liên quan, thêm task ID vào referenceTaskIds
                                     - Nếu không liên quan task nào, chỉ ghi mô tả todo như bình thường.
 
                                     **BẮT BUỘC: Trả về ONLY JSON array, KHÔNG có markdown, KHÔNG có text thừa.**
@@ -371,10 +373,11 @@ export async function POST(request: NextRequest) {
                                       {
                                         "id": "todo-1",
                                         "title": "Tên task ngắn gọn",
-                                        "description": "Mô tả. Nếu liên quan task cũ thì ghi rõ ở đầu description.",
+                                        "description": "Mô tả chi tiết task. Nếu liên quan task cũ thì ghi rõ trong description này.",
                                         "assigneeId": "1",
                                         "startDate": "13-10-2025",
-                                        "endDate": "20-10-2025"
+                                        "endDate": "20-10-2025",
+                                        "referenceTaskIds": ["task-123", "task-456"]
                                       }
                                     ]
 
@@ -383,6 +386,7 @@ export async function POST(request: NextRequest) {
                                     - assigneeId: lấy từ Speaker ID trong transcript (ví dụ: "1", "4", "male-voice")
                                     - Nếu không rõ ai làm, để null
                                     - startDate/endDate: format DD-MM-YYYY hoặc null
+                                    - referenceTaskIds: array các task ID liên quan, có thể rỗng []
                                     - Chỉ trả về JSON array, không có text giải thích
 
                                     Transcript:
@@ -411,7 +415,8 @@ export async function POST(request: NextRequest) {
                 }
 
                 todoList = JSON.parse(cleanedTodo.trim());
-                console.log('✅ Todo list parsed thành công:', todoList.length, 'items');
+                // console.log('✅ Todo list parsed thành công:', todoList.length, 'items');
+                // console.log('📄 Todo List Preview:', todoList);
             } catch (parseError) {
                 console.error('❌ Không thể parse todo JSON:', parseError);
                 todoList = [];

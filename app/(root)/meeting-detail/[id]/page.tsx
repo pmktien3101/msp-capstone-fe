@@ -32,13 +32,13 @@ import { toast } from "react-toastify";
 import { meetingService } from "@/services/meetingService";
 import { todoService } from "@/services/todoService";
 import TranscriptPanel from "@/components/meeting/TranscriptPanel";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { Todo } from "@/types/todo";
 import { uploadFileToCloudinary } from "@/services/uploadFileService";
 import { taskService } from "@/services/taskService";
 import { PagingRequest } from "@/types/project";
-import { GetTaskResponse } from "@/types/task";
+import TodoCard from "@/components/meeting/TodoCard";
+import { RelatedTasksSidebar } from "@/components/meeting/RelatedTasksSidebar";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -98,6 +98,10 @@ export default function MeetingDetailPage() {
     useState<boolean>(false);
 
   const [projectTasks, setProjectTasks] = useState<any[]>([]);
+
+  // Sidebar related state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentReferenceIds, setCurrentReferenceIds] = useState<string[]>([]);
 
   const fetchProjectTasks = async (
     projectId: string,
@@ -793,379 +797,115 @@ export default function MeetingDetailPage() {
     }
   };
 
+  // Đây là hàm callback truyền cho TodoCard
+  const handleShowRelatedTasks = (referenceTaskIds: string[]) => {
+    setCurrentReferenceIds(referenceTaskIds);
+    setSidebarOpen(true);
+  };
+
   // Memoize todo list rendering to prevent unnecessary re-renders
-  const memoizedTodoList = useMemo(() => {
-    return todoList.map((todo, index) => {
-      // Auto-assign assignee evenly
-      const currentAssignee = getTodoAssigneeId(todo);
-
-      return (
-        <div
-          className={`task-item ai-task ${selectedTasks.includes(todo.id) ? "selected" : ""
-            } ${editMode[todo.id] ? "edit-mode" : ""}`}
-          key={`todo-${todo.id}-${index}`}
-          data-task-id={todo.id}
-          onClick={(e) => {
-            // Don't select if in edit mode
-            if (editMode[todo.id]) return;
-
-            // Don't select if clicking on action buttons or checkbox
-            const target = e.target as HTMLElement;
-            if (
-              target.closest(".task-actions") ||
-              target.closest(".task-checkbox")
-            )
-              return;
-
-            // Select/deselect the task
-            handleSelectTask(todo.id);
+  const memoizedTodoList = useMemo(
+    () =>
+      todoList.map((todo, index) => (
+        <TodoCard
+          key={todo.id}
+          todo={todo}
+          index={index}
+          selectedTasks={selectedTasks}
+          editMode={editMode[todo.id] || false}
+          attendees={meetingInfo?.attendees || []}
+          onShowRelatedTasks={handleShowRelatedTasks}
+          onSelectTask={handleSelectTask}
+          onEditStart={(todoId, originalTodo) => {
+            setEditMode((prev) => ({ ...prev, [todoId]: true }));
+            setOriginalTodoCache((prev) => ({
+              ...prev,
+              [todoId]: originalTodo as Todo,
+            }));
           }}
-          style={{ cursor: editMode[todo.id] ? "default" : "pointer" }}
-        >
-          <div className="task-checkbox">
-            <Checkbox
-              checked={selectedTasks.includes(todo.id)}
-              disabled={!isValidTodo(todo)}
-              onCheckedChange={() => handleSelectTask(todo.id)}
-              className="task-select-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
-            />
-          </div>
-          <div className="task-number">{index + 1}</div>
+          onEditSave={async (todo) => {
+            try {
+              const newAssigneeId = todo.assigneeId || todo.assignee?.id;
+              const updateResult = await todoService.updateTodo(todo.id, {
+                title: todo.title,
+                description: todo.description,
+                startDate: todo.startDate,
+                endDate: todo.endDate,
+                assigneeId: newAssigneeId,
+              });
 
-          <div className="task-content">
-            {/* Status Badge */}
-            <div className="task-status-badge">
-              <span
-                className="status-badge"
-                style={getTodoStatusStyle(todo.status)}
-              >
-                {getTodoStatusLabel(todo.statusDisplay)}
-              </span>
-            </div>
-
-            <div className="task-title">
-              <label
-                className="detail-label"
-                style={{ cursor: editMode[todo.id] ? "default" : "pointer" }}
-              >
-                Tên công việc
-              </label>
-              {editMode[todo.id] ? (
-                <input
-                  type="text"
-                  value={todo.title || ""}
-                  onChange={(e) => {
-                    const newTitle = e.target.value;
-                    setTodoList((prev) =>
-                      prev.map((t) =>
-                        t.id === todo.id ? { ...t, title: newTitle } : t
-                      )
-                    );
-                  }}
-                  className="task-title-input"
-                  placeholder="Nhập tên công việc..."
-                  autoFocus
-                />
-              ) : (
-                <div className="task-title-display">
-                  {todo.title || "Nhập tên công việc..."}
-                </div>
-              )}
-            </div>
-
-            <div className="task-description">
-              <label
-                className="detail-label"
-                style={{ cursor: editMode[todo.id] ? "default" : "pointer" }}
-              >
-                Mô tả công việc
-              </label>
-              {editMode[todo.id] ? (
-                <textarea
-                  value={todo.description || ""}
-                  onChange={(e) => {
-                    const newDescription = e.target.value;
-                    setTodoList((prev) =>
-                      prev.map((t) =>
-                        t.id === todo.id
-                          ? { ...t, description: newDescription }
-                          : t
-                      )
-                    );
-                  }}
-                  className="task-description-input"
-                  placeholder="Mô tả chi tiết công việc..."
-                  rows={2}
-                />
-              ) : (
-                <div className="task-description-display">
-                  {todo.description || "Mô tả chi tiết công việc..."}
-                </div>
-              )}
-            </div>
-
-            <div className="task-details">
-              <div className="detail-item">
-                <label className="detail-label">Ngày bắt đầu</label>
-                <div className="detail-value">
-                  <Calendar size={14} />
-                  {editMode[todo.id] ? (
-                    <DatePicker
-                      selected={
-                        todo.startDate ? new Date(todo.startDate) : null
+              if (updateResult.success) {
+                const newAssignee = meetingInfo?.attendees?.find(
+                  (att: any) => att.id === newAssigneeId
+                );
+                const updatedTodo = {
+                  ...todo,
+                  assigneeId: newAssigneeId,
+                  assignee: newAssignee
+                    ? {
+                        id: newAssignee.id,
+                        fullName: newAssignee.fullName,
+                        email: newAssignee.email,
                       }
-                      onChange={(date) => {
-                        setTodoList((prev) =>
-                          prev.map((t) =>
-                            t.id === todo.id
-                              ? { ...t, startDate: date?.toISOString() || null }
-                              : t
-                          )
-                        );
-                      }}
-                      dateFormat="dd/MM/yyyy"
-                      placeholderText="dd/mm/yyyy"
-                      className="date-input"
-                    />
-                  ) : (
-                    <span>{formatDate(todo.startDate) || "--/--/----"}</span>
-                  )}
-                </div>
-              </div>
+                    : null,
+                  status: updateResult?.data?.status,
+                  statusDisplay: updateResult?.data?.statusDisplay,
+                };
 
-              <div className="detail-item">
-                <label className="detail-label">Ngày kết thúc</label>
-                <div className="detail-value">
-                  <Calendar size={14} />
-                  {editMode[todo.id] ? (
-                    <DatePicker
-                      selected={todo.endDate ? new Date(todo.endDate) : null}
-                      onChange={(date) => {
-                        setTodoList((prev) =>
-                          prev.map((t) =>
-                            t.id === todo.id
-                              ? { ...t, endDate: date?.toISOString() || null }
-                              : t
-                          )
-                        );
-                      }}
-                      dateFormat="dd/MM/yyyy"
-                      placeholderText="dd/mm/yyyy"
-                      className="date-input"
-                    />
-                  ) : (
-                    <span>{formatDate(todo.endDate) || "--/--/----"}</span>
-                  )}
-                </div>
-              </div>
+                setTodoList((prev) =>
+                  prev.map((t) => (t.id === todo.id ? updatedTodo : t))
+                );
+                setTodosFromDB((prev) =>
+                  prev.map((t) => (t.id === todo.id ? updatedTodo : t))
+                );
 
-              <div className="detail-item">
-                <label className="detail-label">Người phụ trách</label>
-                <div className="detail-value">
-                  <User size={14} />
-                  {editMode[todo.id] ? (
-                    <select
-                      value={currentAssignee || ""}
-                      onChange={(e) => {
-                        const newAssigneeId =
-                          e.target.value === "" ? null : e.target.value;
+                toast.success("Cập nhật công việc thành công");
 
-                        // Tìm thông tin đầy đủ của assignee mới
-                        const newAssigneeInfo = newAssigneeId
-                          ? meetingInfo?.attendees?.find(
-                            (att: any) => att.id === newAssigneeId
-                          )
-                          : null;
+                setOriginalTodoCache((prev) => {
+                  const copy = { ...prev };
+                  delete copy[todo.id];
+                  return copy;
+                });
 
-                        setTodoList((prev) =>
-                          prev.map((t) => {
-                            if (t.id === todo.id) {
-                              // Đồng bộ cả assigneeId và assignee object
-                              return {
-                                ...t,
-                                assigneeId: newAssigneeId,
-                                assignee: newAssigneeInfo
-                                  ? {
-                                    id: newAssigneeInfo.id,
-                                    fullName: newAssigneeInfo.fullName,
-                                    email: newAssigneeInfo.email,
-                                  }
-                                  : null,
-                              };
-                            }
-                            return t;
-                          })
-                        );
-                      }}
-                      className="assignee-select"
-                    >
-                      <option value="">Chưa được giao</option>
-                      {meetingInfo?.attendees?.map(
-                        (attendee: any, idx: number) => (
-                          <option key={idx} value={attendee.id}>
-                            {attendee.fullName || attendee.email}
-                          </option>
-                        )
-                      )}
-                    </select>
-                  ) : (
-                    <span>{getTodoAssigneeName(todo)}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="task-actions">
-            {editMode[todo.id] ? (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-
-                    try {
-                      // Lấy assigneeId mới
-                      const newAssigneeId =
-                        todo.assigneeId || todo.assignee?.id;
-
-                      // Gọi API update todo
-                      const updateResult = await todoService.updateTodo(
-                        todo.id,
-                        {
-                          title: todo.title,
-                          description: todo.description,
-                          startDate: todo.startDate,
-                          endDate: todo.endDate,
-                          assigneeId: newAssigneeId,
-                        }
-                      );
-
-                      if (updateResult.success) {
-                        // Tìm thông tin assignee mới từ meetingInfo.attendees
-                        const newAssignee = meetingInfo?.attendees?.find(
-                          (att: any) => att.id === newAssigneeId
-                        );
-
-                        // Tạo updated todo với cả assignee object và assigneeId được đồng bộ
-                        const updatedTodo = {
-                          ...todo,
-                          assigneeId: newAssigneeId,
-                          assignee: newAssignee
-                            ? {
-                              id: newAssignee.id,
-                              fullName: newAssignee.fullName,
-                              email: newAssignee.email,
-                            }
-                            : null,
-                          status: updateResult?.data?.status,
-                          statusDisplay: updateResult?.data?.statusDisplay,
-                        };
-
-                        // Cập nhật local state
-                        setTodoList((prev) =>
-                          prev.map((t) => (t.id === todo.id ? updatedTodo : t))
-                        );
-                        setTodosFromDB((prev) =>
-                          prev.map((t) => (t.id === todo.id ? updatedTodo : t))
-                        );
-
-                        toast.success("Cập nhật công việc thành công");
-
-                        // Xóa cache
-                        setOriginalTodoCache((prev) => {
-                          const copy = { ...prev };
-                          delete copy[todo.id];
-                          return copy;
-                        });
-
-                        setEditMode((prev) => ({ ...prev, [todo.id]: false }));
-                      } else {
-                        toast.error(
-                          "Cập nhật công việc thất bại: " + updateResult.error
-                        );
-                      }
-                    } catch (error) {
-                      // console.error("Error updating todo:", error);
-                      toast.error("Lỗi khi cập nhật công việc");
-                    }
-                  }}
-                  className="save-btn"
-                  title="Lưu"
-                >
-                  <Check size={16} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-
-                    if (originalTodoCache[todo.id]) {
-                      // Trả lại giá trị ban đầu từ cache
-                      setTodoList((prev) =>
-                        prev.map((t) =>
-                          t.id === todo.id ? originalTodoCache[todo.id] : t
-                        )
-                      );
-                      setTodosFromDB((prev) =>
-                        prev.map((t) =>
-                          t.id === todo.id ? originalTodoCache[todo.id] : t
-                        )
-                      );
-                      setOriginalTodoCache((prev) => {
-                        const c = { ...prev };
-                        delete c[todo.id];
-                        return c;
-                      });
-                    }
-
-                    setEditMode((prev) => ({ ...prev, [todo.id]: false }));
-                  }}
-                  className="cancel-btn"
-                  title="Hủy"
-                >
-                  <X size={16} />
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditMode((prev) => ({ ...prev, [todo.id]: true }));
-                    setOriginalTodoCache((prev) => ({
-                      ...prev,
-                      [todo.id]: { ...todo }, // Lưu bản gốc trước khi user sửa
-                    }));
-                  }}
-                  className="edit-btn"
-                  title="Chỉnh sửa"
-                >
-                  <Edit size={16} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenDeleteModal(todo.id);
-                  }}
-                  className="delete-btn"
-                  title="Xóa"
-                >
-                  <Trash2 size={16} />
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      );
-    });
-  }, [todoList, selectedTasks, editMode, meetingInfo?.attendees]);
+                setEditMode((prev) => ({ ...prev, [todo.id]: false }));
+              } else {
+                toast.error("Cập nhật công việc thất bại: " + updateResult.error);
+              }
+            } catch (error) {
+              toast.error("Lỗi khi cập nhật công việc");
+            }
+          }}
+          onEditCancel={(todoId) => {
+            if (originalTodoCache[todoId]) {
+              setTodoList((prev) =>
+                prev.map((t) =>
+                  t.id === todoId ? originalTodoCache[todoId] : t
+                )
+              );
+              setTodosFromDB((prev) =>
+                prev.map((t) =>
+                  t.id === todoId ? originalTodoCache[todoId] : t
+                )
+              );
+              setOriginalTodoCache((prev) => {
+                const c = { ...prev };
+                delete c[todoId];
+                return c;
+              });
+            }
+            setEditMode((prev) => ({ ...prev, [todoId]: false }));
+          }}
+          onDelete={handleOpenDeleteModal}
+          onTodoChange={(todoId, updates) => {
+            setTodoList((prev) =>
+              prev.map((t) => (t.id === todoId ? { ...t, ...updates } : t))
+            );
+          }}
+          isValidTodo={isValidTodo}
+        />
+      )),
+    [todoList, selectedTasks, editMode, meetingInfo?.attendees, originalTodoCache]
+  );
 
   // Xử lý tải xuống recording (tải blob để đảm bảo đặt được tên file)
   const handleDownload = async (rec: CallRecording, fallbackIndex: number) => {
@@ -1801,6 +1541,13 @@ export default function MeetingDetailPage() {
                   )}
 
                   <div className="task-list">{memoizedTodoList}</div>
+                  {currentReferenceIds && currentReferenceIds.length > 0 && (
+                    <RelatedTasksSidebar
+                      open={sidebarOpen}
+                      onClose={() => setSidebarOpen(false)}
+                      referenceTaskIds={currentReferenceIds}
+                    />
+                  )}
 
                   {/* Action buttons for the entire AI task list */}
                   <div className="ai-tasks-actions">
