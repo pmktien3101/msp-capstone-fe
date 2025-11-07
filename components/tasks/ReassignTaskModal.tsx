@@ -61,11 +61,9 @@ export const ReassignTaskModal = ({
       );
 
       console.log("Available users response:", response);
-      if (response.data.success && response.data.data) {
+      if (response.success && response.data) {
         // Handle both array and object with items
-        const users = Array.isArray(response.data.data)
-          ? response.data.data
-          : response.data.data.items || [];
+        const users = Array.isArray(response.data) ? response.data : [];
         setAvailableUsers(users);
       } else {
         setError(response.message || "Không thể tải danh sách người dùng");
@@ -73,7 +71,6 @@ export const ReassignTaskModal = ({
       }
     } catch (error: any) {
       console.error("Error fetching available users:", error);
-      setError("Có lỗi xảy ra khi tải danh sách người dùng");
       setAvailableUsers([]);
     } finally {
       setIsLoading(false);
