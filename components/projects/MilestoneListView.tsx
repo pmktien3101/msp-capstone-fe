@@ -72,6 +72,26 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
   // Check if user is Member (read-only mode)
   const isMemberRole = userRole === UserRole.MEMBER || userRole === 'Member';
 
+  // Filter tasks that belong to this milestone
+  const milestoneTasks = editedTasks.filter(task => {
+    const taskMilestoneIds = getTaskMilestoneIds(task);
+    return taskMilestoneIds.includes(milestone.id.toString());
+  });
+
+  // ✨ MOVED TO TOP LEVEL: Call usePagination hook before any conditional logic
+  const {
+    currentPage,
+    totalPages,
+    totalItems,
+    paginatedData: paginatedTasks,
+    startIndex,
+    endIndex,
+    setCurrentPage,
+  } = usePagination({
+    data: milestoneTasks,
+    itemsPerPage: 5,
+  });
+
   // Format date for input field (yyyy-MM-dd)
   const formatDateForInput = (dateStr: string | undefined) => {
     if (!dateStr) return '';
@@ -118,7 +138,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
   };
 
   // Filter tasks that belong to this milestone
-  const milestoneTasks = editedTasks.filter(task => {
+  const milestoneTasksFiltered = editedTasks.filter(task => {
     const taskMilestoneIds = getTaskMilestoneIds(task);
     return taskMilestoneIds.includes(milestone.id.toString());
   });
@@ -133,7 +153,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
     endIndex,
     setCurrentPage,
   } = usePagination({
-    data: milestoneTasks,
+    data: milestoneTasksFiltered,
     itemsPerPage: 5,
   });
 
@@ -2298,7 +2318,7 @@ export const MilestoneListView = ({ project, refreshKey = 0 }: MilestoneListView
               id: pm.member.id,
               fullName: pm.member.fullName,
               email: pm.member.email,
-              role: pm.member.role,
+                           role: pm.member.role,
               avatarUrl: pm.member.avatarUrl
             }));
           
