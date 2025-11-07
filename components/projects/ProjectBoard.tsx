@@ -8,7 +8,7 @@ import { GetTaskResponse } from "@/types/task";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/lib/rbac";
 import Pagination from "@/components/ui/Pagination";
-import { ReassignTaskModal } from "./ReassignTaskModal";
+import { ReassignTaskModal } from "../tasks/ReassignTaskModal";
 
 interface ProjectBoardProps {
   project: Project;
@@ -175,7 +175,6 @@ export const ProjectBoard = ({
     // Status in DB: "Chưa bắt đầu", "Đang làm", "Tạm dừng", "Hoàn thành"
     return status;
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Chưa bắt đầu":
@@ -447,13 +446,14 @@ export const ProjectBoard = ({
                             <Trash2 size={14} />
                           </button>
                         )}
-                        {isMember && task.userId === userId && (
+                        {/* nếu PM sẽ là isProjectManager */}
+                        {((task.status !== "OverDue" && task.userId === userId)) && (
                           <button
                             className="action-btn reassign-btn"
                             onClick={(e) => handleReassignClick(e, task)}
                             title="Chuyển giao công việc"
                           >
-                            <UserPlus size={14} />
+                            <UserPlus size={14} /> 
                           </button>
                         )}
                       </div>
