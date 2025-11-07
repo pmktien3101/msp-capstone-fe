@@ -9,7 +9,7 @@ import {
   Search,
   CheckCircle,
   XCircle,
-  UserX, // Thêm icon mới
+  UserX,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { userService } from "@/services/userService";
@@ -23,6 +23,7 @@ const AdminBusinessOwners = () => {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showLicensePreview, setShowLicensePreview] = useState(false);
   const [selectedBusinessOwner, setSelectedBusinessOwner] =
     useState<BusinessOwner | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -593,13 +594,27 @@ const AdminBusinessOwners = () => {
                     </span>
                   </div>
                   {selectedBusinessOwner.businessLicense && (
-                    <div className="detail-row">
-                      <span className="detail-label">
-                        Giấy phép kinh doanh:
-                      </span>
-                      <span className="detail-value">
-                        {selectedBusinessOwner.businessLicense}
-                      </span>
+                    <div className="detail-row license-row">
+                      <span className="detail-label">Giấy phép kinh doanh:</span>
+                      <div className="license-display">
+                        <img
+                          src={selectedBusinessOwner.businessLicense}
+                          alt="Business License"
+                          className="license-thumbnail"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
+                        <button
+                          className="view-license-btn"
+                          onClick={() => setShowLicensePreview(true)}
+                          title="Xem giấy phép"
+                        >
+                          <Eye size={16} />
+                          <span>Xem</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                   <div className="detail-row">
@@ -664,6 +679,33 @@ const AdminBusinessOwners = () => {
                 Đóng
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* License Preview Modal */}
+      {showLicensePreview && selectedBusinessOwner?.businessLicense && (
+        <div className="modal-overlay" onClick={() => setShowLicensePreview(false)}>
+          <div
+            className="license-preview-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="license-preview-close"
+              onClick={() => setShowLicensePreview(false)}
+              title="Đóng"
+            >
+              <X size={24} />
+            </button>
+            <img
+              src={selectedBusinessOwner.businessLicense}
+              alt="Business License Full View"
+              className="license-preview-image"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' font-family='Arial' font-size='20' fill='%23999'%3EKhông thể tải hình ảnh%3C/text%3E%3C/svg%3E";
+              }}
+            />
           </div>
         </div>
       )}
@@ -1336,6 +1378,129 @@ const AdminBusinessOwners = () => {
             width: 40px;
             height: 40px;
             font-size: 18px;
+          }
+        }
+
+        .license-row {
+          flex-direction: column;
+          align-items: flex-start !important;
+          gap: 12px;
+        }
+
+        .license-display {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+        }
+
+        .license-thumbnail {
+          width: 60px;
+          height: 60px;
+          object-fit: cover;
+          border-radius: 8px;
+          border: 2px solid #e5e7eb;
+          transition: transform 0.2s ease;
+        }
+
+        .license-thumbnail:hover {
+          transform: scale(1.05);
+        }
+
+        .view-license-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          background: #ff5e13;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .view-license-btn:hover {
+          background: #e85a0a;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(255, 94, 19, 0.2);
+        }
+
+        .license-preview-modal {
+          background: white;
+          border-radius: 12px;
+          padding: 20px;
+          max-width: 90vw;
+          max-height: 90vh;
+          overflow: auto;
+          position: relative;
+          animation: slideUp 0.3s ease-out;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .license-preview-close {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: #f3f4f6;
+          border: none;
+          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: #6b7280;
+          transition: all 0.2s ease;
+          z-index: 10;
+        }
+
+        .license-preview-close:hover {
+          background: #e5e7eb;
+          color: #1f2937;
+        }
+
+        .license-preview-image {
+          max-width: 100%;
+          max-height: 80vh;
+          object-fit: contain;
+          border-radius: 8px;
+          display: block;
+          margin: 0 auto;
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @media (max-width: 768px) {
+          .license-row {
+            flex-direction: column;
+          }
+
+          .license-display {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .license-thumbnail {
+            width: 80px;
+            height: 80px;
+          }
+
+          .license-preview-modal {
+            max-width: 95vw;
+            padding: 16px;
           }
         }
       `}</style>
