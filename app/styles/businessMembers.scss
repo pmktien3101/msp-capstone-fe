@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 // ============================================
 // VARIABLES & COLORS - COMPACT VERSION
 // ============================================
@@ -515,20 +517,20 @@ $radius-xl: 16px;
   box-shadow: 0 2px 6px 0 rgba($primary, 0.03);
 
   &.pending {
-    background: $warning-light;
+    background: color.adjust($warning, $lightness: 35%);
     color: $warning;
     border: 1px solid $warning;
   }
 
   &.accepted {
-    background: lighten($success, 40%);
+    background: color.adjust($success, $lightness: 38%);
     color: $success;
     border: 1px solid $success;
   }
 
   &.rejected,
   &.canceled {
-    background: lighten($danger, 43%);
+    background: color.adjust($danger, $lightness: 40%);
     color: $danger;
     border: 1px solid $danger;
   }
@@ -593,7 +595,7 @@ $radius-xl: 16px;
     color: $success;
 
     &:hover {
-      background: linear-gradient(135deg, $success, darken($success, 5%));
+      background: linear-gradient(135deg, $success, color.adjust($success, $lightness: -5%));
       color: white;
       transform: translateY(-2px);
       box-shadow: 0 3px 8px rgba($success, 0.3);
@@ -605,7 +607,7 @@ $radius-xl: 16px;
     color: $info;
 
     &:hover {
-      background: linear-gradient(135deg, $info, darken($info, 5%));
+      background: linear-gradient(135deg, $info, color.adjust($info, $lightness: -5%));
       color: white;
       transform: translateY(-2px);
       box-shadow: 0 3px 8px rgba($info, 0.3);
@@ -617,7 +619,7 @@ $radius-xl: 16px;
     color: $danger;
 
     &:hover {
-      background: linear-gradient(135deg, $danger, darken($danger, 5%));
+      background: linear-gradient(135deg, $danger, color.adjust($danger, $lightness: -5%));
       color: white;
       transform: translateY(-2px);
       box-shadow: 0 3px 8px rgba($danger, 0.3);
@@ -988,7 +990,7 @@ $radius-xl: 16px;
 }
 
 .status-badge.inactive {
-  background: linear-gradient(135deg, rgba($danger, 0.1), rgba($danger, 0.15));
+  background: color.adjust($danger, $lightness: 40%);
   color: $danger;
 
   &::before {
@@ -1273,21 +1275,21 @@ $radius-xl: 16px;
       box-shadow: 0 2px 8px 0 rgba($primary, 0.04);
 
       &.pending {
-        background: $warning-light;
-        color: $warning; // Đang chờ: vàng
+        background: color.adjust($warning, $lightness: 35%);
+        color: $warning;
         border: 1px solid $warning;
       }
 
       &.accepted {
-        background: lighten($success, 40%);
-        color: $success; // Đã nhận: xanh lá
+        background: color.adjust($success, $lightness: 38%);
+        color: $success;
         border: 1px solid $success;
       }
 
       &.rejected,
       &.canceled {
-        background: lighten($danger, 43%);
-        color: $danger; // Từ chối & hủy: đỏ
+        background: color.adjust($danger, $lightness: 40%);
+        color: $danger;
         border: 1px solid $danger;
       }
     }
