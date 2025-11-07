@@ -43,22 +43,6 @@ export const TasksList = ({ project }: TasksListProps) => {
     fetchTasks();
   }, [project?.id]);
 
-  // Kiểm tra project có tồn tại không
-  if (!project) {
-    return (
-      <div className="tasks-list">
-        <div className="section-header">
-          <div className="section-title">
-            <h3>Công việc đang làm</h3>
-          </div>
-        </div>
-        <div className="no-data-message">
-          <p>Không có thông tin dự án</p>
-        </div>
-      </div>
-    );
-  }
-
   const getStatusColorLegacy = (status: string) => {
     const hexColor = getTaskStatusColor(status);
     
@@ -115,6 +99,22 @@ export const TasksList = ({ project }: TasksListProps) => {
     data: sortedTasks,
     itemsPerPage: 5,
   });
+
+  // Kiểm tra project có tồn tại không
+  if (!project) {
+    return (
+      <div className="tasks-list">
+        <div className="section-header">
+          <div className="section-title">
+            <h3>Công việc đang làm</h3>
+          </div>
+        </div>
+        <div className="no-data-message">
+          <p>Không có thông tin dự án</p>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (isLoading) {

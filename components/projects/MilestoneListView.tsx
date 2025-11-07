@@ -102,8 +102,6 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
     setEditedTasks(tasks);
   }, [tasks]);
 
-  if (!isOpen) return null;
-
   // Helper to get milestone IDs from task (handles both API and mock formats)
   const getTaskMilestoneIds = (task: any): string[] => {
     // Backend API format: task.milestones array of objects with id
@@ -139,6 +137,8 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
 
   // Get all milestones for this project
   const projectMilestones = allMilestones;
+
+  if (!isOpen) return null;
 
   const getStatusClassName = (status: string) => {
     // Convert enum to CSS class name
