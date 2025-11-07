@@ -15,6 +15,7 @@ import { GetTaskResponse } from "@/types/task";
 import { toast } from "react-toastify";
 import Pagination from "@/components/ui/Pagination";
 import { usePagination } from "@/hooks/usePagination";
+import { TaskStatus, TASK_STATUS_OPTIONS, getTaskStatusColor, getTaskStatusLabel } from "@/constants/status";
 import {
   Calendar,
   CheckCircle,
@@ -60,7 +61,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
     assignee: '',
     startDate: '',
     endDate: '',
-    status: 'Chưa bắt đầu',
+    status: TaskStatus.NotStarted,
     selectedMilestones: [milestone.id.toString()] // Mặc định chọn milestone hiện tại
   });
   const [isCreatingTask, setIsCreatingTask] = useState(false);
@@ -95,12 +96,6 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
     setOriginalMilestone(formattedMilestone);
     setIsEditingMilestone(false); // Reset edit mode when milestone changes
   }, [milestone]);
-
-  // Debug: Log members
-  useEffect(() => {
-    console.log('[MilestoneDetailPanel] Members prop:', members);
-    console.log('[MilestoneDetailPanel] Members count:', members?.length || 0);
-  }, [members]);
 
   // Update editedTasks when tasks prop changes
   useEffect(() => {
@@ -145,24 +140,16 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
   // Get all milestones for this project
   const projectMilestones = allMilestones;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Chưa bắt đầu":
-        return "#6b7280";
-      case "Đang làm":
-        return "#f59e0b";
-      case "Tạm dừng":
-        return "#ef4444";
-      case "Hoàn thành":
-        return "#10b981";
-      default:
-        return "#6b7280";
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    // Status in DB: "Chưa bắt đầu", "Đang làm", "Tạm dừng", "Hoàn thành"
-    return status;
+  const getStatusClassName = (status: string) => {
+    // Convert enum to CSS class name
+    const classMap: Record<string, string> = {
+      [TaskStatus.NotStarted]: 'notstarted',
+      [TaskStatus.InProgress]: 'inprogress',
+      [TaskStatus.Paused]: 'paused',
+      [TaskStatus.OverDue]: 'overdue',
+      [TaskStatus.Completed]: 'completed'
+    };
+    return classMap[status] || 'notstarted';
   };
 
   const getMemberName = (memberId: string) => {
@@ -227,8 +214,6 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
 
     try {
       setIsSavingMilestone(true);
-      console.log('Saving milestone:', editedMilestone);
-
       const response = await milestoneService.updateMilestone({
         id: editedMilestone.id.toString(),
         name: editedMilestone.name,
@@ -237,7 +222,6 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
       });
 
       if (response.success) {
-        console.log('Milestone updated successfully');
         toast.success('Cập nhật cột mốc thành công!');
         setOriginalMilestone(editedMilestone); // Update original to new values
         setIsEditingMilestone(false); // Exit edit mode
@@ -246,11 +230,9 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
           onTasksUpdated();
         }
       } else {
-        console.error('Failed to update milestone:', response.error);
         toast.error(`Lỗi: ${response.error || 'Không thể cập nhật cột mốc'}`);
       }
     } catch (error) {
-      console.error('Error saving milestone:', error);
       toast.error('Có lỗi xảy ra khi lưu cột mốc. Vui lòng thử lại!');
     } finally {
       setIsSavingMilestone(false);
@@ -267,7 +249,6 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
     );
     // Mark task as being edited
     setEditingTasks(prev => new Set(prev).add(taskId));
-    console.log(`Updated task ${taskId} ${field}:`, value);
   };
 
   const handleSaveTask = async (taskId: string) => {
@@ -291,11 +272,9 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
         milestoneIds: taskMilestoneIds
       };
 
-      console.log('[MilestoneDetailPanel] Updating task:', updateData);
       const response = await taskService.updateTask(updateData);
 
       if (response.success) {
-        console.log('[MilestoneDetailPanel] Task updated successfully');
         setEditingTasks(prev => {
           const newSet = new Set(prev);
           newSet.delete(taskId);
@@ -310,7 +289,6 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
         toast.error(`Lỗi: ${response.error}`);
       }
     } catch (error) {
-      console.error('[MilestoneDetailPanel] Error updating task:', error);
       toast.error('Có lỗi xảy ra khi cập nhật công việc');
     } finally {
       setIsSavingTask(false);
@@ -355,11 +333,9 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
         milestoneIds: [milestone.id.toString()]
       };
 
-      console.log('[MilestoneDetailPanel] Creating task:', taskData);
       const response = await taskService.createTask(taskData);
 
       if (response.success && response.data) {
-        console.log('[MilestoneDetailPanel] Task created successfully:', response.data);
         toast.success('Tạo công việc thành công!');
         
         // Reset form
@@ -369,7 +345,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
           assignee: '',
           startDate: '',
           endDate: '',
-          status: 'Chưa bắt đầu',
+          status: TaskStatus.NotStarted,
           selectedMilestones: [milestone.id.toString()]
         });
         setShowCreateTaskModal(false);
@@ -382,7 +358,6 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
         toast.error(`Lỗi: ${response.error}`);
       }
     } catch (error) {
-      console.error('[MilestoneDetailPanel] Error creating task:', error);
       toast.error('Có lỗi xảy ra khi tạo công việc');
     } finally {
       setIsSavingTask(false);
@@ -397,7 +372,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
       assignee: '',
       startDate: '',
       endDate: '',
-      status: 'Chưa bắt đầu',
+      status: TaskStatus.NotStarted,
       selectedMilestones: [milestone.id.toString()]
     });
   };
@@ -422,12 +397,9 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
         milestoneIds: newTask.selectedMilestones
       };
 
-      console.log('[MilestoneDetailPanel] Creating task inline:', taskData);
       const response = await taskService.createTask(taskData);
 
       if (response.success && response.data) {
-        console.log('[MilestoneDetailPanel] Task created successfully:', response.data);
-        
         // Reset form
         setIsCreatingTask(false);
         setNewTask({
@@ -436,7 +408,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
           assignee: '',
           startDate: '',
           endDate: '',
-          status: 'Chưa bắt đầu',
+          status: TaskStatus.NotStarted,
           selectedMilestones: [milestone.id.toString()]
         });
         
@@ -448,7 +420,6 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
         toast.error(`Lỗi: ${response.error}`);
       }
     } catch (error) {
-      console.error('[MilestoneDetailPanel] Error creating task:', error);
       toast.error('Có lỗi xảy ra khi tạo công việc');
     } finally {
       setIsSavingTask(false);
@@ -463,7 +434,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
       assignee: '',
       startDate: '',
       endDate: '',
-      status: 'Chưa bắt đầu',
+      status: TaskStatus.NotStarted,
       selectedMilestones: [milestone.id.toString()]
     });
   };
@@ -673,13 +644,14 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
                         <label>Trạng thái</label>
                         <select
                           value={newTask.status}
-                          onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value }))}
+                          onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value as TaskStatus }))}
                           className="form-select"
                         >
-                          <option value="Chưa bắt đầu">Chưa bắt đầu</option>
-                          <option value="Đang làm">Đang làm</option>
-                          <option value="Tạm dừng">Tạm dừng</option>
-                          <option value="Hoàn thành">Hoàn thành</option>
+                          {TASK_STATUS_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -796,8 +768,8 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
                           placeholder="Tên công việc..."
                           readOnly={isMemberRole}
                         />
-                        <span className={`status-badge status-${task.status?.toLowerCase().replace(/\s+/g, '-')}`}>
-                          {getStatusLabel(task.status)}
+                        <span className={`status-badge status-${getStatusClassName(task.status)}`}>
+                          {getTaskStatusLabel(task.status)}
                         </span>
                       </div>
                       
@@ -912,13 +884,14 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
                   <label>Trạng thái</label>
                   <select
                     value={newTask.status}
-                    onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value }))}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, status: e.target.value as TaskStatus }))}
                     className="form-select"
                   >
-                    <option value="Chưa bắt đầu">Chưa bắt đầu</option>
-                    <option value="Đang làm">Đang làm</option>
-                    <option value="Tạm dừng">Tạm dừng</option>
-                    <option value="Hoàn thành">Hoàn thành</option>
+                    {TASK_STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -1478,22 +1451,27 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
           flex-shrink: 0;
         }
 
-        .status-badge.status-chưa-bắt-đầu {
+        .status-badge.status-notstarted {
           background: #f1f5f9;
           color: #64748b;
         }
 
-        .status-badge.status-đang-làm {
+        .status-badge.status-inprogress {
           background: #dbeafe;
           color: #2563eb;
         }
 
-        .status-badge.status-tạm-dừng {
+        .status-badge.status-paused {
           background: #fef3c7;
           color: #d97706;
         }
 
-        .status-badge.status-hoàn-thành {
+        .status-badge.status-overdue {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        .status-badge.status-completed {
           background: #dcfce7;
           color: #16a34a;
         }

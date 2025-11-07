@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Project } from '@/types/project';
+import { ProjectStatus, getProjectStatusLabel, getProjectStatusColor } from '@/constants/status';
 import { 
   Plus, 
   FileText,
@@ -140,16 +141,14 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
                     <div className="project-meta">
                       {/* <span className="progress">0%</span>
                       <span className="members">0 thành viên</span> */}
-                      <span className="status-text">{project.status}</span>
+                      <span className="status-text">{getProjectStatusLabel(project.status)}</span>
                     </div>
                   </div>
                   <div className="project-status">
                     <div 
                       className="status-dot"
                       style={{ 
-                        backgroundColor: project.status === 'Đang hoạt động' ? '#10b981' : 
-                                        project.status === 'Hoàn thành' ? '#3b82f6' :
-                                        project.status === 'Lập kế hoạch' ? '#f59e0b' : '#ef4444'
+                        backgroundColor: getProjectStatusColor(project.status)
                       }}
                     />
                   </div>

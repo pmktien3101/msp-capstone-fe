@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Project } from "@/types/project";
+import { TaskStatus } from "@/constants/status";
 import { MilestoneBackend } from "@/types/milestone";
 import { GetTaskResponse } from "@/types/task";
 import { milestoneService } from "@/services/milestoneService";
@@ -49,7 +50,7 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
             );
 
             const totalTasks = milestoneTasks.length;
-            const completedTasks = milestoneTasks.filter(task => task.status === 'Hoàn thành').length;
+            const completedTasks = milestoneTasks.filter(task => task.status === TaskStatus.Completed).length;
             const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
             // Determine status based on progress and due date

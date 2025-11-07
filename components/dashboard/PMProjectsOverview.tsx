@@ -1,6 +1,7 @@
 'use client';
 
 import { Project } from '@/types/project';
+import { getProjectStatusColor, getProjectStatusLabel } from '@/constants/status';
 import { useRouter } from 'next/navigation';
 
 interface PMProjectsOverviewProps {
@@ -10,34 +11,19 @@ interface PMProjectsOverviewProps {
 export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
   const router = useRouter();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Đang hoạt động':
-        return '#10b981';
-      case 'Lập kế hoạch':
-        return '#f59e0b';
-      case 'Tạm dừng':
-        return '#ef4444';
-      case 'Hoàn thành':
-        return '#10b981';
-      default:
-        return '#6b7280';
-    }
-  };
-
-  const getStatusBackgroundColor = (status: string) => {
-    switch (status) {
-      case 'Đang hoạt động':
-        return '#dcfce7';
-      case 'Lập kế hoạch':
-        return '#fef3c7';
-      case 'Tạm dừng':
-        return '#fee2e2';
-      case 'Hoàn thành':
-        return '#dcfce7';
-      default:
-        return '#f3f4f6';
-    }
+  const getStatusBgColor = (status: string) => {
+    const color = getProjectStatusColor(status);
+    // Convert hex to light background
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    
+    // Lighten the color for background
+    const lightR = Math.min(255, r + (255 - r) * 0.85);
+    const lightG = Math.min(255, g + (255 - g) * 0.85);
+    const lightB = Math.min(255, b + (255 - b) * 0.85);
+    
+    return `rgb(${Math.round(lightR)}, ${Math.round(lightG)}, ${Math.round(lightB)})`;
   };
 
   const handleProjectClick = (projectId: string) => {
@@ -69,12 +55,12 @@ export function PMProjectsOverview({ projects }: PMProjectsOverviewProps) {
                 <div 
                   className="status-badge"
                   style={{ 
-                    color: getStatusColor(project.status),
-                    backgroundColor: getStatusBackgroundColor(project.status),
-                    borderColor: getStatusBackgroundColor(project.status)
+                    color: getProjectStatusColor(project.status),
+                    backgroundColor: getStatusBgColor(project.status),
+                    borderColor: getStatusBgColor(project.status)
                   }}
                 >
-                  {project.status}
+                  {getProjectStatusLabel(project.status)}
                 </div>
               </div>
               {/* <div className="project-progress">

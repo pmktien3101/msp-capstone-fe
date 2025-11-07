@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
+import { TaskStatus } from '@/constants/status';
 import { OverviewCards } from './OverviewCards';
 import { StatusOverview } from './StatusOverview';
 import { MilestoneProgress } from './MilestoneProgress';
@@ -79,12 +80,12 @@ export function ProjectSummary({ project }: ProjectSummaryProps) {
   // Calculate stats from API data
   const stats = {
     total: projectTasks.length,
-    completed: projectTasks.filter(task => task.status === 'Hoàn thành').length,
-    inProgress: projectTasks.filter(task => task.status === 'Đang làm').length,
-    todo: projectTasks.filter(task => task.status === 'Chưa bắt đầu').length,
-    onHold: projectTasks.filter(task => task.status === 'Tạm dừng').length,
+    completed: projectTasks.filter(task => task.status === TaskStatus.Completed).length,
+    inProgress: projectTasks.filter(task => task.status === TaskStatus.InProgress).length,
+    todo: projectTasks.filter(task => task.status === TaskStatus.NotStarted).length,
+    onHold: projectTasks.filter(task => task.status === TaskStatus.Paused).length,
     completionRate: projectTasks.length > 0 
-      ? Math.round((projectTasks.filter(task => task.status === 'Hoàn thành').length / projectTasks.length) * 100) 
+      ? Math.round((projectTasks.filter(task => task.status === TaskStatus.Completed).length / projectTasks.length) * 100) 
       : 0,
   };
 

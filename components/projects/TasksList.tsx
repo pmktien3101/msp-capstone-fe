@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
+import { TaskStatus, getTaskStatusColor, getTaskStatusLabel } from '@/constants/status';
 import { GetTaskResponse } from '@/types/task';
 import { taskService } from '@/services/taskService';
 import { usePagination } from '@/hooks/usePagination';
@@ -58,44 +59,19 @@ export const TasksList = ({ project }: TasksListProps) => {
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Hoàn thành':
-        return {
-          background: 'rgba(16, 185, 129, 0.1)',
-          color: '#10b981',
-          border: 'rgba(16, 185, 129, 0.2)'
-        };
-      case 'Đang làm':
-        return {
-          background: 'rgba(251, 146, 60, 0.1)',
-          color: '#fb923c',
-          border: 'rgba(251, 146, 60, 0.2)'
-        };
-      case 'Tạm dừng':
-        return {
-          background: 'rgba(251, 191, 36, 0.1)',
-          color: '#fbbf24',
-          border: 'rgba(251, 191, 36, 0.2)'
-        };
-      case 'Chưa bắt đầu':
-        return {
-          background: 'rgba(107, 114, 128, 0.1)',
-          color: '#6b7280',
-          border: 'rgba(107, 114, 128, 0.2)'
-        };
-      default:
-        return {
-          background: 'rgba(107, 114, 128, 0.1)',
-          color: '#6b7280',
-          border: 'rgba(107, 114, 128, 0.2)'
-        };
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    // Status đã ở dạng tiếng Việt từ API
-    return status;
+  const getStatusColorLegacy = (status: string) => {
+    const hexColor = getTaskStatusColor(status);
+    
+    // Convert hex to rgba for background
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    
+    return {
+      background: `rgba(${r}, ${g}, ${b}, 0.1)`,
+      color: hexColor,
+      border: `rgba(${r}, ${g}, ${b}, 0.2)`
+    };
   };
 
   const getPriorityColor = (priority: string) => {
@@ -125,7 +101,7 @@ export const TasksList = ({ project }: TasksListProps) => {
   };
 
   // Lọc các tasks đang làm
-  const inProgressTasks = tasks.filter(task => task.status === 'Đang làm');
+  const inProgressTasks = tasks.filter(task => task.status === TaskStatus.InProgress);
   
   // Sắp xếp tasks theo endDate (gần deadline nhất lên đầu)
   const sortedTasks = [...inProgressTasks].sort((a, b) => {
@@ -234,12 +210,12 @@ export const TasksList = ({ project }: TasksListProps) => {
                 <div 
                   className="task-status"
                   style={{ 
-                    backgroundColor: getStatusColor(task.status).background,
-                    color: getStatusColor(task.status).color,
-                    borderColor: getStatusColor(task.status).border
+                    backgroundColor: getStatusColorLegacy(task.status).background,
+                    color: getStatusColorLegacy(task.status).color,
+                    borderColor: getStatusColorLegacy(task.status).border
                   }}
                 >
-                  {getStatusLabel(task.status)}
+                  {getTaskStatusLabel(task.status)}
                 </div>
               </div>
             );

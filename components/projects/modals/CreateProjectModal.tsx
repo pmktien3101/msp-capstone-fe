@@ -26,13 +26,14 @@ import { FolderOpen, Calendar } from 'lucide-react';
 import { projectService } from '@/services/projectService';
 import { Project, CreateProjectRequest } from '@/types/project';
 import { useAuth } from "@/hooks/useAuth";
+import { ProjectStatus, ALL_PROJECT_STATUSES } from '@/constants/status';
 
 const projectSchema = z.object({
   name: z.string().min(1, "Tên dự án là bắt buộc"),
   description: z.string().min(1, "Mô tả là bắt buộc"),
   startDate: z.string().min(1, "Ngày bắt đầu là bắt buộc"),
   endDate: z.string().min(1, "Ngày kết thúc là bắt buộc"),
-  status: z.enum(["Lập kế hoạch", "Đang hoạt động", "Tạm dừng", "Hoàn thành"]).describe("Trạng thái"),
+  status: z.enum(ALL_PROJECT_STATUSES as [string, ...string[]]).describe("Trạng thái"),
   members: z.array(z.string()).optional(),
 });
 
@@ -59,7 +60,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
-      status: "Lập kế hoạch",
+      status: ProjectStatus.Scheduled,
       members: [],
     },
   });
@@ -199,7 +200,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
                       <SelectValue placeholder="Chọn trạng thái" />
                     </SelectTrigger>
                     <SelectContent className="z-[9999]" position="popper" side="bottom" align="start">
-                      <SelectItem value="Lập kế hoạch">
+                      <SelectItem value={ProjectStatus.Scheduled}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <Calendar size={16} />
                           Lập kế hoạch

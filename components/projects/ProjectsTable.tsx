@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Project } from '@/types/project';
 import { useUser } from '@/hooks/useUser';
 import { Eye, Edit, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
+import { getProjectStatusColor, getProjectStatusLabel } from '@/constants/status';
 
 interface ProjectsTableProps {
   projects: Project[];
@@ -20,34 +21,17 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
   // Check if user can edit projects (not a member)
   const canEditProject = role !== 'Member';
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Đang hoạt động':
-        return '#10b981';
-      case 'Lập kế hoạch':
-        return '#f59e0b';
-      case 'Tạm dừng':
-        return '#ef4444';
-      case 'Hoàn thành':
-        return '#10b981';
-      default:
-        return '#6b7280';
-    }
-  };
-
   const getStatusBackgroundColor = (status: string) => {
-    switch (status) {
-      case 'Đang hoạt động':
-        return '#dcfce7';
-      case 'Lập kế hoạch':
-        return '#fef3c7';
-      case 'Tạm dừng':
-        return '#fee2e2';
-      case 'Hoàn thành':
-        return '#dcfce7';
-      default:
-        return '#f3f4f6';
-    }
+    const baseColor = getProjectStatusColor(status);
+    
+    const bgMap: Record<string, string> = {
+      '#f59e0b': '#fef3c7',   // amber - Scheduled
+      '#10b981': '#dcfce7',   // green - InProgress/Completed
+      '#ef4444': '#fee2e2',   // red - Paused
+      '#6b7280': '#f3f4f6'    // gray - default
+    };
+    
+    return bgMap[baseColor] || '#f3f4f6';
   };
 
   const handleSort = (field: keyof Project) => {
@@ -147,12 +131,12 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
                   <div 
                     className="status-badge" 
                     style={{ 
-                      color: getStatusColor(project.status),
+                      color: getProjectStatusColor(project.status),
                       backgroundColor: getStatusBackgroundColor(project.status),
-                      borderColor: getStatusColor(project.status)
+                      borderColor: getProjectStatusColor(project.status)
                     }}
                   >
-                    {project.status}
+                    {getProjectStatusLabel(project.status)}
                   </div>
                 </td>
                 <td className="date-cell">
