@@ -135,26 +135,6 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
     return [];
   };
 
-  // Filter tasks that belong to this milestone
-  const milestoneTasksFiltered = editedTasks.filter(task => {
-    const taskMilestoneIds = getTaskMilestoneIds(task);
-    return taskMilestoneIds.includes(milestone.id.toString());
-  });
-
-  // Use pagination hook
-  const {
-    currentPage,
-    totalPages,
-    totalItems,
-    paginatedData: paginatedTasks,
-    startIndex,
-    endIndex,
-    setCurrentPage,
-  } = usePagination({
-    data: milestoneTasksFiltered,
-    itemsPerPage: 5,
-  });
-
   // Get all milestones for this project
   const projectMilestones = allMilestones;
 
