@@ -17,7 +17,7 @@ export const taskService = {
     async createTask(data: CreateTaskRequest): Promise<{ success: boolean; data?: GetTaskResponse; error?: string }> {
         try {
             // console.log('createTask - Request:', data);
-            
+
             // Convert dates to ISO 8601 UTC format if provided
             const requestData = {
                 ...data,
@@ -27,7 +27,7 @@ export const taskService = {
 
             const response = await api.post<ApiResponse<GetTaskResponse>>('/tasks', requestData);
             // console.log('createTask - Response:', response.data);
-            
+
             if (response.data.success && response.data.data) {
                 return {
                     success: true,
@@ -53,7 +53,7 @@ export const taskService = {
     async updateTask(data: UpdateTaskRequest): Promise<{ success: boolean; data?: GetTaskResponse; error?: string }> {
         try {
             // console.log('updateTask - Request:', data);
-            
+
             // Convert dates to ISO 8601 UTC format if provided
             const requestData = {
                 ...data,
@@ -63,7 +63,7 @@ export const taskService = {
 
             const response = await api.put<ApiResponse<GetTaskResponse>>('/tasks', requestData);
             // console.log('updateTask - Response:', response.data);
-            
+
             if (response.data.success && response.data.data) {
                 return {
                     success: true,
@@ -89,10 +89,10 @@ export const taskService = {
     async deleteTask(taskId: string): Promise<{ success: boolean; message?: string; error?: string }> {
         try {
             // console.log('deleteTask - TaskId:', taskId);
-            
+
             const response = await api.delete<ApiResponse>(`/tasks/${taskId}`);
             // console.log('deleteTask - Response:', response.data);
-            
+
             if (response.data.success) {
                 return {
                     success: true,
@@ -118,10 +118,10 @@ export const taskService = {
     async getTaskById(taskId: string): Promise<{ success: boolean; data?: GetTaskResponse; error?: string }> {
         try {
             // console.log('getTaskById - TaskId:', taskId);
-            
+
             const response = await api.get<ApiResponse<GetTaskResponse>>(`/tasks/${taskId}`);
             // console.log('getTaskById - Response:', response.data);
-            
+
             if (response.data.success && response.data.data) {
                 return {
                     success: true,
@@ -150,13 +150,13 @@ export const taskService = {
     ): Promise<{ success: boolean; data?: PagingResponse<GetTaskResponse>; error?: string }> {
         try {
             // console.log('getTasksByProjectId - ProjectId:', projectId, 'Params:', params);
-            
+
             const response = await api.get<ApiResponse<PagingResponse<GetTaskResponse>>>(
                 `/tasks/by-project/${projectId}`,
                 { params }
             );
             // console.log('getTasksByProjectId - Response:', response.data);
-            
+
             if (response.data.success && response.data.data) {
                 return {
                     success: true,
@@ -170,7 +170,7 @@ export const taskService = {
             }
         } catch (error: any) {
             // console.log('Get tasks by project error:', error.response?.status, error.response?.data);
-            
+
             // Handle 400/404 as empty result (no tasks found)
             if (error.response?.status === 400 || error.response?.status === 404) {
                 console.log('No tasks found for project, returning empty result');
@@ -184,7 +184,7 @@ export const taskService = {
                     }
                 };
             }
-            
+
             console.error('Get tasks by project error:', error);
             console.error('Error response:', error.response?.data);
             return {
@@ -202,14 +202,14 @@ export const taskService = {
     ): Promise<{ success: boolean; data?: PagingResponse<GetTaskResponse>; error?: string }> {
         try {
             // console.log('getTasksByUserIdAndProjectId - UserId:', userId, 'ProjectId:', projectId, 'Params:', params);
-            
+
             const response = await api.get<ApiResponse<PagingResponse<GetTaskResponse>>>(
                 `/tasks/by-user-and-project/${userId}/${projectId}`,
                 { params }
             );
-            
+
             // console.log('getTasksByUserIdAndProjectId - Response:', response.data);
-            
+
             if (response.data.success && response.data.data) {
                 return {
                     success: true,
@@ -223,7 +223,7 @@ export const taskService = {
             }
         } catch (error: any) {
             // console.log('Get tasks by user and project error:', error.response?.status, error.response?.data);
-            
+
             // Handle 400/404 as empty result (no tasks found)
             if (error.response?.status === 400 || error.response?.status === 404) {
                 console.log('No tasks found for user and project, returning empty result');
@@ -240,7 +240,7 @@ export const taskService = {
 
             console.error('Get tasks by user and project error:', error);
             console.error('Error response:', error.response?.data);
-            
+
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || 'Failed to fetch tasks'
@@ -252,10 +252,10 @@ export const taskService = {
     async getTasksByMilestoneId(milestoneId: string): Promise<{ success: boolean; data?: GetTaskResponse[]; error?: string }> {
         try {
             // console.log('getTasksByMilestoneId - MilestoneId:', milestoneId);
-            
+
             const response = await api.get<ApiResponse<GetTaskResponse[]>>(`/tasks/by-milestone/${milestoneId}`);
             // console.log('getTasksByMilestoneId - Response:', response.data);
-            
+
             if (response.data.success && response.data.data) {
                 return {
                     success: true,
@@ -269,7 +269,7 @@ export const taskService = {
             }
         } catch (error: any) {
             console.log('Get tasks by milestone error:', error.response?.status, error.response?.data);
-            
+
             // Handle 400/404 as empty result (no tasks found)
             if (error.response?.status === 400 || error.response?.status === 404) {
                 console.log('No tasks found for milestone, returning empty array');
@@ -278,11 +278,35 @@ export const taskService = {
                     data: []
                 };
             }
-            
+
             console.error('Get tasks by milestone error:', error);
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || 'Failed to fetch tasks'
+            };
+        }
+    },
+
+    // Get tasks by todo ID
+    async getTasksByTodoId(todoId: string): Promise<{ success: boolean; data?: GetTaskResponse[]; error?: string }> {
+        try {
+            const response = await api.get<ApiResponse<GetTaskResponse[]>>(`/tasks/by-todo/${todoId}`);
+            if (response.data.success) {
+                return {
+                    success: true,
+                    data: response.data.data ?? []
+                };
+            } else {
+                return {
+                    success: false,
+                    error: response.data.message || 'Failed to fetch tasks'
+                };
+            }
+        } catch (error: any) {
+            let serverMessage = error.response?.data?.message || error.message || 'Failed to fetch tasks';
+            return {
+                success: false,
+                error: serverMessage
             };
         }
     },

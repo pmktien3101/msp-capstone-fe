@@ -44,6 +44,7 @@ export const useAuth = () => {
     canManageMeetings: () => canManageMeetings(user),
     canManageTasks: () => canManageTasks(user),
     canViewReports: () => canViewReports(user),
+    isProjectManager: () => hasRole(user, UserRole.PROJECT_MANAGER),
     
     // User data helpers
     getUserDisplayName: () => user?.fullName || user?.email || 'Unknown User',

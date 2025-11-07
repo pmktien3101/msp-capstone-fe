@@ -39,6 +39,7 @@ import { taskService } from "@/services/taskService";
 import { PagingRequest } from "@/types/project";
 import TodoCard from "@/components/meeting/TodoCard";
 import { RelatedTasksSidebar } from "@/components/meeting/RelatedTasksSidebar";
+import { useAuth } from "@/hooks/useAuth";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -58,6 +59,7 @@ const mapCallStatus = (call?: Call) => {
 export default function MeetingDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { isProjectManager } = useAuth();
   const { call, isLoadingCall } = useGetCallById(params.id as string);
   const [activeTab, setActiveTab] = useState("overview");
   const [recordings, setRecordings] = useState<CallRecording[]>([]);
@@ -102,6 +104,7 @@ export default function MeetingDetailPage() {
   // Sidebar related state
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentReferenceIds, setCurrentReferenceIds] = useState<string[]>([]);
+  const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
 
   const fetchProjectTasks = async (
     projectId: string,
@@ -354,6 +357,7 @@ export default function MeetingDetailPage() {
                 startDate: normalizeDate(todo.startDate),
               };
             });
+
 
             const createTodosResult = await todoService.createTodosFromAI(
               params.id as string,
@@ -797,9 +801,10 @@ export default function MeetingDetailPage() {
   };
 
   // Đây là hàm callback truyền cho TodoCard
-  const handleShowRelatedTasks = (referenceTaskIds: string[]) => {
-    setCurrentReferenceIds(referenceTaskIds);
+  const handleShowRelatedTasks = (todo: Todo) => {
+    setCurrentReferenceIds(todo.referencedTasks || []);
     setSidebarOpen(true);
+    setSelectedTodoId(todo.id);
   };
 
   // Memoize todo list rendering to prevent unnecessary re-renders
@@ -813,7 +818,7 @@ export default function MeetingDetailPage() {
           selectedTasks={selectedTasks}
           editMode={editMode[todo.id] || false}
           attendees={meetingInfo?.attendees || []}
-          onShowRelatedTasks={handleShowRelatedTasks}
+          onShowRelatedTasks={(todo: Todo) => handleShowRelatedTasks(todo)}
           onSelectTask={handleSelectTask}
           onEditStart={(todoId, originalTodo) => {
             setEditMode((prev) => ({ ...prev, [todoId]: true }));
@@ -842,10 +847,10 @@ export default function MeetingDetailPage() {
                   assigneeId: newAssigneeId,
                   assignee: newAssignee
                     ? {
-                        id: newAssignee.id,
-                        fullName: newAssignee.fullName,
-                        email: newAssignee.email,
-                      }
+                      id: newAssignee.id,
+                      fullName: newAssignee.fullName,
+                      email: newAssignee.email,
+                    }
                     : null,
                   status: updateResult?.data?.status,
                   statusDisplay: updateResult?.data?.statusDisplay,
@@ -1109,13 +1114,13 @@ export default function MeetingDetailPage() {
           <Video size={16} />
           Bản ghi cuộc họp
         </button>
-        <button
+        {/* <button
           className={`tab ${activeTab === "attachments" ? "active" : ""}`}
           onClick={() => handleChangeTab("attachments")}
         >
           <Paperclip size={16} />
           Tài liệu
-        </button>
+        </button> */}
       </div>
 
       {/* Content */}
@@ -1502,7 +1507,7 @@ export default function MeetingDetailPage() {
               </div>
 
               {/* AI Generated Tasks */}
-              {(todoList.length > 0 || isProcessingMeetingAI) && (
+              {isProjectManager() && (todoList.length > 0 || isProcessingMeetingAI) && (
                 <div className="ai-generated-tasks">
                   <div className="ai-tasks-header">
                     <div className="ai-tasks-title">
@@ -1540,13 +1545,6 @@ export default function MeetingDetailPage() {
                   )}
 
                   <div className="task-list">{memoizedTodoList}</div>
-                  {currentReferenceIds && currentReferenceIds.length > 0 && (
-                    <RelatedTasksSidebar
-                      open={sidebarOpen}
-                      onClose={() => setSidebarOpen(false)}
-                      referenceTaskIds={currentReferenceIds}
-                    />
-                  )}
 
                   {/* Action buttons for the entire AI task list */}
                   <div className="ai-tasks-actions">
@@ -1559,20 +1557,6 @@ export default function MeetingDetailPage() {
                       <Target size={16} />
                       Chuyển đổi thành công việc chính thức
                     </Button>
-
-                    {/* <Button
-                      disabled={isGeneratingTasks}
-                      onClick={() => {
-                        // Handle regenerate AI tasks
-                        setGeneratedTasks([]);
-                        // generateSummaryAndTasks();
-                      }}
-                      className="regenerate-btn"
-                      variant="outline"
-                    >
-                      <Sparkles size={16} />
-                      Tạo lại danh sách bằng AI
-                    </Button> */}
                   </div>
                 </div>
               )}
@@ -1580,7 +1564,12 @@ export default function MeetingDetailPage() {
           </div>
         )}
       </div>
-
+      <RelatedTasksSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        referenceTaskIds={currentReferenceIds}
+        todoId={selectedTodoId ?? ""}
+      />
       {/* Delete Confirmation Modal */}
       {deleteConfirmModal.isOpen && (
         <div className="delete-modal-overlay">

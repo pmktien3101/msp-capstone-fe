@@ -4,27 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar, User, Edit, Trash2, Check, X } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-
-type Assignee = {
-    id: string;
-    fullName?: string;
-    email?: string;
-    [key: string]: any;
-};
-
-type Todo = {
-    id: string;
-    title: string;
-    description?: string;
-    startDate?: string;
-    endDate?: string;
-    assignee?: Assignee;
-    assigneeId?: string;
-    referencedTasks?: string[];
-    status: number;
-    statusDisplay: string;
-    [key: string]: any;
-};
+import { Todo } from '@/types/todo';
 
 interface Props {
     todo: Todo;
@@ -32,7 +12,7 @@ interface Props {
     selectedTasks: string[];
     editMode: boolean;
     attendees: any[];
-    onShowRelatedTasks: (taskIds: string[]) => void;
+    onShowRelatedTasks: (todo: Todo) => void;
     onSelectTask: (taskId: string) => void;
     onEditStart: (todoId: string, originalTodo: Todo) => void;
     onEditSave: (todo: Todo) => Promise<void>;
@@ -135,22 +115,12 @@ export const TodoCard: React.FC<Props> = ({
             className={`task-item ai-task ${selectedTasks.includes(todo.id) ? "selected" : ""
                 } ${editMode ? "edit-mode" : ""}`}
             data-task-id={todo.id}
-            onClick={(e) => {
-                if (editMode) return;
-                const target = e.target as HTMLElement;
-                if (
-                    target.closest(".task-actions") ||
-                    target.closest(".task-checkbox")
-                )
-                    return;
-                onSelectTask(todo.id);
-            }}
-            style={{ cursor: editMode ? "default" : "pointer" }}
         >
             <div className="task-checkbox">
                 <Checkbox
                     checked={selectedTasks.includes(todo.id)}
                     disabled={!isValidTodo(todo) || todo.status === 2 || todo.status === 3}
+                    style={{ cursor: (isValidTodo(todo) && todo.status !== 2 && todo.status !== 3) ? "pointer" : "no-drop" }}
                     onCheckedChange={() => onSelectTask(todo.id)}
                     className="task-select-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
                 />
@@ -171,7 +141,6 @@ export const TodoCard: React.FC<Props> = ({
                 <div className="task-title">
                     <label
                         className="detail-label"
-                        style={{ cursor: editMode ? "default" : "pointer" }}
                     >
                         Tên công việc
                     </label>
@@ -196,7 +165,6 @@ export const TodoCard: React.FC<Props> = ({
                 <div className="task-description">
                     <label
                         className="detail-label"
-                        style={{ cursor: editMode ? "default" : "pointer" }}
                     >
                         Mô tả công việc
                     </label>
@@ -281,8 +249,8 @@ export const TodoCard: React.FC<Props> = ({
                                             : null;
 
                                         onTodoChange(todo.id, {
-                                            userId: newAssigneeId,
-                                            user: newAssigneeInfo
+                                            assigneeId: newAssigneeId,
+                                            assignee: newAssigneeInfo
                                                 ? {
                                                     id: newAssigneeInfo.id,
                                                     fullName: newAssigneeInfo.fullName,
@@ -310,7 +278,14 @@ export const TodoCard: React.FC<Props> = ({
                 </div>
 
                 {hasRelated && !editMode && (
-                    <div style={{ marginTop: 12 }}>
+                    <div style={{
+                        marginTop: 12,
+                        fontSize: 14,
+                        color: '#666',
+                        textAlign: 'center',
+                        padding: '8px 0'
+                    }}>
+                        <span>Liên quan đến <strong style={{ color: '#1681ff' }}>{todo.referencedTasks?.length}</strong> công việc cũ. </span>
                         <button
                             className="relation-link"
                             style={{
@@ -321,13 +296,14 @@ export const TodoCard: React.FC<Props> = ({
                                 fontWeight: 600,
                                 padding: 0,
                                 fontSize: 14,
+                                textDecoration: 'underline',
                             }}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onShowRelatedTasks(todo.referencedTasks ?? []);
+                                onShowRelatedTasks(todo);
                             }}
                         >
-                            (Liên quan đến {todo.referencedTasks?.length} công việc cũ. Bấm vào để xem chi tiết)
+                            Xem chi tiết
                         </button>
                     </div>
                 )}

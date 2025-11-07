@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from 'components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { is } from 'zod/v4/locales';
 
 interface EditableTranscriptItemProps {
     speakerId: string;
@@ -16,6 +18,7 @@ const EditableTranscriptItem: React.FC<EditableTranscriptItemProps> = ({
     const [isEditing, setIsEditing] = useState(false);
     const [editedText, setEditedText] = useState(text);
     const [editedSpeakerId, setEditedSpeakerId] = useState(speakerId);
+    const { isProjectManager } = useAuth();
 
     return (
         <div className={`transcript-item ${isEditing ? 'transcript-edit-row' : 'transcript-view-row'}`}>
@@ -65,14 +68,16 @@ const EditableTranscriptItem: React.FC<EditableTranscriptItemProps> = ({
                         {speakerList.find(sp => sp.id === speakerId)?.fullName || speaker}
                     </strong>
                     <span className="transcript-text">{text}</span>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsEditing(true)}
-                        style={{ marginLeft: 8 }}
-                    >
-                        Chỉnh sửa
-                    </Button>
+                    {isProjectManager() &&
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsEditing(true)}
+                            style={{ marginLeft: 8 }}
+                        >
+                            Chỉnh sửa
+                        </Button>
+                    }
                 </>
             )}
         </div>
