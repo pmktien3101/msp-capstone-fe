@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/lib/rbac";
 import type { MilestoneBackend } from "@/types/milestone";
 import type { ProjectMember } from "@/types/project";
+import { TaskStatus, TASK_STATUS_OPTIONS, getTaskStatusEnum } from "@/constants/status";
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ export const CreateTaskModal = ({
   isOpen, 
   onClose, 
   milestoneId, 
-  defaultStatus = "Chưa bắt đầu",
+  defaultStatus = TaskStatus.NotStarted,
   onCreateTask,
   projectId, // Destructured projectId
   taskToEdit // Destructured taskToEdit
@@ -62,7 +63,6 @@ export const CreateTaskModal = ({
           setMilestones(response.data);
         }
       } catch (error) {
-        console.error('Error fetching milestones:', error);
       } finally {
         setIsLoadingMilestones(false);
       }
@@ -79,28 +79,12 @@ export const CreateTaskModal = ({
       setIsLoadingMembers(true);
       try {
         const response = await projectService.getProjectMembers(projectId);
-        // console.log('[CreateTaskModal] Fetched members response:', response);
         
         if (response.success && response.data) {
-          // console.log('[CreateTaskModal] All members:', response.data);
-          
-          // Log each member to see structure
-          // response.data.forEach(pm => {
-          //   console.log('[CreateTaskModal] Member:', {
-          //     id: pm.id,
-          //     userId: pm.userId,
-          //     role: pm.member?.role,
-          //     fullName: pm.member?.fullName,
-          //     email: pm.member?.email
-          //   });
-          // });
-          
           // Filter only users with role "Member"
           const memberUsers = response.data.filter(pm => 
             pm.member?.role === "Member"
           );
-          // console.log('[CreateTaskModal] Filtered members (role=Member):', memberUsers);
-          // console.log('[CreateTaskModal] Total filtered:', memberUsers.length);
           setMembers(memberUsers);
         }
       } catch (error) {
@@ -218,7 +202,7 @@ export const CreateTaskModal = ({
         title: "",
         description: "",
         milestoneIds: milestoneId ? [milestoneId] : [],
-        status: "Chưa bắt đầu",
+        status: TaskStatus.NotStarted,
         assignee: "",
         startDate: "",
         endDate: ""
@@ -334,10 +318,11 @@ export const CreateTaskModal = ({
                 onChange={(e) => handleInputChange("status", e.target.value)}
                 className="form-select"
               >
-                <option value="Chưa bắt đầu">Chưa bắt đầu</option>
-                <option value="Đang làm">Đang làm</option>
-                <option value="Tạm dừng">Tạm dừng</option>
-                <option value="Hoàn thành">Hoàn thành</option>
+                {TASK_STATUS_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 

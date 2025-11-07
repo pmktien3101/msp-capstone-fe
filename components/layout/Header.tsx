@@ -13,7 +13,7 @@ const Header = () => {
   const { email, fullName, role, logout } = useUser();
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { user} = useAuth();
+  const { user } = useAuth();
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -87,17 +87,13 @@ const Header = () => {
       <div className="header-right">
         {/* Search Bar */}
         <div className="header-search">
-          <div className="search-icon">
+          {/* <div className="search-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
               <circle cx="11" cy="11" r="8" stroke="#FF5E13" strokeWidth="2" />
               <path d="m21 21-4.35-4.35" stroke="#FF5E13" strokeWidth="2" />
             </svg>
-          </div>
-          <input
-            type="text"
-            placeholder="Search for anything..."
-            className="search-input"
-          />
+          </div> */}
+          <input type="text" placeholder="Tìm kiếm" className="search-input" />
         </div>
 
         {/* Notification Icon */}
@@ -217,6 +213,7 @@ const Header = () => {
           position: relative;
           display: flex;
           align-items: center;
+          justify-content: space-between;
           padding: 0 24px;
         }
 
@@ -271,7 +268,6 @@ const Header = () => {
           display: flex;
           align-items: center;
           gap: 20px;
-          margin-left: auto;
         }
 
         .header-search {

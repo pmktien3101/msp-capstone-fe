@@ -33,7 +33,6 @@ interface MeetingFormProps {
   projectId: string;
 }
 
-// Định nghĩa interface dựa trên API response
 interface ProjectMemberResponse {
   id: string;
   projectId: string;
@@ -52,7 +51,6 @@ interface ProjectMemberResponse {
   leftAt: string | null;
 }
 
-// Định nghĩa interface cho milestone
 interface Milestone {
   id: string;
   name: string;
@@ -87,7 +85,6 @@ export default function MeetingForm({
     },
   });
 
-  // Hàm convert ProjectMemberResponse sang Participant
   const convertToParticipants = (
     members: ProjectMemberResponse[]
   ): Participant[] => {
@@ -102,7 +99,6 @@ export default function MeetingForm({
       }));
   };
 
-  // Hàm convert MilestoneBackend sang Milestone
   const convertToMilestones = (milestones: any[]): Milestone[] => {
     return milestones.map((milestone) => ({
       id: milestone.id,
@@ -112,32 +108,19 @@ export default function MeetingForm({
   };
 
   useEffect(() => {
-    const loadParticipantsAndMilestones = async () => {
+    const loadData = async () => {
       if (!projectId) {
         toast.error("Không có projectId");
         return;
       }
-
       setIsLoadingParticipants(true);
       setIsLoadingMilestones(true);
-
       try {
-        // 1. Fetch project members từ API
-        const projectMembersResult = await projectService.getProjectMembers(
-          projectId
-        );
-
-        if (projectMembersResult.success && projectMembersResult.data) {
-          const convertedParticipants = convertToParticipants(
-            projectMembersResult.data as unknown as ProjectMemberResponse[]
-          );
-          setParticipants(convertedParticipants);
-        } else {
-          // Xử lý trường hợp không có members (trả về empty array theo logic service)
-          setParticipants([]);
-        }
-      } catch (error: any) {
-        console.error("Error loading participants:", error);
+        const membersResult = await projectService.getProjectMembers(projectId);
+        if (membersResult.success && membersResult.data) {
+          setParticipants(convertToParticipants(membersResult.data as any));
+        } else setParticipants([]);
+      } catch {
         toast.error("Không thể tải danh sách thành viên dự án");
         setParticipants([]);
       } finally {
@@ -145,39 +128,26 @@ export default function MeetingForm({
       }
 
       try {
-        // 2. Fetch milestones từ API
         const milestonesResult =
           await milestoneService.getMilestonesByProjectId(projectId);
-
         if (milestonesResult.success && milestonesResult.data) {
-          const convertedMilestones = convertToMilestones(
-            milestonesResult.data
-          );
-          setMilestones(convertedMilestones);
-        } else {
-          // Không throw error vì milestones là optional
-          console.warn("Could not load milestones:", milestonesResult.error);
-          setMilestones([]);
-        }
-      } catch (error: any) {
-        console.error("Error loading milestones:", error);
-        // Không hiển thị toast vì milestones là optional
+          setMilestones(convertToMilestones(milestonesResult.data));
+        } else setMilestones([]);
+      } catch {
         setMilestones([]);
       } finally {
         setIsLoadingMilestones(false);
       }
     };
-
-    loadParticipantsAndMilestones();
+    loadData();
   }, [projectId]);
 
   const handleParticipantChange = (participantId: string) => {
-    setSelectedParticipants((prev) => {
-      if (prev.includes(participantId)) {
-        return prev.filter((id) => id !== participantId);
-      }
-      return [...prev, participantId];
-    });
+    setSelectedParticipants((prev) =>
+      prev.includes(participantId)
+        ? prev.filter((id) => id !== participantId)
+        : [...prev, participantId]
+    );
   };
 
   useEffect(() => {
@@ -198,11 +168,10 @@ export default function MeetingForm({
       const meetingId = crypto.randomUUID();
       const allParticipants = [...new Set([userId, ...selectedParticipants])];
 
-      // 1. Tạo meeting trong database qua meetingService
       const meetingData = {
-        meetingId: meetingId,
+        meetingId,
         createdById: userId,
-        projectId: projectId,
+        projectId,
         milestoneId: values.milestoneId || null,
         title: values.title,
         description: values.description,
@@ -211,18 +180,13 @@ export default function MeetingForm({
       };
 
       const dbResult = await meetingService.createMeeting(meetingData);
-
-      if (!dbResult.success) {
+      if (!dbResult.success)
         throw new Error(
           dbResult.error || "Không thể tạo meeting trong database"
         );
-      }
 
-      // 2. Tạo call trong Stream
       const call = client.call("default", meetingId);
-      if (!call) {
-        throw new Error("Failed to create call");
-      }
+      if (!call) throw new Error("Failed to create call");
 
       await call.getOrCreate({
         data: {
@@ -234,10 +198,8 @@ export default function MeetingForm({
 
       setCallDetails(call);
       onCreated?.(call);
-
       toast.success("Tạo cuộc họp thành công!");
     } catch (error: any) {
-      console.error("Error creating meeting:", error);
       toast.error(error.message || "Không thể tạo cuộc họp");
     } finally {
       setIsCreating(false);
@@ -251,203 +213,281 @@ export default function MeetingForm({
   const meetingLink = callDetails ? `${baseUrl}/meeting/${callDetails.id}` : "";
 
   return (
-    <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"
-        onClick={onClose}
-      />
-      <div className="relative w-full max-w-xl rounded-lg border bg-white shadow-xl p-6 animate-in fade-in zoom-in">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-sm"
-          aria-label="Close"
-        >
+    <div style={styles.overlay}>
+      <div style={styles.backdrop} onClick={onClose} />
+      <div style={styles.modal}>
+        <button onClick={onClose} style={styles.closeButton} aria-label="Close">
           ✕
         </button>
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold">Tạo cuộc họp mới</h3>
-          <p className="text-xs text-muted-foreground">
+        <div style={styles.header}>
+          <h3 style={styles.title}>Tạo cuộc họp mới</h3>
+          <p style={styles.subtitle}>
             Vui lòng điền thông tin để lên lịch cuộc họp cho dự án
           </p>
         </div>
-        <div className="max-w-2xl mx-auto w-full">
-          {callDetails ? (
-            <div className="text-center">
-              <h2 className="text-2xl font-semibold mb-4 text-orange-800">
-                Đã tạo cuộc họp!
-              </h2>
-              <p className="mb-4">Cuộc họp đã được lên lịch thành công.</p>
-              <div className="flex items-center justify-center gap-4">
-                <Button
-                  onClick={() => {
-                    if (meetingLink) {
-                      navigator.clipboard.writeText(meetingLink);
-                      toast.success("Đã sao chép link!");
-                    }
-                  }}
-                  className="flex items-center gap-2 bg-orange-500 text-white cursor-pointer"
-                >
-                  Sao chép link cuộc họp
-                </Button>
-                <Button
-                  onClick={() =>
-                    window.open(`/meeting/${callDetails?.id}`, "_blank")
-                  }
-                  className="bg-orange-500 text-white cursor-pointer"
-                >
-                  Vào phòng họp
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-6 max-h-[60vh] overflow-y-auto pr-6 pl-6"
-            >
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">
-                  Tiêu đề cuộc họp
-                </label>
-                <Input
-                  placeholder="Nhập tiêu đề cuộc họp"
-                  {...form.register("title")}
-                />
-                {form.formState.errors.title && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.title.message}
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">Mô tả</label>
-                <Textarea
-                  placeholder="Nhập mô tả nội dung cuộc họp"
-                  className="resize-none"
-                  {...form.register("description")}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Mô tả ngắn về nội dung, mục tiêu cuộc họp
-                </p>
-                {form.formState.errors.description && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.description.message}
-                  </p>
-                )}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">
-                    Ngày & giờ họp
-                  </label>
-                  <DatePicker
-                    selected={form.watch("datetime")}
-                    onChange={(date) => form.setValue("datetime", date as Date)}
-                    showTimeSelect
-                    timeFormat="HH:mm"
-                    timeIntervals={30}
-                    dateFormat="dd/MM/yyyy HH:mm"
-                    className="w-full border rounded-md p-2 text-sm"
-                  />
-                  {form.formState.errors.datetime && (
-                    <p className="text-sm text-red-500">
-                      {form.formState.errors.datetime.message as string}
-                    </p>
-                  )}
-                </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">
-                  Milestone (không bắt buộc)
-                </label>
-                {isLoadingMilestones ? (
-                  <div className="text-sm text-gray-500">
-                    Đang tải danh sách milestones...
-                  </div>
-                ) : (
-                  <select
-                    {...form.register("milestoneId")}
-                    className="w-full rounded-md border border-gray-300 p-2"
-                  >
-                    <option value="">-- Chọn milestone --</option>
-                    {milestones.map((milestone) => (
-                      <option key={milestone.id} value={milestone.id}>
-                        {milestone.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
+        {callDetails ? (
+          <div style={styles.successContainer}>
+            <h2 style={styles.successTitle}>Đã tạo cuộc họp!</h2>
+            <p>Cuộc họp đã được lên lịch thành công.</p>
+            <div style={styles.buttonGroup}>
+              <Button
+                onClick={() => {
+                  if (meetingLink) {
+                    navigator.clipboard.writeText(meetingLink);
+                    toast.success("Đã sao chép link!");
+                  }
+                }}
+                style={styles.primaryButton}
+              >
+                Sao chép link cuộc họp
+              </Button>
+              <Button
+                onClick={() =>
+                  window.open(`/meeting/${callDetails?.id}`, "_blank")
+                }
+                style={styles.primaryButton}
+              >
+                Vào phòng họp
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={form.handleSubmit(onSubmit)} style={styles.form}>
+            {/* Tiêu đề */}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Tiêu đề cuộc họp</label>
+              <Input
+                placeholder="Nhập tiêu đề cuộc họp"
+                {...form.register("title")}
+              />
+              {form.formState.errors.title && (
+                <p style={styles.error}>
+                  {form.formState.errors.title.message}
+                </p>
+              )}
+            </div>
+
+            {/* Mô tả */}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Mô tả</label>
+              <Textarea
+                placeholder="Nhập mô tả nội dung cuộc họp"
+                {...form.register("description")}
+              />
+              {form.formState.errors.description && (
+                <p style={styles.error}>
+                  {form.formState.errors.description.message}
+                </p>
+              )}
+            </div>
+
+            {/* Ngày giờ */}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Ngày & giờ họp</label>
+              <div style={styles.dateWrapper}>
+                <DatePicker
+                  selected={form.watch("datetime")}
+                  onChange={(date) => form.setValue("datetime", date as Date)}
+                  showTimeSelect
+                  timeFormat="HH:mm"
+                  timeIntervals={30}
+                  dateFormat="dd/MM/yyyy HH:mm"
+                  // use the project's Input so the date input matches other inputs
+                  customInput={<Input style={styles.dateInput} />}
+                />
               </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">
-                  Người tham gia
-                </label>
-                {isLoadingParticipants ? (
-                  <div className="text-sm text-gray-500">
-                    Đang tải danh sách thành viên...
-                  </div>
-                ) : participants.length === 0 ? (
-                  <div className="text-sm text-gray-500">
-                    Không có thành viên nào trong dự án
-                  </div>
-                ) : (
-                  <div className="max-h-40 overflow-y-auto border rounded-md p-2">
-                    {participants.map((participant) => (
-                      <div
-                        key={participant.id}
-                        className="flex items-center space-x-2 py-1"
+              {form.formState.errors.datetime && (
+                <p style={styles.error}>
+                  {form.formState.errors.datetime.message as string}
+                </p>
+              )}
+            </div>
+
+            {/* Cột mốc */}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Cột mốc (không bắt buộc)</label>
+              {isLoadingMilestones ? (
+                <div style={styles.loadingText}>
+                  Đang tải danh sách cột mốc...
+                </div>
+              ) : (
+                <select {...form.register("milestoneId")} style={styles.select}>
+                  <option value="">-- Chọn cột mốc --</option>
+                  {milestones.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Participants */}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Người tham gia</label>
+              {isLoadingParticipants ? (
+                <div style={styles.loadingText}>
+                  Đang tải danh sách thành viên...
+                </div>
+              ) : participants.length === 0 ? (
+                <div style={styles.loadingText}>
+                  Không có thành viên nào trong dự án
+                </div>
+              ) : (
+                <div style={styles.participantList}>
+                  {participants.map((p) => (
+                    <div key={p.id} style={styles.participantItem}>
+                      <input
+                        type="checkbox"
+                        id={`participant-${p.id}`}
+                        checked={selectedParticipants.includes(p.id)}
+                        onChange={() => handleParticipantChange(p.id)}
+                      />
+                      <label
+                        htmlFor={`participant-${p.id}`}
+                        style={styles.participantLabel}
                       >
-                        <input
-                          type="checkbox"
-                          id={`participant-${participant.id}`}
-                          checked={selectedParticipants.includes(
-                            participant.id
-                          )}
-                          onChange={() =>
-                            handleParticipantChange(participant.id)
-                          }
-                          className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                        />
-                        <label
-                          htmlFor={`participant-${participant.id}`}
-                          className="text-sm text-gray-700"
-                        >
-                          {participant.email} - {participant.name}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {form.formState.errors.participants && (
-                  <p className="text-sm text-red-500">
-                    {form.formState.errors.participants.message}
-                  </p>
-                )}
-              </div>
-              <div className="flex justify-end space-x-4">
-                {onClose && (
-                  <Button variant="outline" type="button" onClick={onClose}>
-                    Hủy
-                  </Button>
-                )}
+                        {p.email} - {p.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {form.formState.errors.participants && (
+                <p style={styles.error}>
+                  {form.formState.errors.participants.message}
+                </p>
+              )}
+            </div>
+
+            <div style={styles.footer}>
+              {onClose && (
                 <Button
-                  type="submit"
-                  className="bg-orange-500 text-white cursor-pointer"
-                  disabled={isCreating || isLoadingParticipants}
+                  variant="outline"
+                  type="button"
+                  onClick={onClose}
+                  style={styles.cancelButton}
                 >
-                  {isCreating ? "Đang tạo..." : "Tạo cuộc họp"}
+                  Hủy
                 </Button>
-              </div>
-            </form>
-          )}
-        </div>
+              )}
+              <Button
+                type="submit"
+                style={styles.primaryButton}
+                disabled={isCreating}
+              >
+                {isCreating ? "Đang tạo..." : "Tạo cuộc họp"}
+              </Button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
 }
 
 export const CreateMeetingModal = MeetingForm;
+
+// 🎨 STYLE OBJECTS
+const styles: Record<string, React.CSSProperties> = {
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 1000,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  backdrop: {
+    position: "absolute",
+    inset: 0,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    backdropFilter: "blur(1px)",
+  },
+  modal: {
+    position: "relative",
+    background: "#fff",
+    borderRadius: 10,
+    border: "1px solid #e5e7eb",
+    padding: 24,
+    maxWidth: 600,
+    width: "100%",
+    boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+    zIndex: 10,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    fontSize: 14,
+    color: "#6b7280",
+    cursor: "pointer",
+    background: "none",
+    border: "none",
+  },
+  header: { marginBottom: 16 },
+  title: { fontSize: 18, fontWeight: 600 },
+  subtitle: { fontSize: 12, color: "#6b7280" },
+  successContainer: { textAlign: "center" },
+  successTitle: { fontSize: 22, fontWeight: 600, color: "#9a3412" },
+  buttonGroup: {
+    display: "flex",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 16,
+  },
+  primaryButton: {
+    backgroundColor: "#f97316",
+    color: "white",
+    cursor: "pointer",
+    padding: "8px 14px",
+    borderRadius: 8,
+    fontWeight: 600,
+    minWidth: 140,
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 20,
+    maxHeight: "60vh",
+    overflowY: "auto",
+  },
+  formGroup: { display: "flex", flexDirection: "column", gap: 6 },
+  label: { fontSize: 14, fontWeight: 500 },
+  error: { fontSize: 13, color: "#ef4444" },
+  loadingText: { fontSize: 13, color: "#6b7280" },
+  select: { border: "1px solid #d1d5db", borderRadius: 6, padding: 8 },
+  dateWrapper: { marginBottom: 8 },
+  dateInput: {
+    width: "100%",
+    borderRadius: 6,
+    padding: "8px 10px",
+    border: "1px solid #d1d5db",
+    fontSize: 14,
+    color: "#111827",
+  },
+  participantList: {
+    border: "1px solid #d1d5db",
+    borderRadius: 6,
+    padding: 8,
+    maxHeight: 160,
+    overflowY: "auto",
+  },
+  participantItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "4px 0",
+  },
+  participantLabel: { fontSize: 14, color: "#374151" },
+  cancelButton: {
+    backgroundColor: "white",
+    border: "1px solid #d1d5db",
+    color: "#374151",
+    padding: "8px 12px",
+    borderRadius: 8,
+    cursor: "pointer",
+  },
+  footer: { display: "flex", justifyContent: "flex-end", gap: 12 },
+};

@@ -9,7 +9,7 @@ import {
   Search,
   CheckCircle,
   XCircle,
-  UserX, // Thêm icon mới
+  UserX,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { userService } from "@/services/userService";
@@ -23,6 +23,7 @@ const AdminBusinessOwners = () => {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showLicensePreview, setShowLicensePreview] = useState(false);
   const [selectedBusinessOwner, setSelectedBusinessOwner] =
     useState<BusinessOwner | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,7 +36,7 @@ const AdminBusinessOwners = () => {
       setIsLoading(true);
       try {
         const result = await userService.getBusinessOwners();
-        if (result.success && result.data) {  
+        if (result.success && result.data) {
           setBusinessOwners(result.data);
         } else {
           console.error("Failed to load business owners:", result.error);
@@ -50,8 +51,6 @@ const AdminBusinessOwners = () => {
     loadBusinessOwners();
   }, []);
 
-
-
   const filteredBusinessOwners = businessOwners.filter((businessOwner) => {
     const matchesSearch =
       businessOwner.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -59,9 +58,10 @@ const AdminBusinessOwners = () => {
       businessOwner.organization
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      (businessOwner.phoneNumber && businessOwner.phoneNumber.includes(searchTerm));
+      (businessOwner.phoneNumber &&
+        businessOwner.phoneNumber.includes(searchTerm));
     const matchesFilter =
-      filterStatus === "all" || 
+      filterStatus === "all" ||
       (filterStatus === "pending" && !businessOwner.isApproved) ||
       (filterStatus === "active" && businessOwner.isApproved);
     return matchesSearch && matchesFilter;
@@ -114,9 +114,13 @@ const AdminBusinessOwners = () => {
                 : bo
             )
           );
-          toast.success(result.message || "Đã cập nhật trạng thái hoạt động thành công!");
+          toast.success(
+            result.message || "Đã cập nhật trạng thái hoạt động thành công!"
+          );
         } else {
-          toast.error(result.error || "Không thể cập nhật trạng thái hoạt động");
+          toast.error(
+            result.error || "Không thể cập nhật trạng thái hoạt động"
+          );
         }
       } catch (error) {
         console.error("Error toggling active status:", error);
@@ -130,7 +134,9 @@ const AdminBusinessOwners = () => {
   const confirmApprove = async () => {
     if (selectedBusinessOwner) {
       try {
-        const result = await userService.approveBusinessOwner(selectedBusinessOwner.id);
+        const result = await userService.approveBusinessOwner(
+          selectedBusinessOwner.id
+        );
         if (result.success) {
           setBusinessOwners(
             businessOwners.map((bo) =>
@@ -139,9 +145,13 @@ const AdminBusinessOwners = () => {
                 : bo
             )
           );
-          toast.success(result.message || "Đã phê duyệt tài khoản doanh nghiệp thành công!");
+          toast.success(
+            result.message || "Đã phê duyệt tài khoản doanh nghiệp thành công!"
+          );
         } else {
-          toast.error(result.error || "Không thể phê duyệt tài khoản doanh nghiệp");
+          toast.error(
+            result.error || "Không thể phê duyệt tài khoản doanh nghiệp"
+          );
         }
       } catch (error) {
         console.error("Error approving business owner:", error);
@@ -155,14 +165,20 @@ const AdminBusinessOwners = () => {
   const confirmReject = async () => {
     if (selectedBusinessOwner) {
       try {
-        const result = await userService.rejectBusinessOwner(selectedBusinessOwner.id);
+        const result = await userService.rejectBusinessOwner(
+          selectedBusinessOwner.id
+        );
         if (result.success) {
           setBusinessOwners(
             businessOwners.filter((bo) => bo.id !== selectedBusinessOwner.id)
           );
-          toast.success(result.message || "Đã từ chối tài khoản doanh nghiệp thành công!");
+          toast.success(
+            result.message || "Đã từ chối tài khoản doanh nghiệp thành công!"
+          );
         } else {
-          toast.error(result.error || "Không thể từ chối tài khoản doanh nghiệp");
+          toast.error(
+            result.error || "Không thể từ chối tài khoản doanh nghiệp"
+          );
         }
       } catch (error) {
         console.error("Error rejecting business owner:", error);
@@ -176,7 +192,7 @@ const AdminBusinessOwners = () => {
   const getStatusBadge = (businessOwner: BusinessOwner) => {
     const isApproved = businessOwner.isApproved;
     const isActive = businessOwner.isActive;
-    
+
     const statusConfig = {
       active: { color: "#D1FAE5", textColor: "#065F46", text: "Hoạt động" },
       inactive: {
@@ -222,8 +238,8 @@ const AdminBusinessOwners = () => {
   return (
     <div className="admin-business-owners">
       <div className="page-header">
-        <h1>Quản Lý Business Owner</h1>
-        <p>Quản lý tất cả các Business Owner đang sử dụng hệ thống</p>
+        <h1>Quản Lý Chủ Doanh Nghiệp</h1>
+        <p>Quản lý tất cả các chủ doanh nghiệp đang sử dụng hệ thống</p>
       </div>
 
       {/* Filters */}
@@ -278,7 +294,7 @@ const AdminBusinessOwners = () => {
       <div className="stats-row">
         <div className="stat-item">
           <span className="stat-number">{businessOwners.length}</span>
-          <span className="stat-label">Tổng Business Owner</span>
+          <span className="stat-label">Tổng chủ doanh nghiệp</span>
         </div>
         <div className="stat-item">
           <span className="stat-number">
@@ -292,12 +308,15 @@ const AdminBusinessOwners = () => {
           </span>
           <span className="stat-label">Đang hoạt động</span>
         </div>
-         <div className="stat-item">
-           <span className="stat-number">
-             {businessOwners.filter((bo) => bo.isApproved && !bo.isActive).length}
-           </span>
-           <span className="stat-label">Ngừng hoạt động</span>
-         </div>
+        <div className="stat-item">
+          <span className="stat-number">
+            {
+              businessOwners.filter((bo) => bo.isApproved && !bo.isActive)
+                .length
+            }
+          </span>
+          <span className="stat-label">Ngừng hoạt động</span>
+        </div>
       </div>
 
       {/* Business Owners Table */}
@@ -339,7 +358,7 @@ const AdminBusinessOwners = () => {
               {getStatusBadge(businessOwner)}
             </div>
             <div className="table-cell" data-label="Ngày tạo tài khoản">
-              {new Date(businessOwner.createdAt).toLocaleDateString('vi-VN')}
+              {new Date(businessOwner.createdAt).toLocaleDateString("vi-VN")}
             </div>
             <div className="table-cell" data-label="Hành động">
               <div className="action-buttons">
@@ -367,77 +386,91 @@ const AdminBusinessOwners = () => {
                       <XCircle size={16} />
                     </button>
                   </>
-                 ) : (
-                   <>
-                     <button className="action-btn edit" title="Chỉnh sửa">
-                       <Edit size={16} />
-                     </button>
-                     {businessOwner.isApproved && (
-                       <button
-                         className={`action-btn ${businessOwner.isActive ? 'deactivate' : 'activate'}`}
-                         title={businessOwner.isActive ? "Ngừng hoạt động" : "Kích hoạt"}
-                         onClick={() =>
-                           handleDeactivateBusinessOwner(businessOwner)
-                         }
-                       >
-                         <UserX size={16} />
-                       </button>
-                     )}
-                   </>
-                 )}
+                ) : (
+                  <>
+                    <button className="action-btn edit" title="Chỉnh sửa">
+                      <Edit size={16} />
+                    </button>
+                    {businessOwner.isApproved && (
+                      <button
+                        className={`action-btn ${
+                          businessOwner.isActive ? "deactivate" : "activate"
+                        }`}
+                        title={
+                          businessOwner.isActive
+                            ? "Ngừng hoạt động"
+                            : "Kích hoạt"
+                        }
+                        onClick={() =>
+                          handleDeactivateBusinessOwner(businessOwner)
+                        }
+                      >
+                        <UserX size={16} />
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>
         ))}
       </div>
 
-       {/* Deactivate/Activate Confirmation Modal */}
-       {showDeactivateModal && selectedBusinessOwner && (
-         <div className="modal-overlay">
-           <div className="modal-content">
-             <div className="modal-header">
-               <h3>
-                 {selectedBusinessOwner.isActive 
-                   ? "Xác nhận vô hiệu hóa Business Owner" 
-                   : "Xác nhận kích hoạt Business Owner"
-                 }
-               </h3>
-               <button
-                 className="modal-close"
-                 onClick={() => setShowDeactivateModal(false)}
-               >
-                 <X size={20} />
-               </button>
-             </div>
-             <div className="modal-body">
-               <p>
-                 Bạn có chắc chắn muốn {selectedBusinessOwner.isActive ? "vô hiệu hóa" : "kích hoạt"} Business Owner{" "}
-                 <strong>{selectedBusinessOwner.fullName}</strong>?
-               </p>
-               <p className={selectedBusinessOwner.isActive ? "warning-text" : "info-text"}>
-                 {selectedBusinessOwner.isActive 
-                   ? "Business Owner sẽ không thể truy cập hệ thống nhưng dữ liệu sẽ được giữ lại."
-                   : "Business Owner sẽ có thể truy cập và sử dụng hệ thống trở lại."
-                 }
-               </p>
-             </div>
-             <div className="modal-footer">
-               <button
-                 className="btn-cancel"
-                 onClick={() => setShowDeactivateModal(false)}
-               >
-                 Hủy
-               </button>
-               <button 
-                 className={selectedBusinessOwner.isActive ? "btn-deactivate" : "btn-activate"} 
-                 onClick={confirmDeactivate}
-               >
-                 {selectedBusinessOwner.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
-               </button>
-             </div>
-           </div>
-         </div>
-       )}
+      {/* Deactivate/Activate Confirmation Modal */}
+      {showDeactivateModal && selectedBusinessOwner && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>
+                {selectedBusinessOwner.isActive
+                  ? "Xác nhận vô hiệu hóa Business Owner"
+                  : "Xác nhận kích hoạt Business Owner"}
+              </h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowDeactivateModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>
+                Bạn có chắc chắn muốn{" "}
+                {selectedBusinessOwner.isActive ? "vô hiệu hóa" : "kích hoạt"}{" "}
+                Business Owner <strong>{selectedBusinessOwner.fullName}</strong>
+                ?
+              </p>
+              <p
+                className={
+                  selectedBusinessOwner.isActive ? "warning-text" : "info-text"
+                }
+              >
+                {selectedBusinessOwner.isActive
+                  ? "Business Owner sẽ không thể truy cập hệ thống nhưng dữ liệu sẽ được giữ lại."
+                  : "Business Owner sẽ có thể truy cập và sử dụng hệ thống trở lại."}
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn-cancel"
+                onClick={() => setShowDeactivateModal(false)}
+              >
+                Hủy
+              </button>
+              <button
+                className={
+                  selectedBusinessOwner.isActive
+                    ? "btn-deactivate"
+                    : "btn-activate"
+                }
+                onClick={confirmDeactivate}
+              >
+                {selectedBusinessOwner.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Approve Confirmation Modal */}
       {showApproveModal && selectedBusinessOwner && (
@@ -561,19 +594,35 @@ const AdminBusinessOwners = () => {
                     </span>
                   </div>
                   {selectedBusinessOwner.businessLicense && (
-                    <div className="detail-row">
-                      <span className="detail-label">
-                        Giấy phép kinh doanh:
-                      </span>
-                      <span className="detail-value">
-                        {selectedBusinessOwner.businessLicense}
-                      </span>
+                    <div className="detail-row license-row">
+                      <span className="detail-label">Giấy phép kinh doanh:</span>
+                      <div className="license-display">
+                        <img
+                          src={selectedBusinessOwner.businessLicense}
+                          alt="Business License"
+                          className="license-thumbnail"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
+                        <button
+                          className="view-license-btn"
+                          onClick={() => setShowLicensePreview(true)}
+                          title="Xem giấy phép"
+                        >
+                          <Eye size={16} />
+                          <span>Xem</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                   <div className="detail-row">
                     <span className="detail-label">Ngày tạo tài khoản:</span>
                     <span className="detail-value">
-                      {new Date(selectedBusinessOwner.createdAt).toLocaleDateString('vi-VN')}
+                      {new Date(
+                        selectedBusinessOwner.createdAt
+                      ).toLocaleDateString("vi-VN")}
                     </span>
                   </div>
                   <hr style={{ margin: "16px 0" }} />
@@ -592,7 +641,9 @@ const AdminBusinessOwners = () => {
                   <div className="detail-row">
                     <span className="detail-label">Số ngày còn hạn:</span>
                     <span className="detail-value">
-                      {getDaysLeft((selectedBusinessOwner as any).packageExpireDate)}
+                      {getDaysLeft(
+                        (selectedBusinessOwner as any).packageExpireDate
+                      )}
                     </span>
                   </div>
                 </div>
@@ -628,6 +679,33 @@ const AdminBusinessOwners = () => {
                 Đóng
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* License Preview Modal */}
+      {showLicensePreview && selectedBusinessOwner?.businessLicense && (
+        <div className="modal-overlay" onClick={() => setShowLicensePreview(false)}>
+          <div
+            className="license-preview-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="license-preview-close"
+              onClick={() => setShowLicensePreview(false)}
+              title="Đóng"
+            >
+              <X size={24} />
+            </button>
+            <img
+              src={selectedBusinessOwner.businessLicense}
+              alt="Business License Full View"
+              className="license-preview-image"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' font-family='Arial' font-size='20' fill='%23999'%3EKhông thể tải hình ảnh%3C/text%3E%3C/svg%3E";
+              }}
+            />
           </div>
         </div>
       )}
@@ -874,19 +952,19 @@ const AdminBusinessOwners = () => {
           color: #f50b0b;
         }
 
-         .action-btn.deactivate:hover {
-           background: #fed5c7;
-           color: #f50b0b;
-         }
+        .action-btn.deactivate:hover {
+          background: #fed5c7;
+          color: #f50b0b;
+        }
 
-         .action-btn.activate {
-           color: #10b981;
-         }
+        .action-btn.activate {
+          color: #10b981;
+        }
 
-         .action-btn.activate:hover {
-           background: #d1fae5;
-           color: #059669;
-         }
+        .action-btn.activate:hover {
+          background: #d1fae5;
+          color: #059669;
+        }
 
         .action-btn.delete {
           color: #ef4444;
@@ -1048,18 +1126,18 @@ const AdminBusinessOwners = () => {
           color: white;
         }
 
-         .btn-deactivate:hover {
-           background: #d97706;
-         }
+        .btn-deactivate:hover {
+          background: #d97706;
+        }
 
-         .btn-activate {
-           background: #10b981;
-           color: white;
-         }
+        .btn-activate {
+          background: #10b981;
+          color: white;
+        }
 
-         .btn-activate:hover {
-           background: #059669;
-         }
+        .btn-activate:hover {
+          background: #059669;
+        }
 
         .btn-approve {
           background: #10b981;
@@ -1300,6 +1378,129 @@ const AdminBusinessOwners = () => {
             width: 40px;
             height: 40px;
             font-size: 18px;
+          }
+        }
+
+        .license-row {
+          flex-direction: column;
+          align-items: flex-start !important;
+          gap: 12px;
+        }
+
+        .license-display {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+        }
+
+        .license-thumbnail {
+          width: 60px;
+          height: 60px;
+          object-fit: cover;
+          border-radius: 8px;
+          border: 2px solid #e5e7eb;
+          transition: transform 0.2s ease;
+        }
+
+        .license-thumbnail:hover {
+          transform: scale(1.05);
+        }
+
+        .view-license-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          background: #ff5e13;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .view-license-btn:hover {
+          background: #e85a0a;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(255, 94, 19, 0.2);
+        }
+
+        .license-preview-modal {
+          background: white;
+          border-radius: 12px;
+          padding: 20px;
+          max-width: 90vw;
+          max-height: 90vh;
+          overflow: auto;
+          position: relative;
+          animation: slideUp 0.3s ease-out;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .license-preview-close {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: #f3f4f6;
+          border: none;
+          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: #6b7280;
+          transition: all 0.2s ease;
+          z-index: 10;
+        }
+
+        .license-preview-close:hover {
+          background: #e5e7eb;
+          color: #1f2937;
+        }
+
+        .license-preview-image {
+          max-width: 100%;
+          max-height: 80vh;
+          object-fit: contain;
+          border-radius: 8px;
+          display: block;
+          margin: 0 auto;
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @media (max-width: 768px) {
+          .license-row {
+            flex-direction: column;
+          }
+
+          .license-display {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .license-thumbnail {
+            width: 80px;
+            height: 80px;
+          }
+
+          .license-preview-modal {
+            max-width: 95vw;
+            padding: 16px;
           }
         }
       `}</style>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
+import { TaskStatus } from '@/constants/status';
 import { milestoneService } from '@/services/milestoneService';
 import { taskService } from '@/services/taskService';
 import { projectService } from '@/services/projectService';
@@ -67,7 +68,7 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
   
   // Tính toán các số liệu từ API data
   const totalTasks = projectTasks.length;
-  const completedTasks = projectTasks.filter(task => task.status === 'Hoàn thành').length;
+  const completedTasks = projectTasks.filter(task => task.status === TaskStatus.Completed).length;
   const completedPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   
   const totalMilestones = projectMilestones.length;
@@ -76,7 +77,7 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
     const milestoneTasks = projectTasks.filter(task => 
       task.milestones && task.milestones.some(m => m.id === milestone.id)
     );
-    return milestoneTasks.length > 0 && milestoneTasks.every(task => task.status === 'Hoàn thành');
+    return milestoneTasks.length > 0 && milestoneTasks.every(task => task.status === TaskStatus.Completed);
   }).length;
   
   const overviewData = [

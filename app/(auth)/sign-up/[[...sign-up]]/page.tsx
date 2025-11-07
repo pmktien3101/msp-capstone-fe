@@ -7,8 +7,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import { authService } from "@/services/authService";
+import { uploadFileToCloudinary } from "@/services/uploadFileService";
 import "@/app/styles/sign-up.scss";
-import { User, Eye, EyeOff, Users, Building2, CheckCircle, XCircle } from "lucide-react";
+import { User, Eye, EyeOff, Users, Building2, CheckCircle, XCircle, X } from "lucide-react";
 
 interface RegisterFormData {
   fullName: string;
@@ -17,7 +18,7 @@ interface RegisterFormData {
   email: string;
   password: string;
   confirmPassword: string;
-  businessLicense: string; // Tên file giấy phép kinh doanh
+  businessLicense: string;
 }
 
 type Role = "Member" | "BusinessOwner";
@@ -29,6 +30,10 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [role, setRole] = useState<Role>("Member");
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [businessLicenseUrl, setBusinessLicenseUrl] = useState<string>("");
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [businessLicenseFile, setBusinessLicenseFile] = useState<File | null>(null);
   const router = useRouter();
   const [registerForm, setRegisterForm] = useState<RegisterFormData>({
     fullName: "",
@@ -120,9 +125,8 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage(null); // Clear previous messages
+    setMessage(null);
 
-    // Validate form before submitting
     if (!isFormValid()) {
       setMessage({ 
         type: 'error', 
@@ -135,7 +139,22 @@ export default function SignUpPage() {
     }
 
     try {
-      // Prepare registration data based on role
+      let finalBusinessLicenseUrl = businessLicenseUrl;
+
+      // Upload file to Cloudinary if it hasn't been uploaded yet
+      if (businessLicenseFile && !businessLicenseUrl) {
+        setMessage({ type: 'success', text: "Đang tải lên giấy phép kinh doanh..." });
+        try {
+          finalBusinessLicenseUrl = await uploadFileToCloudinary(businessLicenseFile);
+          setBusinessLicenseUrl(finalBusinessLicenseUrl);
+        } catch (uploadError) {
+          console.error("File upload error:", uploadError);
+          setMessage({ type: 'error', text: "Tải lên giấy phép kinh doanh thất bại. Vui lòng thử lại." });
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const registrationData = {
         fullName: registerForm.fullName,
         email: registerForm.email,
@@ -144,7 +163,7 @@ export default function SignUpPage() {
         role: role,
         ...(role === "BusinessOwner" && {
           organization: registerForm.organization,
-          businessLicense: registerForm.businessLicense, // Gửi tên file dưới dạng string
+          businessLicense: finalBusinessLicenseUrl,
         }),
       };
 
@@ -154,14 +173,11 @@ export default function SignUpPage() {
 
       if (result.success) {
         console.log("Registration successful:", result.message);
-        // Show success message
         setMessage({ type: 'success', text: result.message || "Đăng ký thành công!" });
-        // Redirect to sign-in page after 2 seconds
         setTimeout(() => {
           router.push("/sign-in");
         }, 2000);
       } else {
-        // Show error message
         setMessage({ type: 'error', text: result.error || "Đăng ký thất bại. Vui lòng thử lại." });
       }
     } catch (error) {
@@ -182,18 +198,29 @@ export default function SignUpPage() {
         type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
     
-    // Clear message when user starts typing
     if (message) {
       setMessage(null);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setMessage({ type: 'error', text: "Kích thước tệp không được vượt quá 5MB" });
+      return;
+    }
+
+    // Store file locally without uploading
+    setBusinessLicenseFile(file);
     setRegisterForm((prev) => ({
       ...prev,
-      businessLicense: file ? file.name : "",
+      businessLicense: file.name,
     }));
+    setMessage(null);
   };
 
   const isFormValid = () => {
@@ -205,9 +232,8 @@ export default function SignUpPage() {
       registerForm.confirmPassword &&
       registerForm.password === registerForm.confirmPassword;
 
-    // Business accounts cần organizationName và businessLicense
     if (role === "BusinessOwner") {
-      return baseValid && registerForm.organization && registerForm.businessLicense;
+      return baseValid && registerForm.organization && businessLicenseFile;
     }
 
     return baseValid;
@@ -274,6 +300,109 @@ export default function SignUpPage() {
           from {
             opacity: 0;
             transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .file-upload-wrapper {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .custom-file-btn {
+          flex: 1;
+        }
+
+        .preview-btn {
+          padding: 12px 16px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          background: #fff;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .preview-btn:hover {
+          background: #f3f4f6;
+          border-color: #ff5e13;
+        }
+
+        .preview-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .preview-modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          animation: fadeIn 0.3s ease-out;
+        }
+
+        .preview-content {
+          background: white;
+          border-radius: 12px;
+          padding: 24px;
+          max-width: 90vw;
+          max-height: 90vh;
+          overflow: auto;
+          position: relative;
+          animation: slideUp 0.3s ease-out;
+        }
+
+        .preview-close {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          transition: background 0.2s;
+        }
+
+        .preview-close:hover {
+          background: #f3f4f6;
+        }
+
+        .preview-image {
+          max-width: 100%;
+          max-height: 80vh;
+          object-fit: contain;
+          border-radius: 8px;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
           }
           to {
             opacity: 1;
@@ -461,10 +590,7 @@ export default function SignUpPage() {
                {role === "BusinessOwner" && (
                  <div className="form-group">
                    <label htmlFor="businessLicense">Giấy Phép Kinh Doanh*</label>
-                   <div
-                     className="input-wrapper"
-                     style={{ position: "relative" }}
-                   >
+                   <div className="input-wrapper">
                      <input
                        type="file"
                        id="businessLicense"
@@ -476,28 +602,40 @@ export default function SignUpPage() {
                          display: "none",
                        }}
                      />
-                     <button
-                       type="button"
-                       onClick={() =>
-                         document.getElementById("businessLicense")?.click()
-                       }
-                       className="custom-file-btn"
-                       style={{
-                         width: "100%",
-                         padding: "12px",
-                         border: "1px solid #e5e7eb",
-                         borderRadius: "8px",
-                         background: "#fff",
-                         color: "#1a1a1a",
-                         cursor: "pointer",
-                       }}
-                     >
-                       {registerForm.businessLicense
-                         ? `Đã chọn: ${registerForm.businessLicense}`
-                         : "Chọn tệp giấy phép kinh doanh..."}
-                     </button>
+                     <div className="file-upload-wrapper">
+                       <button
+                         type="button"
+                         onClick={() =>
+                           document.getElementById("businessLicense")?.click()
+                         }
+                         className="custom-file-btn"
+                         style={{
+                           width: "100%",
+                           padding: "12px",
+                           border: "1px solid #e5e7eb",
+                           borderRadius: "8px",
+                           background: "#fff",
+                           color: "#1a1a1a",
+                           cursor: "pointer",
+                         }}
+                       >
+                         {registerForm.businessLicense
+                           ? `Đã chọn: ${registerForm.businessLicense}`
+                           : "Chọn tệp giấy phép kinh doanh..."}
+                       </button>
+                       {businessLicenseFile && (
+                         <button
+                           type="button"
+                           className="preview-btn"
+                           onClick={() => setShowPreview(true)}
+                           title="Xem trước"
+                         >
+                           <Eye size={20} color="#ff5e13" />
+                         </button>
+                       )}
+                     </div>
                    </div>
-                   {!registerForm.businessLicense && role === "BusinessOwner" && (
+                   {!businessLicenseFile && role === "BusinessOwner" && (
                      <small style={{ color: "#ef4444", fontWeight: "500" }}>
                        Vui lòng chọn tệp giấy phép kinh doanh
                      </small>
@@ -524,6 +662,26 @@ export default function SignUpPage() {
               </p>
             </div>
           </form>
+
+          {/* Preview Modal */}
+          {showPreview && businessLicenseFile && (
+            <div className="preview-modal" onClick={() => setShowPreview(false)}>
+              <div className="preview-content" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="preview-close"
+                  onClick={() => setShowPreview(false)}
+                  type="button"
+                >
+                  <X size={24} color="#1a1a1a" />
+                </button>
+                <img
+                  src={URL.createObjectURL(businessLicenseFile)}
+                  alt="Business License Preview"
+                  className="preview-image"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="process-section">
             <h3 className="section-title">Quy Trình Đăng Ký</h3>

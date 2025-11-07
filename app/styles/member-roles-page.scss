@@ -8,6 +8,7 @@ $orange-100: #ffe4d6;
 $orange-500: #ff5e13;
 $orange-600: #e04a0c;
 
+@use "sass:color";
 // ============================================
 // GLOBAL SCALE - THU NHỎ TOÀN BỘ UI
 // ============================================
@@ -15,7 +16,10 @@ $orange-600: #e04a0c;
   font-size: 14px;
 }
 
-body, .container, .business-roles-dashboard, .members-roles-page {
+body,
+.container,
+.business-roles-dashboard,
+.members-roles-page {
   font-size: 0.93rem !important;
   line-height: 1.45 !important;
 }
@@ -70,24 +74,44 @@ body, .container, .business-roles-dashboard, .members-roles-page {
 // ============================================
 // FONT SIZES - thu nhỏ
 // ============================================
-.text-4xl { font-size: 2rem !important; }  // 32px
-.text-3xl { font-size: 1.5rem !important; } // 24px
-.text-xl { font-size: 1.1rem !important; }
-.text-lg { font-size: 0.98rem !important; }
-.text-sm { font-size: 0.92rem !important; }
-.text-xs { font-size: 0.83rem !important; }
+.text-4xl {
+  font-size: 2rem !important;
+} // 32px
+.text-3xl {
+  font-size: 1.5rem !important;
+} // 24px
+.text-xl {
+  font-size: 1.1rem !important;
+}
+.text-lg {
+  font-size: 0.98rem !important;
+}
+.text-sm {
+  font-size: 0.92rem !important;
+}
+.text-xs {
+  font-size: 0.83rem !important;
+}
 
-h1, h2, h3, h4 { margin-top: 0.5em; margin-bottom: 0.5em; }
+h1,
+h2,
+h3,
+h4 {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
 
 // ============================================
 // ENHANCED CARD ANIMATIONS & CARD SIZE SCALE
 // ============================================
 @keyframes fadeInUp {
   from {
-    opacity: 0; transform: translateY(10px);
+    opacity: 0;
+    transform: translateY(10px);
   }
   to {
-    opacity: 1; transform: translateY(0);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -98,25 +122,29 @@ h1, h2, h3, h4 { margin-top: 0.5em; margin-bottom: 0.5em; }
   font-size: 0.96rem !important;
 }
 
-.card-hover, .stats-card {
+.card-hover,
+.stats-card {
   padding: 0.6rem !important;
   border-radius: 8px !important;
   min-width: 0;
   transition: all 0.2s;
 }
 
-.card-hover:hover, .stats-card:hover {
+.card-hover:hover,
+.stats-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.06) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06) !important;
 }
 
 .stats-card {
   position: relative;
   overflow: hidden;
   &::before {
-    content: '';
+    content: "";
     position: absolute;
-    top: 0; left: 0; right: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 2.5px;
     background: linear-gradient(90deg, $orange-primary, $orange-light);
     opacity: 0;
@@ -130,18 +158,31 @@ h1, h2, h3, h4 { margin-top: 0.5em; margin-bottom: 0.5em; }
 // ============================================
 // ICON/AVATAR CONTAINER THU NHỎ
 // ============================================
-.icon-container, .h-20.w-20, .h-16.w-16 {
+.icon-container,
+.h-20.w-20,
+.h-16.w-16 {
   width: 38px !important;
   height: 38px !important;
   min-width: 38px !important;
   min-height: 38px !important;
   border-radius: 9px !important;
 }
-.h-10.w-10, .h-8.w-8 { width: 22px !important; height: 22px !important; }
-svg { width: 19px !important; height: 19px !important; }
+.h-10.w-10,
+.h-8.w-8 {
+  width: 22px !important;
+  height: 22px !important;
+}
+svg {
+  width: 19px !important;
+  height: 19px !important;
+}
 
 .bg-primary\/10 {
-  background: linear-gradient(135deg, rgba($orange-primary, 0.08), rgba($orange-light, 0.13)) !important;
+  background: linear-gradient(
+    135deg,
+    rgba($orange-primary, 0.08),
+    rgba($orange-light, 0.13)
+  ) !important;
 }
 
 // ============================================
@@ -158,10 +199,16 @@ svg { width: 19px !important; height: 19px !important; }
   border-radius: 7px !important;
 }
 [data-state="active"][role="tab"] {
-  background: linear-gradient(135deg, $orange-primary, $orange-light) !important;
+  background: linear-gradient(
+    135deg,
+    $orange-primary,
+    $orange-light
+  ) !important;
   color: #fff !important;
   box-shadow: 0 2px 8px rgba($orange-primary, 0.19);
-  svg { color: #fff !important; }
+  svg {
+    color: #fff !important;
+  }
 }
 
 // ============================================
@@ -175,11 +222,12 @@ svg { width: 19px !important; height: 19px !important; }
 }
 
 // Pulsing animation for pending badges
-.badge-pending, [class*="Badge"].pending {
+.badge-pending,
+[class*="Badge"].pending {
   position: relative;
   font-size: 0.89rem;
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 8px;
     top: 50%;
@@ -193,8 +241,13 @@ svg { width: 19px !important; height: 19px !important; }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 // ============================================
@@ -223,25 +276,36 @@ input:focus-visible,
 textarea:focus-visible {
   outline: none;
   border-color: $orange-primary;
-  box-shadow: 0 0 0 2.5px rgba($orange-primary, 0.10);
+  box-shadow: 0 0 0 2.5px rgba($orange-primary, 0.1);
 }
-.relative.flex-1 input { min-height: 28px !important; padding-left: 2.2rem !important; }
+.relative.flex-1 input {
+  min-height: 28px !important;
+  padding-left: 2.2rem !important;
+}
 
 .absolute.left-3 {
   left: 9px !important;
-  svg { width: 15px !important; height: 15px !important; }
+  svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
 }
 
 // ============================================
 // RESPONSIVE ADJUSTMENTS (less padding)
 // ============================================
 @media (max-width: 768px) {
-  .flex.gap-2, .flex.gap-3 {
+  .flex.gap-2,
+  .flex.gap-3 {
     flex-direction: column;
     gap: 7px !important;
-    button { width: 100%; }
+    button {
+      width: 100%;
+    }
   }
-  [class*="Card"] { padding: 10px !important; }
+  [class*="Card"] {
+    padding: 10px !important;
+  }
 }
 
 // ============================================
@@ -256,26 +320,37 @@ textarea:focus-visible {
 .empty-state {
   text-align: center;
   padding: 2.2rem 0.8rem;
-  svg { opacity: 0.4; margin: 0 auto;}
+  svg {
+    opacity: 0.4;
+    margin: 0 auto;
+  }
 }
 
-.text-balance { text-wrap: balance; }
-html { scroll-behavior: smooth; }
+.text-balance {
+  text-wrap: balance;
+}
+html {
+  scroll-behavior: smooth;
+}
 
-.card-header, [class*="CardHeader"] {
+.card-header,
+[class*="CardHeader"] {
   padding: 10px 0 8px 0 !important;
 }
 
-.grid, .stats-grid {
+.grid,
+.stats-grid {
   gap: 10px !important;
 }
 
 // ============================================
 // SCROLLBAR nhỏ hơn
 // ============================================
-::-webkit-scrollbar { width: 6.5px; height: 6.5px; }
+::-webkit-scrollbar {
+  width: 6.5px;
+  height: 6.5px;
+}
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, $orange-primary, $orange-light);
   border-radius: 6.5px;
 }
-

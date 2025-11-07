@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
 import { toast } from "react-toastify";
+import { PROJECT_STATUS_OPTIONS, getProjectStatusLabel } from "@/constants/status";
 import { 
   Plus, 
   Edit, 
@@ -350,10 +351,11 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                 className="form-select"
                 disabled={!isEditingBasicInfo}
               >
-                <option value="Lập kế hoạch">Lập kế hoạch</option>
-                <option value="Đang hoạt động">Đang hoạt động</option>
-                <option value="Tạm dừng">Tạm dừng</option>
-                <option value="Hoàn thành">Hoàn thành</option>
+                {PROJECT_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 

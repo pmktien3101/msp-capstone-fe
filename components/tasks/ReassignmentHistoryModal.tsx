@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X, Eye } from "lucide-react";
+import { getTaskStatusColor } from "@/constants/status";
 import { taskService } from "@/services/taskService";
 import { taskReassignRequestService } from "@/services/taskReassignRequestService";
 import { ReassignmentHistoryTable } from "@/components/tasks/ReassignmentHistoryTable";
@@ -72,16 +73,6 @@ export const ReassignmentHistoryModal = ({
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Chưa bắt đầu": return "#6b7280";
-      case "Đang làm": return "#f59e0b";
-      case "Tạm dừng": return "#ef4444";
-      case "Hoàn thành": return "#10b981";
-      default: return "#6b7280";
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -132,7 +123,7 @@ export const ReassignmentHistoryModal = ({
                       <span className="info-label">Trạng thái:</span>
                       <span 
                         className="status-badge"
-                        style={{ backgroundColor: getStatusColor(task.status) }}
+                        style={{ backgroundColor: getTaskStatusColor(task.status) }}
                       >
                         {task.status}
                       </span>
