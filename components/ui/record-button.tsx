@@ -76,7 +76,7 @@ const RecordButton = () => {
           call.stopTranscription(),
         ]);
         setHasExistingRecordings(true);
-        toast.info("Đã dừng ghi hình và transcription!");
+        toast.info("Đã dừng ghi hình!");
       } else {
         // Check again before starting recording
         const res = await call.queryRecordings();
@@ -91,11 +91,11 @@ const RecordButton = () => {
           call.startRecording(),
           call.startTranscription(),
         ]);
-        toast.success("Bắt đầu ghi hình + transcription!");
+        toast.success("Bắt đầu ghi hình!");
       }
     } catch (err) {
       console.error("Record/Transcript error", err);
-      toast.error("Lỗi khi bật/tắt ghi hình kèm transcription!");
+      toast.error("Lỗi khi bật/tắt ghi hình!");
     } finally {
       setLoading(false);
     }
@@ -109,10 +109,10 @@ const RecordButton = () => {
       disabled={loading || (hasExistingRecordings && !isRecording)}
       title={
         isRecording
-          ? "Dừng ghi và transcription"
+          ? "Dừng ghi hình"
           : hasExistingRecordings
           ? "Không thể ghi hình lại"
-          : "Bắt đầu ghi và transcription"
+          : "Bắt đầu ghi hình"
       }
       className={`rounded-full p-4 cursor-pointer ${
         isRecording

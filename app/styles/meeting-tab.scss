@@ -109,43 +109,73 @@
   }
 
   .meeting-table {
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    overflow: hidden;
+    width: 100%;
+
+    .col-stt {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .stt-number {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1f2937;
+    }
 
     .table-header {
       display: grid;
-      grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 1.5fr;
-      gap: 16px;
-      padding: 16px;
-      background: #f8f9fa;
+      grid-template-columns: 80px 2fr 1.5fr 1fr 1fr 1.5fr;
+      padding: 12px;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
       font-weight: 600;
+      font-size: 12px;
       color: #374151;
-      font-size: 14px;
+    }
+
+    .table-header > div {
+      padding: 0 8px;
     }
 
     .table-row {
       display: grid;
-      grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 1.5fr;
-      gap: 16px;
-      padding: 16px;
-      border-bottom: 1px solid #e5e7eb;
+      grid-template-columns: 80px 2fr 1.5fr 1fr 1fr 1.5fr;
+      padding: 12px;
+      border-bottom: 1px solid #f3f4f6;
       align-items: center;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #f9fafb;
+      }
 
       &:last-child {
         border-bottom: none;
       }
     }
 
+    .table-row > div {
+      padding: 0 8px;
+    }
+
     .meeting-title-text {
       font-weight: 600;
+      font-size: 13px;
       color: #1f2937;
       margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .meeting-description {
       font-size: 12px;
       color: #6b7280;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .time-info {
@@ -155,25 +185,26 @@
     .start-time {
       color: #1f2937;
       font-weight: 500;
+      font-size: 12px;
     }
 
     .end-time {
       color: #6b7280;
+      font-size: 11px;
     }
 
     .milestone-text {
       color: #374151;
-      font-size: 14px;
       background: #f3f4f6;
       padding: 4px 8px;
       border-radius: 4px;
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .room-link {
       color: #FF5E13;
-      text-decoration: underline;
-      font-size: 14px;
+      text-decoration: none;
+      font-size: 12px;
       font-weight: 500;
       
       &:hover {
@@ -183,47 +214,86 @@
     }
 
     .status-badge {
-      padding: 4px 8px;
+      display: inline-block;
+      padding: 4px 12px;
       border-radius: 12px;
       color: white;
-      font-size: 12px;
-      font-weight: 500;
+      font-size: 11px;
+      font-weight: 600;
     }
 
     .col-actions {
       display: flex;
-      gap: 8px;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: 1px solid;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      opacity: 0.7;
+
+      &:hover {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+    }
+
+    .view-btn {
+      background: #eff6ff;
+      color: #3b82f6;
+      border-color: #bfdbfe;
+
+      &:hover {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+      }
+    }
+
+    .edit-btn {
+      background: #fffbeb;
+      color: #f59e0b;
+      border-color: #fde68a;
+
+      &:hover {
+        background: #f59e0b;
+        color: white;
+        border-color: #f59e0b;
+      }
+    }
+
+    .delete-btn {
+      background: #fef2f2;
+      color: #ef4444;
+      border-color: #fecaca;
+
+      &:hover {
+        background: #ef4444;
+        color: white;
+        border-color: #ef4444;
+      }
     }
 
     .status-btn {
+      background: #f0fdf4;
       color: #10b981;
-      border-color: #10b981;
+      border-color: #bbf7d0;
 
       &:hover {
         background: #10b981;
         color: white;
+        border-color: #10b981;
       }
     }
-
-.edit-btn {
-  color: #FF5E13;
-  border-color: #FF5E13;
-
-  &:hover {
-    background: #FF5E13;
-    color: white;
-  }
-}
-
-.delete-btn {
-  color: #ef4444;
-  border-color: #ef4444;
-
-  &:hover {
-    background: #ef4444;
-    color: white;
-  }
-}
   }
 
   .meeting-tab-loading {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { ProjectStatus, TaskStatus, getProjectStatusLabel, PROJECT_STATUS_LABELS } from '@/constants/status';
 import { projectService } from '@/services/projectService';
 import { taskService } from '@/services/taskService';
 import { useAuth } from '@/hooks/useAuth';
@@ -83,8 +84,7 @@ const BusinessProjectsPage = () => {
               
               totalTasks = taskArray.length;
               completedTasks = taskArray.filter((task: any) => 
-                task.status?.toLowerCase() === 'hoàn thành' || 
-                task.status?.toLowerCase() === 'completed'
+                task.status === TaskStatus.Completed
               ).length;
               progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             }
@@ -137,13 +137,13 @@ const BusinessProjectsPage = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; text: string; bg: string }> = {
-      'Đang hoạt động': { color: '#10B981', text: 'Đang hoạt động', bg: '#ECFDF5' },
-      'Hoàn thành': { color: '#059669', text: 'Hoàn thành', bg: '#D1FAE5' },
-      'Tạm dừng': { color: '#F59E0B', text: 'Tạm dừng', bg: '#FEF3C7' },
-      'Lập kế hoạch': { color: '#6B7280', text: 'Lập kế hoạch', bg: '#F3F4F6' }
+      [ProjectStatus.InProgress]: { color: '#10B981', text: PROJECT_STATUS_LABELS[ProjectStatus.InProgress], bg: '#ECFDF5' },
+      [ProjectStatus.Completed]: { color: '#059669', text: PROJECT_STATUS_LABELS[ProjectStatus.Completed], bg: '#D1FAE5' },
+      [ProjectStatus.Paused]: { color: '#F59E0B', text: PROJECT_STATUS_LABELS[ProjectStatus.Paused], bg: '#FEF3C7' },
+      [ProjectStatus.Scheduled]: { color: '#6B7280', text: PROJECT_STATUS_LABELS[ProjectStatus.Scheduled], bg: '#F3F4F6' }
     };
 
-    const config = statusConfig[status] || statusConfig['Lập kế hoạch'];
+    const config = statusConfig[status] || statusConfig[ProjectStatus.Scheduled];
     return (
       <span
         className="status-badge"
@@ -221,7 +221,7 @@ const BusinessProjectsPage = () => {
           </div>
           <div className="stat-content">
             <h3>Đang Hoạt Động</h3>
-            <p className="stat-number">{projects.filter(p => p.status === 'Đang hoạt động').length}</p>
+            <p className="stat-number">{projects.filter(p => p.status === ProjectStatus.InProgress).length}</p>
           </div>
         </div>
 
@@ -234,7 +234,7 @@ const BusinessProjectsPage = () => {
           </div>
           <div className="stat-content">
             <h3>Hoàn Thành</h3>
-            <p className="stat-number">{projects.filter(p => p.status === 'Hoàn thành').length}</p>
+            <p className="stat-number">{projects.filter(p => p.status === ProjectStatus.Completed).length}</p>
           </div>
         </div>
 
@@ -274,10 +274,10 @@ const BusinessProjectsPage = () => {
             onChange={(e) => setStatusFilter(e.target.value as any)}
           >
             <option value="all">Tất cả trạng thái</option>
-            <option value="Đang hoạt động">Đang hoạt động</option>
-            <option value="Hoàn thành">Hoàn thành</option>
-            <option value="Tạm dừng">Tạm dừng</option>
-            <option value="Lập kế hoạch">Lập kế hoạch</option>
+            <option value={ProjectStatus.InProgress}>{PROJECT_STATUS_LABELS[ProjectStatus.InProgress]}</option>
+            <option value={ProjectStatus.Completed}>{PROJECT_STATUS_LABELS[ProjectStatus.Completed]}</option>
+            <option value={ProjectStatus.Paused}>{PROJECT_STATUS_LABELS[ProjectStatus.Paused]}</option>
+            <option value={ProjectStatus.Scheduled}>{PROJECT_STATUS_LABELS[ProjectStatus.Scheduled]}</option>
           </select>
         </div>
 

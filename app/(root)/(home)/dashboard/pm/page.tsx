@@ -10,6 +10,7 @@ import { projectService } from '@/services/projectService';
 import { taskService } from '@/services/taskService';
 import { milestoneService } from '@/services/milestoneService';
 import { useUser } from '@/hooks/useUser';
+import { TaskStatus } from '@/constants/status';
 import '@/app/styles/dashboard.scss';
 
 export default function DashboardPage() {
@@ -58,7 +59,7 @@ export default function DashboardPage() {
                 milestonesArray.push(...milestones.map((milestone: any) => ({ ...milestone, projectName: project.name })));
 
                 // Tính progress từ tasks
-                const completedTasks = tasks.filter((task: any) => task.status === 'Hoàn thành').length;
+                const completedTasks = tasks.filter((task: any) => task.status === TaskStatus.Completed).length;
                 const totalTasks = tasks.length;
                 const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
@@ -75,7 +76,6 @@ export default function DashboardPage() {
                   }))
                 };
               } catch (error) {
-                console.error(`Error fetching data for project ${project.id}:`, error);
                 return {
                   ...project,
                   progress: 0,
@@ -95,7 +95,6 @@ export default function DashboardPage() {
           setAllMilestones([]);
         }
       } catch (error) {
-        console.error('[PM Dashboard] Error fetching data:', error);
         setProjects([]);
         setAllTasks([]);
         setAllMilestones([]);

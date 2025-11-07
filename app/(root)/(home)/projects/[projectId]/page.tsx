@@ -19,10 +19,13 @@ import { projectService } from '@/services/projectService';
 import { userService } from '@/services/userService';
 import { taskService } from '@/services/taskService';
 import { toast } from 'react-toastify';
+import { useProjectModal } from '@/contexts/ProjectModalContext';
+import { ProjectStatus, TaskStatus, getProjectStatusLabel } from '@/constants/status';
 
 const ProjectDetailPage = () => {
   const params = useParams();
   const searchParams = useSearchParams();
+  const { triggerProjectRefresh } = useProjectModal();
   const projectId = params.projectId as string;
   const { role } = useUser();
   const { user } = useAuth();
@@ -84,7 +87,7 @@ const ProjectDetailPage = () => {
         userId: taskData.assignee || undefined, // Only include userId if assignee is selected
         title: taskData.title,
         description: taskData.description || '',
-        status: taskData.status || 'Chưa bắt đầu',
+        status: taskData.status || TaskStatus.NotStarted,
         startDate: taskData.startDate || undefined,
         endDate: taskData.endDate || undefined,
         milestoneIds: taskData.milestoneIds || []
@@ -197,6 +200,13 @@ const ProjectDetailPage = () => {
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
+  };
+
+  const handleProjectUpdate = () => {
+    // Trigger refresh by updating refreshKey
+    setRefreshKey(prev => prev + 1);
+    // Also trigger sidebar refresh
+    triggerProjectRefresh();
   };
 
   const handleSubmitMilestone = (milestoneData: any) => {
@@ -323,7 +333,7 @@ const ProjectDetailPage = () => {
     if (projectId) {
       fetchProjectData();
     }
-  }, [projectId, searchParams]);
+  }, [projectId, searchParams, refreshKey]);
 
   // Fetch tasks and calculate progress
   useEffect(() => {
@@ -339,8 +349,7 @@ const ProjectDetailPage = () => {
           
           const totalTasks = taskArray.length;
           const completedTasks = taskArray.filter((task: any) => 
-            task.status?.toLowerCase() === 'hoàn thành' || 
-            task.status?.toLowerCase() === 'completed'
+            task.status === TaskStatus.Completed
           ).length;
           
           const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -380,15 +389,12 @@ const ProjectDetailPage = () => {
           <div className="project-title-section">
             <h1 className="project-title">{project.name}</h1>
             <span className={`status-badge ${
-              project.status === 'Đang hoạt động' ? 'status-active' :
-              project.status === 'Lập kế hoạch' ? 'status-planning' :
-              project.status === 'Tạm dừng' ? 'status-on-hold' :
-              project.status === 'Hoàn thành' ? 'status-completed' : ''
+              project.status === ProjectStatus.InProgress ? 'status-active' :
+              project.status === ProjectStatus.Scheduled ? 'status-planning' :
+              project.status === ProjectStatus.Paused ? 'status-on-hold' :
+              project.status === ProjectStatus.Completed ? 'status-completed' : ''
             }`}>
-              {project.status === 'Đang hoạt động' && 'Đang hoạt động'}
-              {project.status === 'Lập kế hoạch' && 'Lập kế hoạch'}
-              {project.status === 'Tạm dừng' && 'Tạm dừng'}
-              {project.status === 'Hoàn thành' && 'Hoàn thành'}
+              {getProjectStatusLabel(project.status)}
             </span>
           </div>
           <p className="project-description">{project.description}</p>
@@ -434,6 +440,7 @@ const ProjectDetailPage = () => {
         initialActiveTab={activeTab}
         availableProjectManagers={availableProjectManagers}
         refreshKey={refreshKey}
+        onProjectUpdate={handleProjectUpdate}
       />
       
       {/* Task Detail Modal */}

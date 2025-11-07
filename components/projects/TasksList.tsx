@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
+import { TaskStatus, getTaskStatusColor, getTaskStatusLabel } from '@/constants/status';
 import { GetTaskResponse } from '@/types/task';
 import { taskService } from '@/services/taskService';
+import { usePagination } from '@/hooks/usePagination';
+import Pagination from '@/components/ui/Pagination';
 
 interface TasksListProps {
   project: Project;
@@ -40,60 +43,19 @@ export const TasksList = ({ project }: TasksListProps) => {
     fetchTasks();
   }, [project?.id]);
 
-  // Kiểm tra project có tồn tại không
-  if (!project) {
-    return (
-      <div className="tasks-list">
-        <div className="section-header">
-          <div className="section-title">
-            <h3>Công việc đang làm</h3>
-          </div>
-        </div>
-        <div className="no-data-message">
-          <p>Không có thông tin dự án</p>
-        </div>
-      </div>
-    );
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Hoàn thành':
-        return {
-          background: 'rgba(16, 185, 129, 0.1)',
-          color: '#10b981',
-          border: 'rgba(16, 185, 129, 0.2)'
-        };
-      case 'Đang làm':
-        return {
-          background: 'rgba(251, 146, 60, 0.1)',
-          color: '#fb923c',
-          border: 'rgba(251, 146, 60, 0.2)'
-        };
-      case 'Tạm dừng':
-        return {
-          background: 'rgba(251, 191, 36, 0.1)',
-          color: '#fbbf24',
-          border: 'rgba(251, 191, 36, 0.2)'
-        };
-      case 'Chưa bắt đầu':
-        return {
-          background: 'rgba(107, 114, 128, 0.1)',
-          color: '#6b7280',
-          border: 'rgba(107, 114, 128, 0.2)'
-        };
-      default:
-        return {
-          background: 'rgba(107, 114, 128, 0.1)',
-          color: '#6b7280',
-          border: 'rgba(107, 114, 128, 0.2)'
-        };
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    // Status đã ở dạng tiếng Việt từ API
-    return status;
+  const getStatusColorLegacy = (status: string) => {
+    const hexColor = getTaskStatusColor(status);
+    
+    // Convert hex to rgba for background
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    
+    return {
+      background: `rgba(${r}, ${g}, ${b}, 0.1)`,
+      color: hexColor,
+      border: `rgba(${r}, ${g}, ${b}, 0.2)`
+    };
   };
 
   const getPriorityColor = (priority: string) => {
@@ -123,7 +85,7 @@ export const TasksList = ({ project }: TasksListProps) => {
   };
 
   // Lọc các tasks đang làm
-  const inProgressTasks = tasks.filter(task => task.status === 'Đang làm');
+  const inProgressTasks = tasks.filter(task => task.status === TaskStatus.InProgress);
   
   // Sắp xếp tasks theo endDate (gần deadline nhất lên đầu)
   const sortedTasks = [...inProgressTasks].sort((a, b) => {
@@ -131,6 +93,28 @@ export const TasksList = ({ project }: TasksListProps) => {
     if (!b.endDate) return -1;
     return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
   });
+
+  // Use pagination hook
+  const pagination = usePagination({
+    data: sortedTasks,
+    itemsPerPage: 5,
+  });
+
+  // Kiểm tra project có tồn tại không
+  if (!project) {
+    return (
+      <div className="tasks-list">
+        <div className="section-header">
+          <div className="section-title">
+            <h3>Công việc đang làm</h3>
+          </div>
+        </div>
+        <div className="no-data-message">
+          <p>Không có thông tin dự án</p>
+        </div>
+      </div>
+    );
+  }
 
   // Loading state
   if (isLoading) {
@@ -183,9 +167,11 @@ export const TasksList = ({ project }: TasksListProps) => {
               <p>Tất cả công việc đang chờ bắt đầu hoặc đã hoàn thành.</p>
             </div>
           ) : (
-            sortedTasks.map((task) => {
+            pagination.paginatedData.map((task, index) => {
+            const actualIndex = pagination.startIndex + index;
             return (
               <div key={task.id} className="task-item">
+                <div className="task-number">#{actualIndex + 1}</div>
                 <div className="task-content">
                   <h4 className="task-title">{task.title}</h4>
                 </div>
@@ -224,18 +210,30 @@ export const TasksList = ({ project }: TasksListProps) => {
                 <div 
                   className="task-status"
                   style={{ 
-                    backgroundColor: getStatusColor(task.status).background,
-                    color: getStatusColor(task.status).color,
-                    borderColor: getStatusColor(task.status).border
+                    backgroundColor: getStatusColorLegacy(task.status).background,
+                    color: getStatusColorLegacy(task.status).color,
+                    borderColor: getStatusColorLegacy(task.status).border
                   }}
                 >
-                  {getStatusLabel(task.status)}
+                  {getTaskStatusLabel(task.status)}
                 </div>
               </div>
             );
           })
           )}
       </div>
+
+      {/* Pagination */}
+      {sortedTasks.length > 0 && (
+        <Pagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          itemsPerPage={5}
+          onPageChange={pagination.setCurrentPage}
+          showInfo={true}
+        />
+      )}
 
       <style jsx>{`
         .tasks-list {
@@ -295,8 +293,8 @@ export const TasksList = ({ project }: TasksListProps) => {
         }
 
         .tasks-content {
-          max-height: 600px;
-          overflow-y: auto;
+          min-height: 200px;
+          margin-bottom: 16px;
         }
 
         .no-tasks-message {
@@ -336,9 +334,9 @@ export const TasksList = ({ project }: TasksListProps) => {
 
         .task-item {
           display: grid;
-          grid-template-columns: 1fr 140px 120px 100px;
+          grid-template-columns: 50px 1fr 140px 120px 100px;
           align-items: center;
-          gap: 20px;
+          gap: 16px;
           padding: 20px;
           background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
           border: 1px solid #e2e8f0;
@@ -346,6 +344,18 @@ export const TasksList = ({ project }: TasksListProps) => {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
+        }
+
+        .task-number {
+          font-size: 14px;
+          font-weight: 700;
+          color: #FF5E13;
+          background: linear-gradient(135deg, #FFF5F0 0%, #FFE8DB 100%);
+          border: 1px solid #FFD4B8;
+          border-radius: 8px;
+          padding: 6px 12px;
+          text-align: center;
+          min-width: 40px;
         }
 
         .task-item::before {
@@ -471,25 +481,6 @@ export const TasksList = ({ project }: TasksListProps) => {
           border: 1px solid rgba(251, 146, 60, 0.2);
         }
 
-        /* Scrollbar styling */
-        .tasks-content::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .tasks-content::-webkit-scrollbar-track {
-          background: #f1f5f9;
-          border-radius: 3px;
-        }
-
-        .tasks-content::-webkit-scrollbar-thumb {
-          background: #fb923c;
-          border-radius: 3px;
-        }
-
-        .tasks-content::-webkit-scrollbar-thumb:hover {
-          background: #f97316;
-        }
-
         /* Tablet (768px - 1023px) */
         @media (max-width: 1023px) and (min-width: 769px) {
           .tasks-list {
@@ -497,7 +488,7 @@ export const TasksList = ({ project }: TasksListProps) => {
           }
 
           .task-item {
-            grid-template-columns: 1fr 120px 100px 80px;
+            grid-template-columns: 50px 1fr 120px 100px 80px;
             gap: 12px;
             padding: 14px;
           }
@@ -554,6 +545,15 @@ export const TasksList = ({ project }: TasksListProps) => {
             padding: 12px;
           }
 
+          .task-number {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 12px;
+            padding: 4px 8px;
+            min-width: 32px;
+          }
+
           .task-content {
             order: 1;
           }
@@ -561,6 +561,7 @@ export const TasksList = ({ project }: TasksListProps) => {
           .task-title {
             font-size: 14px;
             margin-bottom: 8px;
+            padding-right: 50px;
           }
 
           .task-assignee {
@@ -628,9 +629,19 @@ export const TasksList = ({ project }: TasksListProps) => {
             padding: 10px;
           }
 
+          .task-number {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 11px;
+            padding: 3px 6px;
+            min-width: 28px;
+          }
+
           .task-title {
             font-size: 13px;
             margin-bottom: 6px;
+            padding-right: 45px;
           }
 
           .task-assignee {

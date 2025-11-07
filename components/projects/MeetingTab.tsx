@@ -398,8 +398,9 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           <div className="meeting-table">
             <div
               className="table-header"
-              style={{ gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1.5fr" }}
+              style={{ gridTemplateColumns: "80px 2fr 1.5fr 1fr 1fr 1.5fr" }}
             >
+              <div className="col-stt">STT</div>
               <div className="col-title">Tiêu đề</div>
               <div className="col-time">Thời gian</div>
               <div className="col-room">Phòng họp</div>
@@ -419,8 +420,11 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                 <div
                   key={meeting.id || idx}
                   className="table-row"
-                  style={{ gridTemplateColumns: "2fr 1.5fr 1fr 1fr 1.5fr" }}
+                  style={{ gridTemplateColumns: "80px 2fr 1.5fr 1fr 1fr 1.5fr" }}
                 >
+                  <div className="col-stt">
+                    <div className="stt-number">{idx + 1}</div>
+                  </div>
                   <div className="col-title">
                     <div className="meeting-title-text">{title}</div>
                     {description && (
@@ -464,34 +468,34 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       {statusInfo.label}
                     </span>
                   </div>
-                  <div className="col-actions flex items-center gap-2 cursor-pointer">
+                  <div className="col-actions">
                     <button
-                      className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                      className="action-btn view-btn"
                       title="Xem chi tiết"
                       onClick={() => handleView(meeting)}
                     >
-                      <Eye className="w-5 h-5" />
+                      <Eye size={14} />
                     </button>
                     {meeting.status !== "Finished" &&
                       meeting.status !== "Cancelled" &&
                       !isMember && (
                         <button
-                          className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                          className="action-btn edit-btn"
                           title="Cập nhật"
                           onClick={() => handleEdit(meeting)}
                         >
-                          <Pencil className="w-5 h-5" />
+                          <Pencil size={14} />
                         </button>
                       )}
                     {!isMember &&
                       meeting.status !== "Cancelled" &&
                       meeting.status !== "Finished" && (
                         <button
-                          className="cursor-pointer p-1.5 rounded-md hover:bg-muted transition border flex items-center justify-center"
+                          className="action-btn delete-btn"
                           title="Hủy cuộc họp"
                           onClick={() => handleCancel(meeting)}
                         >
-                          <X className="w-5 h-5 text-red-500" />
+                          <X size={14} />
                         </button>
                       )}
                   </div>

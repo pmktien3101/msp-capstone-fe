@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { useUser } from "@/hooks/useUser";
+import { useAuth } from "@/hooks/useAuth";
 
 type UserRole = "member" | "admin" | "business_owner" | "project_manager";
 
@@ -35,19 +36,27 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
-  const { userId = "", email = "", role = "", image = "" } = useUser();
-
+  const {
+    userId = "",
+    email = "",
+    role = "",
+    avatarUrl = "",
+    fullName = "",
+  } = useUser();
+  const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(image);
+  const [avatarPreview, setAvatarPreview] = useState<string | undefined>(
+    avatarUrl
+  );
 
   useEffect(() => {
     setProfile({
       id: userId,
-      name: "",
+      name: fullName,
       email: email,
-      phone: "",
-      avatar: image,
+      phone: user?.phoneNumber || "",
+      avatar: avatarUrl,
       bio: "",
       role: role,
       businessName: "",
@@ -56,8 +65,8 @@ export default function ProfilePage() {
       department: "",
       projectCount: undefined,
     });
-    setAvatarPreview(image);
-  }, [userId, email, role, image]);
+    setAvatarPreview(avatarUrl);
+  }, [userId, email, role, avatarUrl, fullName]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,28 +87,29 @@ export default function ProfilePage() {
   };
 
   const getRoleBadge = (role: string) => {
-    const roleConfig: Record<string, { label: string; color: string }> = {
+    // Return semantic class names so styling can be moved to external CSS
+    const roleConfig: Record<string, { label: string; className: string }> = {
       member: {
         label: "Thành Viên",
-        color: "bg-orange-100 text-orange-700 border-orange-200",
+        className: "role-badge member",
       },
       admin: {
         label: "Quản Trị Viên",
-        color: "bg-orange-500 text-white border-orange-500",
+        className: "role-badge admin",
       },
       business_owner: {
         label: "Chủ Doanh Nghiệp",
-        color: "bg-orange-500 text-white border-orange-500",
+        className: "role-badge owner",
       },
       project_manager: {
         label: "Quản Lý Dự Án",
-        color: "bg-orange-500 text-white border-orange-500",
+        className: "role-badge manager",
       },
     };
     return (
       roleConfig[role] || {
         label: role,
-        color: "bg-gray-200 text-gray-700 border-gray-300",
+        className: "role-badge default",
       }
     );
   };
@@ -111,177 +121,477 @@ export default function ProfilePage() {
   const roleInfo = getRoleBadge(profile.role);
 
   return (
-    <div className="min-h-screen bg-orange-50">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Hồ Sơ Cá Nhân</h1>
-          <p className="text-lg">Quản lý thông tin cá nhân</p>
-        </div>
+    <>
+      <div className="profile-page">
+        <div className="profile-container">
+          <div className="profile-header">
+            <h1 className="profile-title">Hồ Sơ Cá Nhân</h1>
+            <p className="profile-subtitle">Quản lý thông tin cá nhân</p>
+          </div>
 
-        <div className="space-y-6">
-          {/* Profile Header Card */}
-          <Card className="border-orange-200 shadow-sm">
-            <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                <div className="relative">
-                  <Avatar className="h-24 w-24 border-4 border-orange-300">
-                    <AvatarImage
-                      src={avatarPreview || "/placeholder.svg"}
-                      alt={profile.name || "avatar"}
-                    />
-                    <AvatarFallback className="text-2xl bg-orange-100 text-orange-700">
-                      {profile.name
-                        ? profile.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                        : "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  {isEditing && (
-                    <label
-                      htmlFor="avatar-upload"
-                      className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-orange-500 text-white flex items-center justify-center cursor-pointer hover:bg-orange-600 transition-colors border-2 border-white"
-                    >
-                      <Camera className="h-4 w-4" />
-                      <input
-                        id="avatar-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleAvatarChange}
-                      />
-                    </label>
-                  )}
-                </div>
-
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-bold text-orange-700">
-                      {profile.name || "(Chưa có tên)"}
-                    </h2>
-                    <span
-                      className={`px-3 py-1 rounded-full border text-sm font-semibold ${roleInfo.color}`}
-                    >
-                      {roleInfo.label}
-                    </span>
-                  </div>
-                  <p className="text-orange-700">
-                    {profile.email || "(Chưa có email)"}
-                  </p>
-                  {profile.businessName && (
-                    <div className="flex items-center gap-2 mt-2 text-sm text-orange-600">
-                      <Building2 className="h-4 w-4 text-orange-500" />
-                      <span>{profile.businessName}</span>
-                    </div>
-                  )}
-                </div>
-
-                <Button
-                  onClick={() =>
-                    isEditing ? handleSave() : setIsEditing(true)
-                  }
-                  className={`gap-2 ${
-                    isEditing
-                      ? "bg-orange-500 hover:bg-orange-600"
-                      : "bg-orange-400 hover:bg-orange-500"
-                  } text-white`}
+          <div className="profile-sections">
+            {/* Profile Header Card */}
+            <Card className="card profile-header-card">
+              <CardContent className="card-content">
+                <div
+                  className={`profile-header-inner ${
+                    isEditing ? "editing" : ""
+                  }`}
                 >
-                  {isEditing ? (
-                    <>
-                      <Save className="h-4 w-4" />
-                      Lưu Thay Đổi
-                    </>
-                  ) : (
-                    "Chỉnh Sửa"
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="profile-avatar-wrap">
+                    <Avatar className="profile-avatar">
+                      <AvatarImage
+                        src={avatarPreview || "/placeholder.svg"}
+                        alt={profile.name || "avatar"}
+                      />
+                      <AvatarFallback className="avatar-fallback">
+                        {profile.name
+                          ? profile.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                          : "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    {isEditing && (
+                      <label
+                        htmlFor="avatar-upload"
+                        className="avatar-upload-label"
+                      >
+                        <Camera className="icon camera-icon" />
+                        <input
+                          id="avatar-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleAvatarChange}
+                        />
+                      </label>
+                    )}
+                  </div>
 
-          {/* Basic Information */}
-          <Card className="border-orange-100">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Thông Tin Cơ Bản
-              </CardTitle>
-              <CardDescription className="">
-                Thông tin cá nhân và liên hệ của bạn
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-orange-700">
-                    Họ và Tên
+                  <div className="profile-info">
+                    <div className="profile-name-row">
+                      <h2 className="profile-name">
+                        {profile.name || "(Chưa có tên)"}
+                      </h2>
+                      <span className={roleInfo.className}>
+                        {roleInfo.label}
+                      </span>
+                    </div>
+                    <p className="profile-email">
+                      {profile.email || "(Chưa có email)"}
+                    </p>
+                    {profile.businessName && (
+                      <div className="business-info">
+                        <Building2 className="icon building-icon" />
+                        <span>{profile.businessName}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    onClick={() =>
+                      isEditing ? handleSave() : setIsEditing(true)
+                    }
+                    className={`profile-action-button ${
+                      isEditing ? "editing" : ""
+                    }`}
+                  >
+                    {isEditing ? (
+                      <>
+                        <Save className="icon save-icon" />
+                        Lưu Thay Đổi
+                      </>
+                    ) : (
+                      "Chỉnh Sửa"
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Basic Information */}
+            <Card className="card profile-basic-card">
+              <CardHeader>
+                <CardTitle className="card-title">Thông Tin Cơ Bản</CardTitle>
+                <CardDescription>
+                  Thông tin cá nhân và liên hệ của bạn
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="card-body">
+                <div className="profile-grid">
+                  <div className="field-group">
+                    <Label htmlFor="name" className="profile-label">
+                      Họ và Tên
+                    </Label>
+                    <Input
+                      id="name"
+                      value={profile.name}
+                      onChange={(e) =>
+                        setProfile({ ...profile, name: e.target.value })
+                      }
+                      disabled={!isEditing}
+                      className="profile-input"
+                      placeholder="(Chưa có tên)"
+                    />
+                  </div>
+
+                  <div className="field-group">
+                    <Label htmlFor="email" className="profile-label">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={profile.email}
+                      disabled
+                      className="profile-input disabled"
+                      placeholder="(Chưa có email)"
+                    />
+                  </div>
+
+                  <div className="field-group">
+                    <Label htmlFor="phone" className="profile-label">
+                      Số Điện Thoại
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profile.phone}
+                      onChange={(e) =>
+                        setProfile({ ...profile, phone: e.target.value })
+                      }
+                      disabled={!isEditing}
+                      className="profile-input"
+                      placeholder="(Chưa có số điện thoại)"
+                    />
+                  </div>
+                </div>
+
+                <div className="field-group">
+                  <Label htmlFor="bio" className="profile-label">
+                    Giới Thiệu
                   </Label>
-                  <Input
-                    id="name"
-                    value={profile.name}
+                  <Textarea
+                    id="bio"
+                    value={profile.bio}
                     onChange={(e) =>
-                      setProfile({ ...profile, name: e.target.value })
+                      setProfile({ ...profile, bio: e.target.value })
                     }
                     disabled={!isEditing}
-                    className="focus:border-orange-500"
-                    placeholder="(Chưa có tên)"
+                    rows={3}
+                    placeholder="Viết vài dòng giới thiệu về bản thân..."
+                    className="profile-textarea"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-orange-700">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profile.email}
-                    disabled
-                    className="bg-orange-100 text-orange-700"
-                    placeholder="(Chưa có email)"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-orange-700">
-                    Số Điện Thoại
-                  </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={profile.phone}
-                    onChange={(e) =>
-                      setProfile({ ...profile, phone: e.target.value })
-                    }
-                    disabled={!isEditing}
-                    className="focus:border-orange-500"
-                    placeholder="(Chưa có số điện thoại)"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bio" className="text-orange-700">
-                  Giới Thiệu
-                </Label>
-                <Textarea
-                  id="bio"
-                  value={profile.bio}
-                  onChange={(e) =>
-                    setProfile({ ...profile, bio: e.target.value })
-                  }
-                  disabled={!isEditing}
-                  rows={3}
-                  placeholder="Viết vài dòng giới thiệu về bản thân..."
-                  className="focus:border-orange-500"
-                />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+
+      <style jsx>{`
+        /* Page and container */
+        .profile-page {
+          min-height: 100vh;
+          background: linear-gradient(180deg, #fffaf0 0%, #fff7ed 100%);
+          padding-bottom: 3rem;
+        }
+
+        .profile-container {
+          max-width: 72rem; /* a little wider */
+          margin: 2.5rem auto;
+          padding: 2rem;
+        }
+
+        .profile-header {
+          margin-bottom: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .profile-title {
+          font-size: 2.125rem;
+          line-height: 1.05;
+          font-weight: 800;
+          color: #9a3412; /* deep orange */
+          letter-spacing: -0.02em;
+        }
+
+        .profile-subtitle {
+          font-size: 1rem;
+          color: #92400e;
+        }
+
+        /* Sections & cards */
+        .profile-sections {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1.25rem;
+        }
+
+        @media (min-width: 1024px) {
+          .profile-sections {
+            gap: 1.75rem;
+          }
+        }
+
+        .card {
+          border-radius: 0.75rem;
+          overflow: hidden;
+          background: linear-gradient(180deg, #ffffff 0%, #fffcfb 100%);
+          border: 1px solid rgba(249, 115, 22, 0.08);
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+        }
+
+        .card .card-content {
+          padding: 1.25rem;
+        }
+
+        /* Header inner layout */
+        .profile-header-inner {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          align-items: flex-start;
+        }
+
+        @media (min-width: 640px) {
+          .profile-header-inner {
+            flex-direction: row;
+            align-items: center;
+          }
+          .profile-info {
+            flex: 1;
+          }
+        }
+
+        /* Avatar */
+        .profile-avatar-wrap {
+          position: relative;
+        }
+
+        /* Avatar sizes: mobile-friendly default, larger on desktop */
+        .profile-avatar {
+          width: 140px;
+          height: 140px;
+          border-radius: 9999px;
+          overflow: hidden;
+          display: inline-block;
+          border: 6px solid rgba(253, 186, 116, 0.95);
+          box-shadow: 0 10px 26px rgba(34, 11, 0, 0.08);
+        }
+
+        .profile-avatar img,
+        .profile-avatar > div {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .avatar-fallback {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2.25rem;
+          font-weight: 700;
+          background: rgba(255, 247, 237, 0.95);
+          color: #9a3412;
+        }
+
+        .avatar-upload-label {
+          position: absolute;
+          right: -10px;
+          bottom: -10px;
+          width: 52px;
+          height: 52px;
+          border-radius: 9999px;
+          background: #fb923c;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          border: 3px solid #fff;
+          transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+        .avatar-upload-label:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 26px rgba(34, 11, 0, 0.14);
+        }
+
+        /* When editing, keep avatar a bit smaller so the form layout is comfortable */
+        .profile-header-inner.editing .profile-avatar {
+          width: 96px;
+          height: 96px;
+          border-width: 4px;
+        }
+        .profile-header-inner.editing .avatar-fallback {
+          font-size: 1.5rem;
+        }
+        .profile-header-inner.editing .avatar-upload-label {
+          right: -6px;
+          bottom: -6px;
+          width: 36px;
+          height: 36px;
+        }
+
+        @media (min-width: 640px) {
+          .profile-avatar {
+            width: 220px;
+            height: 220px;
+          }
+          .avatar-fallback {
+            font-size: 3rem;
+          }
+          .avatar-upload-label {
+            right: -12px;
+            bottom: -12px;
+            width: 64px;
+            height: 64px;
+          }
+          .profile-header-inner.editing .profile-avatar {
+            width: 120px;
+            height: 120px;
+          }
+          .profile-header-inner.editing .avatar-fallback {
+            font-size: 1.75rem;
+          }
+          .profile-header-inner.editing .avatar-upload-label {
+            right: -8px;
+            bottom: -8px;
+            width: 40px;
+            height: 40px;
+          }
+        }
+
+        /* Info */
+        .profile-name-row {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .profile-name {
+          font-size: 1.125rem;
+          font-weight: 800;
+          color: #92400e;
+        }
+
+        .role-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.28rem 0.7rem;
+          border-radius: 9999px;
+          font-weight: 700;
+          font-size: 0.8rem;
+          /* Add subtle border to make the badge more defined */
+          border: 1px solid rgba(42, 20, 15, 0.1);
+        }
+        .role-badge.member {
+          background: #fff7ed;
+          color: #92400e;
+          border: 1px solid rgba(253, 216, 167, 0.6);
+        }
+        .role-badge.admin,
+        .role-badge.owner,
+        .role-badge.manager {
+          background: #fb923c;
+          color: #fff;
+        }
+
+        .profile-email {
+          color: #7c2d12;
+          margin-top: 0.25rem;
+        }
+        .business-info {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #c2410c;
+          font-size: 0.95rem;
+          margin-top: 0.5rem;
+        }
+
+        /* Action button */
+        .profile-action-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.6rem;
+          padding: 0.5rem 0.9rem;
+          border-radius: 0.55rem;
+          background: linear-gradient(180deg, #fb923c, #f97316);
+          color: #fff;
+          border: none;
+          cursor: pointer;
+          transition: transform 0.12s ease, box-shadow 0.12s ease;
+          box-shadow: 0 8px 18px rgba(249, 115, 22, 0.18);
+        }
+        .profile-action-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px rgba(249, 115, 22, 0.18);
+        }
+        .profile-action-button.editing {
+          background: linear-gradient(180deg, #f97316, #ea580c);
+        }
+
+        /* Form grid */
+        .profile-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+        @media (min-width: 768px) {
+          .profile-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        .field-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.4rem;
+        }
+        .profile-label {
+          color: #92400e;
+          font-weight: 700;
+          font-size: 0.9rem;
+        }
+
+        /* Inputs */
+        .profile-input,
+        .profile-textarea {
+          padding: 0.6rem;
+          border-radius: 0.5rem;
+          border: 1px solid rgba(249, 115, 22, 0.12);
+          background: #fff;
+          color: #111827;
+          transition: box-shadow 0.12s ease, border-color 0.12s ease;
+        }
+        .profile-input:focus,
+        .profile-textarea:focus {
+          outline: none;
+          border-color: rgba(249, 115, 22, 0.36);
+          box-shadow: 0 6px 18px rgba(249, 115, 22, 0.08);
+        }
+        .profile-input.disabled {
+          background: linear-gradient(180deg, #fff7ed, #fff7ed);
+          color: #7c2d12;
+        }
+
+        /* Small utilities */
+        .icon {
+          display: inline-block;
+          vertical-align: middle;
+        }
+        .user-icon,
+        .building-icon {
+          opacity: 0.9;
+        }
+      `}</style>
+    </>
   );
 }

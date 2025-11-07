@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Project } from '@/types/project';
+import { ProjectStatus, TaskStatus, getProjectStatusLabel, getProjectStatusColor } from '@/constants/status';
 import { 
   FolderOpen, 
   CheckCircle, 
@@ -32,7 +33,7 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
     const projectTasks = tasks.filter((task: any) => task.projectId === projectId);
     if (projectTasks.length === 0) return 0;
     
-    const completedTasks = projectTasks.filter((task: any) => task.status === 'Hoàn thành').length;
+    const completedTasks = projectTasks.filter((task: any) => task.status === TaskStatus.Completed).length;
     return Math.round((completedTasks / projectTasks.length) * 100);
   };
 
@@ -45,10 +46,10 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
 
   // Tính toán thống kê theo trạng thái
   const statusStats = {
-    active: projects.filter(p => p.status === 'Đang hoạt động').length,
-    completed: projects.filter(p => p.status === 'Hoàn thành').length,
-    planning: projects.filter(p => p.status === 'Lập kế hoạch').length,
-    'on-hold': projects.filter(p => p.status === 'Tạm dừng').length,
+    active: projects.filter(p => p.status === ProjectStatus.InProgress).length,
+    completed: projects.filter(p => p.status === ProjectStatus.Completed).length,
+    planning: projects.filter(p => p.status === ProjectStatus.Scheduled).length,
+    'on-hold': projects.filter(p => p.status === ProjectStatus.Paused).length,
   };
 
   const totalProjects = projects.length;
@@ -63,24 +64,13 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
     ? projects 
     : projects.filter(p => p.status === statusFilter);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Đang hoạt động': return 'rgba(16, 185, 129, 0.1)';
-      case 'Hoàn thành': return 'rgba(59, 130, 246, 0.1)';
-      case 'Lập kế hoạch': return 'rgba(245, 158, 11, 0.1)';
-      case 'Tạm dừng': return 'rgba(239, 68, 68, 0.1)';
-      default: return 'rgba(107, 114, 128, 0.1)';
-    }
-  };
-
-  const getStatusTextColor = (status: string) => {
-    switch (status) {
-      case 'Đang hoạt động': return '#10b981';
-      case 'Hoàn thành': return '#3b82f6';
-      case 'Lập kế hoạch': return '#f59e0b';
-      case 'Tạm dừng': return '#ef4444';
-      default: return '#6b7280';
-    }
+  const getStatusBgColor = (status: string) => {
+    const color = getProjectStatusColor(status);
+    // Convert hex to rgba with 0.1 opacity
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.1)`;
   };
 
   return (
@@ -99,10 +89,10 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
             className="status-filter"
           >
             <option value="all">Tất cả dự án</option>
-            <option value="active">Đang triển khai</option>
-            <option value="completed">Hoàn thành</option>
-            <option value="planning">Lập kế hoạch</option>
-            <option value="on-hold">Tạm dừng</option>
+            <option value={ProjectStatus.InProgress}>Đang triển khai</option>
+            <option value={ProjectStatus.Completed}>Hoàn thành</option>
+            <option value={ProjectStatus.Scheduled}>Đã lên lịch</option>
+            <option value={ProjectStatus.Paused}>Tạm dừng</option>
           </select>
         </div>
       </div>
@@ -182,11 +172,11 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
                     <div 
                       className="status-badge"
                       style={{ 
-                        backgroundColor: getStatusColor(project.status),
-                        color: getStatusTextColor(project.status)
+                        backgroundColor: getStatusBgColor(project.status),
+                        color: getProjectStatusColor(project.status)
                       }}
                     >
-                      {project.status}
+                      {getProjectStatusLabel(project.status)}
                     </div>
                   </td>
                   <td className="members-cell">

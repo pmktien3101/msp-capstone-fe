@@ -7,6 +7,7 @@ import { useProjectModal } from '@/contexts/ProjectModalContext';
 import { projectService } from '@/services/projectService';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/lib/rbac';
+import { getProjectStatusColor, getProjectStatusLabel } from '@/constants/status';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -16,7 +17,7 @@ interface ProjectSectionProps {
 export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { openCreateModal } = useProjectModal();
+  const { openCreateModal, projectRefreshTrigger } = useProjectModal();
   const { user, isAuthenticated } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,25 +38,25 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
       
       // Fetch projects based on user role
       if (user.role === UserRole.PROJECT_MANAGER || user.role === 'ProjectManager') {
-        console.log('[Sidebar] Fetching projects managed by ProjectManager:', user.userId);
+        // console.log('[Sidebar] Fetching projects managed by ProjectManager:', user.userId);
         result = await projectService.getProjectsByManagerId(user.userId);
       } else if (user.role === UserRole.MEMBER || user.role === 'Member') {
-        console.log('[Sidebar] Fetching projects where Member participates:', user.userId);
+        // console.log('[Sidebar] Fetching projects where Member participates:', user.userId);
         result = await projectService.getProjectsByMemberId(user.userId);
       } else {
-        console.log('[Sidebar] Unknown role, fetching all projects');
+        // console.log('[Sidebar] Unknown role, fetching all projects');
         result = await projectService.getAllProjects();
       }
 
       if (result.success && result.data) {
-        console.log('[Sidebar] Fetched projects successfully:', result.data.items.length, 'projects');
+        // console.log('[Sidebar] Fetched projects successfully:', result.data.items.length, 'projects');
         setProjects(result.data.items);
       } else {
-        console.error('[Sidebar] Failed to fetch projects:', result.error);
+        // console.error('[Sidebar] Failed to fetch projects:', result.error);
         setProjects([]);
       }
     } catch (error) {
-      console.error('[Sidebar] Error fetching projects:', error);
+      // console.error('[Sidebar] Error fetching projects:', error);
       setProjects([]);
     } finally {
       setLoading(false);
@@ -64,22 +65,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
   useEffect(() => {
     fetchProjects();
-  }, [fetchProjects]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Đang hoạt động':
-        return '#10b981';
-      case 'Lập kế hoạch':
-        return '#f59e0b';
-      case 'Tạm dừng':
-        return '#ef4444';
-      case 'Hoàn thành':
-        return '#6b7280';
-      default:
-        return '#6b7280';
-    }
-  };
+  }, [fetchProjects, projectRefreshTrigger]);
 
   const handleProjectClick = (projectId: string) => {
     router.push(`/projects/${projectId}`);
@@ -109,12 +95,12 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
 
   // Sort projects: Active projects with nearest deadline first
   const sortedProjects = [...projects].sort((a, b) => {
-    // 1. Prioritize "Đang hoạt động" (Active) projects first
+    // 1. Prioritize InProgress projects first
     const statusPriority = {
-      'Đang hoạt động': 1,
-      'Lập kế hoạch': 2,
-      'Tạm dừng': 3,
-      'Hoàn thành': 4
+      'InProgress': 1,
+      'Scheduled': 2,
+      'Paused': 3,
+      'Completed': 4
     };
     
     const aPriority = statusPriority[a.status as keyof typeof statusPriority] || 5;
@@ -220,10 +206,10 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
                     <div className="project-meta">
                       <div 
                         className="status-dot" 
-                        style={{ backgroundColor: getStatusColor(project.status) }}
+                        style={{ backgroundColor: getProjectStatusColor(project.status) }}
                       ></div>
                       <span className="project-status">
-                        {project.status}
+                        {getProjectStatusLabel(project.status)}
                       </span>
                     </div>
                   </div>

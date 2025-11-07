@@ -91,7 +91,7 @@ export function isTokenExpiringSoon(token: string, minutesThreshold: number = 5)
 /**
  * Extract user information from JWT token
  */
-export function extractUserFromToken(token: string): { userId: string; email: string; fullName: string; role: string } | null {
+export function extractUserFromToken(token: string): { userId: string; email: string; fullName: string; role: string; avatarUrl: string } | null {
   const payload = decodeJwtToken(token);
   if (!payload) return null;
   
@@ -99,7 +99,8 @@ export function extractUserFromToken(token: string): { userId: string; email: st
     userId: payload.userId || payload.sub,
     email: payload.email,
     fullName: payload.fullName,
-    role: payload.role
+    role: payload.role,
+    avatarUrl: payload.avatarUrl || null,
   };
 }
 

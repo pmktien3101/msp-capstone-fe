@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { Project } from "@/types/project";
 import { BoardHeader } from "./BoardHeader";
-import { mockTasks, mockMembers } from "@/constants/mockData";
-import { Trash2, Eye, Edit, MoreVertical } from "lucide-react";
+import { Trash2, Eye, Edit, MoreVertical, UserPlus } from "lucide-react";
 import { taskService } from "@/services/taskService";
 import { projectService } from "@/services/projectService";
 import { GetTaskResponse } from "@/types/task";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/lib/rbac";
+import Pagination from "@/components/ui/Pagination";
+import { TaskStatus, getTaskStatusLabel, getTaskStatusColor } from "@/constants/status";
+import { ReassignTaskModal } from "../tasks/ReassignTaskModal";
 
 interface ProjectBoardProps {
   project: Project;
@@ -45,9 +47,21 @@ export const ProjectBoard = ({
   const [isLoadingTasks, setIsLoadingTasks] = useState(false);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
+  // Pagination state for each group
+  const [groupPages, setGroupPages] = useState<Record<string, number>>({});
+
   const projectId = project?.id?.toString();
   const userRole = user?.role;
   const userId = user?.userId;
+  // Check if user is Member (Member can reassign tasks, but cannot create/delete)
+  const isMember = userRole === UserRole.MEMBER || userRole === 'Member';
+  const isProjectManager = userRole === UserRole.PROJECT_MANAGER || userRole === 'ProjectManager' || 
+                           userRole === UserRole.BUSINESS_OWNER || userRole === 'BusinessOwner' ||
+                           userRole === UserRole.ADMIN || userRole === 'Admin';
+  // Modal state for reassign
+  const [selectedTask, setSelectedTask] = useState<GetTaskResponse | null>(null);
+  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
+
 
   // Fetch tasks from API
   const fetchTasks = useCallback(async () => {
@@ -59,19 +73,6 @@ export const ProjectBoard = ({
     setIsLoadingTasks(true);
     try {
       let response;
-      
-      // DEBUG: Log user info to check role value
-      // console.log(`[ProjectBoard] 🔍 User Info:`, { userId, userRole, projectId });
-      // console.log(`[ProjectBoard] 🔍 Role type:`, typeof userRole);
-      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'ProjectManager':`, userRole === 'ProjectManager');
-      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.PROJECT_MANAGER:`, userRole === UserRole.PROJECT_MANAGER);
-      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'Member':`, userRole === 'Member');
-      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.MEMBER:`, userRole === UserRole.MEMBER);
-      // console.log(`[ProjectBoard] 🔍 UserRole enum values:`, { 
-      //   PROJECT_MANAGER: UserRole.PROJECT_MANAGER, 
-      //   MEMBER: UserRole.MEMBER 
-      // });
-      
       // ProjectManager & BusinessOwner: Get all tasks in project
       // Member: Get only tasks assigned to this user in project
       if (userRole === UserRole.PROJECT_MANAGER || userRole === 'ProjectManager' || 
@@ -86,20 +87,11 @@ export const ProjectBoard = ({
       if (response.success && response.data) {
         // Extract items from PagingResponse
         const taskList = response.data.items || [];
-        // console.log(`[ProjectBoard] ✅ Successfully loaded ${taskList.length} tasks for role "${userRole}"`);
-        // console.log(`[ProjectBoard] 📋 Task list:`, taskList.map(t => ({ 
-        //   id: t.id, 
-        //   title: t.title, 
-        //   userId: t.userId,
-        //   assignedTo: t.user?.fullName || t.userId 
-        // })));
         setTasks(taskList);
       } else {
-        // console.error('[ProjectBoard] ❌ Failed to fetch tasks:', response.error);
         setTasks([]);
       }
     } catch (error) {
-      // console.error('[ProjectBoard] Error fetching tasks:', error);
       setTasks([]);
     } finally {
       setIsLoadingTasks(false);
@@ -120,7 +112,6 @@ export const ProjectBoard = ({
 
       setIsLoadingMembers(true);
       try {
-        // console.log(`[ProjectBoard] Fetching members for project: ${projectId}`);
         const response = await projectService.getProjectMembers(projectId);
         
         if (response.success && response.data) {
@@ -134,14 +125,11 @@ export const ProjectBoard = ({
               role: pm.member.role
             }));
           
-          // console.log(`[ProjectBoard] Loaded ${transformedMembers.length} members`);
           setMembers(transformedMembers);
         } else {
-          // console.error('[ProjectBoard] Failed to fetch members:', response.error);
           setMembers([]);
         }
       } catch (error) {
-        // console.error('[ProjectBoard] Error fetching members:', error);
         setMembers([]);
       } finally {
         setIsLoadingMembers(false);
@@ -155,27 +143,6 @@ export const ProjectBoard = ({
   const memberMap = Object.fromEntries(
     members.map((m) => [m.id, m.name])
   );
-
-  // Helper functions
-  const getStatusLabel = (status: string) => {
-    // Status in DB: "Chưa bắt đầu", "Đang làm", "Tạm dừng", "Hoàn thành"
-    return status;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Chưa bắt đầu":
-        return "#6b7280";
-      case "Đang làm":
-        return "#f59e0b";
-      case "Tạm dừng":
-        return "#ef4444";
-      case "Hoàn thành":
-        return "#10b981";
-      default:
-        return "#6b7280";
-    }
-  };
 
   // Filter tasks by search query
   const filteredTasks = tasks.filter(
@@ -217,7 +184,7 @@ export const ProjectBoard = ({
       
       switch (groupBy) {
         case "status":
-          groupKey = getStatusLabel(task.status);
+          groupKey = getTaskStatusLabel(task.status);
           break;
         case "assignee":
           const assignee = getTaskAssignee(task);
@@ -246,6 +213,51 @@ export const ProjectBoard = ({
 
   const groupedTasks = groupTasks(filteredTasks);
 
+  // Reset pagination when groupBy changes
+  useEffect(() => {
+    setGroupPages({});
+  }, [groupBy]);
+
+  // Helper to get current page for a group
+  const getGroupPage = (groupName: string) => groupPages[groupName] || 1;
+
+  // Helper to set page for a group
+  const setGroupPage = (groupName: string, page: number) => {
+    setGroupPages(prev => ({ ...prev, [groupName]: page }));
+  };
+
+  // Calculate paginated data for each group (client-side pagination)
+  const paginatedGroups = Object.entries(groupedTasks).reduce((acc, [groupName, groupTasks]) => {
+    const itemsPerPage = 5;
+    const currentPage = getGroupPage(groupName);
+    const totalPages = Math.ceil(groupTasks.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedData = groupTasks.slice(startIndex, endIndex);
+
+    acc[groupName] = {
+      allTasks: groupTasks,
+      paginatedData,
+      currentPage,
+      totalPages,
+      totalItems: groupTasks.length,
+      startIndex,
+      endIndex,
+      itemsPerPage,
+    };
+
+    return acc;
+  }, {} as Record<string, {
+    allTasks: GetTaskResponse[];
+    paginatedData: GetTaskResponse[];
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    startIndex: number;
+    endIndex: number;
+    itemsPerPage: number;
+  }>);
+
   const handleDeleteTask = (e: React.MouseEvent, taskId: string, taskTitle: string) => {
     e.stopPropagation(); // Ngăn chặn event bubbling để không trigger onTaskClick
     if (onDeleteTask) {
@@ -266,7 +278,18 @@ export const ProjectBoard = ({
       onTaskClick(task);
     }
   };
+  const handleReassignClick = (e: React.MouseEvent, task: GetTaskResponse) => {
+    e.stopPropagation();
+    setSelectedTask(task);
+    setIsReassignModalOpen(true);
+  };
 
+  const handleReassignSuccess = () => {
+    setIsReassignModalOpen(false);
+    setSelectedTask(null);
+    // Refresh tasks
+    fetchTasks();
+  };
   return (
     <div className="project-board">
       <BoardHeader
@@ -277,7 +300,7 @@ export const ProjectBoard = ({
         members={members}
         userRole={userRole}
       />
-      {onCreateTask && (
+      {onCreateTask &&  isProjectManager && (
         <div className="create-task-container">
           <button onClick={onCreateTask}>Tạo công việc mới</button>
         </div>
@@ -293,153 +316,172 @@ export const ProjectBoard = ({
         ) : tasks.length === 0 ? (
           <div className="empty-state">
             <p>Chưa có công việc nào trong dự án này</p>
-            {onCreateTask && (
-              <button onClick={onCreateTask}>Tạo công việc đầu tiên</button>
-            )}
+          {onCreateTask && isProjectManager && (
+            <div className="create-task-container">
+              <button onClick={onCreateTask}>Tạo công việc mới</button>
+            </div>
+          )}
           </div>
         ) : (
-          Object.entries(groupedTasks).map(([groupName, tasks]) => (
-          <div key={groupName} className="task-group">
-            {groupBy !== "none" && (
-              <div className="group-header">
-                <h3 className="group-title">{groupName}</h3>
-                <span className="group-count">({tasks.length} công việc)</span>
-              </div>
-            )}
-            
-            <table>
-              <thead>
-                <tr>
-                  <th>STT</th>
-                  <th>Tiêu đề</th>
-                  <th>Mô tả</th>
-                  <th>Trạng thái</th>
-                  <th>Người thực hiện</th>
-                  <th>Bắt đầu</th>
-                  <th>Kết thúc</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task, index) => (
-                  <tr key={task.id}>
-                    <td className="stt-cell">{index + 1}</td>
-                    <td className="title-cell" title={task.title}>
-                      <span className="title-text">{task.title}</span>
-                    </td>
-                    <td className="description-cell" title={task.description}>
-                      <span className="description-text">{task.description}</span>
-                    </td>
-                    <td className="status-cell">
-                      <span 
-                        className="status-badge"
-                        style={{ backgroundColor: getStatusColor(task.status) }}
-                      >
-                        {getStatusLabel(task.status)}
-                      </span>
-                    </td>
-                    <td className="assignee-cell" title={getTaskAssignee(task) || "Chưa giao"}>
-                      <span className="assignee-text">
-                        {getTaskAssignee(task) || "Chưa giao"}
-                      </span>
-                    </td>
-                    <td className="date-cell">{formatDate(task.startDate || '')}</td>
-                    <td className="date-cell">{formatDate(task.endDate || '')}</td>
-                    <td className="actions-cell">
-                      <div className="action-buttons">
-                        <button
-                          className="action-btn view-btn"
-                          onClick={(e) => handleViewTask(e, task)}
-                          title="Xem chi tiết"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button
-                          className="action-btn edit-btn"
-                          onClick={(e) => handleEditTask(e, task)}
-                          title="Chỉnh sửa"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button
-                          className="action-btn delete-btn"
-                          onClick={(e) => handleDeleteTask(e, task.id, task.title)}
-                          title="Xóa công việc"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
+          Object.entries(paginatedGroups).map(([groupName, pagination]) => {
+            return (
+              <div key={groupName} className="task-group">
+                {groupBy !== "none" && (
+                  <div className="group-header">
+                    <h3 className="group-title">{groupName}</h3>
+                    <span className="group-count">({pagination.totalItems} công việc)</span>
+                  </div>
+                )}
+                
+                <table>
+                  <thead>
+                    <tr>
+                      <th>STT</th>
+                      <th>Tiêu đề</th>
+                      <th>Mô tả</th>
+                      <th>Trạng thái</th>
+                      <th>Người thực hiện</th>
+                      <th>Bắt đầu</th>
+                      <th>Kết thúc</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagination.paginatedData.map((task, index) => {
+                      const actualIndex = pagination.startIndex + index;
+                      return (
+                        <tr key={task.id}>
+                          <td className="stt-cell">{actualIndex + 1}</td>
+                          <td className="title-cell" title={task.title}>
+                            <span className="title-text">{task.title}</span>
+                          </td>
+                          <td className="description-cell" title={task.description}>
+                            <span className="description-text">{task.description}</span>
+                          </td>
+                          <td className="status-cell">
+                            <span 
+                              className="status-badge"
+                              style={{ backgroundColor: getTaskStatusColor(task.status) }}
+                            >
+                              {getTaskStatusLabel(task.status)}
+                            </span>
+                          </td>
+                          <td className="assignee-cell" title={getTaskAssignee(task) || "Chưa giao"}>
+                            <span className="assignee-text">
+                              {getTaskAssignee(task) || "Chưa giao"}
+                            </span>
+                          </td>
+                          <td className="date-cell">{formatDate(task.startDate || '')}</td>
+                          <td className="date-cell">{formatDate(task.endDate || '')}</td>
+                          <td className="actions-cell">
+                            <div className="action-buttons">
+                              <button
+                                className="action-btn view-btn"
+                                onClick={(e) => handleViewTask(e, task)}
+                                title="Xem chi tiết"
+                              >
+                              <Eye size={14} />
+                              </button>
+                            {onEditTask && (
+                              <button
+                                className="action-btn edit-btn"
+                                onClick={(e) => handleEditTask(e, task)}
+                                title="Chỉnh sửa"
+                              >
+                                <Edit size={14} />
+                              </button>
+                            )}
+                            {isProjectManager && onDeleteTask && (
+                              <button
+                                className="action-btn delete-btn"
+                                onClick={(e) => handleDeleteTask(e, task.id, task.title)}
+                                title="Xóa công việc"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                            {/* nếu PM sẽ là isProjectManager */}
+                            {((task.status !== "OverDue" && task.userId === userId)) && (
+                              <button
+                                className="action-btn reassign-btn"
+                                onClick={(e) => handleReassignClick(e, task)}
+                                title="Chuyển giao công việc"
+                              >
+                                <UserPlus size={14} /> 
+                              </button>
+                            )}
+                          </div>
+                        </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          ))
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* Pagination for this group */}
+                {pagination.totalItems > 0 && (
+                  <Pagination
+                    currentPage={pagination.currentPage}
+                    totalPages={pagination.totalPages}
+                    totalItems={pagination.totalItems}
+                    itemsPerPage={pagination.itemsPerPage}
+                    onPageChange={(page) => setGroupPage(groupName, page)}
+                    showInfo={true}
+                  />
+                )}
+              </div>
+            );
+          })
         )}
       </div>
-
+      {/* Reassign Task Modal */}
+      {isReassignModalOpen && selectedTask && (
+        <ReassignTaskModal
+          isOpen={isReassignModalOpen}
+          onClose={() => {
+            setIsReassignModalOpen(false);
+            setSelectedTask(null);
+          }}
+          task={selectedTask}
+          onSuccess={handleReassignSuccess}
+        />
+      )}
       <style jsx>{`
         .project-board {
           width: 100%;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-          padding: 24px;
-          gap: 24px;
         }
         
         .create-task-container {
-          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-          border: 2px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 20px 24px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-          backdrop-filter: blur(10px);
+          padding: 16px 0;
+          margin-bottom: 16px;
         }
         
         .create-task-container button {
-          background: linear-gradient(135deg, #FF5E13 0%, #FF8C42 100%);
+          background: #ff5e13;
           color: white;
           border: none;
-          border-radius: 12px;
-          padding: 12px 24px;
+          border-radius: 6px;
+          padding: 8px 16px;
           font-size: 14px;
-          font-weight: 600;
+          font-weight: 500;
           cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.2);
-          display: flex;
-          align-items: center;
-          gap: 8px;
+          transition: all 0.2s ease;
         }
         
         .create-task-container button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 20px rgba(255, 94, 19, 0.3);
-          background: linear-gradient(135deg, #FF8C42 0%, #FF5E13 100%);
+          background: #e54d00;
         }
         
         .task-list {
-          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-          border-radius: 20px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          overflow: hidden;
-          backdrop-filter: blur(10px);
-          padding: 24px;
+          width: 100%;
         }
 
         .loading-state,
         .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 60px 20px;
           text-align: center;
-          color: #64748b;
+          padding: 48px;
+          color: #6b7280;
+          font-size: 14px;
         }
 
         .loading-spinner {
@@ -449,7 +491,7 @@ export const ProjectBoard = ({
           border-top-color: #FF5E13;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
-          margin-bottom: 16px;
+          margin: 0 auto 16px;
         }
 
         @keyframes spin {
@@ -459,8 +501,6 @@ export const ProjectBoard = ({
         .loading-state p,
         .empty-state p {
           margin: 0 0 20px 0;
-          font-size: 16px;
-          font-weight: 500;
         }
 
         .empty-state button {
@@ -469,8 +509,6 @@ export const ProjectBoard = ({
           border: 1px solid #FF5E13;
           border-radius: 8px;
           padding: 10px 20px;
-          font-size: 14px;
-          font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
         }
@@ -478,8 +516,6 @@ export const ProjectBoard = ({
         .empty-state button:hover {
           background: #FF5E13;
           color: white;
-        }
-          backdrop-filter: blur(10px);
         }
         
         .task-group {
@@ -491,9 +527,9 @@ export const ProjectBoard = ({
         }
         
         .group-header {
-          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-          padding: 16px 20px;
-          border-bottom: 2px solid #ea580c;
+          background: #f9fafb;
+          padding: 12px 16px;
+          border-bottom: 1px solid #e5e7eb;
           margin-bottom: 0;
           display: flex;
           align-items: center;
@@ -502,259 +538,198 @@ export const ProjectBoard = ({
         
         .group-title {
           margin: 0;
-          font-size: 16px;
-          font-weight: 700;
-          color: #1e293b;
-          letter-spacing: -0.025em;
+          font-size: 14px;
+          font-weight: 600;
+          color: #374151;
         }
         
         .group-count {
-          background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+          background: #ff5e13;
           color: white;
-          padding: 4px 12px;
+          padding: 2px 8px;
           border-radius: 12px;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
-          box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);
         }
         
         table {
           width: 100%;
-          border-collapse: separate;
-          border-spacing: 0;
-          font-size: 14px;
-          table-layout: fixed;
+          border-collapse: collapse;
+          background: white;
         }
         
         thead {
-          background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
-          position: sticky;
-          top: 0;
-          z-index: 10;
+          background: #f9fafb;
         }
         
         th {
-          color: white;
-          font-weight: 700;
-          font-size: 13px;
-          letter-spacing: 0.025em;
-          text-transform: uppercase;
-          padding: 20px 16px;
+          padding: 12px;
           text-align: left;
-          border: none;
-          position: relative;
-        }
-        
-        th:not(:last-child)::after {
-          content: '';
-          position: absolute;
-          right: 0;
-          top: 25%;
-          height: 50%;
-          width: 1px;
-          background: rgba(255, 255, 255, 0.2);
-        }
-        
-        tbody tr {
-          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-          transition: all 0.3s ease;
-          border-bottom: 1px solid rgba(226, 232, 240, 0.5);
-        }
-        
-        tbody tr:nth-child(even) {
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        }
-        
-        tbody tr:hover {
-          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.15);
+          font-size: 12px;
+          font-weight: 600;
+          color: #374151;
+          border-bottom: 1px solid #e5e7eb;
+          white-space: nowrap;
         }
         
         td {
-          padding: 16px;
-          border: none;
-          vertical-align: middle;
-          position: relative;
+          padding: 12px;
+          font-size: 13px;
+          color: #1f2937;
+          border-bottom: 1px solid #f3f4f6;
         }
         
-        td:not(:last-child)::after {
-          content: '';
-          position: absolute;
-          right: 0;
-          top: 25%;
-          height: 50%;
-          width: 1px;
-          background: rgba(240, 226, 233, 0.3);
+        tr:hover {
+          background: #f9fafb;
         }
         
-        /* Cố định độ rộng cột với responsive */
+        /* Cố định độ rộng cột */
         .stt-cell { 
           width: 60px; 
           text-align: center;
-          font-weight: 600;
-          color: #64748b;
         }
         
         .title-cell { 
-          width: 200px; 
-          font-weight: 600;
-          color: #1e293b;
+          max-width: 200px;
         }
         
         .description-cell { 
-          width: 300px; 
-          color: #64748b;
-          line-height: 1.5;
+          max-width: 250px;
         }
         
         .status-cell { 
-          width: 120px; 
-          text-align: center;
+          white-space: nowrap;
         }
         
         .assignee-cell { 
-          width: 140px; 
-          text-align: center;
-          color: #475569;
+          white-space: nowrap;
         }
         
         .date-cell { 
-          width: 110px; 
-          text-align: center;
-          color: #64748b;
-          font-size: 13px;
+          white-space: nowrap;
+          font-size: 12px;
+          color: #6b7280;
         }
         
         .actions-cell { 
-          width: 120px; 
-          text-align: center;
+          white-space: nowrap;
         }
         
         /* Text overflow handling */
-        .title-text, .description-text, .assignee-text {
+        .title-text {
           display: block;
-          white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          max-width: 100%;
+          white-space: nowrap;
         }
-        
+
         .description-text {
-          white-space: normal;
-          line-height: 1.4;
-          max-height: 2.8em;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .assignee-text {
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         
         /* Status badges */
         .status-badge {
           display: inline-block;
-          padding: 6px 12px;
-          border-radius: 20px;
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
+          padding: 4px 12px;
+          border-radius: 12px;
           color: white;
-          text-align: center;
-          min-width: 80px;
+          font-size: 11px;
+          font-weight: 600;
         }
         
         /* Action buttons */
         .action-buttons {
           display: flex;
           gap: 6px;
-          justify-content: center;
           align-items: center;
+          justify-content: center;
+          flex-wrap: nowrap;
         }
         
         .action-btn {
-          width: 32px;
-          height: 32px;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
+          width: 32px;
+          height: 32px;
+          border: 1px solid;
+          border-radius: 6px;
+          cursor: pointer;
           transition: all 0.2s ease;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          opacity: 0.7;
+        }
+        
+        .action-btn:hover {
+          opacity: 1;
+          transform: scale(1.05);
         }
         
         .view-btn {
-          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-          color: white;
+          background: #eff6ff;
+          color: #3b82f6;
+          border-color: #bfdbfe;
         }
         
         .view-btn:hover {
-          background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+          background: #3b82f6;
+          color: white;
+          border-color: #3b82f6;
         }
         
         .edit-btn {
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          color: white;
+          background: #fffbeb;
+          color: #f59e0b;
+          border-color: #fde68a;
         }
         
         .edit-btn:hover {
-          background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+          background: #f59e0b;
+          color: white;
+          border-color: #f59e0b;
         }
         
         .delete-btn {
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-          color: white;
+          background: #fef2f2;
+          color: #ef4444;
+          border-color: #fecaca;
         }
         
         .delete-btn:hover {
-          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+          background: #ef4444;
+          color: white;
+          border-color: #ef4444;
+        }
+
+        .reassign-btn {
+          background: #fff7ed;
+          color: #ff5e13;
+          border-color: #fed7aa;
+        }
+
+        .reassign-btn:hover {
+          background: #ff5e13;
+          color: white;
+          border-color: #ff5e13;
         }
         
         /* Responsive design */
-        @media (max-width: 1200px) {
-          .project-board {
-            padding: 16px;
-          }
-          
-          .description-cell { width: 250px; }
-          .title-cell { width: 180px; }
-        }
-        
         @media (max-width: 768px) {
-          .project-board {
-            padding: 12px;
-          }
-          
           table {
-            font-size: 12px;
+            min-width: 800px;
           }
           
-          td {
-            padding: 12px 8px;
-          }
-          
-          .stt-cell { width: 50px; }
-          .title-cell { width: 150px; }
-          .description-cell { width: 200px; }
-          .status-cell { width: 100px; }
-          .assignee-cell { width: 120px; }
-          .date-cell { width: 90px; }
-          .actions-cell { width: 100px; }
-          
-          .action-buttons {
-            gap: 4px;
-          }
-          
-          .action-btn {
-            width: 28px;
-            height: 28px;
+          .task-list {
+            overflow-x: scroll;
           }
         }
       `}</style>

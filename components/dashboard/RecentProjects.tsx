@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Project } from '@/types/project';
+import { getProjectStatusColor, getProjectStatusLabel } from '@/constants/status';
 
 interface RecentProjectsProps {
   projects: Project[];
@@ -17,39 +18,19 @@ export const RecentProjects = ({ projects }: RecentProjectsProps) => {
     router.push(`/projects/${projectId}`);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Đang hoạt động':
-        return {
-          background: 'rgba(251, 146, 60, 0.1)',
-          color: '#fb923c',
-          border: 'rgba(251, 146, 60, 0.2)'
-        };
-      case 'Hoàn thành':
-        return {
-          background: 'rgba(16, 185, 129, 0.1)',
-          color: '#10b981',
-          border: 'rgba(16, 185, 129, 0.2)'
-        };
-      case 'Lập kế hoạch':
-        return {
-          background: 'rgba(107, 114, 128, 0.1)',
-          color: '#6b7280',
-          border: 'rgba(107, 114, 128, 0.2)'
-        };
-      case 'Tạm dừng':
-        return {
-          background: 'rgba(245, 158, 11, 0.1)',
-          color: '#f59e0b',
-          border: 'rgba(245, 158, 11, 0.2)'
-        };
-      default:
-        return {
-          background: 'rgba(107, 114, 128, 0.1)',
-          color: '#6b7280',
-          border: 'rgba(107, 114, 128, 0.2)'
-        };
-    }
+  const getStatusColorObject = (status: string) => {
+    const color = getProjectStatusColor(status);
+    
+    // Convert hex to rgba
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    
+    return {
+      background: `rgba(${r}, ${g}, ${b}, 0.1)`,
+      color: color,
+      border: `rgba(${r}, ${g}, ${b}, 0.2)`
+    };
   };
 
   return (
@@ -87,12 +68,12 @@ export const RecentProjects = ({ projects }: RecentProjectsProps) => {
                 <span
                   className="status-badge"
                   style={{
-                    backgroundColor: getStatusColor(project.status).background,
-                    color: getStatusColor(project.status).color,
-                    borderColor: getStatusColor(project.status).border
+                    backgroundColor: getStatusColorObject(project.status).background,
+                    color: getStatusColorObject(project.status).color,
+                    borderColor: getStatusColorObject(project.status).border
                   }}
                 >
-                  {project.status}
+                  {getProjectStatusLabel(project.status)}
                 </span>
               </div>
             </div>

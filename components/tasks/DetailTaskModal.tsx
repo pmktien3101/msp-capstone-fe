@@ -17,11 +17,15 @@ import {
   EyeOff,
   MessageCircle,
   Send,
-  MoreVertical
+  MoreVertical,
+  History
 } from "lucide-react";
+import { TaskStatus, getTaskStatusColor, TASK_STATUS_LABELS } from "@/constants/status";
 import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
-import { milestoneService } from "@/services/milestoneService";
+import { taskReassignRequestService } from "@/services/taskReassignRequestService";
+import { ReassignmentHistoryTable } from "@/components/tasks/ReassignmentHistoryTable";
+import { TaskReassignRequest } from "@/types/taskReassignRequest";
 import type { GetTaskResponse } from "@/types/task";
 import type { ProjectMember } from "@/types/project";
 import type { MilestoneBackend } from "@/types/milestone";
@@ -43,6 +47,8 @@ export const DetailTaskModal = ({
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [reassignmentHistory, setReassignmentHistory] = useState<TaskReassignRequest[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Fetch members when modal opens (for displaying assignee name)
   useEffect(() => {
@@ -67,41 +73,53 @@ export const DetailTaskModal = ({
     }
   }, [isOpen, projectId]);
 
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!task?.id) return;
+
+      setIsLoadingHistory(true);
+      try {
+        const response = await taskReassignRequestService.getAcceptedTaskReassignRequestsByTaskId(task.id);
+        
+        if (response.success && response.data) {
+          let historyData: TaskReassignRequest[] = [];
+          if (Array.isArray(response.data)) {
+            historyData = response.data;
+          } else if (response.data.items) {
+            historyData = response.data.items;
+          }
+          setReassignmentHistory(historyData);
+        } else {
+          setReassignmentHistory([]);
+        }
+      } catch (error) {
+        console.error('Error fetching reassignment history:', error);
+        setReassignmentHistory([]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    if (isOpen && task?.id) {
+      fetchHistory();
+    }
+  }, [isOpen, task?.id]);
+
   if (!isOpen || !task) return null;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Chưa bắt đầu":
-        return "#6b7280";
-      case "Đang làm":
-        return "#f59e0b";
-      case "Tạm dừng":
-        return "#ef4444";
-      case "Hoàn thành":
-        return "#10b981";
-      default:
-        return "#6b7280";
-    }
-  };
-
-  const getStatusBackgroundColor = (status: string) => {
-    switch (status) {
-      case "Chưa bắt đầu":
-        return "#f3f4f6";
-      case "Đang làm":
-        return "#fef3c7";
-      case "Tạm dừng":
-        return "#fee2e2";
-      case "Hoàn thành":
-        return "#dcfce7";
-      default:
-        return "#f3f4f6";
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    // Status from DB is already in Vietnamese
-    return status;
+  const getStatusBgColor = (status: string) => {
+    const color = getTaskStatusColor(status);
+    // Convert hex to light background
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    
+    // Lighten the color for background
+    const lightR = Math.min(255, r + (255 - r) * 0.85);
+    const lightG = Math.min(255, g + (255 - g) * 0.85);
+    const lightB = Math.min(255, b + (255 - b) * 0.85);
+    
+    return `rgb(${Math.round(lightR)}, ${Math.round(lightG)}, ${Math.round(lightB)})`;
   };
 
   const getMemberName = (userId?: string) => {
@@ -146,7 +164,7 @@ export const DetailTaskModal = ({
     if (!task.endDate) return false;
     const endDate = new Date(task.endDate);
     const today = new Date();
-    return endDate < today && task.status !== "Hoàn thành";
+    return endDate < today && task.status !== TaskStatus.Completed;
   };
 
   return (
@@ -179,14 +197,14 @@ export const DetailTaskModal = ({
               <div 
                 className="status-badge-modern"
                 style={{
-                  background: getStatusBackgroundColor(task.status),
-                  color: getStatusColor(task.status),
+                  background: getStatusBgColor(task.status),
+                  color: getTaskStatusColor(task.status),
                   padding: '6px 12px',
                   borderRadius: '6px',
                   display: 'inline-block'
                 }}
               >
-                {getStatusLabel(task.status)}
+                {TASK_STATUS_LABELS[task.status as TaskStatus]}
               </div>
             </div>
           </div>
@@ -286,6 +304,21 @@ export const DetailTaskModal = ({
               </div>
             </div>
           </div>
+
+          {/* Reassignment History Section */}
+          {reassignmentHistory.length > 0 && (
+            <div className="reassignment-history-section">
+              <div className="section-header">
+                <History size={16} />
+                <span>Lịch sử chuyển giao</span>
+              </div>
+              
+              <ReassignmentHistoryTable 
+                history={reassignmentHistory}
+                isLoading={isLoadingHistory}
+              />
+            </div>
+          )}
 
         </div>
 
@@ -1014,6 +1047,12 @@ export const DetailTaskModal = ({
           .btn-close {
             width: 100%;
           }
+        }
+
+        .reassignment-history-section {
+          margin-top: 32px;
+          padding-top: 24px;
+          border-top: 2px solid #e5e7eb;
         }
       `}</style>
     </div>

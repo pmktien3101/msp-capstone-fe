@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, use, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from "react-markdown";
 import {
   ArrowLeft,
   Video,
@@ -31,7 +31,15 @@ import { mockMilestones, mockParticipants } from "@/constants/mockData";
 import { toast } from "react-toastify";
 import { meetingService } from "@/services/meetingService";
 import { todoService } from "@/services/todoService";
-import { da } from "zod/v4/locales";
+import TranscriptPanel from "@/components/meeting/TranscriptPanel";
+import "react-datepicker/dist/react-datepicker.css";
+import { Todo } from "@/types/todo";
+import { uploadFileToCloudinary } from "@/services/uploadFileService";
+import { taskService } from "@/services/taskService";
+import { PagingRequest } from "@/types/project";
+import TodoCard from "@/components/meeting/TodoCard";
+import { RelatedTasksSidebar } from "@/components/meeting/RelatedTasksSidebar";
+import { useAuth } from "@/hooks/useAuth";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -51,6 +59,7 @@ const mapCallStatus = (call?: Call) => {
 export default function MeetingDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { isProjectManager } = useAuth();
   const { call, isLoadingCall } = useGetCallById(params.id as string);
   const [activeTab, setActiveTab] = useState("overview");
   const [recordings, setRecordings] = useState<CallRecording[]>([]);
@@ -58,26 +67,21 @@ export default function MeetingDetailPage() {
   const [recordingsError, setRecordingsError] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
-  const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
-  const [generatedTasks, setGeneratedTasks] = useState<any[]>([]);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [editedTask, setEditedTask] = useState<any>(null);
   const [editMode, setEditMode] = useState<{ [key: string]: boolean }>({});
-  const [originalTranscriptions, setOriginalTranscriptions] = useState<any[]>([]);
+  const [originalTodoCache, setOriginalTodoCache] = useState<{
+    [id: string]: Todo;
+  }>({});
+  const [originalTranscriptions, setOriginalTranscriptions] = useState<any[]>(
+    []
+  );
   const [isLoadingTranscriptions, setIsLoadingTranscriptions] = useState(false);
   const [transcriptionsError, setTranscriptionsError] = useState<string | null>(
     null
   );
-  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
-  const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
     isOpen: boolean;
     taskId: string | null;
   }>({ isOpen: false, taskId: null });
-  const [isTaskCreated, setIsTaskCreated] = useState<{
-    [key: string]: boolean;
-  }>({});
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [convertConfirmModal, setConvertConfirmModal] = useState<{
     isOpen: boolean;
@@ -92,8 +96,27 @@ export default function MeetingDetailPage() {
   const [improvedTranscript, setImprovedTranscript] = useState<any[]>([]);
   const [summary, setSummary] = useState<string>("");
   const [todoList, setTodoList] = useState<any[]>([]);
-  const [isProcessingMeetingAI, setIsProcessingMeetingAI] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isProcessingMeetingAI, setIsProcessingMeetingAI] =
+    useState<boolean>(false);
+
+  const [projectTasks, setProjectTasks] = useState<any[]>([]);
+
+  // Sidebar related state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentReferenceIds, setCurrentReferenceIds] = useState<string[]>([]);
+  const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
+
+  const fetchProjectTasks = async (
+    projectId: string,
+    params: PagingRequest = { pageIndex: 1, pageSize: 100 }
+  ) => {
+    const tasksResponse = await taskService.getTasksByProjectId(projectId, params);
+    if (tasksResponse.success && tasksResponse.data) {
+      setProjectTasks(tasksResponse.data.items || []);
+    } else {
+      setProjectTasks([]);
+    }
+  };
 
   // Fetch recordings when switching to recording tab and call is available
   useEffect(() => {
@@ -139,120 +162,202 @@ export default function MeetingDetailPage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log("Original Transcriptions data:", data);
         setOriginalTranscriptions(data || []);
       } catch (e: any) {
         // console.error("Failed to fetch transcriptions", e);
-        setTranscriptionsError("Không tải được transcript");
+        // setTranscriptionsError("Không tải được transcript");
       } finally {
         setIsLoadingTranscriptions(false);
       }
     };
     if (activeTab === "recording") {
       loadTranscriptions();
+      fetchProjectTasks(meetingInfo?.projectId);
     }
   }, [activeTab, call]);
 
+  // Fetch lại active tab từ localStorage khi mount page
+  useEffect(() => {
+    // Fetch lại active tab từ localStorage khi mount page
+    const savedTab = localStorage.getItem("meetingDetailActiveTab");
+    if (savedTab) {
+      setActiveTab(savedTab);
+    }
+    // Cleanup: khi page/component bị unmount thì xóa lưu tab
+    return () => {
+      localStorage.removeItem("meetingDetailActiveTab");
+    };
+  }, []);
+
+  const handleChangeTab = (tabKey: any) => {
+    setActiveTab(tabKey);
+    localStorage.setItem("meetingDetailActiveTab", tabKey);
+  };
+
   const hasProcessedRef = useRef(false);
   // Định nghĩa async function xử lý video
-  const processVideo = async (recording: any, transcriptions: any) => {
+  const uploadRecordingUrlToCloud = async (recordUrl: string) => {
+    // Nếu đã có recordUrl trỏ tới Cloudinary (hoặc đã upload trước) thì trả về luôn
+    if (!recordUrl) throw new Error("No recording URL to upload");
+    try {
+      console.debug("uploadRecordingUrlToCloud - recordUrl:", recordUrl);
+      const res = await fetch(recordUrl);
+      console.debug("uploadRecordingUrlToCloud - fetch response:", {
+        ok: res.ok,
+        status: res.status,
+        statusText: res.statusText,
+        contentType: res.headers?.get?.("content-type") ?? "(no header)",
+      });
+      if (!res.ok) throw new Error("Failed to fetch recording for upload");
+      const blob = await res.blob();
+      console.debug("uploadRecordingUrlToCloud - blob:", {
+        size: blob.size,
+        type: blob.type,
+      });
+      const contentType = blob.type || "video/mp4";
+      const ext = contentType.includes("webm") ? "webm" : "mp4";
+      // Lấy tên file hợp lý
+      const urlParts = (recordUrl || "").split("/");
+      let filename = urlParts[urlParts.length - 1] || `recording.${ext}`;
+      // sanitize
+      filename = filename.split("?")[0].replace(/[^a-zA-Z0-9-_\.]/g, "-");
+      const file = new File([blob], filename, { type: contentType });
+      console.debug("uploadRecordingUrlToCloud - prepared file:", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+      // uploadFileToCloudinary đã được import từ services
+      try {
+        const cloudUrl = await uploadFileToCloudinary(file);
+        console.debug("uploadRecordingUrlToCloud - upload success:", cloudUrl);
+        return cloudUrl;
+      } catch (uploadErr: any) {
+        console.error("uploadRecordingUrlToCloud - uploadErr:", uploadErr);
+        throw uploadErr;
+      }
+    } catch (err: any) {
+      // propagate meaningful error
+      console.error("uploadRecordingUrlToCloud - error:", err);
+      throw new Error(
+        err?.message || "Không thể tải lên cloud. Vui lòng thử lại."
+      );
+    }
+  };
+
+  const processVideo = async (recording: any, transcriptions: any, tasks: any[]) => {
     setIsProcessingMeetingAI(true);
-    setError(null);
 
     try {
+      // 1) Upload recording từ Stream lên Cloud (nếu chưa có trong DB)
+      let cloudRecordingUrl = meetingInfo?.recordUrl || null;
+      if (!cloudRecordingUrl) {
+        if (!recording?.url)
+          throw new Error("Không tìm thấy URL bản ghi để upload");
+        try {
+          cloudRecordingUrl = await uploadRecordingUrlToCloud(recording.url);
+          // cập nhật local ngay để tránh upload lại
+          setMeetingInfo((prev: any) => ({
+            ...(prev || {}),
+            recordUrl: cloudRecordingUrl,
+          }));
+        } catch (uploadErr: any) {
+          // Nếu upload thất bại thì dừng và báo lỗi
+          throw new Error(
+            uploadErr?.message || "Tải lên bản ghi lên cloud thất bại"
+          );
+        }
+      }
+
+      // 2) Gọi API xử lý video (gửi URL trên cloud thay vì URL từ Stream)
       const response = await fetch("/api/gemini/process-video", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          videoUrl: recording.url, // Lấy URL từ recording object
+          videoUrl: cloudRecordingUrl, // dùng cloud URL
           transcriptSegments: transcriptions,
+          tasks: tasks,
         }),
       });
 
       const data = await response.json();
-
-      // console.log("GEMINI API Response:", data);
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to process video");
       }
 
       if (data.success) {
-        // Cập nhật state với kết quả
-        // const updatedImprovedTranscript = updateSpeakerIds(transcriptions, data.data.improvedTranscript);
+        // Cập nhật state với kết quả AI
         setImprovedTranscript(data.data.improvedTranscript);
-        console.log('Improved Transcripts data:', data.data.improvedTranscript);
-        // Map assigneeId thành tên trong summary
         const processedSummary = mapSummaryAssigneeIds(data.data.summary);
         setSummary(processedSummary);
-
         setTodoList(data.data.todoList);
 
-        // Cập nhật meeting khi call AI thành công
+        // 3) Cập nhật meeting trên server với cloudRecordingUrl (không dùng URL Stream)
         try {
           const updateResult = await meetingService.updateMeeting({
             meetingId: params.id as string,
             summary: data.data.summary,
             transcription: JSON.stringify(data.data.improvedTranscript),
-            recordUrl: recording.url,
+            recordUrl: cloudRecordingUrl, // lưu URL trên cloud
           });
 
           if (updateResult.success) {
-            // console.log("Meeting updated successfully with AI data");
-            // Cập nhật meetingInfo với data mới
             setMeetingInfo((prev: any) => ({
               ...prev,
               summary: data.data.summary,
               transcription: JSON.stringify(data.data.improvedTranscript),
-              recordUrl: recording.url,
+              recordUrl: cloudRecordingUrl,
               todoList: JSON.stringify(data.data.todoList),
             }));
           } else {
-            // console.error("Failed to update meeting:", updateResult.error);
-            // Không throw error vì AI processing đã thành công
-            // Chỉ log warning
+            // không throw, chỉ log/hiện thông báo nhẹ nếu cần
           }
         } catch (updateError) {
-          // console.error("Error updating meeting with AI data:", updateError);
-          // Không throw error vì AI processing đã thành công
+          // Không throw tiếp để không làm mất kết quả AI, nhưng thông báo lỗi local nếu muốn
         }
 
-        // Tạo todos từ AI response nếu có
+        // 4) Tạo todos từ AI nếu có (giữ logic hiện tại, dùng meetingInfo để map assignee)
         if (data.data.todoList && data.data.todoList.length > 0) {
           try {
-            // console.log("Creating todos from AI response:", data.data.todoList);
-
-            // Map assigneeId từ AI với attendees trong meeting
             const mappedTodoList = data.data.todoList.map((todo: any) => {
-              // Tìm assigneeId hợp lệ trong attendees
               let validAssigneeId = todo.assigneeId;
-
               if (todo.assigneeId && meetingInfo?.attendees) {
                 const attendee = meetingInfo.attendees.find(
                   (att: any) => att.id === todo.assigneeId
                 );
                 if (!attendee) {
-                  // console.warn(
-                  //   `AssigneeId ${todo.assigneeId} not found in attendees, using fallback`
-                  // );
                   validAssigneeId = meetingInfo?.createdById;
                 }
               } else {
                 validAssigneeId = meetingInfo?.createdById;
               }
 
+              function normalizeDate(val: any) {
+                if (!val) return null;
+                if (typeof val === "string" && /^\d{2}-\d{2}-\d{4}$/.test(val)) {
+                  const [dd, mm, yyyy] = val.split("-");
+                  return new Date(`${yyyy}-${mm}-${dd}`).toISOString();
+                }
+                // Nếu là YYYY-MM-DD, chuyển thành ISO luôn cho chắc
+                if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                  return new Date(val).toISOString();
+                }
+                // Nếu đã là Date object
+                if (val instanceof Date) return val.toISOString();
+                return val;
+              }
+
               return {
                 ...todo,
                 assigneeId: validAssigneeId,
+                endDate: normalizeDate(todo.endDate),
+                startDate: normalizeDate(todo.startDate),
               };
             });
 
-            // console.log(
-            //   "Mapped todoList with valid assigneeIds:",
-            //   mappedTodoList
-            // );
 
             const createTodosResult = await todoService.createTodosFromAI(
               params.id as string,
@@ -260,15 +365,10 @@ export default function MeetingDetailPage() {
             );
 
             if (createTodosResult.success) {
-              // console.log(
-              //   "Todos created successfully:",
-              //   createTodosResult.data
-              // );
               toast.success(
                 `${createTodosResult.data?.length || 0
                 } công việc đã được tạo từ AI`
               );
-              // Refresh todos from DB
               const refreshResult = await todoService.getTodosByMeetingId(
                 params.id as string
               );
@@ -277,26 +377,18 @@ export default function MeetingDetailPage() {
                 setTodoList(refreshResult.data);
               }
             } else {
-              // console.error("Failed to create todos:", createTodosResult.error);
               toast.warning(
                 "Tạo công việc từ AI thất bại: " + createTodosResult.error
               );
             }
           } catch (todoError) {
-            // console.error("Error creating todos from AI:", todoError);
             toast.error("Lỗi khi tạo công việc từ AI");
           }
-        } else {
-          // console.log("No todoList in AI response or empty list");
         }
-
-        // console.log("Processing complete!", data.data);
       } else {
         throw new Error(data.error || "Unknown error");
       }
     } catch (err: any) {
-      // console.error("Error processing video:", err);
-      setError(err.message || "Không thể xử lý video. Vui lòng thử lại.");
     } finally {
       setIsProcessingMeetingAI(false);
     }
@@ -304,7 +396,6 @@ export default function MeetingDetailPage() {
 
   // useEffect để tự động gọi processVideo khi có đủ dữ liệu và chưa có kết quả
   useEffect(() => {
-
     // Chỉ xử lý khi đã load xong meetingInfo
     if (isLoadingMeeting) {
       // console.log("⏸️ Still loading meeting info");
@@ -321,7 +412,7 @@ export default function MeetingDetailPage() {
       if (meetingInfo.transcription) {
         const parsedTranscript = parseTranscription(meetingInfo.transcription);
         setImprovedTranscript(parsedTranscript);
-        console.log("Transcript from DB:", parsedTranscript);
+        // console.log("Transcript from DB:", parsedTranscript);
       }
       if (meetingInfo.summary) {
         // Map assigneeId thành tên trong summary từ DB
@@ -331,13 +422,18 @@ export default function MeetingDetailPage() {
       // Sử dụng todos từ DB thay vì từ meetingInfo
       if (todosFromDB.length > 0) {
         setTodoList(todosFromDB);
+        console.log("Todos from DB:", todosFromDB);
       }
       hasProcessedRef.current = true;
       return;
     }
 
     // Chỉ call AI khi chưa có dữ liệu và có đủ thông tin cần thiết
-    if (!originalTranscriptions || originalTranscriptions.length === 0 || !recordings[0]?.url) {
+    if (
+      !originalTranscriptions ||
+      originalTranscriptions.length === 0 ||
+      !recordings[0]?.url
+    ) {
       // console.log("⏸️ Missing data for AI processing");
       return;
     }
@@ -349,18 +445,14 @@ export default function MeetingDetailPage() {
 
     // console.log("▶️ Starting AI processing - no existing data found");
     hasProcessedRef.current = true;
-    processVideo(recordings[0], originalTranscriptions);
-  }, [originalTranscriptions, recordings, meetingInfo, isLoadingMeeting, todosFromDB]);
-
-  useEffect(() => {
-    if (improvedTranscript && summary && todoList) {
-      // console.log("✅ All data ready:", {
-      //   transcriptCount: improvedTranscript.length,
-      //   hasSummary: !!summary,
-      //   hasTodoList: !!todoList,
-      // });
-    }
-  }, [improvedTranscript, summary, todoList]);
+    processVideo(recordings[0], originalTranscriptions, projectTasks);
+  }, [
+    originalTranscriptions,
+    recordings,
+    meetingInfo,
+    isLoadingMeeting,
+    todosFromDB,
+  ]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -425,18 +517,6 @@ export default function MeetingDetailPage() {
         return attendee.fullName;
       }
     }
-
-    // Fallback to old mapping for external speakers or unknown IDs
-    const speakerMap: { [key: string]: string } = {
-      "male-voice": "Giọng Nam Bên Ngoài",
-      "female-voice": "Giọng Nữ Bên Ngoài",
-    };
-
-    const fallbackName = speakerMap[speakerId] || `Speaker ${speakerId}`;
-    // console.log(
-    //   `⚠️ Using fallback for speakerId ${speakerId}: ${fallbackName}`
-    // );
-    return fallbackName;
   };
 
   // Helper function to parse transcription from string to array
@@ -522,50 +602,28 @@ export default function MeetingDetailPage() {
     return processedSummary;
   };
 
-  // Xử lý chỉnh sửa task
-  const handleEditTask = (task: any) => {
-    setEditingTaskId(task.id);
-    setEditedTask({ ...task });
-  };
+  // Helper to format date to DD/MM/YYYY
+  function formatDate(dateString?: string | Date): string {
+    if (!dateString) return "--/--/----";
+    const dateObj =
+      typeof dateString === "string" ? new Date(dateString) : dateString;
+    if (isNaN(dateObj.getTime())) return "--/--/----";
+    const dd = String(dateObj.getDate()).padStart(2, "0");
+    const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const yyyy = dateObj.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
 
-  const handleSaveTask = async () => {
-    if (!editedTask) return;
-
-    try {
-      // Gọi API update todo
-      const updateResult = await todoService.updateTodo(editedTask.id, {
-        title: editedTask.title,
-        description: editedTask.description,
-        startDate: editedTask.startDate,
-        endDate: editedTask.endDate,
-        assigneeId: editedTask.assigneeId || editedTask.assignee?.id,
-      });
-
-      if (updateResult.success) {
-        // Cập nhật local state
-        setTodoList((prev) =>
-          prev.map((task) => (task.id === editedTask.id ? editedTask : task))
-        );
-        setTodosFromDB((prev) =>
-          prev.map((task) => (task.id === editedTask.id ? editedTask : task))
-        );
-
-        toast.success("Cập nhật công việc thành công");
-        setEditingTaskId(null);
-        setEditedTask(null);
-      } else {
-        toast.error("Cập nhật công việc thất bại: " + updateResult.error);
-      }
-    } catch (error) {
-      // console.error("Error updating todo:", error);
-      toast.error("Lỗi khi cập nhật công việc");
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingTaskId(null);
-    setEditedTask(null);
-  };
+  // Helper to validate todo has all required fields
+  function isValidTodo(todo: any) {
+    return (
+      !!todo.title &&
+      !!todo.description &&
+      !!todo.startDate &&
+      !!todo.endDate &&
+      !!getTodoAssigneeId(todo)
+    );
+  }
 
   // Xử lý mở modal xác nhận xóa task
   const handleOpenDeleteModal = (taskId: string) => {
@@ -606,13 +664,19 @@ export default function MeetingDetailPage() {
   const handleCancelDelete = () => {
     setDeleteConfirmModal({ isOpen: false, taskId: null });
   };
-  // Xử lý tạo task từ todo
-  const handleCreateTask = (taskId: string) => {
-    setIsTaskCreated((prev) => ({ ...prev, [taskId]: true }));
-  };
 
   // Xử lý select/deselect task
   const handleSelectTask = (taskId: string) => {
+    const todo = todoList.find((t) => t.id === taskId);
+    if (!isValidTodo(todo) ||
+      todo.status === 2 || // ConvertedToTask
+      todo.status === 3   // Deleted
+    ) {
+      toast.warning(
+        "To-do đã được chuyển đổi hoặc thiếu thông tin cần thiết"
+      );
+      return;
+    }
     setSelectedTasks((prev) =>
       prev.includes(taskId)
         ? prev.filter((id) => id !== taskId)
@@ -622,11 +686,13 @@ export default function MeetingDetailPage() {
 
   // Xử lý select all tasks
   const handleSelectAllTasks = () => {
-    if (selectedTasks.length === todoList.length) {
+    const eligibleIds = todoList.filter(t => isValidTodo(t)
+      && t.status !== 2 // ConvertedToTask
+      && t.status !== 3 // Deleted
+    ).map((t) => t.id);
+    if (selectedTasks.length === eligibleIds.length)
       setSelectedTasks([]);
-    } else {
-      setSelectedTasks(todoList.map((todo) => todo.id));
-    }
+    else setSelectedTasks(eligibleIds);
   };
 
   // Xử lý mở modal confirm convert
@@ -635,14 +701,47 @@ export default function MeetingDetailPage() {
   };
 
   // Xử lý confirm convert
-  const handleConfirmConvert = () => {
-    // TODO: Implement convert logic
-    // console.log("Converting tasks:", selectedTasks);
+  const handleConfirmConvert = async () => {
+    if (selectedTasks.length === 0) {
+      toast.warning("Bạn phải chọn ít nhất một To-do để chuyển!");
+      return;
+    }
 
-    // Show success toast
-    toast.success(
-      `${selectedTasks.length} công việc đã được tạo và phân công thành công cho các thành viên trong nhóm.`
-    );
+    // Có thể hiển thị loading ở đây nếu muốn
+    try {
+      const result = await todoService.convertTodosToTasks(selectedTasks);
+
+      if (result.success) {
+        toast.success(
+          `Chuyển thành công ${result.data?.length} công việc cho dự án!`
+        );
+        // Xoá selection và đóng modal
+        setSelectedTasks([]);
+        setConvertConfirmModal({ isOpen: false, taskCount: 0 });
+
+        // Refresh lại danh sách todo (nếu còn trong DB thì lọc IsDeleted)
+        // const refreshedTodos = await todoService.getTodosByMeetingId(meetingInfo.id);
+        // if (refreshedTodos.success) {
+        //   setTodosFromDB(refreshedTodos.data ?? []);
+        //   setTodoList(refreshedTodos.data ?? []);
+        // }
+
+        if (meetingInfo?.projectId) {
+          // Chuyển về trang chi tiết project
+          setTimeout(() => {
+            router.push(`/projects/${meetingInfo.projectId}?tab=board`);
+          }, 600);
+        }
+
+        // Nếu có list task trả về, có thể push vào ProjectTask trong frontend/project context nếu cần
+      } else {
+        toast.error(result.error || "Không thể chuyển đổi các To-do đã chọn!");
+        setConvertConfirmModal({ isOpen: false, taskCount: 0 });
+      }
+    } catch (error) {
+      toast.error("Có lỗi kết nối khi chuyển đổi công việc!");
+      setConvertConfirmModal({ isOpen: false, taskCount: 0 });
+    }
 
     // Close modal and clear selection
     setConvertConfirmModal({ isOpen: false, taskCount: 0 });
@@ -654,302 +753,163 @@ export default function MeetingDetailPage() {
     setConvertConfirmModal({ isOpen: false, taskCount: 0 });
   };
 
+  // Helper function to get status badge style
+  const getTodoStatusStyle = (status: number) => {
+    switch (status) {
+      case 0: // Generated
+        return {
+          background: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
+          color: "white",
+        };
+      case 1: // UnderReview
+        return {
+          background: "linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%)",
+          color: "white",
+        };
+      case 2: // ConvertedToTask
+        return {
+          background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+          color: "white",
+        };
+      case 3: // Deleted
+        return {
+          background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+          color: "white",
+        };
+      default:
+        return {
+          background: "#f3f4f6",
+          color: "#6b7280",
+        };
+    }
+  };
+
+  // Helper function to get status label
+  const getTodoStatusLabel = (statusDisplay: string) => {
+    switch (statusDisplay) {
+      case "Generated":
+        return "Mới tạo";
+      case "UnderReview":
+        return "Đã chỉnh sửa";
+      case "ConvertedToTask":
+        return "Đã chuyển đổi thành công việc";
+      case "Deleted":
+        return "Đã xóa";
+      default:
+        return statusDisplay;
+    }
+  };
+
+  // Đây là hàm callback truyền cho TodoCard
+  const handleShowRelatedTasks = (todo: Todo) => {
+    setCurrentReferenceIds(todo.referencedTasks || []);
+    setSidebarOpen(true);
+    setSelectedTodoId(todo.id);
+  };
+
   // Memoize todo list rendering to prevent unnecessary re-renders
-  const memoizedTodoList = useMemo(() => {
-    return todoList.map((todo, index) => {
-      // Auto-assign assignee evenly
-      const currentAssignee = getTodoAssigneeId(todo);
-
-      return (
-        <div
-          className={`task-item ai-task ${selectedTasks.includes(todo.id) ? "selected" : ""
-            } ${editMode[todo.id] ? "edit-mode" : ""}`}
-          key={`todo-${todo.id}-${index}`}
-          data-task-id={todo.id}
-          onClick={(e) => {
-            // Don't select if in edit mode
-            if (editMode[todo.id]) return;
-
-            // Don't select if clicking on action buttons or checkbox
-            const target = e.target as HTMLElement;
-            if (
-              target.closest(".task-actions") ||
-              target.closest(".task-checkbox")
-            )
-              return;
-
-            // Select/deselect the task
-            handleSelectTask(todo.id);
+  const memoizedTodoList = useMemo(
+    () =>
+      todoList.map((todo, index) => (
+        <TodoCard
+          key={todo.id}
+          todo={todo}
+          index={index}
+          selectedTasks={selectedTasks}
+          editMode={editMode[todo.id] || false}
+          attendees={meetingInfo?.attendees || []}
+          onShowRelatedTasks={(todo: Todo) => handleShowRelatedTasks(todo)}
+          onSelectTask={handleSelectTask}
+          onEditStart={(todoId, originalTodo) => {
+            setEditMode((prev) => ({ ...prev, [todoId]: true }));
+            setOriginalTodoCache((prev) => ({
+              ...prev,
+              [todoId]: originalTodo as Todo,
+            }));
           }}
-          style={{ cursor: editMode[todo.id] ? "default" : "pointer" }}
-        >
-          <div className="task-checkbox">
-            <Checkbox
-              checked={selectedTasks.includes(todo.id)}
-              onCheckedChange={() => handleSelectTask(todo.id)}
-              className="task-select-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
-            />
-          </div>
-          <div className="task-number">{index + 1}</div>
+          onEditSave={async (todo) => {
+            try {
+              const newAssigneeId = todo.assigneeId || todo.assignee?.id;
+              const updateResult = await todoService.updateTodo(todo.id, {
+                title: todo.title,
+                description: todo.description,
+                startDate: todo.startDate,
+                endDate: todo.endDate,
+                assigneeId: newAssigneeId,
+              });
 
-          <div className="task-content">
-            <div className="task-title">
-              <label
-                className="detail-label"
-                style={{ cursor: editMode[todo.id] ? "default" : "pointer" }}
-              >
-                Tên công việc
-              </label>
-              {editMode[todo.id] ? (
-                <input
-                  type="text"
-                  value={todo.title || ""}
-                  onChange={(e) => {
-                    const newTitle = e.target.value;
-                    setTodoList((prev) =>
-                      prev.map((t) =>
-                        t.id === todo.id ? { ...t, title: newTitle } : t
-                      )
-                    );
-                  }}
-                  className="task-title-input"
-                  placeholder="Nhập tên công việc..."
-                  autoFocus
-                />
-              ) : (
-                <div className="task-title-display">
-                  {todo.title || "Nhập tên công việc..."}
-                </div>
-              )}
-            </div>
-
-            <div className="task-description">
-              <label
-                className="detail-label"
-                style={{ cursor: editMode[todo.id] ? "default" : "pointer" }}
-              >
-                Mô tả công việc
-              </label>
-              {editMode[todo.id] ? (
-                <textarea
-                  value={todo.description || ""}
-                  onChange={(e) => {
-                    const newDescription = e.target.value;
-                    setTodoList((prev) =>
-                      prev.map((t) =>
-                        t.id === todo.id
-                          ? { ...t, description: newDescription }
-                          : t
-                      )
-                    );
-                  }}
-                  className="task-description-input"
-                  placeholder="Mô tả chi tiết công việc..."
-                  rows={2}
-                />
-              ) : (
-                <div className="task-description-display">
-                  {todo.description || "Mô tả chi tiết công việc..."}
-                </div>
-              )}
-            </div>
-
-            <div className="task-details">
-              <div className="detail-item">
-                <label className="detail-label">Ngày bắt đầu</label>
-                <div className="detail-value">
-                  <Calendar size={14} />
-                  {editMode[todo.id] ? (
-                    <input
-                      type="date"
-                      value={todo.startDate || ""}
-                      onChange={(e) => {
-                        const newStartDate = e.target.value;
-                        setTodoList((prev) =>
-                          prev.map((t) =>
-                            t.id === todo.id
-                              ? { ...t, startDate: newStartDate }
-                              : t
-                          )
-                        );
-                      }}
-                      className="date-input"
-                    />
-                  ) : (
-                    <span>{todo.startDate || "--/--/----"}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="detail-item">
-                <label className="detail-label">Ngày kết thúc</label>
-                <div className="detail-value">
-                  <Calendar size={14} />
-                  {editMode[todo.id] ? (
-                    <input
-                      type="date"
-                      value={todo.endDate || ""}
-                      onChange={(e) => {
-                        const newEndDate = e.target.value;
-                        setTodoList((prev) =>
-                          prev.map((t) =>
-                            t.id === todo.id ? { ...t, endDate: newEndDate } : t
-                          )
-                        );
-                      }}
-                      className="date-input"
-                    />
-                  ) : (
-                    <span>{todo.endDate || "--/--/----"}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="detail-item">
-                <label className="detail-label">Người phụ trách</label>
-                <div className="detail-value">
-                  <User size={14} />
-                  {editMode[todo.id] ? (
-                    <select
-                      value={currentAssignee || ""}
-                      onChange={(e) => {
-                        const newAssignee =
-                          e.target.value === "" ? null : e.target.value;
-                        setTodoList((prev) =>
-                          prev.map((t) => {
-                            if (t.id === todo.id) {
-                              // Handle both AI format (assigneeId) and DB format (assignee object)
-                              if (t.assignee) {
-                                // DB format: update assignee object
-                                return {
-                                  ...t,
-                                  assignee: newAssignee
-                                    ? { ...t.assignee, id: newAssignee }
-                                    : null,
-                                };
-                              } else {
-                                // AI format: update assigneeId
-                                return { ...t, assigneeId: newAssignee };
-                              }
-                            }
-                            return t;
-                          })
-                        );
-                      }}
-                      className="assignee-select"
-                    >
-                      <option value="">Chưa được giao</option>
-                      {meetingInfo?.attendees?.map(
-                        (attendee: any, idx: number) => (
-                          <option key={idx} value={attendee.id}>
-                            {attendee.fullName || attendee.email}
-                          </option>
-                        )
-                      )}
-                    </select>
-                  ) : (
-                    <span>{getTodoAssigneeName(todo)}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="task-actions">
-            {editMode[todo.id] ? (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-
-                    try {
-                      // Gọi API update todo
-                      const updateResult = await todoService.updateTodo(
-                        todo.id,
-                        {
-                          title: todo.title,
-                          description: todo.description,
-                          startDate: todo.startDate,
-                          endDate: todo.endDate,
-                          assigneeId: todo.assigneeId || todo.assignee?.id,
-                        }
-                      );
-
-                      if (updateResult.success) {
-                        // Chỉ cập nhật local state một lần
-                        const updatedTodo = { ...todo };
-                        setTodoList((prev) =>
-                          prev.map((t) => (t.id === todo.id ? updatedTodo : t))
-                        );
-                        setTodosFromDB((prev) =>
-                          prev.map((t) => (t.id === todo.id ? updatedTodo : t))
-                        );
-
-                        toast.success("Cập nhật công việc thành công");
-                        setEditMode((prev) => ({ ...prev, [todo.id]: false }));
-                      } else {
-                        toast.error(
-                          "Cập nhật công việc thất bại: " + updateResult.error
-                        );
-                      }
-                    } catch (error) {
-                      // console.error("Error updating todo:", error);
-                      toast.error("Lỗi khi cập nhật công việc");
+              if (updateResult.success) {
+                const newAssignee = meetingInfo?.attendees?.find(
+                  (att: any) => att.id === newAssigneeId
+                );
+                const updatedTodo = {
+                  ...todo,
+                  assigneeId: newAssigneeId,
+                  assignee: newAssignee
+                    ? {
+                      id: newAssignee.id,
+                      fullName: newAssignee.fullName,
+                      email: newAssignee.email,
                     }
-                  }}
-                  className="save-btn"
-                  title="Lưu"
-                >
-                  <Check size={16} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditMode((prev) => ({ ...prev, [todo.id]: false }));
-                  }}
-                  className="cancel-btn"
-                  title="Hủy"
-                >
-                  <X size={16} />
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditMode((prev) => ({ ...prev, [todo.id]: true }));
-                  }}
-                  className="edit-btn"
-                  title="Chỉnh sửa"
-                >
-                  <Edit size={16} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenDeleteModal(todo.id);
-                  }}
-                  className="delete-btn"
-                  title="Xóa"
-                >
-                  <Trash2 size={16} />
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      );
-    });
-  }, [todoList, selectedTasks, editMode, meetingInfo?.attendees]);
+                    : null,
+                  status: updateResult?.data?.status,
+                  statusDisplay: updateResult?.data?.statusDisplay,
+                };
+
+                setTodoList((prev) =>
+                  prev.map((t) => (t.id === todo.id ? updatedTodo : t))
+                );
+                setTodosFromDB((prev) =>
+                  prev.map((t) => (t.id === todo.id ? updatedTodo : t))
+                );
+
+                toast.success("Cập nhật công việc thành công");
+
+                setOriginalTodoCache((prev) => {
+                  const copy = { ...prev };
+                  delete copy[todo.id];
+                  return copy;
+                });
+
+                setEditMode((prev) => ({ ...prev, [todo.id]: false }));
+              } else {
+                toast.error("Cập nhật công việc thất bại: " + updateResult.error);
+              }
+            } catch (error) {
+              toast.error("Lỗi khi cập nhật công việc");
+            }
+          }}
+          onEditCancel={(todoId) => {
+            if (originalTodoCache[todoId]) {
+              setTodoList((prev) =>
+                prev.map((t) =>
+                  t.id === todoId ? originalTodoCache[todoId] : t
+                )
+              );
+              setTodosFromDB((prev) =>
+                prev.map((t) =>
+                  t.id === todoId ? originalTodoCache[todoId] : t
+                )
+              );
+              setOriginalTodoCache((prev) => {
+                const c = { ...prev };
+                delete c[todoId];
+                return c;
+              });
+            }
+            setEditMode((prev) => ({ ...prev, [todoId]: false }));
+          }}
+          onDelete={handleOpenDeleteModal}
+          onTodoChange={(todoId, updates) => {
+            setTodoList((prev) =>
+              prev.map((t) => (t.id === todoId ? { ...t, ...updates } : t))
+            );
+          }}
+          isValidTodo={isValidTodo}
+        />
+      )),
+    [todoList, selectedTasks, editMode, meetingInfo?.attendees, originalTodoCache]
+  );
 
   // Xử lý tải xuống recording (tải blob để đảm bảo đặt được tên file)
   const handleDownload = async (rec: CallRecording, fallbackIndex: number) => {
@@ -1142,25 +1102,25 @@ export default function MeetingDetailPage() {
       <div className="meeting-tabs">
         <button
           className={`tab ${activeTab === "overview" ? "active" : ""}`}
-          onClick={() => setActiveTab("overview")}
+          onClick={() => handleChangeTab("overview")}
         >
           <FileText size={16} />
           Tổng quan
         </button>
         <button
           className={`tab ${activeTab === "recording" ? "active" : ""}`}
-          onClick={() => setActiveTab("recording")}
+          onClick={() => handleChangeTab("recording")}
         >
           <Video size={16} />
           Bản ghi cuộc họp
         </button>
-        <button
+        {/* <button
           className={`tab ${activeTab === "attachments" ? "active" : ""}`}
-          onClick={() => setActiveTab("attachments")}
+          onClick={() => handleChangeTab("attachments")}
         >
           <Paperclip size={16} />
           Tài liệu
-        </button>
+        </button> */}
       </div>
 
       {/* Content */}
@@ -1438,12 +1398,8 @@ export default function MeetingDetailPage() {
                     Đang tải lời thoại...
                   </div>
                 )}
-                {transcriptionsError && !isLoadingTranscriptions && (
-                  <div className="transcript-error">{transcriptionsError}</div>
-                )}
                 {!isLoadingTranscriptions &&
-                  !transcriptionsError &&
-                  originalTranscriptions.length === 0 && (
+                  (originalTranscriptions.length === 0 && improvedTranscript.length === 0) && (
                     <div className="transcript-empty">
                       Chưa có transcript cho cuộc họp này
                     </div>
@@ -1469,10 +1425,7 @@ export default function MeetingDetailPage() {
                   <>
                     <div
                       className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
-                        } ${improvedTranscript.length <= 4
-                          ? "no-expand"
-                          : ""
-                        }`}
+                        } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
                       style={{
                         maxHeight:
                           improvedTranscript.length <= 4
@@ -1482,17 +1435,14 @@ export default function MeetingDetailPage() {
                               : "200px",
                       }}
                     >
-                      {improvedTranscript.map((item, index) => (
-                        <div key={index} className="transcript-item">
-                          <span className="timestamp">
-                            {formatTimestamp(item.startTs)}
-                          </span>
-                          <div className="transcript-text">
-                            <strong>{getSpeakerName(item.speakerId)}:</strong>{" "}
-                            {item.text}
-                          </div>
-                        </div>
-                      ))}
+                      <TranscriptPanel
+                        meetingId={params.id as string}
+                        transcriptItems={improvedTranscript}
+                        setTranscriptItems={setImprovedTranscript}
+                        allSpeakers={meetingInfo?.attendees ?? []}
+                        getSpeakerName={getSpeakerName}
+                        formatTimestamp={formatTimestamp}
+                      />
                     </div>
 
                     {improvedTranscript.length > 4 && (
@@ -1505,12 +1455,21 @@ export default function MeetingDetailPage() {
                         {isTranscriptExpanded ? (
                           <>
                             <span>Thu gọn lời thoại</span>
-                            <ArrowLeft size={16} style={{ transform: 'rotate(90deg)' }} />
+                            <ArrowLeft
+                              size={16}
+                              style={{ transform: "rotate(90deg)" }}
+                            />
                           </>
                         ) : (
                           <>
-                            <span>Xem toàn bộ lời thoại ({improvedTranscript.length} đoạn)</span>
-                            <ArrowLeft size={16} style={{ transform: 'rotate(-90deg)' }} />
+                            <span>
+                              Xem toàn bộ lời thoại ({improvedTranscript.length}{" "}
+                              đoạn)
+                            </span>
+                            <ArrowLeft
+                              size={16}
+                              style={{ transform: "rotate(-90deg)" }}
+                            />
                           </>
                         )}
                       </div>
@@ -1541,12 +1500,14 @@ export default function MeetingDetailPage() {
                       <span>Đang tạo tóm tắt...</span>
                     </div>
                   )}
-                  {!isProcessingMeetingAI && summary && <ReactMarkdown>{summary}</ReactMarkdown>}
+                  {!isProcessingMeetingAI && summary && (
+                    <ReactMarkdown>{summary}</ReactMarkdown>
+                  )}
                 </div>
               </div>
 
               {/* AI Generated Tasks */}
-              {(todoList.length > 0 || isProcessingMeetingAI) && (
+              {isProjectManager() && (todoList.length > 0 || isProcessingMeetingAI) && (
                 <div className="ai-generated-tasks">
                   <div className="ai-tasks-header">
                     <div className="ai-tasks-title">
@@ -1596,20 +1557,6 @@ export default function MeetingDetailPage() {
                       <Target size={16} />
                       Chuyển đổi thành công việc chính thức
                     </Button>
-
-                    {/* <Button
-                      disabled={isGeneratingTasks}
-                      onClick={() => {
-                        // Handle regenerate AI tasks
-                        setGeneratedTasks([]);
-                        // generateSummaryAndTasks();
-                      }}
-                      className="regenerate-btn"
-                      variant="outline"
-                    >
-                      <Sparkles size={16} />
-                      Tạo lại danh sách bằng AI
-                    </Button> */}
                   </div>
                 </div>
               )}
@@ -1617,7 +1564,12 @@ export default function MeetingDetailPage() {
           </div>
         )}
       </div>
-
+      <RelatedTasksSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        referenceTaskIds={currentReferenceIds}
+        todoId={selectedTodoId ?? ""}
+      />
       {/* Delete Confirmation Modal */}
       {deleteConfirmModal.isOpen && (
         <div className="delete-modal-overlay">
@@ -1662,17 +1614,17 @@ export default function MeetingDetailPage() {
 
             {/* Title */}
             <h3 className="text-lg font-semibold mb-2">
-              Chuyển đổi thành Nhiệm vụ Chính thức?
+              Chuyển đổi thành Công việc Chính thức?
             </h3>
 
             {/* Content */}
             <div className="delete-modal-content mb-4">
               <p>
                 Bạn sắp chuyển đổi{" "}
-                <strong>{convertConfirmModal.taskCount} việc cần làm</strong> do
-                AI tạo thành công việc chính thức. Những việc này sẽ được thêm
-                vào trong dự án của bạn và các thành viên liên quan trong nhóm
-                sẽ nhận được thông báo.
+                <strong>{convertConfirmModal.taskCount} to-do</strong> do AI tạo
+                thành "công việc chính thức". Những việc này sẽ được thêm vào
+                trong dự án của bạn và các thành viên liên quan trong nhóm sẽ
+                nhận được thông báo.
               </p>
             </div>
 
@@ -1690,7 +1642,7 @@ export default function MeetingDetailPage() {
                 className="confirm-delete-btn"
                 style={{ background: "#FF5E13" }}
               >
-                Xác nhận chuyển đổi
+                Xác nhận
               </Button>
             </div>
           </div>

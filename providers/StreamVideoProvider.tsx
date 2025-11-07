@@ -14,7 +14,7 @@ export const StreamVideoProvider = ({
 }) => {
   const [videoClient, setVideoClient] = useState<StreamVideoClient>();
   const [error, setError] = useState<string | null>(null);
-  const { userId, email, image } = useUser();
+  const { userId, email, avatarUrl } = useUser();
   
   useEffect(() => {
     if (!apiKey) {
@@ -32,13 +32,13 @@ export const StreamVideoProvider = ({
         user: {
           id: userId,
           name: email,
-          image: image,
+          image: avatarUrl,
         },
         tokenProvider: async () => {
           return await tokenService.getStreamToken({
             id: userId,
             name: email,
-            image: image,
+            image: avatarUrl,
           });
         },
       });
@@ -55,7 +55,7 @@ export const StreamVideoProvider = ({
       }
       setVideoClient(undefined);
     };
-  }, [userId, email, image]);
+  }, [userId, email, avatarUrl]);
 
   // If there's an error (like missing API key), render children without StreamVideo wrapper
   if (error) {

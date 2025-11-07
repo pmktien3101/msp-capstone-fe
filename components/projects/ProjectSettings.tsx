@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
 import { toast } from "react-toastify";
+import { PROJECT_STATUS_OPTIONS, getProjectStatusLabel } from "@/constants/status";
 import { 
   Plus, 
   Edit, 
@@ -36,9 +37,10 @@ interface ProjectManager {
 interface ProjectSettingsProps {
   project: Project;
   availableProjectManagers?: ProjectManager[];
+  onProjectUpdate?: () => void;
 }
 
-export const ProjectSettings = ({ project, availableProjectManagers = [] }: ProjectSettingsProps) => {
+export const ProjectSettings = ({ project, availableProjectManagers = [], onProjectUpdate }: ProjectSettingsProps) => {
   // Helper function to format ISO date to YYYY-MM-DD
   const formatDateForInput = (dateString?: string) => {
     if (!dateString) return '';
@@ -265,6 +267,11 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
         setSettings(tempSettings);
         setIsEditingBasicInfo(false);
         toast.success('Cập nhật thông tin dự án thành công!');
+        
+        // Trigger parent component to refetch data
+        if (onProjectUpdate) {
+          onProjectUpdate();
+        }
       } else {
         console.error('[ProjectSettings] Failed to update project:', result.error);
         toast.error(`Lỗi: ${result.error || 'Không thể cập nhật thông tin dự án'}`);
@@ -344,10 +351,11 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
                 className="form-select"
                 disabled={!isEditingBasicInfo}
               >
-                <option value="Lập kế hoạch">Lập kế hoạch</option>
-                <option value="Đang hoạt động">Đang hoạt động</option>
-                <option value="Tạm dừng">Tạm dừng</option>
-                <option value="Hoàn thành">Hoàn thành</option>
+                {PROJECT_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -541,7 +549,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [] }: Proj
                         <div className="member-role">{member.role}</div>
                         <div className="member-email">{member.email}</div>
                       </div>
-                      {canAddMember && member.role?.toLowerCase() === 'member' && (
+                      {canAddMember && (userRole === 'businessowner' || member.role?.toLowerCase() === 'member') && (
                         <div className="member-actions">
                           <button
                             className="btn btn-sm btn-danger"

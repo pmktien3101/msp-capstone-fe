@@ -437,30 +437,34 @@ export function AddMemberModal({
                         {member.email} • {member.role}
                       </div>
                     </div>
-                    <button
-                      onClick={() => onRemoveMember(member.id)}
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        border: 'none',
-                        background: '#ef4444',
-                        color: 'white',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#dc2626';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = '#ef4444';
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {/* Show delete button based on user role */}
+                    {(userRole?.toLowerCase() === 'businessowner' || 
+                      (userRole?.toLowerCase() === 'projectmanager' && member.role?.toLowerCase() === 'member')) && (
+                      <button
+                        onClick={() => onRemoveMember(member.id)}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          border: 'none',
+                          background: '#ef4444',
+                          color: 'white',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#dc2626';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#ef4444';
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
