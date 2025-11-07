@@ -2522,7 +2522,8 @@ export const MilestoneListView = ({ project, refreshKey = 0 }: MilestoneListView
       <div className="milestone-table">
         <div className="table-header">
           <div className="col-stt">STT</div>
-          <div className="col-milestone">Tên cột mốc</div>
+          <div className="col-name">Tiêu đề</div>
+          <div className="col-description">Mô tả</div>
           <div className="col-due-date">Ngày hết hạn</div>
           <div className="col-tasks">Công việc</div>
           <div className="col-progress">Tiến độ</div>
@@ -2553,11 +2554,11 @@ export const MilestoneListView = ({ project, refreshKey = 0 }: MilestoneListView
                   <div className="col-stt">
                     <div className="stt-number">{index + 1}</div>
                   </div>
-                  <div className="col-milestone">
-                    <div className="milestone-details">
-                      <div className="milestone-name">{milestone.name}</div>
-                      <div className="milestone-description">{milestone.description}</div>
-                    </div>
+                  <div className="col-name">
+                    <div className="milestone-name">{milestone.name}</div>
+                  </div>
+                  <div className="col-description">
+                    <div className="milestone-description">{milestone.description}</div>
                   </div>
                   <div className="col-due-date">
                     <div className="due-date">
@@ -2632,19 +2633,15 @@ export const MilestoneListView = ({ project, refreshKey = 0 }: MilestoneListView
 
         .loading-state,
         .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 60px 20px;
           text-align: center;
-          color: #64748b;
+          padding: 48px;
+          color: #6b7280;
+          font-size: 14px;
         }
 
         .loading-state p,
         .empty-state p {
           margin-top: 16px;
-          font-size: 16px;
         }
 
         .empty-state svg {
@@ -2655,34 +2652,45 @@ export const MilestoneListView = ({ project, refreshKey = 0 }: MilestoneListView
           display: flex;
           align-items: center;
           justify-content: center;
+          text-align: center;
         }
 
-        .stt-number {
-          font-size: 14px;
-          font-weight: 600;
-          color: #64748b;
-          width: 32px;
-          height: 32px;
+        .col-tasks {
+          text-align: center;
+        }
+
+        .col-progress {
+          padding: 0 12px;
+        }
+
+        .col-actions {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #f1f5f9;
-          border-radius: 6px;
+        }
+
+        .stt-number {
+          font-size: 13px;
+          font-weight: 600;
+          color: #1f2937;
         }
 
         .table-header {
           display: grid;
-          grid-template-columns: 50px 1fr 120px 150px 120px 60px;
-          gap: 16px;
-          padding: 16px 24px;
-          background: #f8fafc;
+          grid-template-columns: 80px 1.5fr 2fr 180px 120px 200px 100px;
+          padding: 12px;
+          background: #f9fafb;
           border-bottom: 1px solid #e5e7eb;
           font-weight: 600;
-          font-size: 14px;
+          font-size: 12px;
           color: #374151;
           position: sticky;
           top: 0;
           z-index: 10;
+        }
+
+        .table-header > div {
+          padding: 0 8px;
         }
 
         .table-body {
@@ -2692,42 +2700,45 @@ export const MilestoneListView = ({ project, refreshKey = 0 }: MilestoneListView
 
         .table-row {
           display: grid;
-          grid-template-columns: 50px 1fr 120px 150px 120px 60px;
-          gap: 16px;
-          padding: 20px 24px;
-          border-bottom: 1px solid #f1f5f9;
+          grid-template-columns: 80px 1.5fr 2fr 180px 120px 200px 100px;
+          padding: 12px;
+          border-bottom: 1px solid #f3f4f6;
           cursor: pointer;
           transition: all 0.2s ease;
           align-items: center;
         }
 
+        .table-row > div {
+          padding: 0 8px;
+        }
+
         .table-row:hover {
-          background: #f8fafc;
-          border-color: #e2e8f0;
+          background: #f9fafb;
         }
 
         .table-row:last-child {
           border-bottom: none;
         }
 
-        .milestone-details {
-          flex: 1;
-          min-width: 0;
+        .col-name,
+        .col-description {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .milestone-name {
-          font-size: 16px;
+          font-size: 13px;
           font-weight: 600;
-          color: #1e293b;
-          margin-bottom: 4px;
+          color: #1f2937;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
         .milestone-description {
-          font-size: 14px;
-          color: #64748b;
+          font-size: 12px;
+          color: #6b7280;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -2736,21 +2747,19 @@ export const MilestoneListView = ({ project, refreshKey = 0 }: MilestoneListView
         .due-date {
           display: flex;
           align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          color: #374151;
+          gap: 6px;
+          font-size: 12px;
+          color: #6b7280;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
         .task-count {
-          font-size: 14px;
-          color: #374151;
+          font-size: 13px;
+          color: #1f2937;
           font-weight: 500;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          text-align: center;
         }
 
         .progress-container {

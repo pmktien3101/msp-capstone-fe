@@ -10,6 +10,7 @@ import { UserRole } from "@/lib/rbac";
 import Pagination from "@/components/ui/Pagination";
 import { TaskStatus, getTaskStatusLabel, getTaskStatusColor } from "@/constants/status";
 import { ReassignTaskModal } from "../tasks/ReassignTaskModal";
+
 interface ProjectBoardProps {
   project: Project;
   onTaskClick?: (task: any) => void;
@@ -72,19 +73,6 @@ export const ProjectBoard = ({
     setIsLoadingTasks(true);
     try {
       let response;
-      
-      // DEBUG: Log user info to check role value
-      // console.log(`[ProjectBoard] 🔍 User Info:`, { userId, userRole, projectId });
-      // console.log(`[ProjectBoard] 🔍 Role type:`, typeof userRole);
-      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'ProjectManager':`, userRole === 'ProjectManager');
-      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.PROJECT_MANAGER:`, userRole === UserRole.PROJECT_MANAGER);
-      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === 'Member':`, userRole === 'Member');
-      // console.log(`[ProjectBoard] 🔍 Role comparison - userRole === UserRole.MEMBER:`, userRole === UserRole.MEMBER);
-      // console.log(`[ProjectBoard] 🔍 UserRole enum values:`, { 
-      //   PROJECT_MANAGER: UserRole.PROJECT_MANAGER, 
-      //   MEMBER: UserRole.MEMBER 
-      // });
-      
       // ProjectManager & BusinessOwner: Get all tasks in project
       // Member: Get only tasks assigned to this user in project
       if (userRole === UserRole.PROJECT_MANAGER || userRole === 'ProjectManager' || 
@@ -99,20 +87,11 @@ export const ProjectBoard = ({
       if (response.success && response.data) {
         // Extract items from PagingResponse
         const taskList = response.data.items || [];
-        // console.log(`[ProjectBoard] ✅ Successfully loaded ${taskList.length} tasks for role "${userRole}"`);
-        // console.log(`[ProjectBoard] 📋 Task list:`, taskList.map(t => ({ 
-        //   id: t.id, 
-        //   title: t.title, 
-        //   userId: t.userId,
-        //   assignedTo: t.user?.fullName || t.userId 
-        // })));
         setTasks(taskList);
       } else {
-        // console.error('[ProjectBoard] ❌ Failed to fetch tasks:', response.error);
         setTasks([]);
       }
     } catch (error) {
-      // console.error('[ProjectBoard] Error fetching tasks:', error);
       setTasks([]);
     } finally {
       setIsLoadingTasks(false);
@@ -133,7 +112,6 @@ export const ProjectBoard = ({
 
       setIsLoadingMembers(true);
       try {
-        // console.log(`[ProjectBoard] Fetching members for project: ${projectId}`);
         const response = await projectService.getProjectMembers(projectId);
         
         if (response.success && response.data) {
@@ -147,14 +125,11 @@ export const ProjectBoard = ({
               role: pm.member.role
             }));
           
-          // console.log(`[ProjectBoard] Loaded ${transformedMembers.length} members`);
           setMembers(transformedMembers);
         } else {
-          // console.error('[ProjectBoard] Failed to fetch members:', response.error);
           setMembers([]);
         }
       } catch (error) {
-        // console.error('[ProjectBoard] Error fetching members:', error);
         setMembers([]);
       } finally {
         setIsLoadingMembers(false);
@@ -474,64 +449,39 @@ export const ProjectBoard = ({
       <style jsx>{`
         .project-board {
           width: 100%;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-          padding: 24px;
-          gap: 24px;
         }
         
         .create-task-container {
-          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-          border: 2px solid #e2e8f0;
-          border-radius: 16px;
-          padding: 20px 24px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-          backdrop-filter: blur(10px);
+          padding: 16px 0;
+          margin-bottom: 16px;
         }
         
         .create-task-container button {
-          background: linear-gradient(135deg, #FF5E13 0%, #FF8C42 100%);
+          background: #ff5e13;
           color: white;
           border: none;
-          border-radius: 12px;
-          padding: 12px 24px;
+          border-radius: 6px;
+          padding: 8px 16px;
           font-size: 14px;
-          font-weight: 600;
+          font-weight: 500;
           cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.2);
-          display: flex;
-          align-items: center;
-          gap: 8px;
+          transition: all 0.2s ease;
         }
         
         .create-task-container button:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 20px rgba(255, 94, 19, 0.3);
-          background: linear-gradient(135deg, #FF8C42 0%, #FF5E13 100%);
+          background: #e54d00;
         }
         
         .task-list {
-          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-          border-radius: 20px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          overflow: hidden;
-          backdrop-filter: blur(10px);
-          padding: 24px;
+          width: 100%;
         }
 
         .loading-state,
         .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 60px 20px;
           text-align: center;
-          color: #64748b;
+          padding: 48px;
+          color: #6b7280;
+          font-size: 14px;
         }
 
         .loading-spinner {
@@ -541,7 +491,7 @@ export const ProjectBoard = ({
           border-top-color: #FF5E13;
           border-radius: 50%;
           animation: spin 0.8s linear infinite;
-          margin-bottom: 16px;
+          margin: 0 auto 16px;
         }
 
         @keyframes spin {
@@ -551,8 +501,6 @@ export const ProjectBoard = ({
         .loading-state p,
         .empty-state p {
           margin: 0 0 20px 0;
-          font-size: 16px;
-          font-weight: 500;
         }
 
         .empty-state button {
@@ -561,8 +509,6 @@ export const ProjectBoard = ({
           border: 1px solid #FF5E13;
           border-radius: 8px;
           padding: 10px 20px;
-          font-size: 14px;
-          font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
         }
@@ -570,8 +516,6 @@ export const ProjectBoard = ({
         .empty-state button:hover {
           background: #FF5E13;
           color: white;
-        }
-          backdrop-filter: blur(10px);
         }
         
         .task-group {
@@ -583,9 +527,9 @@ export const ProjectBoard = ({
         }
         
         .group-header {
-          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-          padding: 16px 20px;
-          border-bottom: 2px solid #ea580c;
+          background: #f9fafb;
+          padding: 12px 16px;
+          border-bottom: 1px solid #e5e7eb;
           margin-bottom: 0;
           display: flex;
           align-items: center;
@@ -594,278 +538,199 @@ export const ProjectBoard = ({
         
         .group-title {
           margin: 0;
-          font-size: 16px;
-          font-weight: 700;
-          color: #1e293b;
-          letter-spacing: -0.025em;
+          font-size: 14px;
+          font-weight: 600;
+          color: #374151;
         }
         
         .group-count {
-          background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+          background: #ff5e13;
           color: white;
-          padding: 4px 12px;
+          padding: 2px 8px;
           border-radius: 12px;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
-          box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3);
         }
         
         table {
           width: 100%;
-          border-collapse: separate;
-          border-spacing: 0;
-          font-size: 14px;
-          table-layout: fixed;
+          border-collapse: collapse;
+          background: white;
         }
         
         thead {
-          background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
-          position: sticky;
-          top: 0;
-          z-index: 10;
+          background: #f9fafb;
         }
         
         th {
-          color: white;
-          font-weight: 700;
-          font-size: 13px;
-          letter-spacing: 0.025em;
-          text-transform: uppercase;
-          padding: 20px 16px;
+          padding: 12px;
           text-align: left;
-          border: none;
-          position: relative;
-        }
-        
-        th:not(:last-child)::after {
-          content: '';
-          position: absolute;
-          right: 0;
-          top: 25%;
-          height: 50%;
-          width: 1px;
-          background: rgba(255, 255, 255, 0.2);
-        }
-        
-        tbody tr {
-          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-          transition: all 0.3s ease;
-          border-bottom: 1px solid rgba(226, 232, 240, 0.5);
-        }
-        
-        tbody tr:nth-child(even) {
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        }
-        
-        tbody tr:hover {
-          background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.15);
+          font-size: 12px;
+          font-weight: 600;
+          color: #374151;
+          border-bottom: 1px solid #e5e7eb;
+          white-space: nowrap;
         }
         
         td {
-          padding: 16px;
-          border: none;
-          vertical-align: middle;
-          position: relative;
+          padding: 12px;
+          font-size: 13px;
+          color: #1f2937;
+          border-bottom: 1px solid #f3f4f6;
         }
         
-        td:not(:last-child)::after {
-          content: '';
-          position: absolute;
-          right: 0;
-          top: 25%;
-          height: 50%;
-          width: 1px;
-          background: rgba(240, 226, 233, 0.3);
+        tr:hover {
+          background: #f9fafb;
         }
         
-        /* Cố định độ rộng cột với responsive */
+        /* Cố định độ rộng cột */
         .stt-cell { 
           width: 60px; 
           text-align: center;
-          font-weight: 600;
-          color: #64748b;
         }
         
         .title-cell { 
-          width: 200px; 
-          font-weight: 600;
-          color: #1e293b;
+          max-width: 200px;
         }
         
         .description-cell { 
-          width: 300px; 
-          color: #64748b;
-          line-height: 1.5;
+          max-width: 250px;
         }
         
         .status-cell { 
-          width: 120px; 
-          text-align: center;
+          white-space: nowrap;
         }
         
         .assignee-cell { 
-          width: 140px; 
-          text-align: center;
-          color: #475569;
+          white-space: nowrap;
         }
         
         .date-cell { 
-          width: 110px; 
-          text-align: center;
-          color: #64748b;
-          font-size: 13px;
+          white-space: nowrap;
+          font-size: 12px;
+          color: #6b7280;
         }
         
         .actions-cell { 
-          width: 120px; 
-          text-align: center;
+          white-space: nowrap;
         }
         
         /* Text overflow handling */
-        .title-text, .description-text, .assignee-text {
+        .title-text {
           display: block;
-          white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          max-width: 100%;
+          white-space: nowrap;
         }
-        
+
         .description-text {
-          white-space: normal;
-          line-height: 1.4;
-          max-height: 2.8em;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .assignee-text {
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         
         /* Status badges */
         .status-badge {
           display: inline-block;
-          padding: 6px 12px;
-          border-radius: 20px;
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
+          padding: 4px 12px;
+          border-radius: 12px;
           color: white;
-          text-align: center;
-          min-width: 80px;
+          font-size: 11px;
+          font-weight: 600;
         }
         
         /* Action buttons */
         .action-buttons {
           display: flex;
           gap: 6px;
-          justify-content: center;
           align-items: center;
+          justify-content: center;
+          flex-wrap: nowrap;
         }
         
         .action-btn {
-          width: 32px;
-          height: 32px;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
+          width: 32px;
+          height: 32px;
+          border: 1px solid;
+          border-radius: 6px;
+          cursor: pointer;
           transition: all 0.2s ease;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          opacity: 0.7;
+        }
+        
+        .action-btn:hover {
+          opacity: 1;
+          transform: scale(1.05);
         }
         
         .view-btn {
-          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-          color: white;
+          background: #eff6ff;
+          color: #3b82f6;
+          border-color: #bfdbfe;
         }
         
         .view-btn:hover {
-          background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+          background: #3b82f6;
+          color: white;
+          border-color: #3b82f6;
         }
         
         .edit-btn {
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          color: white;
+          background: #fffbeb;
+          color: #f59e0b;
+          border-color: #fde68a;
         }
         
         .edit-btn:hover {
-          background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+          background: #f59e0b;
+          color: white;
+          border-color: #f59e0b;
         }
         
         .delete-btn {
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-          color: white;
+          background: #fef2f2;
+          color: #ef4444;
+          border-color: #fecaca;
         }
         
         .delete-btn:hover {
-          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
-        }
-        
-        /* Responsive design */
-        @media (max-width: 1200px) {
-          .project-board {
-            padding: 16px;
-          }
-          
-          .description-cell { width: 250px; }
-          .title-cell { width: 180px; }
-        }
-        
-        @media (max-width: 768px) {
-          .project-board {
-            padding: 12px;
-          }
-          
-          table {
-            font-size: 12px;
-          }
-          
-          td {
-            padding: 12px 8px;
-          }
-          
-          .stt-cell { width: 50px; }
-          .title-cell { width: 150px; }
-          .description-cell { width: 200px; }
-          .status-cell { width: 100px; }
-          .assignee-cell { width: 120px; }
-          .date-cell { width: 90px; }
-          .actions-cell { width: 100px; }
-          
-          .action-buttons {
-            gap: 4px;
-          }
-          
-          .action-btn {
-            width: 28px;
-            height: 28px;
-          }
-        }
-           .reassign-btn {
-          background: linear-gradient(135deg, #ff5e13 0%, #e54d00 100%);
+          background: #ef4444;
           color: white;
-          border: none;
-          padding: 6px 10px;
-          border-radius: 4px;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
+          border-color: #ef4444;
+        }
+
+        .reassign-btn {
+          background: #fff7ed;
+          color: #ff5e13;
+          border-color: #fed7aa;
         }
 
         .reassign-btn:hover {
-          background: linear-gradient(135deg, #e54d00 0%, #cc3e00 100%);
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(255, 94, 19, 0.3);
+          background: #ff5e13;
+          color: white;
+          border-color: #ff5e13;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+          table {
+            min-width: 800px;
+          }
+          
+          .task-list {
+            overflow-x: scroll;
+          }
         }
       `}</style>
     </div>

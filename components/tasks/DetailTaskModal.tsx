@@ -19,7 +19,7 @@ import {
   Send,
   MoreVertical
 } from "lucide-react";
-import { TaskStatus, getTaskStatusColor } from "@/constants/status";
+import { TaskStatus, getTaskStatusColor, TASK_STATUS_LABELS } from "@/constants/status";
 import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
 import { milestoneService } from "@/services/milestoneService";
@@ -167,7 +167,7 @@ export const DetailTaskModal = ({
                   display: 'inline-block'
                 }}
               >
-                {task.status}
+                {TASK_STATUS_LABELS[task.status as TaskStatus]}
               </div>
             </div>
           </div>
