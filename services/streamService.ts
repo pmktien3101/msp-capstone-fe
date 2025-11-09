@@ -6,8 +6,7 @@ class TokenService {
   private readonly baseUrl: string;
 
   constructor() {
-    this.baseUrl =
-      process.env.NEXT_PUBLIC_API_URL || "https://localhost:7129/api/v1";
+    this.baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
   }
 
   async getStreamToken(user: {
@@ -72,8 +71,6 @@ class TokenService {
       throw error;
     }
   }
-
-  
 }
 
 export const tokenService = new TokenService();

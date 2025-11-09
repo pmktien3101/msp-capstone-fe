@@ -1,10 +1,13 @@
-import { CreateTaskReassignRequestRequest, UpdateTaskReassignRequestRequest } from '@/types/taskReassignRequest';
-import { api } from './api';
+import {
+  CreateTaskReassignRequestRequest,
+  UpdateTaskReassignRequestRequest,
+} from "@/types/taskReassignRequest";
+import { api } from "./api";
 
 interface ApiResponse<T = any> {
-    success: boolean;
-    data?: T;
-    message?: string;
+  success: boolean;
+  data?: T;
+  message?: string;
 }
 
 export const taskReassignRequestService = {
@@ -14,7 +17,7 @@ export const taskReassignRequestService = {
   ): Promise<ApiResponse> {
     try {
       const response = await api.get<ApiResponse>(
-        '/TaskReassignRequests/available-users',
+        "/TaskReassignRequests/available-users",
         { params: { taskId, fromUserId } }
       );
       return response.data;
@@ -24,7 +27,7 @@ export const taskReassignRequestService = {
         message:
           error.response?.data?.message ||
           error.message ||
-          'Failed to fetch available users',
+          "Failed to fetch available users",
       };
     }
   },
@@ -34,7 +37,7 @@ export const taskReassignRequestService = {
   ): Promise<ApiResponse> {
     try {
       const response = await api.post<ApiResponse>(
-        '/TaskReassignRequests',
+        "/TaskReassignRequests",
         payload
       );
       return response.data;
@@ -44,7 +47,7 @@ export const taskReassignRequestService = {
         message:
           error.response?.data?.message ||
           error.message ||
-          'Failed to create task reassign request',
+          "Failed to create task reassign request",
       };
     }
   },
@@ -65,7 +68,7 @@ export const taskReassignRequestService = {
         message:
           error.response?.data?.message ||
           error.message ||
-          'Failed to accept task reassign request',
+          "Failed to accept task reassign request",
       };
     }
   },
@@ -86,14 +89,12 @@ export const taskReassignRequestService = {
         message:
           error.response?.data?.message ||
           error.message ||
-          'Failed to reject task reassign request',
+          "Failed to reject task reassign request",
       };
     }
   },
 
-  async getTaskReassignRequestsByTaskId(
-    taskId: string
-  ): Promise<ApiResponse> {
+  async getTaskReassignRequestsByTaskId(taskId: string): Promise<ApiResponse> {
     try {
       const response = await api.get<ApiResponse>(
         `/TaskReassignRequests/by-task/${taskId}`
@@ -105,12 +106,12 @@ export const taskReassignRequestService = {
         message:
           error.response?.data?.message ||
           error.message ||
-          'Failed to fetch requests by task',
+          "Failed to fetch requests by task",
       };
     }
   },
 
-    async getAcceptedTaskReassignRequestsByTaskId(
+  async getAcceptedTaskReassignRequestsByTaskId(
     taskId: string
   ): Promise<ApiResponse> {
     try {
@@ -124,15 +125,12 @@ export const taskReassignRequestService = {
         message:
           error.response?.data?.message ||
           error.message ||
-          'Failed to fetch requests by task',
+          "Failed to fetch requests by task",
       };
     }
   },
 
-
-  async getTaskReassignRequestsForUser(
-    userId: string
-  ): Promise<ApiResponse> {
+  async getTaskReassignRequestsForUser(userId: string): Promise<ApiResponse> {
     try {
       const response = await api.get<ApiResponse>(
         `/TaskReassignRequests/for-user/${userId}`
@@ -144,7 +142,7 @@ export const taskReassignRequestService = {
         message:
           error.response?.data?.message ||
           error.message ||
-          'Failed to fetch requests for user',
+          "Failed to fetch requests for user",
       };
     }
   },
