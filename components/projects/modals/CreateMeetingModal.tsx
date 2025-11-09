@@ -208,7 +208,7 @@ export default function MeetingForm({
 
   const baseUrl =
     (typeof window !== "undefined" && window.location.origin) ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_FE_URL ||
     "";
   const meetingLink = callDetails ? `${baseUrl}/meeting/${callDetails.id}` : "";
 
