@@ -111,11 +111,17 @@ export const isAuthenticated = (): boolean => {
   if (typeof window === 'undefined') return false;
   
   const token = getAccessToken();
-  if (!token) return false;
+  
+  // If no token, clear user data and return false
+  if (!token) {
+    localStorage.removeItem('user-storage');
+    return false;
+  }
   
   // Only check if token exists and has valid format, not if it's expired
   // Token expiration will be handled by API interceptor for refresh
   if (!isValidJwtFormat(token)) {
+    localStorage.removeItem('user-storage');
     return false;
   }
   
@@ -125,9 +131,16 @@ export const isAuthenticated = (): boolean => {
     const userData = userStorage ? JSON.parse(userStorage) : null;
     const hasUserData = userData?.state?.userId && userData?.state?.email && userData?.state?.role;
     
-    return !!(token && hasUserData);
+    if (!hasUserData) {
+      // If no user data, clear it
+      localStorage.removeItem('user-storage');
+      return false;
+    }
+    
+    return true;
   } catch (error) {
     console.error('Error parsing user storage:', error);
+    localStorage.removeItem('user-storage');
     return false;
   }
 };
@@ -150,7 +163,7 @@ export const getCurrentUser = (): User | null => {
       email: userFromToken.email,
       fullName: userFromToken.fullName,
       role: normalizeRole(userFromToken.role),
-      image: ''
+      avatarUrl: userFromToken.avatarUrl || ''
     };
   }
   
@@ -164,7 +177,7 @@ export const getCurrentUser = (): User | null => {
         email: userData.state.email,
         fullName: userData.state.fullName || userData.state.name || '',
         role: normalizeRole(userData.state.role),
-        image: userData.state.image || ''
+        avatarUrl: userData.state.avatarUrl || ''
       };
     }
   } catch (error) {

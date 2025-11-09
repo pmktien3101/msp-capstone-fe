@@ -60,11 +60,9 @@ export function getAllRoles(): UserRole[] {
  */
 export function normalizeRole(role: string): UserRole {
   const roleMap: Record<string, UserRole> = {
-    'AdminSystem': UserRole.ADMIN,
     'Admin': UserRole.ADMIN,
     'BusinessOwner': UserRole.BUSINESS_OWNER,
     'ProjectManager': UserRole.PROJECT_MANAGER,
-    'pm': UserRole.PROJECT_MANAGER,
     'Member': UserRole.MEMBER
   };
   
