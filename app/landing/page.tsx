@@ -12,13 +12,18 @@ export default function LandingPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = () => {
-      if (isAuthenticated()) {
-        console.log("User already authenticated, redirecting to dashboard");
-        router.push("/dashboard");
-        return;
+    const checkAuth = async () => {
+      try {
+        if (isAuthenticated()) {
+          console.log("User already authenticated, redirecting to dashboard");
+          router.push("/dashboard");
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking auth:", error);
+      } finally {
+        setIsCheckingAuth(false);
       }
-      setIsCheckingAuth(false);
     };
 
     const timer = setTimeout(checkAuth, 100);
