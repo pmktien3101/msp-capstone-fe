@@ -110,7 +110,10 @@ export default function MeetingDetailPage() {
     projectId: string,
     params: PagingRequest = { pageIndex: 1, pageSize: 100 }
   ) => {
-    const tasksResponse = await taskService.getTasksByProjectId(projectId, params);
+    const tasksResponse = await taskService.getTasksByProjectId(
+      projectId,
+      params
+    );
     if (tasksResponse.success && tasksResponse.data) {
       setProjectTasks(tasksResponse.data.items || []);
     } else {
@@ -245,7 +248,11 @@ export default function MeetingDetailPage() {
     }
   };
 
-  const processVideo = async (recording: any, transcriptions: any, tasks: any[]) => {
+  const processVideo = async (
+    recording: any,
+    transcriptions: any,
+    tasks: any[]
+  ) => {
     setIsProcessingMeetingAI(true);
 
     try {
@@ -337,12 +344,18 @@ export default function MeetingDetailPage() {
 
               function normalizeDate(val: any) {
                 if (!val) return null;
-                if (typeof val === "string" && /^\d{2}-\d{2}-\d{4}$/.test(val)) {
+                if (
+                  typeof val === "string" &&
+                  /^\d{2}-\d{2}-\d{4}$/.test(val)
+                ) {
                   const [dd, mm, yyyy] = val.split("-");
                   return new Date(`${yyyy}-${mm}-${dd}`).toISOString();
                 }
                 // Nếu là YYYY-MM-DD, chuyển thành ISO luôn cho chắc
-                if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                if (
+                  typeof val === "string" &&
+                  /^\d{4}-\d{2}-\d{2}$/.test(val)
+                ) {
                   return new Date(val).toISOString();
                 }
                 // Nếu đã là Date object
@@ -358,7 +371,6 @@ export default function MeetingDetailPage() {
               };
             });
 
-
             const createTodosResult = await todoService.createTodosFromAI(
               params.id as string,
               mappedTodoList
@@ -366,7 +378,8 @@ export default function MeetingDetailPage() {
 
             if (createTodosResult.success) {
               toast.success(
-                `${createTodosResult.data?.length || 0
+                `${
+                  createTodosResult.data?.length || 0
                 } công việc đã được tạo từ AI`
               );
               const refreshResult = await todoService.getTodosByMeetingId(
@@ -668,13 +681,12 @@ export default function MeetingDetailPage() {
   // Xử lý select/deselect task
   const handleSelectTask = (taskId: string) => {
     const todo = todoList.find((t) => t.id === taskId);
-    if (!isValidTodo(todo) ||
+    if (
+      !isValidTodo(todo) ||
       todo.status === 2 || // ConvertedToTask
-      todo.status === 3   // Deleted
+      todo.status === 3 // Deleted
     ) {
-      toast.warning(
-        "To-do đã được chuyển đổi hoặc thiếu thông tin cần thiết"
-      );
+      toast.warning("To-do đã được chuyển đổi hoặc thiếu thông tin cần thiết");
       return;
     }
     setSelectedTasks((prev) =>
@@ -686,12 +698,15 @@ export default function MeetingDetailPage() {
 
   // Xử lý select all tasks
   const handleSelectAllTasks = () => {
-    const eligibleIds = todoList.filter(t => isValidTodo(t)
-      && t.status !== 2 // ConvertedToTask
-      && t.status !== 3 // Deleted
-    ).map((t) => t.id);
-    if (selectedTasks.length === eligibleIds.length)
-      setSelectedTasks([]);
+    const eligibleIds = todoList
+      .filter(
+        (t) =>
+          isValidTodo(t) &&
+          t.status !== 2 && // ConvertedToTask
+          t.status !== 3 // Deleted
+      )
+      .map((t) => t.id);
+    if (selectedTasks.length === eligibleIds.length) setSelectedTasks([]);
     else setSelectedTasks(eligibleIds);
   };
 
@@ -847,10 +862,10 @@ export default function MeetingDetailPage() {
                   assigneeId: newAssigneeId,
                   assignee: newAssignee
                     ? {
-                      id: newAssignee.id,
-                      fullName: newAssignee.fullName,
-                      email: newAssignee.email,
-                    }
+                        id: newAssignee.id,
+                        fullName: newAssignee.fullName,
+                        email: newAssignee.email,
+                      }
                     : null,
                   status: updateResult?.data?.status,
                   statusDisplay: updateResult?.data?.statusDisplay,
@@ -873,7 +888,9 @@ export default function MeetingDetailPage() {
 
                 setEditMode((prev) => ({ ...prev, [todo.id]: false }));
               } else {
-                toast.error("Cập nhật công việc thất bại: " + updateResult.error);
+                toast.error(
+                  "Cập nhật công việc thất bại: " + updateResult.error
+                );
               }
             } catch (error) {
               toast.error("Lỗi khi cập nhật công việc");
@@ -908,7 +925,13 @@ export default function MeetingDetailPage() {
           isValidTodo={isValidTodo}
         />
       )),
-    [todoList, selectedTasks, editMode, meetingInfo?.attendees, originalTodoCache]
+    [
+      todoList,
+      selectedTasks,
+      editMode,
+      meetingInfo?.attendees,
+      originalTodoCache,
+    ]
   );
 
   // Xử lý tải xuống recording (tải blob để đảm bảo đặt được tên file)
@@ -924,8 +947,8 @@ export default function MeetingDetailPage() {
       const extensionFromType = contentType.includes("mp4")
         ? "mp4"
         : contentType.includes("webm")
-          ? "webm"
-          : "mp4";
+        ? "webm"
+        : "mp4";
       const baseName =
         rec.filename
           ?.replace(/\s+/g, "-")
@@ -1060,9 +1083,7 @@ export default function MeetingDetailPage() {
     displayParticipants.map(getParticipantEmail);
   // Xử lý khi nhấn tham gia cuộc họp
   const handleClickJoinMeeting = () => {
-    router.push(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/meeting/${meetingInfo.id}`
-    );
+    router.push(`${process.env.NEXT_PUBLIC_FE_URL}/meeting/${meetingInfo.id}`);
   };
   return (
     <div className="meeting-detail-page">
@@ -1133,18 +1154,18 @@ export default function MeetingDetailPage() {
                 {(meetingInfo?.endTime
                   ? new Date(meetingInfo.endTime) > new Date()
                   : endsAt
-                    ? endsAt > new Date()
-                    : false) && (
-                    <Button
-                      variant="default"
-                      className="join-now-btn bg-orange-600 hover:bg-orange-700 cursor-pointer"
-                      style={{ marginTop: 12 }}
-                      onClick={() => handleClickJoinMeeting()}
-                    >
-                      <Video size={16} style={{ marginRight: 6 }} />
-                      Tham gia ngay
-                    </Button>
-                  )}
+                  ? endsAt > new Date()
+                  : false) && (
+                  <Button
+                    variant="default"
+                    className="join-now-btn bg-orange-600 hover:bg-orange-700 cursor-pointer"
+                    style={{ marginTop: 12 }}
+                    onClick={() => handleClickJoinMeeting()}
+                  >
+                    <Video size={16} style={{ marginRight: 6 }} />
+                    Tham gia ngay
+                  </Button>
+                )}
               </div>
 
               <div className="info-grid">
@@ -1267,8 +1288,8 @@ export default function MeetingDetailPage() {
                                 <p>
                                   {meetingInfo.updatedAt
                                     ? new Date(
-                                      meetingInfo.updatedAt
-                                    ).toLocaleString("vi-VN")
+                                        meetingInfo.updatedAt
+                                      ).toLocaleString("vi-VN")
                                     : "-"}
                                 </p>
                               </div>
@@ -1334,9 +1355,9 @@ export default function MeetingDetailPage() {
                         const duration =
                           rec.start_time && rec.end_time
                             ? formatDuration(
-                              new Date(rec.end_time).getTime() -
-                              new Date(rec.start_time).getTime()
-                            )
+                                new Date(rec.end_time).getTime() -
+                                  new Date(rec.start_time).getTime()
+                              )
                             : null;
                         return (
                           <div className="recording-item" key={rec.url || idx}>
@@ -1399,7 +1420,8 @@ export default function MeetingDetailPage() {
                   </div>
                 )}
                 {!isLoadingTranscriptions &&
-                  (originalTranscriptions.length === 0 && improvedTranscript.length === 0) && (
+                  originalTranscriptions.length === 0 &&
+                  improvedTranscript.length === 0 && (
                     <div className="transcript-empty">
                       Chưa có transcript cho cuộc họp này
                     </div>
@@ -1424,15 +1446,16 @@ export default function MeetingDetailPage() {
                 {!isProcessingMeetingAI && improvedTranscript.length > 0 && (
                   <>
                     <div
-                      className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
-                        } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
+                      className={`transcript-content ${
+                        isTranscriptExpanded ? "expanded" : ""
+                      } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
                       style={{
                         maxHeight:
                           improvedTranscript.length <= 4
                             ? "none"
                             : isTranscriptExpanded
-                              ? "none"
-                              : "200px",
+                            ? "none"
+                            : "200px",
                       }}
                     >
                       <TranscriptPanel
@@ -1507,59 +1530,60 @@ export default function MeetingDetailPage() {
               </div>
 
               {/* AI Generated Tasks */}
-              {isProjectManager() && (todoList.length > 0 || isProcessingMeetingAI) && (
-                <div className="ai-generated-tasks">
-                  <div className="ai-tasks-header">
-                    <div className="ai-tasks-title">
-                      <div className="ai-icon">
-                        <Sparkles size={18} />
+              {isProjectManager() &&
+                (todoList.length > 0 || isProcessingMeetingAI) && (
+                  <div className="ai-generated-tasks">
+                    <div className="ai-tasks-header">
+                      <div className="ai-tasks-title">
+                        <div className="ai-icon">
+                          <Sparkles size={18} />
+                        </div>
+                        <div className="title-content">
+                          <h4>Danh sách To-do từ AI</h4>
+                          <p className="draft-notice">
+                            <Edit3 size={12} />
+                            <span>Bản nháp - Cần xem xét và chỉnh sửa</span>
+                          </p>
+                        </div>
                       </div>
-                      <div className="title-content">
-                        <h4>Danh sách To-do từ AI</h4>
-                        <p className="draft-notice">
-                          <Edit3 size={12} />
-                          <span>Bản nháp - Cần xem xét và chỉnh sửa</span>
-                        </p>
-                      </div>
+                      {todoList.length > 0 && (
+                        <label className="select-all-section">
+                          <Checkbox
+                            checked={selectedTasks.length === todoList.length}
+                            onCheckedChange={handleSelectAllTasks}
+                            className="select-all-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+                          />
+                          <span className="select-all-label">
+                            Chọn tất cả({selectedTasks.length} /{" "}
+                            {todoList.length})
+                          </span>
+                        </label>
+                      )}
                     </div>
-                    {todoList.length > 0 && (
-                      <label className="select-all-section">
-                        <Checkbox
-                          checked={selectedTasks.length === todoList.length}
-                          onCheckedChange={handleSelectAllTasks}
-                          className="select-all-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
-                        />
-                        <span className="select-all-label">
-                          Chọn tất cả({selectedTasks.length} / {todoList.length}
-                          )
-                        </span>
-                      </label>
+
+                    {isProcessingMeetingAI && (
+                      <div className="tasks-loading">
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Đang tạo danh sách To-do...</span>
+                      </div>
                     )}
-                  </div>
 
-                  {isProcessingMeetingAI && (
-                    <div className="tasks-loading">
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Đang tạo danh sách To-do...</span>
+                    <div className="task-list">{memoizedTodoList}</div>
+
+                    {/* Action buttons for the entire AI task list */}
+                    <div className="ai-tasks-actions">
+                      <Button
+                        onClick={handleOpenConvertModal}
+                        className="convert-all-btn"
+                        variant="default"
+                        disabled={selectedTasks.length === 0}
+                      >
+                        <Target size={16} />
+                        Chuyển đổi thành công việc chính thức
+                      </Button>
                     </div>
-                  )}
-
-                  <div className="task-list">{memoizedTodoList}</div>
-
-                  {/* Action buttons for the entire AI task list */}
-                  <div className="ai-tasks-actions">
-                    <Button
-                      onClick={handleOpenConvertModal}
-                      className="convert-all-btn"
-                      variant="default"
-                      disabled={selectedTasks.length === 0}
-                    >
-                      <Target size={16} />
-                      Chuyển đổi thành công việc chính thức
-                    </Button>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
         )}
