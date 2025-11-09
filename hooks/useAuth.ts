@@ -1,6 +1,6 @@
 import { useUser } from './useUser';
-import { hasPermission, hasRole, hasAnyRole, canManageProjects, canManageUsers, canManageMeetings, canManageTasks, canViewReports, isAdmin, isBusinessOwnerOrAdmin } from '@/lib/rbac';
-import { UserRole, Permission } from '@/lib/rbac';
+import { hasRole, hasAnyRole, isAdmin, isBusinessOwnerOrAdmin } from '@/lib/rbac';
+import { UserRole } from '@/lib/rbac';
 import { User } from '@/types/auth';
 
 export const useAuth = () => {
@@ -27,11 +27,6 @@ export const useAuth = () => {
     logout: userStore.logout,
     refreshUser: userStore.refreshUser,
     
-    // Permission checks
-    hasPermission: (permission: Permission) => hasPermission(user, permission),
-    hasAnyPermission: (permissions: Permission[]) => hasPermission(user, permissions[0]), // Simplified for now
-    hasAllPermissions: (permissions: Permission[]) => permissions.every(p => hasPermission(user, p)),
-    
     // Role checks
     hasRole: (role: UserRole) => hasRole(user, role),
     hasAnyRole: (roles: UserRole[]) => hasAnyRole(user, roles),
@@ -39,11 +34,6 @@ export const useAuth = () => {
     // Convenience methods
     isAdmin: () => isAdmin(user),
     isBusinessOwnerOrAdmin: () => isBusinessOwnerOrAdmin(user),
-    canManageProjects: () => canManageProjects(user),
-    canManageUsers: () => canManageUsers(user),
-    canManageMeetings: () => canManageMeetings(user),
-    canManageTasks: () => canManageTasks(user),
-    canViewReports: () => canViewReports(user),
     isProjectManager: () => hasRole(user, UserRole.PROJECT_MANAGER),
     
     // User data helpers
