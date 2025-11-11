@@ -1,248 +1,101 @@
 "use client";
 
-import { TaskReassignRequest } from "@/types/taskReassignRequest";
+import React, { useEffect, useState } from "react";
+import type { TaskHistory } from "@/types/taskHistory";
+import { taskHistoryService } from "@/services/taskHistoryService";
 
-interface ReassignmentHistoryTableProps {
-  history: TaskReassignRequest[];
-  isLoading?: boolean;
+interface Props {
+  taskId: string;
 }
 
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return "-";
-  const date = new Date(dateStr);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
-};
+const ReassignmentHistoryTable: React.FC<Props> = ({ taskId }) => {
+  const [items, setItems] = useState<TaskHistory[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export const ReassignmentHistoryTable = ({
-  history,
-  isLoading = false,
-}: ReassignmentHistoryTableProps) => {
-  if (isLoading) {
-    return (
-      <div className="loading-state">
-        <div className="loading-spinner"></div>
-        <p>Đang tải lịch sử...</p>
-      </div>
-    );
+  useEffect(() => {
+    let mounted = true;
+    const fetch = async () => {
+      setLoading(true);
+      try {
+        const res = await taskHistoryService.getTaskHistoriesByTaskId(taskId);
+        if (mounted && res.success && Array.isArray(res.data)) {
+          setItems(res.data);
+        } else if (mounted) {
+          setItems([]);
+        }
+      } catch (err) {
+        if (mounted) setItems([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    if (taskId) fetch();
+    return () => {
+      mounted = false;
+    };
+  }, [taskId]);
+
+  const formatDateTime = (iso?: string | null) => {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString("vi-VN", { year: "numeric", month: "2-digit", day: "2-digit"});
+    } catch {
+      return iso;
+    }
+  };
+
+  const getNote = (item: TaskHistory) => {
+    if (!item.fromUserId && !item.fromUser) {
+      return "Người đầu tiên được giao";
+    }
+    const fromName = item.fromUser?.fullName || item.fromUser?.email || "Người trước";
+    return `Nhận từ ${fromName}`;
+  };
+
+  if (loading) {
+    return <div style={{ padding: 12, color: "#6b7280" }}>Đang tải lịch sử chuyển giao...</div>;
   }
 
-  if (history.length === 0) {
-    return (
-      <div className="empty-state">
-        <p>Không có lịch sử chuyển giao nào cho công việc này</p>
-      </div>
-    );
+  if (!items || items.length === 0) {
+    return <div style={{ padding: 12, color: "#6b7280" }}>Chưa có lịch sử chuyển giao</div>;
   }
 
   return (
-    <div className="history-table-container">
-      <table className="history-table">
-        <thead>
-          <tr>
-            <th>STT</th>
-            <th>Từ</th>
-            <th>Đến</th>
-            <th>Lý do</th>
-            <th>Phản hồi</th>
-            <th>Ngày tạo</th>
-            <th>Ngày xử lý</th>
-          </tr>
-        </thead>
-        <tbody>
-          {history.map((record, index) => (
-            <tr key={record.id}>
-              <td className="stt-cell">{index + 1}</td>
-              <td className="user-cell">
-                {record.fromUser?.fullName || record.fromUserId}
-              </td>
-              <td className="user-cell">
-                {record.toUser?.fullName || record.toUserId}
-              </td>
-              <td className="reason-cell" title={record.description || undefined}>
-                <span className="reason-text">{record.description || "-"}</span>
-              </td>
-              <td className="response-cell" title={record.responseMessage || undefined}>
-                <span className="response-text">{record.responseMessage || "-"}</span>
-              </td>
-              <td className="date-cell">
-                {formatDate(record.createdAt)}
-              </td>
-              <td className="date-cell">
-                {formatDate(record.updatedAt)}
-              </td>
+    <div style={{ marginTop: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontWeight: 600 }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M3 12h18" stroke="#374151" strokeWidth="2"/></svg>
+        <span>Lịch sử chuyển giao</span>
+      </div>
+
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr style={{ textAlign: "left", color: "#374151" }}>
+              <th style={{ padding: "8px 12px", borderBottom: "1px solid #e5e7eb" }}>STT</th>
+              <th style={{ padding: "8px 12px", borderBottom: "1px solid #e5e7eb" }}>Người phụ trách</th>
+              <th style={{ padding: "8px 12px", borderBottom: "1px solid #e5e7eb" }}>Ngày được giao</th>
+              <th style={{ padding: "8px 12px", borderBottom: "1px solid #e5e7eb" }}>Ghi chú</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <style jsx>{`
-        .loading-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 32px 20px;
-          text-align: center;
-          color: #64748b;
-        }
-
-        .loading-spinner {
-          width: 40px;
-          height: 40px;
-          border: 3px solid #e2e8f0;
-          border-top-color: #0369a1;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-          margin-bottom: 16px;
-        }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .loading-state p {
-          margin: 0;
-          font-size: 14px;
-        }
-
-        .empty-state {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 48px 20px;
-          text-align: center;
-          color: #64748b;
-          font-size: 14px;
-          min-height: 150px;
-          background: #f9fafb;
-          border-radius: 8px;
-          border: 1px dashed #d1d5db;
-        }
-
-        .history-table-container {
-          width: 100%;
-          overflow-x: auto;
-          border: 1px solid #e2e8f0;
-          border-radius: 10px;
-          background: white;
-        }
-
-        .history-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 13px;
-        }
-
-        .history-table thead {
-          background: #fdf0d2;
-          border-bottom: 2px solid #fbbf24;
-        }
-
-        .history-table th {
-          padding: 14px 12px;
-          text-align: left;
-          font-size: 11px;
-          font-weight: 700;
-          color: #92400e;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-          border-right: 1px solid #fde68a;
-        }
-
-        .history-table th:last-child {
-          border-right: none;
-        }
-
-        .history-table td {
-          padding: 12px;
-          border-bottom: 1px solid #f3f4f6;
-          color: #374151;
-        }
-
-        .history-table tbody tr:hover {
-          background: #f9fafb;
-        }
-
-        .history-table tbody tr:nth-child(even) {
-          background: #f9fafb;
-        }
-
-        .stt-cell {
-          width: 50px;
-          text-align: center;
-          font-weight: 600;
-          color: #0369a1;
-        }
-
-        .user-cell {
-          width: 120px;
-          font-weight: 500;
-          color: #1e40af;
-        }
-
-        .reason-cell,
-        .response-cell {
-          max-width: 150px;
-        }
-
-        .reason-text,
-        .response-text {
-          display: block;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .date-cell {
-          width: 130px;
-          font-size: 12px;
-          color: #6b7280;
-          white-space: nowrap;
-        }
-
-        @media (max-width: 1024px) {
-          .history-table-container {
-            overflow-x: scroll;
-          }
-
-          .history-table {
-            min-width: 800px;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .history-table-container {
-            overflow-x: scroll;
-          }
-
-          .history-table {
-            min-width: 700px;
-            font-size: 12px;
-          }
-
-          .history-table th,
-          .history-table td {
-            padding: 10px 8px;
-          }
-
-          .reason-cell,
-          .response-cell {
-            max-width: 120px;
-          }
-
-          .date-cell {
-            width: 110px;
-            font-size: 11px;
-          }
-        }
-      `}</style>
+          </thead>
+          <tbody>
+            {items.map((it, idx) => {
+              const toName = it.toUser?.fullName || it.toUser?.email || "Không xác định";
+              return (
+                <tr key={it.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                  <td style={{ padding: "10px 12px", color: "#6b7280", width: 60 }}>{idx + 1}</td>
+                  <td style={{ padding: "10px 12px", color: "#111827", fontWeight: 600 }}>{toName}</td>
+                  <td style={{ padding: "10px 12px", color: "#374151" }}>{formatDateTime(it.assignedAt)}</td>
+                  <td style={{ padding: "10px 12px", color: "#374151" }}>{getNote(it)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
+
+export default ReassignmentHistoryTable;
