@@ -20,7 +20,6 @@ import { ProjectList } from "./ProjectList";
 import { ProjectSettings } from "./ProjectSettings";
 import { MeetingTab } from "./MeetingTab";
 import { ProjectDocuments } from "./ProjectDocuments";
-import { TaskReassignmentTab } from "./TaskReassignmentTab";
 import { BiTask } from "react-icons/bi";
 import { useSearchParams } from "next/navigation";
 
