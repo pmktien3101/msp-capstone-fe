@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/lib/rbac";
 import Pagination from "@/components/ui/Pagination";
 import { TaskStatus, getTaskStatusLabel, getTaskStatusColor } from "@/constants/status";
-import { ReassignTaskModal } from "../tasks/ReassignTaskModal";
 
 interface ProjectBoardProps {
   project: Project;
@@ -58,9 +57,7 @@ export const ProjectBoard = ({
   const isProjectManager = userRole === UserRole.PROJECT_MANAGER || userRole === 'ProjectManager' || 
                            userRole === UserRole.BUSINESS_OWNER || userRole === 'BusinessOwner' ||
                            userRole === UserRole.ADMIN || userRole === 'Admin';
-  // Modal state for reassign
-  const [selectedTask, setSelectedTask] = useState<GetTaskResponse | null>(null);
-  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
+
 
 
   // Fetch tasks from API
@@ -278,18 +275,8 @@ export const ProjectBoard = ({
       onTaskClick(task);
     }
   };
-  const handleReassignClick = (e: React.MouseEvent, task: GetTaskResponse) => {
-    e.stopPropagation();
-    setSelectedTask(task);
-    setIsReassignModalOpen(true);
-  };
 
-  const handleReassignSuccess = () => {
-    setIsReassignModalOpen(false);
-    setSelectedTask(null);
-    // Refresh tasks
-    fetchTasks();
-  };
+
   return (
     <div className="project-board">
       <BoardHeader
@@ -400,16 +387,6 @@ export const ProjectBoard = ({
                                 <Trash2 size={14} />
                               </button>
                             )}
-                            {/* nếu PM sẽ là isProjectManager */}
-                            {((task.status !== "OverDue" && task.userId === userId)) && (
-                              <button
-                                className="action-btn reassign-btn"
-                                onClick={(e) => handleReassignClick(e, task)}
-                                title="Chuyển giao công việc"
-                              >
-                                <UserPlus size={14} /> 
-                              </button>
-                            )}
                           </div>
                         </td>
                   </tr>
@@ -434,18 +411,7 @@ export const ProjectBoard = ({
           })
         )}
       </div>
-      {/* Reassign Task Modal */}
-      {isReassignModalOpen && selectedTask && (
-        <ReassignTaskModal
-          isOpen={isReassignModalOpen}
-          onClose={() => {
-            setIsReassignModalOpen(false);
-            setSelectedTask(null);
-          }}
-          task={selectedTask}
-          onSuccess={handleReassignSuccess}
-        />
-      )}
+
       <style jsx>{`
         .project-board {
           width: 100%;
