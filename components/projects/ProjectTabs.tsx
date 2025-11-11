@@ -90,11 +90,6 @@ export const ProjectTabs = ({
       icon: <BiTask size={20} />,
     },
     {
-      id: "reassign",
-      label: "Chuyển giao công việc",
-      icon: <UserPlus size={20} />,
-    },
-    {
       id: "list",
       label: "Cột mốc",
       icon: <Flag size={20} />,
@@ -142,8 +137,6 @@ export const ProjectTabs = ({
         return <ProjectDocuments project={project} />;
       case "meetings":
         return <MeetingTab project={project} />;
-      case "reassign":
-        return <TaskReassignmentTab project={project} refreshKey={refreshKey} />;
       // case "reports":
       //   return <ProjectReports project={project} />;
       case "settings":
