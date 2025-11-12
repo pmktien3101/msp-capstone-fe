@@ -87,9 +87,9 @@ const Sidebar = () => {
       ),
     },
     {
-      id: "features",
-      label: "Chức năng chính",
-      route: "/dashboard/admin/features",
+      id: "limitations",
+      label: "Giới hạn",
+      route: "/dashboard/admin/limitations",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path
