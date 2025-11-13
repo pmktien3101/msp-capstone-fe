@@ -48,7 +48,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const pageSize = 10;
+  const pageSize = 5; 
 
   // Fetch documents when component mounts
   useEffect(() => {
@@ -67,10 +67,8 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
         setDocuments(result.data.items);
         setTotalPages(Math.ceil(result.data.totalItems / result.data.pageSize));
       } else {
-        console.error('Failed to fetch documents:', result.error);
       }
     } catch (error) {
-      console.error('Error fetching documents:', error);
     } finally {
       setIsLoading(false);
     }
