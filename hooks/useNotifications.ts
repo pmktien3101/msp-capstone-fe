@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNotificationHub } from './useNotificationHub';
+import { NotificationHub } from './useNotificationHub';
+import { getAccessToken } from '@/lib/auth';
 import { notificationService } from '@/services/notificationService';
 import type { NotificationResponse } from '@/types/notification';
 import { toast } from 'react-toastify';
@@ -22,18 +23,21 @@ export const useNotifications = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   
-  const hubRef = useRef<useNotificationHub | null>(null);
+  const hubRef = useRef<NotificationHub | null>(null);
 
   // Initialize SignalR Hub
   useEffect(() => {
     if (!userId) return;
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:7129';
-    const hub = new useNotificationHub(baseUrl, userId, accessToken);
+    const baseUrl = 'https://localhost:7129';
+    // access token factory so SignalR negotiate gets current token
+    const accessTokenFactory = () => getAccessToken() ?? '';
+
+    const hub = NotificationHub.getInstance(baseUrl, userId, accessTokenFactory);
     hubRef.current = hub;
 
-    // Setup event handlers
-    hub.onNotificationReceived((notification) => {
+    // Setup event handlers and capture unsubscribe functions
+    const offReceive = hub.onNotificationReceived((notification) => {
       console.log('📬 New notification:', notification);
       
       // Add to notifications list
@@ -53,12 +57,12 @@ export const useNotifications = ({
       }
     });
 
-    hub.onUnreadCountUpdated((count) => {
+    const offUnread = hub.onUnreadCountUpdated((count) => {
       console.log('🔢 Unread count updated:', count);
       setUnreadCount(count);
     });
 
-    hub.onNotificationRead((notificationId) => {
+    const offRead = hub.onNotificationRead((notificationId) => {
       console.log('✓ Notification marked as read:', notificationId);
       
       // Update notification in list
@@ -75,17 +79,34 @@ export const useNotifications = ({
         .then(() => {
           setIsConnected(true);
           console.log('✅ SignalR auto-connected');
+
+          // Ensure the client is in the user's personal group so server pushes
+          // to `user_{userId}` will be received even if server didn't add the
+          // group on OnConnected (auth/claims mismatch cases).
+          if (userId) {
+            hub.joinGroup(`user_${userId}`)
+              .then(() => console.debug('Joined personal user group', `user_${userId}`))
+              .catch((err) => console.error('Failed to join personal user group', err));
+          }
         })
         .catch((err) => {
           setIsConnected(false);
           console.error('❌ SignalR auto-connect failed:', err);
-          // Don't throw, just log - app should still work without real-time
         });
     }
 
-    // Cleanup on unmount
+    // Cleanup on unmount: remove handlers and optionally stop
     return () => {
+      try {
+        offReceive && offReceive();
+        offUnread && offUnread();
+        offRead && offRead();
+      } catch (err) {
+        // ignore
+      }
+
       if (hubRef.current) {
+        // We stop the connection to avoid stray connections when user leaves
         hubRef.current.stop()
           .then(() => {
             setIsConnected(false);
