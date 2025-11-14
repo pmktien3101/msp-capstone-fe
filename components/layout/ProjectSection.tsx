@@ -214,7 +214,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
                         {getProjectStatusLabel(project.status)}
                       </span>
                       {project.endDate ? (
-                        <span className="project-deadline">• {new Date(project.endDate).toLocaleDateString()}</span>
+                        <span className="project-deadline">• {new Date(project.endDate).toLocaleDateString('vi-VN')}</span>
                       ) : null}
                     </div>
                   </div>

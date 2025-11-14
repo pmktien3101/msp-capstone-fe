@@ -2,26 +2,14 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  CalendarDays, 
-  Star, 
-  Clock, 
-  CheckCircle2, 
-  PlayCircle, 
-  AlertCircle,
-  ArrowRight,
-  Sparkles,
-  FolderOpen
-} from 'lucide-react';
+import { CalendarDays, Star, FolderOpen } from 'lucide-react';
+import { getTaskStatusLabel, getTaskStatusColor } from '@/constants/status';
 
 interface Task {
-  id: string;
   title: string;
-  project: string;
-  status: string;
-  assignee: string;
+  project?: string;
   dueDate?: string;
-  priority?: string;
+  status?: string;
 }
 
 interface MemberTaskCardProps {
@@ -43,97 +31,26 @@ export function MemberTaskCard({ task, index = 0 }: MemberTaskCardProps) {
       router.push('/calendar');
     }
   };
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'done':
-      case 'completed':
-        return {
-          color: '#10b981',
-          text: 'Hoàn thành',
-          icon: CheckCircle2,
-          bgGradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-          glowColor: 'rgba(16, 185, 129, 0.3)'
-        };
-      case 'in-progress':
-        return {
-          color: '#3b82f6',
-          text: 'Đang thực hiện',
-          icon: PlayCircle,
-          bgGradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-          glowColor: 'rgba(59, 130, 246, 0.3)'
-        };
-      case 'todo':
-      case 'pending':
-        return {
-          color: '#f59e0b',
-          text: 'Chờ thực hiện',
-          icon: Clock,
-          bgGradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-          glowColor: 'rgba(245, 158, 11, 0.3)'
-        };
-      default:
-        return {
-          color: '#6b7280',
-          text: status,
-          icon: AlertCircle,
-          bgGradient: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
-          glowColor: 'rgba(107, 114, 128, 0.3)'
-        };
-    }
-  };
 
-  const getPriorityColor = (priority?: string) => {
-    switch (priority) {
-      case 'high':
-        return '#ef4444';
-      case 'medium':
-        return '#f59e0b';
-      case 'low':
-        return '#10b981';
-      default:
-        return '#6b7280';
-    }
-  };
-
-  const getPriorityText = (priority?: string) => {
-    switch (priority) {
-      case 'high':
-        return 'Cao';
-      case 'medium':
-        return 'Trung bình';
-      case 'low':
-        return 'Thấp';
-      default:
-        return '';
-    }
-  };
-
-  const statusConfig = getStatusConfig(task.status);
-  const StatusIcon = statusConfig.icon;
+  // status removed: no status-related UI
 
   return (
     <div 
       className="member-task-card"
       onClick={handleTaskClick}
     >
-      <div className="task-glow" style={{ background: statusConfig.glowColor }}></div>
+  {/* simplified card: no status glow */}
       <div className="task-content">
         {/* Task Header */}
         <div className="task-header">
           <div className="task-title-section">
             <div className="task-title-row">
               <h4 className="task-title">{task.title}</h4>
-              <div 
-                className="status-badge"
-                style={{ background: statusConfig.bgGradient }}
-              >
-                <StatusIcon size={14} />
-                <span>{statusConfig.text}</span>
-              </div>
-            </div>
-            <div className="task-meta">
-              <span className="task-id">#{task.id}</span>
-              <span className="task-project">{task.project}</span>
+              {task.status && (
+                <div className="status-badge" style={{ background: getTaskStatusColor(task.status), color: '#fff' }}>
+                  {getTaskStatusLabel(task.status)}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -162,46 +79,9 @@ export function MemberTaskCard({ task, index = 0 }: MemberTaskCardProps) {
                 </div>
               </div>
             )}
-
-            {task.priority && (
-              <div className="task-info-item">
-                <div className="info-icon">
-                  <Star size={14} />
-                </div>
-                <div className="info-content">
-                  <span className="info-label">Độ ưu tiên</span>
-                  <span 
-                    className="priority-badge"
-                    style={{ color: getPriorityColor(task.priority) }}
-                  >
-                    {getPriorityText(task.priority)}
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
         </div>
-
-        {/* Progress Indicator */}
-        <div className="task-progress">
-          <div className="progress-header">
-            <span className="progress-label">Tiến độ</span>
-            <span className="progress-percentage">
-              {task.status === 'completed' || task.status === 'done' ? '100%' : 
-               task.status === 'in-progress' ? '60%' : '20%'}
-            </span>
-          </div>
-          <div className="progress-bar">
-            <div 
-              className="progress-fill"
-              style={{ 
-                width: task.status === 'completed' || task.status === 'done' ? '100%' : 
-                       task.status === 'in-progress' ? '60%' : '20%',
-                background: statusConfig.bgGradient
-              }}
-            ></div>
-          </div>
-        </div>
+        {/* progress removed - not available in task type */}
 
       </div>
 
@@ -220,22 +100,6 @@ export function MemberTaskCard({ task, index = 0 }: MemberTaskCardProps) {
           cursor: pointer;
         }
 
-        .task-glow {
-          position: absolute;
-          top: -2px;
-          left: -2px;
-          right: -2px;
-          bottom: -2px;
-          border-radius: 22px;
-          opacity: 0;
-          transition: opacity 0.4s ease;
-          z-index: -1;
-          filter: blur(8px);
-        }
-
-        .member-task-card:hover .task-glow {
-          opacity: 1;
-        }
 
         .member-task-card::before {
           content: '';
@@ -280,19 +144,17 @@ export function MemberTaskCard({ task, index = 0 }: MemberTaskCardProps) {
         }
 
         .status-badge {
-          color: white;
-          padding: 6px 12px;
-          border-radius: 20px;
-          font-size: 11px;
-          font-weight: 600;
-          white-space: nowrap;
-          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 4px;
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          gap: 8px;
+          padding: 6px 10px;
+          border-radius: 16px;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: none;
+          white-space: nowrap;
         }
+
 
         .task-meta {
           display: flex;
@@ -300,16 +162,7 @@ export function MemberTaskCard({ task, index = 0 }: MemberTaskCardProps) {
           align-items: center;
         }
 
-        .task-id {
-          font-family: 'Monaco', 'Menlo', monospace;
-          background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-          color: #475569;
-          padding: 4px 8px;
-          border-radius: 8px;
-          font-size: 12px;
-          font-weight: 600;
-          border: 1px solid #cbd5e1;
-        }
+        /* task-id removed */
 
         .task-project {
           color: #64748b;
@@ -398,60 +251,7 @@ export function MemberTaskCard({ task, index = 0 }: MemberTaskCardProps) {
           letter-spacing: 0.5px;
         }
 
-        .task-progress {
-          width: 100%;
-        }
-
-        .progress-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 6px;
-        }
-
-        .progress-label {
-          color: #64748b;
-          font-size: 11px;
-          font-weight: 600;
-        }
-
-        .progress-percentage {
-          color: #1e293b;
-          font-size: 11px;
-          font-weight: 700;
-        }
-
-        .progress-bar {
-          width: 100%;
-          height: 4px;
-          background: #e2e8f0;
-          border-radius: 2px;
-          overflow: hidden;
-          position: relative;
-        }
-
-        .progress-fill {
-          height: 100%;
-          border-radius: 3px;
-          transition: width 0.5s ease;
-          position: relative;
-        }
-
-        .progress-fill::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
-          animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
+        /* status and progress styles removed - task type doesn't include these fields */
 
 
         @media (max-width: 768px) {

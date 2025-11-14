@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { TaskStatus, getTaskStatusColor, TASK_STATUS_LABELS } from "@/constants/status";
 import { useUser } from "@/hooks/useUser";
+import { formatDate as formatDateHelper, formatTime, formatDateTime } from '@/lib/formatDate';
 import { projectService } from "@/services/projectService";
 import type { GetTaskResponse } from "@/types/task";
 import type { ProjectMember } from "@/types/project";
@@ -115,11 +116,8 @@ export const DetailTaskModal = ({
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "Chưa có";
-    return new Date(dateString).toLocaleDateString("vi-VN", {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    // use shared helper for consistent dd/mm/yyyy output
+    return formatDateHelper(dateString);
   };
 
 
