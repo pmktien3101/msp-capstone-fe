@@ -463,13 +463,14 @@ const Sidebar = () => {
   useEffect(() => {
     const currentPath = pathname;
 
-    // Check if we're on a project page
+    // Check if we're on a project page - mark Projects as active but do not force expand
     if (
       currentPath.includes("/projects/") &&
       !currentPath.endsWith("/projects")
     ) {
+      // Keep Projects marked active. Do NOT force open the project section here so
+      // the user can still collapse it while viewing a project.
       setActiveItem("projects");
-      setIsProjectSectionExpanded(true);
       return;
     }
 
