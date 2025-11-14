@@ -110,9 +110,9 @@ const Sidebar = () => {
       ),
     },
     {
-      id: "plans",
+      id: "packages",
       label: "Gói dịch vụ",
-      route: "/dashboard/admin/plans",
+      route: "/dashboard/admin/packages",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path
