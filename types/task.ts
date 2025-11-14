@@ -31,6 +31,7 @@ export interface GetTaskResponse {
 export interface CreateTaskRequest {
   projectId: string;
   userId?: string;
+  actorId?: string;
   title: string;
   description?: string;
   status: string;
@@ -44,6 +45,7 @@ export interface UpdateTaskRequest {
   id: string;
   projectId: string;
   userId?: string;
+  actorId?: string;
   title: string;
   description?: string;
   status: string;

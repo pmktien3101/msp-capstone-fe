@@ -18,6 +18,8 @@ export interface CreateNotificationRequest {
   title: string;
   message: string;
   type?: string;
+  actorId?: string;
+  entityId?: string;
   data?: string;
 }
 
