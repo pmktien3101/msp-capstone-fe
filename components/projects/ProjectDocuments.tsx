@@ -46,6 +46,10 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
   const [uploadDescription, setUploadDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<GetDocumentResponse | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 5; 
@@ -481,6 +485,29 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                   <Trash2 size={14} />
                   Xóa
                 </Button>
+                <Button
+                  onClick={() => {
+                    setEditingDocument(document);
+                    setEditName(document.name);
+                    setEditDescription(document.description || '');
+                    setShowEditModal(true);
+                  }}
+                  style={{
+                    background: '#f3f4f6',
+                    color: '#374151',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <FileText size={14} />
+                  Chỉnh sửa
+                </Button>
               </div>
             </div>
           ))
@@ -719,6 +746,78 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
               >
                 {isUploading && <Loader2 size={16} className="animate-spin" />}
                 {isUploading ? 'Đang tải lên...' : 'Tải lên'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Modal */}
+      {showEditModal && editingDocument && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '520px',
+              padding: '24px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#1f2937', margin: '0 0 20px 0' }}>
+              Chỉnh sửa tài liệu
+            </h3>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Tên tài liệu</label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Tên tài liệu" />
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Mô tả (tùy chọn)</label>
+              <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Mô tả ngắn về tài liệu..." />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <Button onClick={() => setShowEditModal(false)} style={{ padding: '10px 20px', background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px' }}>Hủy</Button>
+              <Button
+                onClick={async () => {
+                  if (!editingDocument) return;
+                  try {
+                    const payload = { id: editingDocument.id, name: editName, description: editDescription || undefined };
+                    const res = await documentService.updateDocument(payload);
+                    if (res.success) {
+                      toast.success('Cập nhật tài liệu thành công!');
+                      setShowEditModal(false);
+                      setEditingDocument(null);
+                      fetchDocuments();
+                    } else {
+                      toast.error(`Lỗi: ${res.error}`);
+                    }
+                  } catch (err) {
+                    console.error('Error updating document:', err);
+                    toast.error('Có lỗi xảy ra khi cập nhật tài liệu');
+                  }
+                }}
+                style={{ padding: '10px 20px', background: '#FF5E13', color: 'white', borderRadius: '8px' }}
+              >
+                Lưu
               </Button>
             </div>
           </div>
