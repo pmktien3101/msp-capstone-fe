@@ -20,10 +20,12 @@ const AdminLimitations: React.FC = () => {
     isUnlimited: false,
     limitValue: "",
     limitUnit: "",
-    status: "active",
+    isDeleted: false,
   });
 
   const filtered = items.filter((it) => {
+    // hide deleted items
+    if (it.isDeleted) return false;
     if (!query) return true;
     return (
       (it.name || "").toLowerCase().includes(query.toLowerCase()) ||
@@ -42,9 +44,22 @@ const AdminLimitations: React.FC = () => {
       const res = await limitationService.getLimitations();
       if (res.success) {
         const data = res.data;
-        if (Array.isArray(data)) setItems(data as any[]);
+        const normalize = (it: any) => ({
+          // map PascalCase -> camelCase if necessary
+          id: it.Id ?? it.id,
+          name: it.Name ?? it.name,
+          description: it.Description ?? it.description,
+          isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
+          limitValue: it.LimitValue ?? it.limitValue ?? null,
+          limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
+          isDeleted: it.IsDeleted ?? it.isDeleted ?? false,
+          // keep other props
+          ...it,
+        });
+
+        if (Array.isArray(data)) setItems((data as any[]).map(normalize));
         else if (data && (data as any).items)
-          setItems((data as any).items || []);
+          setItems(((data as any).items || []).map(normalize));
         else setItems([]);
       } else {
         setError(res.error || "Không thể tải danh sách giới hạn");
@@ -63,7 +78,7 @@ const AdminLimitations: React.FC = () => {
       isUnlimited: false,
       limitValue: "",
       limitUnit: "",
-      status: "active",
+      isDeleted: false,
     });
     setShowAdd(true);
   }
@@ -86,12 +101,26 @@ const AdminLimitations: React.FC = () => {
         name: form.name,
         description: form.description,
         isUnlimited: !!form.isUnlimited,
-        limitValue: form.isUnlimited ? null : Number(form.limitValue) || 0,
+        ...(form.isUnlimited
+          ? {}
+          : { limitValue: Number(form.limitValue) || 0 }),
         limitUnit: form.limitUnit || null,
+        isDeleted: !!form.isDeleted,
       };
       const res = await limitationService.createLimitation(payload);
       if (res.success && res.data) {
-        setItems((s) => [...s, res.data as any]);
+        const created = res.data;
+        const normalize = (it: any) => ({
+          id: it.Id ?? it.id,
+          name: it.Name ?? it.name,
+          description: it.Description ?? it.description,
+          isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
+          limitValue: it.LimitValue ?? it.limitValue ?? null,
+          limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
+          isDeleted: it.IsDeleted ?? it.isDeleted ?? false,
+          ...it,
+        });
+        setItems((s) => [...s, normalize(created) as any]);
         setShowAdd(false);
       } else {
         alert(res.error || "Tạo giới hạn thất bại");
@@ -111,7 +140,7 @@ const AdminLimitations: React.FC = () => {
       isUnlimited: !!item.isUnlimited,
       limitValue: item.limitValue ?? "",
       limitUnit: item.limitUnit ?? "",
-      status: item.status,
+      isDeleted: !!item.isDeleted,
     });
     setShowEdit(true);
   }
@@ -125,12 +154,28 @@ const AdminLimitations: React.FC = () => {
         name: form.name,
         description: form.description,
         isUnlimited: !!form.isUnlimited,
-        limitValue: form.isUnlimited ? null : Number(form.limitValue) || 0,
+        ...(form.isUnlimited
+          ? {}
+          : { limitValue: Number(form.limitValue) || 0 }),
         limitUnit: form.limitUnit || null,
+        isDeleted: !!form.isDeleted,
       };
       const res = await limitationService.updateLimitation(payload);
       if (res.success && res.data) {
-        setItems((s) => s.map((it) => (it.id === active.id ? res.data : it)));
+        const updated = res.data;
+        const normalize = (it: any) => ({
+          id: it.Id ?? it.id,
+          name: it.Name ?? it.name,
+          description: it.Description ?? it.description,
+          isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
+          limitValue: it.LimitValue ?? it.limitValue ?? null,
+          limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
+          isDeleted: it.IsDeleted ?? it.isDeleted ?? false,
+          ...it,
+        });
+        setItems((s) =>
+          s.map((it) => (it.id === active.id ? normalize(updated) : it))
+        );
         setShowEdit(false);
         setActive(null);
       } else {
@@ -178,26 +223,32 @@ const AdminLimitations: React.FC = () => {
           </div>
           <button className="btn add primary-cta" onClick={openAdd}>
             <Plus size={16} />
-            <span className="add-label">Thêm giới hạn</span>
+            <span className="add-label">Thêm</span>
           </button>
         </div>
       </div>
 
       <div className="lim-table">
         <div className="row header">
-          <div>Name</div>
-          <div>LimitValue</div>
-          <div>LimitUnit</div>
-          <div>Actions</div>
+          <div>Tên</div>
+          <div>Có giới hạn</div>
+          <div>Hành động</div>
         </div>
         {filtered.map((it) => (
           <div className="row" key={it.id}>
             <div className="title">
-              <div className="name">{it.name}</div>
+              <div className="name">
+                {it.name}
+                {!it.isUnlimited && (it.limitValue || it.limitValue === 0) ? (
+                  <span>
+                    : {it.limitValue}
+                    {it.limitUnit ? ` ${it.limitUnit}` : ""}
+                  </span>
+                ) : null}
+              </div>
               <div className="desc">{it.description}</div>
             </div>
-            <div>{it.limitValue ?? "-"}</div>
-            <div>{it.limitUnit ?? "-"}</div>
+            <div>{!it.isUnlimited ? "Có" : "Không"}</div>
             <div className="actions">
               <button
                 className="icon"
@@ -244,7 +295,7 @@ const AdminLimitations: React.FC = () => {
               </button>
             </div>
             <div className="card-body">
-              <div className="form-grid">
+              <div className="form-grid vertical">
                 <div className="field">
                   <label htmlFor="lim-name">Tên</label>
                   <input
@@ -271,7 +322,6 @@ const AdminLimitations: React.FC = () => {
                 </div>
 
                 <div className="field checkbox-row">
-                  <label />
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
@@ -363,6 +413,7 @@ const AdminLimitations: React.FC = () => {
                 />{" "}
                 Không giới hạn
               </label>
+
               {!form.isUnlimited && (
                 <>
                   <label>Giá trị</label>
@@ -416,7 +467,6 @@ const AdminLimitations: React.FC = () => {
                   ? "Không giới hạn"
                   : `${active.limitValue} ${active.limitUnit || ""}`}
               </p>
-              <p>Trạng thái: {active.status}</p>
             </div>
             <div className="card-foot">
               <button className="btn" onClick={() => setShowView(false)}>
@@ -472,14 +522,6 @@ const AdminLimitations: React.FC = () => {
           background: white;
           cursor: pointer;
         }
-        .btn.add {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          padding: 10px 14px;
-          border-radius: 10px;
-          font-weight: 600;
-        }
 
         /* primary CTA variant for Add */
         .primary-cta {
@@ -512,8 +554,8 @@ const AdminLimitations: React.FC = () => {
         }
         .row {
           display: grid;
-          /* Title (name + description) wider, then value, status, date, actions */
-          grid-template-columns: 3fr 1fr 1fr 1fr 80px;
+          /* Title (name + description) wider, then hasLimit, actions */
+          grid-template-columns: 2fr 0.8fr 110px;
           gap: 12px;
           padding: 12px 16px;
           align-items: center;
@@ -523,7 +565,7 @@ const AdminLimitations: React.FC = () => {
           font-weight: 600;
         }
         .title .name {
-          font-weight: 700;
+          font-weight: 500;
           font-size: 18px;
         }
         .title .desc {
@@ -556,7 +598,8 @@ const AdminLimitations: React.FC = () => {
             rgba(0, 0, 0, 0.35),
             rgba(0, 0, 0, 0.45)
           );
-          z-index: 60;
+          /* Raised above header dropdowns and other UI (header dropdown z-index:1000) */
+          z-index: 2000;
           padding: 20px;
         }
         .card {
@@ -582,6 +625,12 @@ const AdminLimitations: React.FC = () => {
             rgba(255, 94, 19, 0.02)
           );
         }
+        .card-head h3 {
+          margin: 0;
+          font-size: 20px; /* larger title */
+          font-weight: 700;
+          color: #111827;
+        }
         .card-body {
           padding: 18px 20px;
           display: flex;
@@ -598,11 +647,32 @@ const AdminLimitations: React.FC = () => {
         textarea {
           min-height: 100px;
         }
+        /* Make sure any inputs/textareas in modal use readable text color
+           and have visible borders (covers inputs that don't have the text-input class) */
+        .card-body input,
+        .card-body textarea {
+          color: var(--color-foreground, #111827);
+          padding: 10px 12px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          outline: none;
+          font-size: 14px;
+          background: #fff;
+        }
+        .card-body input:focus,
+        .card-body textarea:focus {
+          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08);
+          border-color: #6366f1;
+        }
         /* form/grid for modal */
         .form-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 12px 16px;
+        }
+        /* vertical modifier used for the Add modal to stack fields */
+        .form-grid.vertical {
+          grid-template-columns: 1fr;
         }
         .field {
           display: flex;
@@ -629,18 +699,18 @@ const AdminLimitations: React.FC = () => {
         .checkbox-row {
           grid-column: 1 / -1;
           display: flex;
-          align-items: center;
         }
         .checkbox-label {
           display: inline-flex;
-          align-items: center;
           gap: 8px;
           cursor: pointer;
           user-select: none;
         }
         .checkbox-label input {
-          width: 16px;
-          height: 16px;
+          width: auto;
+          height: auto;
+          margin: 0;
+          accent-color: #ff5e13;
         }
 
         /* primary button disabled state */
