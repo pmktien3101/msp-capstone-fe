@@ -5,6 +5,7 @@ import { Project } from '@/types/project';
 import { useUser } from '@/hooks/useUser';
 import { Eye, Edit, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
 import { getProjectStatusColor, getProjectStatusLabel } from '@/constants/status';
+import { formatDate } from '@/lib/formatDate';
 
 interface ProjectsTableProps {
   projects: Project[];
@@ -52,9 +53,7 @@ export function ProjectsTable({ projects, onEditProject, onAddMeeting, onViewPro
     return 0;
   });
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN');
-  };
+  // use shared formatDate helper (dd/mm/yyyy)
 
   return (
     <div className="projects-table-container">

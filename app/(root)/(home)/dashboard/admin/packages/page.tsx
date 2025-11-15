@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Eye,
   Edit,
@@ -17,8 +17,12 @@ import {
   Zap,
 } from "lucide-react";
 
-const AdminPlans = () => {
-  const [activeTab, setActiveTab] = useState("plans");
+import packageService from "@/services/packageService";
+import { useUser } from "@/hooks/useUser";
+import limitationService from "@/services/limitationService";
+
+const AdminPackages = () => {
+  const [activeTab, setActiveTab] = useState("packages");
   const [showAddPlanModal, setShowAddPlanModal] = useState(false);
   const [showEditPlanModal, setShowEditPlanModal] = useState(false);
   const [showViewPlanModal, setShowViewPlanModal] = useState(false);
@@ -29,9 +33,14 @@ const AdminPlans = () => {
     name: "",
     price: "",
     period: "month",
+    currency: "USD",
+    description: "",
     features: [] as string[],
-    status: "active",
+    limitations: [] as (string | number)[],
   });
+
+  const [limitations, setLimitations] = useState<any[]>([]);
+  const [loadingLimitations, setLoadingLimitations] = useState(false);
 
   // Danh sách các tính năng được phân nhóm
   const featureGroups = [
@@ -317,49 +326,82 @@ const AdminPlans = () => {
     },
   ];
 
-  const [plans, setPlans] = useState([
-    {
-      id: 1,
-      name: "Basic",
-      price: 29,
-      period: "month",
-      features: ["Tối đa 10 người dùng", "5GB lưu trữ", "Hỗ trợ email"],
-      activeSubscriptions: 1250,
-      revenue: "$36,250",
-      status: "active",
-    },
-    {
-      id: 2,
-      name: "Premium",
-      price: 79,
-      period: "month",
-      features: [
-        "Tối đa 50 người dùng",
-        "50GB lưu trữ",
-        "Hỗ trợ 24/7",
-        "API access",
-      ],
-      activeSubscriptions: 890,
-      revenue: "$70,310",
-      status: "active",
-    },
-    {
-      id: 3,
-      name: "Pro",
-      price: 199,
-      period: "month",
-      features: [
-        "Không giới hạn người dùng",
-        "500GB lưu trữ",
-        "Hỗ trợ 24/7",
-        "API access",
-        "Custom integrations",
-      ],
-      activeSubscriptions: 156,
-      revenue: "$31,044",
-      status: "active",
-    },
-  ]);
+  const [plans, setPlans] = useState<any[]>([]);
+  const { userId } = useUser();
+
+  // Fetch packages from API (if available) and replace mock plans
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await packageService.getPackages();
+        if (res.success && mounted && res.data) {
+          // If backend returns an array or paged response, try to map to the UI shape
+          const items: any[] = Array.isArray(res.data)
+            ? res.data
+            : res.data.items ?? res.data;
+
+          // Map API package model to local plan structure when possible
+          const mapped = items.map((p: any, idx: number) => ({
+            id: (p.id ?? p.ID) || idx + 1,
+            name: p.name ?? p.title ?? `Package ${idx + 1}`,
+            price: p.price ?? 0,
+            period:
+              p.period ??
+              (p.billingCycle === 0
+                ? "month"
+                : p.billingCycle === 1
+                ? "quarter"
+                : p.billingCycle === 2
+                ? "year"
+                : "month"),
+            billingCycle: p.billingCycle ?? p.BillingCycle,
+            features: p.features ?? [],
+            limitations: p.limitations ?? p.Limitations ?? [],
+            activeSubscriptions: p.activeSubscriptions ?? 0,
+            revenue: p.revenue ?? "",
+            status: p.status ?? "active",
+          }));
+
+          setPlans(mapped);
+        }
+      } catch (e) {
+        // ignore, keep mock plans
+      }
+    })();
+
+    // fetch limitations for selection when creating packages
+    (async () => {
+      setLoadingLimitations(true);
+      try {
+        const res = await limitationService.getLimitations();
+        if (res.success && res.data) {
+          const items: any[] = Array.isArray(res.data)
+            ? res.data
+            : res.data.items ?? res.data;
+          const mapped = items.map((it: any) => ({
+            id: it.Id ?? it.id,
+            name: it.Name ?? it.name,
+            description: it.Description ?? it.description,
+            isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
+            limitValue: it.LimitValue ?? it.limitValue ?? null,
+            limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
+            isDeleted: it.IsDeleted ?? it.isDeleted ?? false,
+            ...it,
+          }));
+          // keep only not-deleted
+          setLimitations(mapped.filter((x: any) => !x.isDeleted));
+        }
+      } catch (err) {
+        // ignore
+      } finally {
+        setLoadingLimitations(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const subscriptions = [
     {
@@ -399,28 +441,117 @@ const AdminPlans = () => {
 
   // Handler functions for adding new plan
   const handleAddPlan = () => {
-    if (newPlan.name && newPlan.price && newPlan.features.length > 0) {
-      const planToAdd = {
-        id: plans.length + 1,
-        name: newPlan.name,
-        price: parseInt(newPlan.price),
-        period: newPlan.period,
-        features: newPlan.features,
-        activeSubscriptions: 0,
-        revenue: "$0",
-        status: newPlan.status,
-      };
+    if (newPlan.name && newPlan.price) {
+      (async () => {
+        // Map UI period to API billingCycle enum (0-based): month=0, quarter=1, year=2
+        const billingCycleMap: Record<string, number> = {
+          month: 0,
+          quarter: 1,
+          year: 2,
+        };
 
-      setPlans((prev) => [...prev, planToAdd]);
-      setNewPlan({
-        name: "",
-        price: "",
-        period: "month",
-        features: [],
-        status: "active",
-      });
-      setShowAddPlanModal(false);
+        const payload: any = {
+          Name: newPlan.name,
+          Description: newPlan.description || undefined,
+          Price: Number(newPlan.price) || 0,
+          Currency: newPlan.currency || "USD",
+          BillingCycle: billingCycleMap[newPlan.period] ?? 0,
+          billingCycle: billingCycleMap[newPlan.period] ?? 0,
+          CreatedById: userId || null,
+          LimitationIds: newPlan.limitations || [],
+        };
+
+        try {
+          const res = await packageService.createPackage(payload);
+          if (!res.success) {
+            console.error("Server rejected create package:", res.error);
+            // show user the server error so it's easier to debug
+            try {
+              window.alert(`Tạo gói thất bại: ${res.error}`);
+            } catch (e) {
+              /* ignore server-side render */
+            }
+          }
+          if (res.success && res.data) {
+            const p = res.data;
+            const mapped = {
+              id: p.id ?? p.ID,
+              name: p.name ?? p.title ?? newPlan.name,
+              price: p.price ?? payload.Price,
+              period: p.period ?? newPlan.period,
+              billingCycle:
+                p.billingCycle ??
+                p.BillingCycle ??
+                payload.billingCycle ??
+                payload.BillingCycle,
+              features: newPlan.features,
+              limitations: p.limitations ?? newPlan.limitations ?? [],
+              activeSubscriptions: p.activeSubscriptions ?? 0,
+              revenue: p.revenue ?? "",
+              status: p.status ?? "active",
+            };
+            setPlans((prev) => [...prev, mapped]);
+          } else {
+            // fallback to local add
+            const planToAdd = {
+              id: plans.length + 1,
+              name: newPlan.name,
+              price: parseInt(newPlan.price),
+              period: newPlan.period,
+              billingCycle: (function () {
+                const map: Record<string, number> = {
+                  month: 0,
+                  quarter: 1,
+                  year: 2,
+                };
+                return map[newPlan.period] ?? 0;
+              })(),
+              features: newPlan.features,
+              limitations: newPlan.limitations || [],
+              activeSubscriptions: 0,
+              revenue: "$0",
+              status: "active",
+            };
+            setPlans((prev) => [...prev, planToAdd]);
+          }
+        } catch (err) {
+          const planToAdd = {
+            id: plans.length + 1,
+            name: newPlan.name,
+            price: parseInt(newPlan.price),
+            period: newPlan.period,
+            features: newPlan.features,
+            activeSubscriptions: 0,
+            revenue: "$0",
+            status: "active",
+          };
+          setPlans((prev) => [...prev, planToAdd]);
+        }
+
+        setNewPlan({
+          name: "",
+          price: "",
+          period: "month",
+          currency: "USD",
+          description: "",
+          features: [],
+          limitations: [],
+        });
+        setShowAddPlanModal(false);
+      })();
     }
+  };
+
+  const handleToggleLimitation = (limId: string | number) => {
+    setNewPlan((prev: any) => {
+      const has = prev.limitations?.includes(limId);
+      return {
+        ...prev,
+        limitations: has
+          ? prev.limitations.filter((x: any) => x !== limId)
+          : [...(prev.limitations || []), limId],
+      };
+    });
   };
 
   const handleNewPlanChange = (field: string, value: any) => {
@@ -465,7 +596,17 @@ const AdminPlans = () => {
   };
 
   const handleSelectAllFeatures = () => {
-    // Chọn feature đầu tiên của mỗi nhóm
+    // If limitations are available, select all limitations as features
+    if (limitations && limitations.length > 0) {
+      setNewPlan((prev: any) => ({
+        ...prev,
+        features: limitations.map((l: any) => l.name),
+        limitations: limitations.map((l: any) => l.id),
+      }));
+      return;
+    }
+
+    // Fallback: Chọn feature đầu tiên của mỗi mock group
     const firstFeatures = featureGroups.map((group) => group.features[0].name);
     setNewPlan((prev) => ({
       ...prev,
@@ -474,10 +615,52 @@ const AdminPlans = () => {
   };
 
   const handleClearAllFeatures = () => {
-    setNewPlan((prev) => ({
+    setNewPlan((prev: any) => ({
       ...prev,
       features: [],
+      limitations: [],
     }));
+  };
+
+  const handleToggleLimFeature = (lim: any) => {
+    setNewPlan((prev: any) => {
+      const features = prev.features || [];
+      const limitationsSel = prev.limitations || [];
+      const hasFeature = features.includes(lim.name);
+      return {
+        ...prev,
+        features: hasFeature
+          ? features.filter((f: any) => f !== lim.name)
+          : [...features, lim.name],
+        limitations: limitationsSel.includes(lim.id)
+          ? limitationsSel.filter((id: any) => id !== lim.id)
+          : [...limitationsSel, lim.id],
+      };
+    });
+  };
+
+  const renderFeatureLabel = (featureName: string) => {
+    const lim = limitations.find((l: any) => l.name === featureName);
+    if (!lim) return featureName;
+    if (lim.isUnlimited) return `${lim.name} (Không giới hạn)`;
+    if (lim.limitValue !== null && lim.limitValue !== undefined) {
+      return `${lim.name}: ${lim.limitValue}${
+        lim.limitUnit ? ` ${lim.limitUnit}` : ""
+      }`;
+    }
+    return lim.name;
+  };
+
+  const formatPeriodLabel = (period?: string, billingCycle?: number) => {
+    if (billingCycle === 0) return "Tháng";
+    if (billingCycle === 1) return "Quý";
+    if (billingCycle === 2) return "Năm";
+    if (!period) return "";
+    const p = String(period).toLowerCase();
+    if (p === "month" || p === "tháng") return "Tháng";
+    if (p === "quarter" || p === "quý") return "Quý";
+    if (p === "year" || p === "năm" || p === "nam") return "Năm";
+    return period;
   };
 
   // Handler functions for plan actions
@@ -492,8 +675,10 @@ const AdminPlans = () => {
       name: plan.name,
       price: plan.price.toString(),
       period: plan.period,
+      currency: plan.Currency ?? plan.currency ?? "USD",
+      description: plan.Description ?? plan.description ?? "",
       features: plan.features || [],
-      status: plan.status,
+      limitations: plan.limitations ?? [],
     });
     setShowEditPlanModal(true);
   };
@@ -512,34 +697,100 @@ const AdminPlans = () => {
   };
 
   const handleUpdatePlan = () => {
-    if (
-      selectedPlan &&
-      newPlan.name &&
-      newPlan.price &&
-      newPlan.features.length > 0
-    ) {
-      const updatedPlan = {
-        ...selectedPlan,
-        name: newPlan.name,
-        price: parseInt(newPlan.price),
-        period: newPlan.period,
-        features: newPlan.features,
-        status: newPlan.status,
-      };
+    if (selectedPlan && newPlan.name && newPlan.price) {
+      (async () => {
+        const billingCycleMap: Record<string, number> = {
+          month: 0,
+          quarter: 1,
+          year: 2,
+        };
 
-      setPlans((prev) =>
-        prev.map((plan) => (plan.id === selectedPlan.id ? updatedPlan : plan))
-      );
+        const payload: any = {
+          Name: newPlan.name,
+          Description: newPlan.description || undefined,
+          Price: Number(newPlan.price) || 0,
+          Currency: newPlan.currency || "USD",
+          BillingCycle: billingCycleMap[newPlan.period] ?? 0,
+          billingCycle: billingCycleMap[newPlan.period] ?? 0,
+          CreatedById: userId || null,
+          LimitationIds: newPlan.limitations || [],
+        };
 
-      setNewPlan({
-        name: "",
-        price: "",
-        period: "month",
-        features: [],
-        status: "active",
-      });
-      setShowEditPlanModal(false);
-      setSelectedPlan(null);
+        try {
+          const res = await packageService.updatePackage(
+            String(selectedPlan.id),
+            payload
+          );
+
+          if (res.success && res.data) {
+            const p = res.data;
+            const mapped = {
+              id: p.id ?? p.ID ?? selectedPlan.id,
+              name: p.name ?? payload.name,
+              price: p.price ?? payload.price,
+              period: p.period ?? payload.period,
+              billingCycle:
+                p.billingCycle ??
+                p.BillingCycle ??
+                payload.billingCycle ??
+                payload.BillingCycle,
+              features: p.features ?? payload.features,
+              limitations: p.limitations ?? payload.limitations ?? [],
+              activeSubscriptions:
+                p.activeSubscriptions ?? selectedPlan.activeSubscriptions ?? 0,
+              revenue: p.revenue ?? selectedPlan.revenue ?? "",
+              status: p.status ?? selectedPlan.status,
+            };
+
+            setPlans((prev) =>
+              prev.map((plan) => (plan.id === mapped.id ? mapped : plan))
+            );
+          } else {
+            // fallback local update
+            const updatedPlan = {
+              ...selectedPlan,
+              name: newPlan.name,
+              price: parseInt(newPlan.price),
+              period: newPlan.period,
+              features: newPlan.features,
+              limitations: newPlan.limitations ?? [],
+              status: selectedPlan.status,
+            };
+            setPlans((prev) =>
+              prev.map((plan) =>
+                plan.id === selectedPlan.id ? updatedPlan : plan
+              )
+            );
+          }
+        } catch (err) {
+          const updatedPlan = {
+            ...selectedPlan,
+            name: newPlan.name,
+            price: parseInt(newPlan.price),
+            period: newPlan.period,
+            features: newPlan.features,
+            limitations: newPlan.limitations ?? [],
+            status: selectedPlan.status,
+          };
+          setPlans((prev) =>
+            prev.map((plan) =>
+              plan.id === selectedPlan.id ? updatedPlan : plan
+            )
+          );
+        } finally {
+          setNewPlan({
+            name: "",
+            price: "",
+            period: "month",
+            currency: "USD",
+            description: "",
+            features: [],
+            limitations: [],
+          });
+          setShowEditPlanModal(false);
+          setSelectedPlan(null);
+        }
+      })();
     }
   };
 
@@ -566,17 +817,17 @@ const AdminPlans = () => {
   };
 
   return (
-    <div className="admin-plans">
+    <div className="admin-packages">
       <div className="page-header">
         <h1>Quản Lý Gói & Đăng Ký</h1>
-        <p>Quản lý các gói dịch vụ và đăng ký của khách hàng</p>
+        <p>Quản lý các gói và đăng ký của khách hàng</p>
       </div>
 
       {/* Tabs */}
       <div className="tabs-section">
         <button
-          className={`tab-btn ${activeTab === "plans" ? "active" : ""}`}
-          onClick={() => setActiveTab("plans")}
+          className={`tab-btn ${activeTab === "packages" ? "active" : ""}`}
+          onClick={() => setActiveTab("packages")}
         >
           Gói Dịch Vụ
         </button>
@@ -588,8 +839,8 @@ const AdminPlans = () => {
         </button>
       </div>
 
-      {/* Plans Tab */}
-      {activeTab === "plans" && (
+      {/* Packages Tab */}
+      {activeTab === "packages" && (
         <div className="plans-content">
           <div className="plans-header">
             <h2>Danh Sách Gói Dịch Vụ</h2>
@@ -602,18 +853,20 @@ const AdminPlans = () => {
           </div>
 
           <div className="plans-grid">
-            {plans.map((plan) => (
+            {plans.map((plan: any) => (
               <div key={plan.id} className="plan-card">
                 <div className="plan-header">
                   <h3>{plan.name}</h3>
                   <div className="plan-price">
                     <span className="price">${plan.price}</span>
-                    <span className="period">/{plan.period}</span>
+                    <span className="period">
+                      /{formatPeriodLabel(plan.period, plan.billingCycle)}
+                    </span>
                   </div>
                 </div>
 
                 <div className="plan-features">
-                  {plan.features.map((feature, index) => (
+                  {(plan.features || []).map((feature: any, index: number) => (
                     <div key={index} className="feature-item">
                       <span className="feature-icon">✓</span>
                       <span>{feature}</span>
@@ -643,14 +896,7 @@ const AdminPlans = () => {
                     <Edit size={16} />
                     <span>Chỉnh sửa</span>
                   </button>
-                  <button
-                    className="action-btn view"
-                    onClick={() => handleViewPlan(plan)}
-                    title="Xem chi tiết gói"
-                  >
-                    <Eye size={16} />
-                    <span>Chi tiết</span>
-                  </button>
+
                   <button
                     className="action-btn delete"
                     onClick={() => handleDeletePlan(plan)}
@@ -694,7 +940,7 @@ const AdminPlans = () => {
               <div className="table-cell">Hành động</div>
             </div>
 
-            {subscriptions.map((subscription) => (
+            {subscriptions.map((subscription: any) => (
               <div key={subscription.id} className="table-row">
                 <div className="table-cell">
                   <div className="company-info">
@@ -717,7 +963,6 @@ const AdminPlans = () => {
                 <div className="table-cell">{subscription.nextBilling}</div>
                 <div className="table-cell">
                   <div className="action-buttons">
-                    <button className="action-btn view">👁️</button>
                     <button className="action-btn edit">✏️</button>
                     <button className="action-btn more">⋯</button>
                   </div>
@@ -786,32 +1031,47 @@ const AdminPlans = () => {
               </div>
 
               <div className="form-group">
-                <label>Trạng thái:</label>
-                <select
-                  value={newPlan.status}
+                <label>Mô tả:</label>
+                <textarea
+                  value={newPlan.description}
                   onChange={(e) =>
-                    handleNewPlanChange("status", e.target.value)
+                    handleNewPlanChange("description", e.target.value)
                   }
-                  className="form-select"
-                >
-                  <option value="active">Hoạt động</option>
-                  <option value="trial">Dùng thử</option>
-                  <option value="inactive">Không hoạt động</option>
-                </select>
+                  placeholder="Mô tả ngắn cho gói (tùy chọn)"
+                  className="form-input"
+                  rows={3}
+                />
               </div>
 
               <div className="form-group">
-                <label>Tính năng:</label>
+                <label>Tiền tệ:</label>
+                <select
+                  value={newPlan.currency}
+                  onChange={(e) =>
+                    handleNewPlanChange("currency", e.target.value)
+                  }
+                  className="form-select"
+                >
+                  <option value="USD">USD</option>
+                  <option value="VND">VND</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </div>
+
+              {/* status removed from create form per request */}
+
+              <div className="form-group">
+                <label>Giới hạn:</label>
                 <div className="feature-selector">
                   <div className="selected-features-preview">
                     <span className="selected-count">
-                      Đã chọn: {newPlan.features.length} tính năng
+                      Đã chọn: {newPlan.features.length} giới hạn
                     </span>
                     {newPlan.features.length > 0 && (
                       <div className="selected-features-list">
                         {newPlan.features.slice(0, 3).map((feature, index) => (
                           <span key={index} className="feature-tag">
-                            {feature}
+                            {renderFeatureLabel(feature)}
                           </span>
                         ))}
                         {newPlan.features.length > 3 && (
@@ -828,11 +1088,12 @@ const AdminPlans = () => {
                     onClick={() => setShowFeatureSidebar(true)}
                   >
                     {newPlan.features.length === 0
-                      ? "Chọn tính năng"
-                      : "Chỉnh sửa tính năng"}
+                      ? "Chọn giới hạn"
+                      : "Chỉnh sửa giới hạn"}
                   </button>
                 </div>
               </div>
+              {/* Limitations are selectable in the Feature Sidebar now; no inline list here */}
             </div>
             <div className="modal-footer">
               <button
@@ -844,11 +1105,7 @@ const AdminPlans = () => {
               <button
                 className="btn-save"
                 onClick={handleAddPlan}
-                disabled={
-                  !newPlan.name ||
-                  !newPlan.price ||
-                  newPlan.features.length === 0
-                }
+                disabled={!newPlan.name || !newPlan.price}
               >
                 Thêm gói
               </button>
@@ -882,7 +1139,13 @@ const AdminPlans = () => {
                   <h2>{selectedPlan.name}</h2>
                   <div className="view-plan-price">
                     <span className="price">${selectedPlan.price}</span>
-                    <span className="period">/{selectedPlan.period}</span>
+                    <span className="period">
+                      /
+                      {formatPeriodLabel(
+                        selectedPlan.period,
+                        selectedPlan.billingCycle
+                      )}
+                    </span>
                   </div>
                 </div>
 
@@ -892,16 +1155,36 @@ const AdminPlans = () => {
                 </div>
 
                 <div className="view-plan-features">
-                  <h4>Tính năng:</h4>
+                  <h4>Giới hạn:</h4>
                   <ul className="features-list">
-                    {selectedPlan.features.map(
-                      (feature: string, index: number) => (
-                        <li key={index} className="feature-item">
-                          <span className="feature-icon">✓</span>
-                          <span>{feature}</span>
-                        </li>
-                      )
+                    {(selectedPlan.limitations || []).length === 0 && (
+                      <li className="feature-item muted">Không có giới hạn</li>
                     )}
+                    {(selectedPlan.limitations || []).map((limId: any) => {
+                      const lim = limitations.find((l) => l.id === limId);
+                      if (!lim)
+                        return (
+                          <li key={limId} className="feature-item">
+                            <span>{limId}</span>
+                          </li>
+                        );
+                      return (
+                        <li key={lim.id} className="feature-item">
+                          <span className="feature-icon">✓</span>
+                          <span>
+                            {lim.name}
+                            {lim.isUnlimited
+                              ? " (Không giới hạn)"
+                              : lim.limitValue !== null &&
+                                lim.limitValue !== undefined
+                              ? `: ${lim.limitValue}${
+                                  lim.limitUnit ? ` ${lim.limitUnit}` : ""
+                                }`
+                              : ""}
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
 
@@ -998,32 +1281,47 @@ const AdminPlans = () => {
               </div>
 
               <div className="form-group">
-                <label>Trạng thái:</label>
-                <select
-                  value={newPlan.status}
+                <label>Mô tả:</label>
+                <textarea
+                  value={newPlan.description}
                   onChange={(e) =>
-                    handleNewPlanChange("status", e.target.value)
+                    handleNewPlanChange("description", e.target.value)
                   }
-                  className="form-select"
-                >
-                  <option value="active">Hoạt động</option>
-                  <option value="trial">Dùng thử</option>
-                  <option value="inactive">Không hoạt động</option>
-                </select>
+                  placeholder="Mô tả ngắn cho gói (tùy chọn)"
+                  className="form-input"
+                  rows={3}
+                />
               </div>
 
               <div className="form-group">
-                <label>Tính năng:</label>
+                <label>Tiền tệ:</label>
+                <select
+                  value={newPlan.currency}
+                  onChange={(e) =>
+                    handleNewPlanChange("currency", e.target.value)
+                  }
+                  className="form-select"
+                >
+                  <option value="USD">USD</option>
+                  <option value="VND">VND</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              </div>
+
+              {/* status removed from edit form per request */}
+
+              <div className="form-group">
+                <label>Giới hạn:</label>
                 <div className="feature-selector">
                   <div className="selected-features-preview">
                     <span className="selected-count">
-                      Đã chọn: {newPlan.features.length} tính năng
+                      Đã chọn: {newPlan.features.length} giới hạn
                     </span>
                     {newPlan.features.length > 0 && (
                       <div className="selected-features-list">
                         {newPlan.features.slice(0, 3).map((feature, index) => (
                           <span key={index} className="feature-tag">
-                            {feature}
+                            {renderFeatureLabel(feature)}
                           </span>
                         ))}
                         {newPlan.features.length > 3 && (
@@ -1040,8 +1338,8 @@ const AdminPlans = () => {
                     onClick={() => setShowFeatureSidebar(true)}
                   >
                     {newPlan.features.length === 0
-                      ? "Chọn tính năng"
-                      : "Chỉnh sửa tính năng"}
+                      ? "Chọn giới hạn"
+                      : "Chỉnh sửa giới hạn"}
                   </button>
                 </div>
               </div>
@@ -1056,11 +1354,7 @@ const AdminPlans = () => {
               <button
                 className="btn-save"
                 onClick={handleUpdatePlan}
-                disabled={
-                  !newPlan.name ||
-                  !newPlan.price ||
-                  newPlan.features.length === 0
-                }
+                disabled={!newPlan.name || !newPlan.price}
               >
                 Cập nhật
               </button>
@@ -1105,7 +1399,11 @@ const AdminPlans = () => {
                   <div className="summary-item">
                     <span className="label">Giá:</span>
                     <span className="value">
-                      ${selectedPlan.price}/{selectedPlan.period}
+                      ${selectedPlan.price}/
+                      {formatPeriodLabel(
+                        selectedPlan.period,
+                        selectedPlan.billingCycle
+                      )}
                     </span>
                   </div>
                   <div className="summary-item">
@@ -1140,7 +1438,7 @@ const AdminPlans = () => {
         >
           <div className="feature-sidebar" onClick={(e) => e.stopPropagation()}>
             <div className="sidebar-header">
-              <h3>Chọn Tính Năng</h3>
+              <h3>Chọn Giới Hạn</h3>
               <button
                 className="sidebar-close"
                 onClick={() => setShowFeatureSidebar(false)}
@@ -1165,62 +1463,120 @@ const AdminPlans = () => {
             </div>
 
             <div className="sidebar-content">
-              {featureGroups.map((group) => {
-                const IconComponent = group.icon;
-                return (
-                  <div key={group.id} className="feature-group">
-                    <div className="group-header">
-                      <div
-                        className="group-icon"
-                        style={{ color: group.color }}
-                      >
-                        <IconComponent size={20} />
-                      </div>
-                      <h4 className="group-title">{group.name}</h4>
+              {limitations && limitations.length > 0 ? (
+                <div className="feature-group">
+                  <div className="group-header">
+                    <div className="group-icon" style={{ color: "#ff5e13" }}>
+                      {/* icon placeholder */}
+                      <Users size={20} />
                     </div>
-                    <div className="features-grid">
-                      {group.features.map((feature) => (
-                        <div
-                          key={feature.id}
-                          className={`feature-card ${
-                            newPlan.features.includes(feature.name)
-                              ? "selected"
-                              : ""
-                          }`}
-                          onClick={() =>
-                            handleFeatureToggle(feature.id, group.id)
-                          }
-                        >
-                          <div className="feature-card-header">
-                            <input
-                              type="radio"
-                              name={group.id}
-                              checked={newPlan.features.includes(feature.name)}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                handleFeatureToggle(feature.id, group.id);
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="feature-radio"
-                            />
-                          </div>
-                          <div className="feature-card-body">
-                            <h5 className="feature-title">{feature.name}</h5>
-                            <p className="feature-description">
-                              {feature.description}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <h4 className="group-title">Giới hạn</h4>
                   </div>
-                );
-              })}
+                  <div className="features-grid">
+                    {limitations.map((lim: any) => (
+                      <div
+                        key={lim.id}
+                        className={`feature-card ${
+                          newPlan.features.includes(lim.name) ? "selected" : ""
+                        }`}
+                        onClick={() => handleToggleLimFeature(lim)}
+                      >
+                        <div className="feature-card-header">
+                          <input
+                            type="checkbox"
+                            checked={newPlan.features.includes(lim.name)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleToggleLimFeature(lim);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="feature-radio"
+                          />
+                        </div>
+                        <div className="feature-card-body">
+                          <div className="feature-title-row">
+                            <h5 className="feature-title">{lim.name}</h5>
+                            <span className="feature-meta">
+                              {lim.isUnlimited
+                                ? "Không giới hạn"
+                                : lim.limitValue !== null &&
+                                  lim.limitValue !== undefined
+                                ? `${lim.limitValue}${
+                                    lim.limitUnit ? ` ${lim.limitUnit}` : ""
+                                  }`
+                                : ""}
+                            </span>
+                          </div>
+                          {lim.description && (
+                            <p className="feature-description">
+                              {lim.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                featureGroups.map((group) => {
+                  const IconComponent = group.icon;
+                  return (
+                    <div key={group.id} className="feature-group">
+                      <div className="group-header">
+                        <div
+                          className="group-icon"
+                          style={{ color: group.color }}
+                        >
+                          <IconComponent size={20} />
+                        </div>
+                        <h4 className="group-title">{group.name}</h4>
+                      </div>
+                      <div className="features-grid">
+                        {group.features.map((feature) => (
+                          <div
+                            key={feature.id}
+                            className={`feature-card ${
+                              newPlan.features.includes(feature.name)
+                                ? "selected"
+                                : ""
+                            }`}
+                            onClick={() =>
+                              handleFeatureToggle(feature.id, group.id)
+                            }
+                          >
+                            <div className="feature-card-header">
+                              <input
+                                type="radio"
+                                name={group.id}
+                                checked={newPlan.features.includes(
+                                  feature.name
+                                )}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleFeatureToggle(feature.id, group.id);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="feature-radio"
+                              />
+                            </div>
+                            <div className="feature-card-body">
+                              <h5 className="feature-title">{feature.name}</h5>
+                              <p className="feature-description">
+                                {feature.description}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             <div className="sidebar-footer">
               <div className="selected-summary">
-                <span>Đã chọn: {newPlan.features.length} tính năng</span>
+                <span>Đã chọn: {newPlan.features.length} giới hạn</span>
               </div>
               <button
                 className="confirm-btn"
@@ -1899,6 +2255,40 @@ const AdminPlans = () => {
           padding: 16px;
           background: #fafafa;
         }
+        .limitations-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 8px 6px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          background: #fff;
+          max-height: 220px;
+          overflow: auto;
+        }
+
+        .limit-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: 6px 8px;
+          border-radius: 6px;
+          cursor: pointer;
+        }
+
+        .limit-item input {
+          margin-right: 8px;
+        }
+
+        .limit-name {
+          font-weight: 600;
+          color: #0d062d;
+        }
+
+        .limit-desc {
+          color: #6b7280;
+          font-size: 12px;
+        }
 
         .selected-features-preview {
           margin-bottom: 12px;
@@ -2147,6 +2537,19 @@ const AdminPlans = () => {
 
         .feature-card-body {
           text-align: center;
+        }
+
+        .feature-title-row {
+          display: flex;
+          align-items: baseline;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .feature-meta {
+          font-size: 12px;
+          color: #6b7280;
+          font-weight: 600;
         }
 
         .feature-title {
@@ -2587,4 +2990,4 @@ const AdminPlans = () => {
   );
 };
 
-export default AdminPlans;
+export default AdminPackages;

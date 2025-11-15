@@ -4,89 +4,114 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import { Project } from "@/types/project";
-import { mockTasks } from "@/constants/mockData";
 import { MemberTaskCard } from "@/components/tasks/MemberTaskCard";
+import { projectService } from "@/services/projectService";
+import { taskService } from "@/services/taskService";
+import { meetingService } from "@/services/meetingService";
+import { getProjectStatusLabel, getProjectStatusColor } from '@/constants/status';
+import { FiClock } from 'react-icons/fi';
 import "@/app/styles/dashboard.scss";
 
 export default function MemberDashboardPage() {
   const router = useRouter();
-  const { email, avatarUrl, fullName } = useUser();
+  const { email, avatarUrl, fullName, userId } = useUser();
   const [assignedProjects, setAssignedProjects] = useState<Project[]>([]);
   const [myTasks, setMyTasks] = useState<any[]>([]);
   const [upcomingMeetings, setUpcomingMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllTasks, setShowAllTasks] = useState(false);
 
-  // Mock data for member's assigned projects
-    // ...existing code...
-  
-  const mockAssignedProjects: Project[] = [
-  ];
-  
-  // ...existing code...
-
-  // Get tasks assigned to current member
-  const getMyTasks = () => {
-    const allTasks = [...mockTasks];
-    // Filter tasks that are assigned to current member (mock logic)
-    return allTasks.filter(
-      (task) =>
-        task.assignee === "Member" ||
-        task.assignee === email ||
-        task.assignee === "member@gmail.com"
-    );
-    // return allTasks;
-  };
-
-  // Mock data for upcoming meetings
-  const mockUpcomingMeetings = [
-    {
-      id: "1",
-      title: "Daily Standup Meeting",
-      date: "2025-09-20",
-      time: "09:00 - 09:30",
-      location: "Meeting Room A",
-      attendees: ["John Doe", "Alice Johnson", "Member", "Sarah Wilson"],
-      type: "daily",
-    },
-    {
-      id: "2",
-      title: "Project Review Meeting",
-      date: "2025-09-21",
-      time: "14:00 - 15:30",
-      location: "Conference Room B",
-      attendees: ["PM John", "Business Owner", "Member", "Tech Lead"],
-      type: "review",
-    },
-    {
-      id: "3",
-      title: "Client Presentation",
-      date: "2025-09-22",
-      time: "10:00 - 11:30",
-      location: "Client Office - Floor 15",
-      attendees: ["PM John", "Member", "Client Team"],
-      type: "presentation",
-    },
-    {
-      id: "4",
-      title: "Sprint Planning",
-      date: "2025-09-23",
-      time: "09:00 - 12:00",
-      location: "Online - Teams",
-      attendees: ["PM John", "All Developers", "QA Team"],
-      type: "planning",
-    },
-  ];
-
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setAssignedProjects(mockAssignedProjects);
-      setMyTasks(getMyTasks());
-      setUpcomingMeetings(mockUpcomingMeetings);
-      setLoading(false);
-    }, 500);
-  }, [email]);
+    let mounted = true;
+
+    const loadData = async () => {
+      setLoading(true);
+
+      try {
+        // 1. Fetch projects where current user is a member
+
+        if (!userId) {
+          // No user yet, nothing to load
+          if (mounted) setLoading(false);
+          return;
+        }
+
+        const projRes = await projectService.getProjectsByMemberId(userId);
+        const projects: Project[] = projRes.success && projRes.data ? projRes.data.items : [];
+
+        if (mounted) setAssignedProjects(projects);
+
+        // 2. For each project, fetch tasks assigned to this user (aggregate)
+        const taskPromises = projects.map((p) =>
+          taskService.getTasksByUserIdAndProjectId(userId, p.id)
+        );
+
+        const taskResults = await Promise.all(taskPromises);
+        const aggregatedTasks: any[] = taskResults.reduce((acc, res) => {
+          if (res.success && res.data && Array.isArray(res.data.items)) {
+            return acc.concat(res.data.items);
+          }
+          return acc;
+        }, [] as any[]);
+
+        // Map tasks to a smaller UI-friendly shape so we don't store unnecessary fields
+        const cleanedTasks = aggregatedTasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+          // find project name from fetched projects, fallback to projectId
+          project: (projects.find((p) => p.id === t.projectId) as any)?.name || t.projectId,
+          status: t.status,
+          dueDate: t.endDate || t.startDate,
+          priority: (t.priority as any) || undefined,
+        }));
+
+        if (mounted) setMyTasks(cleanedTasks);
+
+        // 3. For meetings, fetch meetings for each project and pick upcoming ones
+        const meetingPromises = projects.map((p) => meetingService.getMeetingsByProjectId(p.id));
+        const meetingResults = await Promise.all(meetingPromises);
+        const allMeetings: any[] = meetingResults.reduce((acc, res) => {
+          if (res.success && Array.isArray(res.data)) {
+            return acc.concat(res.data);
+          }
+          return acc;
+        }, [] as any[]);
+
+        // Map MeetingItem -> UI shape used by this page
+        const now = new Date();
+        const upcoming = allMeetings
+          .filter((m) => m && m.startTime)
+          .map((m) => {
+            const start = new Date(m.startTime);
+            const end = m.endTime ? new Date(m.endTime) : undefined;
+            return {
+              id: m.id,
+              title: m.title,
+              date: start.toISOString(),
+              time: end
+                ? `${start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}`
+                : `${start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}`,
+              location: m.recordUrl || m.projectName || "Online",
+              attendees: (m.attendees || []).map((a: any) => a.fullName || a.email || a.id),
+            };
+          })
+          .filter((m) => new Date(m.date) >= now)
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        if (mounted) setUpcomingMeetings(upcoming);
+      } catch (err) {
+        console.error("Error loading member dashboard data:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
 
   // Calculate statistics
   const totalTasks = myTasks.length;
@@ -98,6 +123,13 @@ export default function MemberDashboardPage() {
   ).length;
   const pendingTasks = myTasks.filter(
     (task) => task.status === "todo" || task.status === "pending"
+  ).length;
+
+  const now = new Date();
+  const overdueTasks = myTasks.filter(
+    (task) =>
+      task.dueDate && new Date(task.dueDate) < now &&
+      !(task.status === "done" || task.status === "completed")
   ).length;
 
   const getStatusColor = (status: string) => {
@@ -177,7 +209,7 @@ export default function MemberDashboardPage() {
       {/* Statistics Cards */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10b981 0%,#059669 100%)', color: '#fff' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path
                 d="M9 12L11 14L15 10"
@@ -197,12 +229,12 @@ export default function MemberDashboardPage() {
           </div>
           <div className="stat-content">
             <div className="stat-number">{completedTasks}</div>
-            <div className="stat-label">Nhiệm vụ hoàn thành</div>
+            <div className="stat-label">Hoàn thành</div>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#3b82f6 0%,#2563eb 100%)', color: '#fff' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path
                 d="M12 2L2 7L12 12L22 7L12 2Z"
@@ -234,46 +266,17 @@ export default function MemberDashboardPage() {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5V7H9V5Z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M9 12H15"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M9 16H15"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#f59e0b 0%,#d97706 100%)', color: '#fff' }}>
+            <FiClock size={20} />
           </div>
           <div className="stat-content">
-            <div className="stat-number">{pendingTasks}</div>
-            <div className="stat-label">Chờ thực hiện</div>
+            <div className="stat-number">{overdueTasks}</div>
+            <div className="stat-label">Quá hạn</div>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">
+          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#ff7c3a 0%,#ff5e13 100%)', color: '#fff' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path
                 d="M3 7V5C3 3.89543 3.89543 3 5 3H19C20.1046 3 21 3.89543 21 5V7"
@@ -318,12 +321,12 @@ export default function MemberDashboardPage() {
         <div className="content-card">
           <div className="card-header">
             <h3>Công việc được giao</h3>
-            <span className="task-count">{totalTasks} nhiệm vụ</span>
+            <span className="task-count">{totalTasks} công việc</span>
           </div>
           <div className="card-content">
             {myTasks.length === 0 ? (
               <div className="empty-state">
-                <p>Bạn chưa có nhiệm vụ nào</p>
+                <p>Bạn chưa có công việc nào</p>
               </div>
             ) : (
               <div className="tasks-list">
@@ -402,13 +405,35 @@ export default function MemberDashboardPage() {
                 </div>
               ) : (
                 <div className="projects-list">
-                  {/* {assignedProjects.map((project, index) => (
-                    <MemberProjectCard
+                  {assignedProjects.map((project) => (
+                    <div
                       key={project.id}
-                      project={project}
-                      index={index}
-                    />
-                  ))} */}
+                      className="project-item"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => router.push(`/projects/${project.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          router.push(`/projects/${project.id}`);
+                        }
+                      }}
+                    >
+                      <div className="project-left">
+                        <div className="project-meta">
+                          <div className="project-name">{project.name}</div>
+                          {project.endDate && (
+                            <div className="project-deadline">Hạn: {new Date(project.endDate).toLocaleDateString('vi-VN')}</div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="project-actions">
+                        <span className="project-status" style={{background: getProjectStatusColor(project.status)}}>
+                          {getProjectStatusLabel(project.status)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -430,10 +455,19 @@ export default function MemberDashboardPage() {
               ) : (
                 <div className="meetings-list">
                   {upcomingMeetings.slice(0, 3).map((meeting, index) => (
-                    <div key={meeting.id} className="meeting-item">
+                    <div
+                      key={meeting.id}
+                      className="meeting-item"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => router.push(`/meetings/${meeting.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') router.push(`/meetings/${meeting.id}`);
+                      }}
+                    >
                       <div className="meeting-header">
                         <div className="meeting-type">
-                          <div className={`type-icon ${meeting.type}`}>
+                          <div className={`type-icon`}>
                             <svg
                               width="16"
                               height="16"
@@ -546,7 +580,8 @@ export default function MemberDashboardPage() {
                         <div className="meeting-action">
                           <button
                             className="join-meeting-btn"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               if (meeting.location?.includes("Online")) {
                                 alert(
                                   `Tham gia cuộc họp: ${meeting.title}\nThời gian: ${meeting.time}\nĐịa điểm: ${meeting.location}`
@@ -857,7 +892,76 @@ export default function MemberDashboardPage() {
         .projects-list {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 12px;
+        }
+
+        .project-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 16px;
+          border-radius: 16px;
+          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .project-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .project-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .project-name {
+          font-weight: 700;
+          color: #0f172a;
+        }
+
+        .project-deadline {
+          font-size: 12px;
+          color: #64748b;
+        }
+
+        .project-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .project-status {
+          display: inline-block;
+          padding: 6px 10px;
+          border-radius: 999px;
+          color: #fff;
+          font-weight: 700;
+          font-size: 12px;
+        }
+
+        .project-item[role="button"] { cursor: pointer; }
+        .project-item[role="button"]:hover {
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+          transform: translateY(-4px) scale(1.02);
+          border-color: transparent;
+        }
+        .project-item::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, #ff5e13 0%, #ff7c3a 100%);
+          border-radius: 16px 16px 0 0;
         }
 
         .meetings-list {

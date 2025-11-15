@@ -264,6 +264,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
         id: task.id,
         projectId: projectId,
         userId: task.userId || task.user?.userId || userId || '',
+        actorId: userId,
         title: task.title,
         description: task.description || undefined,
         status: task.status,
@@ -325,6 +326,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
       const taskData = {
         projectId: projectId,
         userId: newTask.assignee || undefined, // undefined nếu chưa giao cho ai
+        actorId: userId,
         title: newTask.title,
         description: newTask.description || undefined,
         status: newTask.status,
@@ -389,6 +391,7 @@ const MilestoneDetailPanel = ({ milestone, isOpen, onClose, tasks, members, allM
       const taskData = {
         projectId: projectId,
         userId: newTask.assignee || undefined, // undefined nếu chưa giao cho ai
+        actorId: userId,
         title: newTask.title,
         description: newTask.description || undefined,
         status: newTask.status,

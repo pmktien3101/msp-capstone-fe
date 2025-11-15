@@ -87,9 +87,9 @@ const Sidebar = () => {
       ),
     },
     {
-      id: "features",
-      label: "Chức năng chính",
-      route: "/dashboard/admin/features",
+      id: "limitations",
+      label: "Giới hạn",
+      route: "/dashboard/admin/limitations",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path
@@ -110,9 +110,9 @@ const Sidebar = () => {
       ),
     },
     {
-      id: "plans",
+      id: "packages",
       label: "Gói dịch vụ",
-      route: "/dashboard/admin/plans",
+      route: "/dashboard/admin/packages",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path
@@ -463,13 +463,14 @@ const Sidebar = () => {
   useEffect(() => {
     const currentPath = pathname;
 
-    // Check if we're on a project page
+    // Check if we're on a project page - mark Projects as active but do not force expand
     if (
       currentPath.includes("/projects/") &&
       !currentPath.endsWith("/projects")
     ) {
+      // Keep Projects marked active. Do NOT force open the project section here so
+      // the user can still collapse it while viewing a project.
       setActiveItem("projects");
-      setIsProjectSectionExpanded(true);
       return;
     }
 

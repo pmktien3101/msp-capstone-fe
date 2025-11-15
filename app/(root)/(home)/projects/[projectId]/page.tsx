@@ -85,6 +85,7 @@ const ProjectDetailPage = () => {
       const requestData = {
         projectId: projectId,
         userId: taskData.assignee || undefined, // Only include userId if assignee is selected
+        actorId: user.userId,
         title: taskData.title,
         description: taskData.description || '',
         status: taskData.status || TaskStatus.NotStarted,
@@ -165,6 +166,7 @@ const ProjectDetailPage = () => {
         id: taskToEdit.id,
         projectId: projectId,
         userId: taskData.assignee || undefined, // Only include userId if assignee is selected
+        actorId: user?.userId,
         title: taskData.title,
         description: taskData.description || '',
         status: taskData.status,
