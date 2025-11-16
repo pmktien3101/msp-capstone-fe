@@ -36,7 +36,7 @@ const AdminPackages = () => {
     currency: "USD",
     description: "",
     features: [] as string[],
-    limitations: [] as (string | number)[],
+    limitations: [] as (object | string | number)[],
   });
 
   const [limitations, setLimitations] = useState<any[]>([]);
@@ -864,7 +864,6 @@ const AdminPackages = () => {
                     </span>
                   </div>
                 </div>
-
                 <div className="plan-features">
                   {(plan.features || []).map((feature: any, index: number) => (
                     <div key={index} className="feature-item">
@@ -1315,7 +1314,7 @@ const AdminPackages = () => {
                 <div className="feature-selector">
                   <div className="selected-features-preview">
                     <span className="selected-count">
-                      Đã chọn: {newPlan.features.length} giới hạn
+                      Đã chọn: {newPlan.limitations.length} giới hạn
                     </span>
                     {newPlan.features.length > 0 && (
                       <div className="selected-features-list">

@@ -1,139 +1,159 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { subscriptionService } from "@/services/subscriptionService";
+import packageService from "@/services/packageService";
+import { useUser } from "@/hooks/useUser";
+import { Package } from "@/types/package";
+import { SubscriptionResponse } from "@/types/subscription";
 
-interface SubscriptionPlan {
-  id: string;
-  name: string;
-  price: number;
-  period: "monthly" | "yearly";
-  features: string[];
+interface DisplayPackage extends Package {
   isPopular?: boolean;
   isCurrent?: boolean;
 }
 
 const SubscriptionBillingPage = () => {
   const router = useRouter();
-  const [currentPlan, setCurrentPlan] = useState("professional");
-  const [currentPlanPrice, setCurrentPlanPrice] = useState(79);
-  const [currentPlanPeriod, setCurrentPlanPeriod] = useState<
-    "monthly" | "yearly"
-  >("monthly");
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">(
-    "monthly"
-  );
+  const { userId } = useUser();
+  const [currentSubscription, setCurrentSubscription] = useState<SubscriptionResponse | null>(null);
+  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+  const [packages, setPackages] = useState<DisplayPackage[]>([]);
+  const [billingHistory, setBillingHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<DisplayPackage | null>(null);
+  const [upgrading, setUpgrading] = useState(false);
 
-  const plans: SubscriptionPlan[] = [
-    {
-      id: "basic",
-      name: "Basic",
-      price: billingPeriod === "monthly" ? 29 : 290,
-      period: billingPeriod,
-      features: [
-        "Tối đa 5 dự án",
-        "Tối đa 10 thành viên",
-        "5GB lưu trữ",
-        "Hỗ trợ email",
-        "Báo cáo cơ bản",
-      ],
-    },
-    {
-      id: "professional",
-      name: "Professional",
-      price: billingPeriod === "monthly" ? 79 : 790,
-      period: billingPeriod,
-      features: [
-        "Tối đa 25 dự án",
-        "Tối đa 50 thành viên",
-        "50GB lưu trữ",
-        "Hỗ trợ ưu tiên",
-        "Báo cáo nâng cao",
-        "Tích hợp API",
-        "Backup tự động",
-      ],
-      isPopular: true,
-      isCurrent: true,
-    },
-    {
-      id: "enterprise",
-      name: "Enterprise",
-      price: billingPeriod === "monthly" ? 199 : 1990,
-      period: billingPeriod,
-      features: [
-        "Dự án không giới hạn",
-        "Thành viên không giới hạn",
-        "500GB lưu trữ",
-        "Hỗ trợ 24/7",
-        "Báo cáo tùy chỉnh",
-        "Tích hợp nâng cao",
-        "Backup nâng cao",
-        "Quản lý bảo mật",
-        "SLA 99.9%",
-      ],
-    },
-  ];
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      try {
+        // 1) Fetch gói hiện tại (active subscription by userId)
+        if (userId) {
+          const activeRes = await subscriptionService.getActiveSubscriptionByUserId(String(userId));
+          console.log("Active subscription response:", activeRes.data);
+          if (activeRes.success && activeRes.data && mounted) {
+            setCurrentSubscription(activeRes.data);
+            const cycle = activeRes.data.package?.billingCycle ?? 0;
+            setBillingPeriod(cycle === 2 ? "yearly" : "monthly");
+          }
+        }
 
-  const billingHistory = [
-    {
-      id: "1",
-      date: "2024-12-01",
-      amount: 79,
-      status: "paid",
-      description: "Professional Plan - Monthly",
-    },
-    {
-      id: "2",
-      date: "2024-11-01",
-      amount: 79,
-      status: "paid",
-      description: "Professional Plan - Monthly",
-    },
-    {
-      id: "3",
-      date: "2024-10-01",
-      amount: 79,
-      status: "paid",
-      description: "Professional Plan - Monthly",
-    },
-    {
-      id: "4",
-      date: "2024-09-01",
-      amount: 29,
-      status: "paid",
-      description: "Basic Plan - Monthly",
-    },
-  ];
+        // 2) Fetch lịch sử thanh toán (all subscriptions by userId)
+        if (userId) {
+          const historyRes = await subscriptionService.getSubscriptionByUserId(String(userId));
+          if (historyRes.success && mounted) {
+            const subs = Array.isArray(historyRes.data) ? historyRes.data : (historyRes.data ? [historyRes.data] : []);
+            const history = subs.map((s: any) => ({
+              id: s.id,
+              date: s.paidAt ?? s.startDate ?? new Date().toISOString().slice(0, 10),
+              amount: s.totalPrice ?? (s.package?.price ?? 0),
+              status: s.status ?? "paid",
+              description: s.package?.name + "-" + s.package?.billingCycle + " tháng",
+              currency: s.package?.currency ?? "VNĐ",
+            }));
+            setBillingHistory(history);
+          }
+        }
 
-  const handleUpgrade = (plan: SubscriptionPlan) => {
-    router.push(
-      `/dashboard/business/payment?planId=${plan.id}&price=${
-        plan.price
-      }&name=${encodeURIComponent(plan.name)}&period=${plan.period}`
-    );
+        // 3) Fetch các gói có sẵn (all packages)
+        const pkgRes = await packageService.getPackages();
+        if (pkgRes.success && mounted) {
+          const items = Array.isArray(pkgRes.data) ? pkgRes.data : (pkgRes.data?.items ?? []);
+          const mappedPackages: DisplayPackage[] = items.map((p: any) => ({
+            id: p.id ?? p.Id ?? "",
+            name: p.name ?? p.Name ?? "",
+            description: p.description ?? p.Description ?? null,
+            price: typeof p.price === "number" ? p.price : Number(p.price ?? p.Price ?? 0),
+            currency: p.currency ?? p.Currency ?? "USD",
+            billingCycle: typeof p.billingCycle === "number" ? p.billingCycle : Number(p.billingCycle ?? p.BillingCycle ?? 0),
+            isDeleted: !!(p.isDeleted ?? p.IsDeleted),
+            limitations: p.limitations ?? p.Limitations ?? [],
+            isPopular: false,
+            isCurrent: (p.id ?? p.Id) === currentSubscription?.packageId,
+          }));
+          setPackages(mappedPackages);
+        }
+      } catch (err) {
+        console.error("Failed to load subscription data", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [userId]);
+
+  const handleUpgrade = (pkg: DisplayPackage) => {
+    setSelectedPackage(pkg);
+    setShowUpgradeModal(true);
+  };
+
+  const confirmUpgrade = async () => {
+    if (!selectedPackage || !userId) return;
+    
+    setUpgrading(true);
+    try {
+      const payload = {
+        packageId: selectedPackage.id,
+        userId: String(userId),
+        returnUrl: `${process.env.NEXT_PUBLIC_FE_URL}/dashboard/business/subscription`,
+        cancelUrl: `${process.env.NEXT_PUBLIC_FE_URL}/dashboard/business/subscription`,
+      };
+
+      const result = await subscriptionService.createSubscription(payload);
+      
+      if (result.success) {
+        // Reload data to reflect new subscription
+        window.location.href = result.data.paymentUrl;
+      } else {
+        alert(`Nâng cấp thất bại: ${result.error || "Vui lòng thử lại"}`);
+      }
+    } catch (error) {
+      console.error("Upgrade error:", error);
+      alert("Có lỗi xảy ra khi nâng cấp gói. Vui lòng thử lại.");
+    } finally {
+      setUpgrading(false);
+      setShowUpgradeModal(false);
+      setSelectedPackage(null);
+    }
+  };
+
+  const cancelUpgrade = () => {
+    setShowUpgradeModal(false);
+    setSelectedPackage(null);
   };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      paid: {
-        text: "Đã thanh toán",
-        className: "status-badge paid",
-      },
-      pending: {
-        text: "Chờ thanh toán",
-        className: "status-badge pending",
-      },
-      failed: {
-        text: "Thất bại",
-        className: "status-badge failed",
-      },
+      paid: { text: "Đã thanh toán", className: "status-badge paid" },
+      pending: { text: "Chờ thanh toán", className: "status-badge pending" },
+      failed: { text: "Thất bại", className: "status-badge failed" },
+      active: { text: "Đang hoạt động", className: "status-badge paid" },
     };
-
-    const config = statusConfig[status as keyof typeof statusConfig];
+    const config = statusConfig[status.toLowerCase() as keyof typeof statusConfig] ?? statusConfig.paid;
     return <span className={config.className}>{config.text}</span>;
   };
 
-  const currentPlanData = plans.find((plan) => plan.id === currentPlan);
+  // const formatBillingCycle = (billingCycle: number) => {
+  //   if (billingCycle === 0) return "tháng";
+  //   if (billingCycle === 1) return "quý";
+  //   if (billingCycle === 2) return "năm";
+  //   return "tháng";
+  // };
+  const formatDateVN = (dateString: string | Date): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const displayBillingHistory = billingHistory.length > 0 ? billingHistory : [];
+
+  const currentPackage = currentSubscription?.package;
 
   return (
     <div className="subscription-billing-page">
@@ -144,47 +164,56 @@ const SubscriptionBillingPage = () => {
         </div>
       </div>
 
-      {/* Current Plan */}
+      {/* Current Subscription */}
       <div className="current-plan-section">
         <div className="section-header">
           <h2>Gói Hiện Tại</h2>
         </div>
-        {currentPlanData && (
+        {currentSubscription && currentPackage ? (
           <div className="current-plan-card">
             <div className="plan-header">
               <div className="plan-info">
-                <h3>{currentPlanData.name} Plan</h3>
+                <h3>{currentPackage.name}</h3>
                 <div className="plan-price">
-                  <span className="price">${currentPlanPrice}</span>
-                  <span className="period">
-                    /{currentPlanPeriod === "monthly" ? "tháng" : "năm"}
-                  </span>
+                  <span className="price">{currentSubscription.totalPrice ?? currentPackage.price}{" " + currentPackage.currency}</span>
+                  {/* <span className="period">/{formatBillingCycle(currentPackage.billingCycle)}</span> */}
+                  <span className="period">/{currentPackage.billingCycle} tháng</span>
+
                 </div>
               </div>
               <div className="plan-status">
-                <span className="status-active">Đang hoạt động</span>
-                <span className="next-billing">Gia hạn: 01/01/2025</span>
+                <span className="status-active">{currentSubscription.isActive ? "Đang hoạt động" : "Không hoạt động"}</span>
+                  {currentSubscription.endDate && (
+                    <span className="next-billing">Hết hạn: {formatDateVN(currentSubscription.endDate)}</span>
+                )}
               </div>
             </div>
             <div className="plan-features">
-              <h4>Tính năng bao gồm:</h4>
+              <h4>Giới hạn bao gồm:</h4>
               <ul>
-                {currentPlanData.features.map((feature, index) => (
-                  <li key={index}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M9 12L11 14L15 10"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    {feature}
+                {currentPackage.limitations && currentPackage.limitations.length > 0 ? (
+                  currentPackage.limitations.map((limitation, index) => (
+                    <li key={limitation.id ?? index}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <span>
+                        {limitation.name}
+                        {limitation.isUnlimited ? " (Không giới hạn)" : limitation.limitValue !== null && limitation.limitValue !== undefined ? `: ${limitation.limitValue}${limitation.limitUnit ? ` ${limitation.limitUnit}` : ""}` : ""}
+                      </span>
+                    </li>
+                  ))
+                ) : (
+                  <li>
+                    <span>Không có giới hạn</span>
                   </li>
-                ))}
+                )}
               </ul>
             </div>
+          </div>
+        ) : (
+          <div className="no-subscription">
+            <p>Bạn chưa có gói đăng ký nào. Vui lòng chọn gói bên dưới.</p>
           </div>
         )}
       </div>
@@ -192,91 +221,76 @@ const SubscriptionBillingPage = () => {
       {/* Billing Period Toggle */}
       <div className="billing-toggle-section" style={{ marginBottom: 32 }}>
         <div className="billing-toggle">
-          <button
-            className={`toggle-btn ${
-              billingPeriod === "monthly" ? "active" : ""
-            }`}
-            onClick={() => setBillingPeriod("monthly")}
-          >
+          <button className={`toggle-btn ${billingPeriod === "monthly" ? "active" : ""}`} onClick={() => setBillingPeriod("monthly")}>
             Hàng tháng
           </button>
-          <button
-            className={`toggle-btn ${
-              billingPeriod === "yearly" ? "active" : ""
-            }`}
-            onClick={() => setBillingPeriod("yearly")}
-          >
+          <button className={`toggle-btn ${billingPeriod === "yearly" ? "active" : ""}`} onClick={() => setBillingPeriod("yearly")}>
             Hàng năm
-            <span className="discount-badge">Tiết kiệm 20%</span>
+            {/* <span className="discount-badge">Tiết kiệm 20%</span> */}
           </button>
         </div>
       </div>
 
-      {/* Available Plans */}
+      {/* Available Packages */}
       <div className="available-plans-section">
         <h2>Gói Có Sẵn</h2>
         <div className="plans-grid">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`plan-card ${plan.isPopular ? "popular" : ""} ${
-                plan.isCurrent ? "current" : ""
-              }`}
-            >
-              {plan.isPopular && (
-                <div className="popular-badge">Phổ biến nhất</div>
-              )}
-
-              <div className="plan-header">
-                <h3>{plan.name}</h3>
-                <div className="plan-price">
-                  <span className="price">${plan.price}</span>
-                  <span className="period">
-                    /{billingPeriod === "monthly" ? "tháng" : "năm"}
-                  </span>
+          {packages.length > 0 ? (
+            packages.map((pkg) => {
+              const isCurrent = pkg.id === currentSubscription?.packageId;
+              return (
+                <div key={pkg.id} className={`plan-card ${pkg.isPopular ? "popular" : ""} ${isCurrent ? "current" : ""}`}>
+                  {pkg.isPopular && <div className="popular-badge">Phổ biến nhất</div>}
+                  <div className="plan-header">
+                    <h3>{pkg.name}</h3>
+                    <div className="plan-price">
+                      <span className="price">{pkg.price} {" " + pkg.currency}</span>
+                      <span className="period">/{pkg.billingCycle} tháng</span>
+                    </div>
+                  </div>
+                  {pkg.description && (
+                    <div className="plan-description">
+                      <p>{pkg.description}</p>
+                    </div>
+                  )}
+                  <div className="plan-features">
+                    <ul>
+                      {pkg.limitations && pkg.limitations.length > 0 ? (
+                        pkg.limitations.map((limitation, index) => (
+                          <li key={limitation.id ?? index}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                              <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span>
+                              {limitation.name}
+                              {limitation.isUnlimited ? " (Không giới hạn)" : limitation.limitValue !== null && limitation.limitValue !== undefined ? `: ${limitation.limitValue}${limitation.limitUnit ? ` ${limitation.limitUnit}` : ""}` : ""}
+                            </span>
+                          </li>
+                        ))
+                      ) : (
+                        <li>
+                          <span>Không có giới hạn</span>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                  <div className="plan-actions">
+                    {isCurrent ? (
+                      <button className="current-btn" disabled>Gói hiện tại</button>
+                    ) : (
+                      <button className="upgrade-btn" onClick={() => handleUpgrade(pkg)}>
+                        {currentSubscription ? "Nâng cấp" : "Chọn gói"}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-
-              <div className="plan-features">
-                <ul>
-                  {plan.features.map((feature, index) => (
-                    <li key={index}>
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <path
-                          d="M9 12L11 14L15 10"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="plan-actions">
-                {plan.isCurrent ? (
-                  <button className="current-btn" disabled>
-                    Gói hiện tại
-                  </button>
-                ) : plan.price > (currentPlanData?.price || 0) ? (
-                  <button
-                    className="upgrade-btn"
-                    onClick={() => handleUpgrade(plan)}
-                  >
-                    Nâng cấp
-                  </button>
-                ) : null}
-              </div>
+              );
+            })
+          ) : (
+            <div className="no-packages">
+              <p>Không có gói nào khả dụng.</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -289,55 +303,75 @@ const SubscriptionBillingPage = () => {
             <div className="col-description">Mô tả</div>
             <div className="col-amount">Số tiền</div>
             <div className="col-status">Trạng thái</div>
-            <div className="col-action">Thao tác</div>
+            {/* <div className="col-action">Thao tác</div> */}
           </div>
-
-          {billingHistory.map((bill) => (
+          {displayBillingHistory.map((bill) => (
             <div key={bill.id} className="table-row">
-              <div className="col-date">
-                <span className="date">{bill.date}</span>
-              </div>
-              <div className="col-description">
-                <span className="description">{bill.description}</span>
-              </div>
-              <div className="col-amount">
-                <span className="amount">${bill.amount}</span>
-              </div>
-              <div className="col-status">
-                <span className="amount">{getStatusBadge(bill.status)}</span>
-              </div>
-              <div className="col-action">
+              <div className="col-date"><span className="date">{formatDateVN(bill.date)}</span></div>
+              <div className="col-description"><span className="description">{bill.description}</span></div>
+              <div className="col-amount"><span className="amount">{bill.amount} {" " + bill.currency}</span></div>
+              <div className="col-status">{getStatusBadge(bill.status)}</div>
+              {/* <div className="col-action">
                 <button className="download-btn">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M7 10L12 15L17 10"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M12 15V3"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   Tải hóa đơn
                 </button>
-              </div>
+              </div> */}
             </div>
           ))}
         </div>
       </div>
+
+      {/* Upgrade Confirmation Modal */}
+      {showUpgradeModal && selectedPackage && (
+        <div className="modal-overlay" onClick={cancelUpgrade}>
+          <div className="modal-content upgrade-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Xác nhận nâng cấp gói</h3>
+              <button className="modal-close" onClick={cancelUpgrade}>×</button>
+            </div>
+            <div className="modal-body">
+              <div className="upgrade-confirmation">
+                <h4>Bạn có chắc chắn muốn chuyển sang gói "{selectedPackage.name}"?</h4>
+                <p className="warning-text">
+                  Gói hiện tại của bạn sẽ bị hủy ngay lập tức và bạn không thể hoàn tác thao tác này.
+                </p>
+                {currentPackage && (
+                  <div className="upgrade-summary">
+                    <div className="summary-row">
+                      <span className="label">Gói hiện tại:</span>
+                      <span className="value current">{currentPackage.name}</span>
+                    </div>
+                    <div className="summary-arrow">→</div>
+                    <div className="summary-row">
+                      <span className="label">Gói mới:</span>
+                      <span className="value new">{selectedPackage.name}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="price-info">
+                  <div className="price-row">
+                    <span>Giá gói mới:</span>
+                    <strong>{selectedPackage.price} {" " + selectedPackage.currency} / {selectedPackage.billingCycle} tháng</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={cancelUpgrade} disabled={upgrading}>
+                Hủy
+              </button>
+              <button className="btn-confirm" onClick={confirmUpgrade} disabled={upgrading}>
+                {upgrading ? "Đang xử lý..." : "Xác nhận nâng cấp"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .subscription-billing-page {
@@ -884,6 +918,270 @@ const SubscriptionBillingPage = () => {
           background: linear-gradient(135deg, #fef7f0, #fff5f0);
           color: #ff5e13;
           transform: scale(1.05);
+        }
+
+        .no-subscription,
+        .no-packages {
+          background: white;
+          border-radius: 16px;
+          padding: 48px 32px;
+          text-align: center;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .no-subscription p,
+        .no-packages p {
+          font-size: 16px;
+          color: #787486;
+          margin: 0;
+        }
+
+        .plan-description {
+          margin-bottom: 16px;
+        }
+
+        .plan-description p {
+          font-size: 14px;
+          color: #6b7280;
+          line-height: 1.5;
+          margin: 0;
+        }
+
+        .upgrade-modal {
+          max-width: 500px;
+        }
+
+        .upgrade-confirmation {
+          text-align: center;
+          padding: 20px 0;
+        }
+
+        .warning-icon {
+          font-size: 48px;
+          margin-bottom: 16px;
+        }
+
+        .upgrade-confirmation h4 {
+          margin: 0 0 12px 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: #0d062d;
+        }
+
+        .warning-text {
+          margin: 0 0 24px 0;
+          font-size: 14px;
+          color: #dc2626;
+          line-height: 1.5;
+          font-weight: 500;
+        }
+
+        .upgrade-summary {
+          background: #f9f4ee;
+          border-radius: 12px;
+          padding: 20px;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .summary-row {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          flex: 1;
+        }
+
+        .summary-row .label {
+          font-size: 12px;
+          color: #787486;
+          font-weight: 500;
+        }
+
+        .summary-row .value {
+          font-size: 16px;
+          font-weight: 600;
+          padding: 8px 12px;
+          border-radius: 8px;
+          text-align: center;
+        }
+
+        .summary-row .value.current {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        .summary-row .value.new {
+          background: #d1fae5;
+          color: #059669;
+        }
+
+        .summary-arrow {
+          font-size: 24px;
+          color: #ff5e13;
+          font-weight: bold;
+        }
+
+        .price-info {
+          background: white;
+          border: 2px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 16px;
+        }
+
+        .price-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 14px;
+          color: #0d062d;
+        }
+
+        .price-row strong {
+          color: #ff5e13;
+          font-size: 16px;
+        }
+
+        .btn-confirm {
+          background: linear-gradient(135deg, #ff5e13 0%, #e04a0c 100%);
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-confirm:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.4);
+        }
+
+        .btn-confirm:disabled {
+          background: #d1d5db;
+          color: #6b7280;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 16px;
+          width: 90%;
+          max-width: 600px;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+          animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+          from {
+            transform: translateY(20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 24px 24px 0 24px;
+          border-bottom: 1px solid #e5e7eb;
+          margin-bottom: 24px;
+        }
+
+        .modal-header h3 {
+          margin: 0;
+          font-size: 20px;
+          font-weight: 600;
+          color: #0d062d;
+        }
+
+        .modal-close {
+          background: none;
+          border: none;
+          font-size: 28px;
+          color: #6b7280;
+          cursor: pointer;
+          padding: 0;
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          transition: background 0.2s ease;
+        }
+
+        .modal-close:hover {
+          background: #f3f4f6;
+        }
+
+        .modal-body {
+          padding: 0 24px;
+        }
+
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          padding: 24px;
+          border-top: 1px solid #e5e7eb;
+          margin-top: 24px;
+        }
+
+        .btn-cancel {
+          background: white;
+          color: #6b7280;
+          border: 2px solid #e5e7eb;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-cancel:hover:not(:disabled) {
+          background: #f9fafb;
+          border-color: #d1d5db;
+        }
+
+        .btn-cancel:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
         @media (max-width: 768px) {
