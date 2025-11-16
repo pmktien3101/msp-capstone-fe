@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import { isAuthenticated } from "@/lib/auth";
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
@@ -11,6 +11,7 @@ import "../../../styles/auth.scss";
 
 export default function SignInPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +30,9 @@ export default function SignInPage() {
       try {
         if (isAuthenticated()) {
           console.log("User already authenticated, redirecting to dashboard");
-          router.push("/dashboard");
+          // Get redirect URL from query params, default to /dashboard
+          const redirectUrl = searchParams.get("redirect") || "/dashboard";
+          router.push(redirectUrl);
           return;
         }
       } catch (error) {
@@ -41,7 +44,7 @@ export default function SignInPage() {
 
     const timer = setTimeout(checkAuth, 100);
     return () => clearTimeout(timer);
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -53,7 +56,7 @@ export default function SignInPage() {
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Form submitted");
+    console.log("Form submitted with email:", formData.email);
     setError(null);
 
     try {
@@ -62,14 +65,27 @@ export default function SignInPage() {
         password: formData.password
       });
 
+      console.log("Login result:", result);
+
       if (result.success) {
+        console.log("Login successful!");
+        
         if (formData.rememberMe) {
           localStorage.setItem("rememberedEmail", formData.email);
         }
 
-        // Redirect to dashboard
-        router.push("/dashboard");
+        // Get redirect URL from query params, default to /dashboard
+        const redirectUrl = searchParams.get("redirect") || "/dashboard";
+        console.log("Login successful, redirecting to:", redirectUrl);
+        console.log("Current localStorage accessToken:", localStorage.getItem("accessToken")?.substring(0, 20) + "...");
+        
+        // Use setTimeout to ensure state updates are processed
+        setTimeout(() => {
+          console.log("Pushing to:", redirectUrl);
+          router.push(redirectUrl);
+        }, 200);
       } else {
+        console.log("Login failed:", result.error);
         setError(result.error || "Login failed. Please check your credentials.");
       }
     } catch (error: any) {

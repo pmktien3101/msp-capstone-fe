@@ -7,94 +7,40 @@ import { normalizeRole } from './rbac';
 export const getAccessToken = (): string | null => {
   if (typeof window === 'undefined') return null;
   
-  // Try localStorage first
-  const localToken = localStorage.getItem('accessToken');
-  if (localToken && isValidJwtFormat(localToken)) return localToken;
-  
-  // Try cookies
-  const cookieToken = document.cookie
-    .split(';')
-    .find(cookie => cookie.trim().startsWith('accessToken='))
-    ?.split('=')[1];
-    
-  return (cookieToken && isValidJwtFormat(cookieToken)) ? cookieToken : null;
+  // Get accessToken from localStorage only
+  const token = localStorage.getItem('accessToken');
+  return (token && isValidJwtFormat(token)) ? token : null;
 };
 
 export const getRefreshToken = (): string | null => {
   if (typeof window === 'undefined') return null;
   
-  // Get refreshToken from cookies only (not localStorage)
-  const cookieToken = document.cookie
-    .split(';')
-    .find(cookie => cookie.trim().startsWith('refreshToken='))
-    ?.split('=')[1];
-  
-  // Fix base64 padding if missing (add == if needed)
-  let fixedToken = cookieToken;
-  if (fixedToken) {
-    // Decode URL-encoded characters first
-    fixedToken = decodeURIComponent(fixedToken);
-    
-    // Add padding if missing
-    while (fixedToken.length % 4) {
-      fixedToken += '=';
-    }
-  }
-    
-  return fixedToken || null;
+  // Get refreshToken from localStorage only
+  const token = localStorage.getItem('refreshToken');
+  return token || null;
 };
 
 export const setTokens = (tokens: AuthTokens, rememberMe: boolean = false): void => {
   if (typeof window === 'undefined') return;
   
-  // Store accessToken in localStorage
+  // Store both tokens in localStorage only
   localStorage.setItem('accessToken', tokens.accessToken);
-  
-  // Store accessToken in cookies for middleware
-  const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60; // 30 days or 1 day
-  document.cookie = `accessToken=${tokens.accessToken}; max-age=${maxAge}; path=/; secure; samesite=strict`;
-  
-  // Store refreshToken in cookies with its JWT expiration
-  try {
-    const decodedRefreshToken = decodeJwtToken(tokens.refreshToken);
-    if (decodedRefreshToken && decodedRefreshToken.exp) {
-      const refreshExpires = new Date(decodedRefreshToken.exp * 1000).toUTCString();
-      document.cookie = `refreshToken=${tokens.refreshToken}; expires=${refreshExpires}; path=/; secure; samesite=strict`;
-    } else {
-      // Fallback to longer expiration for refresh token (7 days)
-      const refreshMaxAge = 7 * 24 * 60 * 60; // 7 days
-      document.cookie = `refreshToken=${tokens.refreshToken}; max-age=${refreshMaxAge}; path=/; secure; samesite=strict`;
-    }
-  } catch (error) {
-    // If refreshToken is not a JWT, use longer expiration (7 days)
-    const refreshMaxAge = 7 * 24 * 60 * 60; // 7 days
-    document.cookie = `refreshToken=${tokens.refreshToken}; max-age=${refreshMaxAge}; path=/; secure; samesite=strict`;
-  }
-  
-  // Note: refreshToken is also stored in httpOnly cookies by backend
-  // But we also store it in regular cookies for frontend access
+  localStorage.setItem('refreshToken', tokens.refreshToken);
 };
 
 export const setAccessToken = (token: string, rememberMe: boolean = false): void => {
   if (typeof window === 'undefined') return;
   
-  // Store in localStorage
+  // Store in localStorage only
   localStorage.setItem('accessToken', token);
-  
-  // Store in cookies for middleware
-  const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60; // 30 days or 1 day
-  document.cookie = `accessToken=${token}; max-age=${maxAge}; path=/; secure; samesite=strict`;
 };
 
 export const removeTokens = (): void => {
   if (typeof window === 'undefined') return;
   
-  // Remove from localStorage (only accessToken, refreshToken is now in cookies only)
+  // Remove both tokens from localStorage
   localStorage.removeItem('accessToken');
-  
-  // Remove from cookies
-  document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-  document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  localStorage.removeItem('refreshToken');
 };
 
 export const removeAccessToken = (): void => {
@@ -102,9 +48,6 @@ export const removeAccessToken = (): void => {
   
   // Remove from localStorage
   localStorage.removeItem('accessToken');
-  
-  // Remove from cookies
-  document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
 };
 
 export const isAuthenticated = (): boolean => {
@@ -125,24 +68,9 @@ export const isAuthenticated = (): boolean => {
     return false;
   }
   
-  // Check if we have user data
-  const userStorage = localStorage.getItem('user-storage');
-  try {
-    const userData = userStorage ? JSON.parse(userStorage) : null;
-    const hasUserData = userData?.state?.userId && userData?.state?.email && userData?.state?.role;
-    
-    if (!hasUserData) {
-      // If no user data, clear it
-      localStorage.removeItem('user-storage');
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error parsing user storage:', error);
-    localStorage.removeItem('user-storage');
-    return false;
-  }
+  // Token exists and is valid - user is authenticated
+  // User data will be populated from token or Zustand store
+  return true;
 };
 
 export const getCurrentUser = (): User | null => {
@@ -190,16 +118,12 @@ export const getCurrentUser = (): User | null => {
 export const clearAllAuthData = (): void => {
   if (typeof window === 'undefined') return;
   
-  // Clear localStorage (only accessToken, refreshToken is now in cookies only)
+  // Clear all auth-related data from localStorage
   localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
   localStorage.removeItem('rememberedEmail');
   localStorage.removeItem('user-storage');
   
   // Clear sessionStorage
   sessionStorage.clear();
-  
-  // Clear cookies
-  document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-  document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-  document.cookie = 'user-storage=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
 };
