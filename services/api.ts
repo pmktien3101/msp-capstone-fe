@@ -1,5 +1,5 @@
 import axios, { AxiosError } from "axios";
-import { getAccessToken, clearAllAuthData } from "@/lib/auth";
+import { getAccessToken, getRefreshToken, clearAllAuthData, setAccessToken, setTokens } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -8,7 +8,7 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true, // Enable credentials to include httpOnly cookies
+  withCredentials: true
 });
 
 // Add request interceptor
@@ -89,33 +89,17 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Call refresh token endpoint (send refreshToken in body)
+        // Get refreshToken from localStorage
+        const refreshToken = getRefreshToken();
 
-        // Get refreshToken from cookies (not localStorage anymore)
-        const cookieToken = document.cookie
-          .split(";")
-          .find((cookie) => cookie.trim().startsWith("refreshToken="))
-          ?.split("=")[1];
-
-        // Fix base64 padding if missing
-        let refreshToken = cookieToken;
-        if (refreshToken) {
-          // Decode URL-encoded characters first
-          refreshToken = decodeURIComponent(refreshToken);
-
-          // Add padding if missing
-          while (refreshToken.length % 4) {
-            refreshToken += "=";
-          }
+        if (!refreshToken) {
+          throw new Error("No refresh token available");
         }
 
         const refreshResponse = await axios.post(
           `${API_URL}/auth/refresh-token`,
           {
             refreshToken: refreshToken,
-          },
-          {
-            withCredentials: true, // Ensure httpOnly cookies are sent
           }
         );
 
@@ -123,29 +107,11 @@ api.interceptors.response.use(
           const newAccessToken = refreshResponse.data.data.accessToken;
           const newRefreshToken = refreshResponse.data.data.refreshToken;
 
-          // Update accessToken in localStorage
-          localStorage.setItem("accessToken", newAccessToken);
-
-          // Update refreshToken in cookies with JWT expiration
-          try {
-            const decodedRefreshToken = JSON.parse(
-              atob(newRefreshToken.split(".")[1])
-            );
-            if (decodedRefreshToken && decodedRefreshToken.exp) {
-              const refreshExpires = new Date(
-                decodedRefreshToken.exp * 1000
-              ).toUTCString();
-              document.cookie = `refreshToken=${newRefreshToken}; expires=${refreshExpires}; path=/; secure; samesite=strict`;
-            } else {
-              // Fallback to longer expiration for refresh token (7 days)
-              const refreshMaxAge = 7 * 24 * 60 * 60; // 7 days
-              document.cookie = `refreshToken=${newRefreshToken}; max-age=${refreshMaxAge}; path=/; secure; samesite=strict`;
-            }
-          } catch (error) {
-            // If refreshToken is not a JWT, use longer expiration (7 days)
-            const refreshMaxAge = 7 * 24 * 60 * 60; // 7 days
-            document.cookie = `refreshToken=${newRefreshToken}; max-age=${refreshMaxAge}; path=/; secure; samesite=strict`;
-          }
+          // Update both tokens in localStorage
+          setTokens({
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken
+          }, false);
 
           // Update the original request with new token
           if (originalRequest.headers) {

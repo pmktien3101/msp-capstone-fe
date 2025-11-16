@@ -37,6 +37,7 @@ const processLoginResponse = (loginData: LoginResponse, rememberMe: boolean = fa
 };
 
 // Helper function to process refresh token response
+// Tokens are stored in localStorage only
 const processRefreshResponse = (loginData: LoginResponse) => {
     const tokens: AuthTokens = {
         accessToken: loginData.accessToken,
