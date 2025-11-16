@@ -191,7 +191,7 @@ const SubscriptionBillingPage = () => {
             <div className="plan-features">
               <h4>Giới hạn bao gồm:</h4>
               <ul>
-                {currentPackage.limitations && currentPackage.limitations.length > 0 ? (
+                {currentPackage?.limitations ? (
                   currentPackage.limitations.map((limitation, index) => (
                     <li key={limitation.id ?? index}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -219,17 +219,18 @@ const SubscriptionBillingPage = () => {
       </div>
 
       {/* Billing Period Toggle */}
-
-      {/* <div className="billing-toggle-section" style={{ marginBottom: 32 }}>
+   <div className="billing-toggle-section" style={{ marginBottom: 32 }}>
         <div className="billing-toggle">
           <button className={`toggle-btn ${billingPeriod === "monthly" ? "active" : ""}`} onClick={() => setBillingPeriod("monthly")}>
             Hàng tháng
           </button>
           <button className={`toggle-btn ${billingPeriod === "yearly" ? "active" : ""}`} onClick={() => setBillingPeriod("yearly")}>
             Hàng năm
+            {/* <span className="discount-badge">Tiết kiệm 20%</span> */}
           </button>
         </div>
-      </div> */}
+      </div>
+
 
       {/* Available Packages */}
       <div className="available-plans-section">

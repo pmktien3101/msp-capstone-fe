@@ -55,16 +55,14 @@ export const isAuthenticated = (): boolean => {
   
   const token = getAccessToken();
   
-  // If no token, clear user data and return false
+  // If no token, return false (don't clear user-storage here to avoid re-render loops)
   if (!token) {
-    localStorage.removeItem('user-storage');
     return false;
   }
   
   // Only check if token exists and has valid format, not if it's expired
   // Token expiration will be handled by API interceptor for refresh
   if (!isValidJwtFormat(token)) {
-    localStorage.removeItem('user-storage');
     return false;
   }
   

@@ -1,3 +1,5 @@
+import { Limitation } from "./limitation";
+
 export interface Package {
   id: string;
   name: string;
@@ -6,5 +8,5 @@ export interface Package {
   currency: string;
   billingCycle: number;
   isDeleted: boolean;
-  limitations: Limitation[];
+  limitations: Limitation[] | null;
 }

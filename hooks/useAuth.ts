@@ -18,7 +18,7 @@ export const useAuth = () => {
   return {
     // Auth state
     user,
-    isAuthenticated: userStore.isAuthenticated(),
+    isAuthenticated: !!userStore.userId, // Derived from store state, not function call
     isLoading: userStore.isLoading,
     
     // Auth actions
