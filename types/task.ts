@@ -16,6 +16,7 @@ export interface GetTaskResponse {
   id: string;
   projectId: string;
   userId?: string;
+  reviewerId?: string;
   title: string;
   description?: string;
   status: string;
@@ -25,6 +26,7 @@ export interface GetTaskResponse {
   createdAt: string;  // ISO 8601 UTC
   updatedAt: string;  // ISO 8601 UTC
   user?: GetUserResponse;
+  reviewer?: GetUserResponse;
   milestones?: TaskMilestoneResponse[];
 }
 
@@ -46,7 +48,8 @@ export interface UpdateTaskRequest {
   id: string;
   projectId: string;
   userId?: string;
-  actorId?: string;
+  reviewerId?: string;
+  actorId: string;
   title: string;
   description?: string;
   status: string;
@@ -64,16 +67,6 @@ export interface Task extends GetTaskResponse {
   // Computed fields
   daysRemaining?: number;
 }
-
-// Task status options
-export const TASK_STATUS = {
-  TODO: 'todo',
-  IN_PROGRESS: 'in-progress',
-  REVIEW: 'review',
-  DONE: 'done',
-} as const;
-
-export type TaskStatus = typeof TASK_STATUS[keyof typeof TASK_STATUS];
 
 // Task form data for create/edit modals
 export interface TaskFormData {

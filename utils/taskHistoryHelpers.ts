@@ -1,7 +1,58 @@
 import type { TaskHistory } from "@/types/taskHistory";
 
 /**
- * Format task history for display
+ * Get user initials for avatar
+ */
+export const getUserInitials = (fullName: string): string => {
+  return fullName
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+/**
+ * Get avatar background color based on user name (consistent color per user)
+ */
+export const getAvatarColor = (fullName: string): string => {
+  const colors = [
+    '#ef4444', // red
+    '#3b82f6', // blue
+    '#10b981', // green
+    '#f59e0b', // amber
+    '#8b5cf6', // violet
+    '#ec4899', // pink
+    '#06b6d4', // cyan
+  ];
+  
+  // Simple hash function to get consistent color for same name
+  let hash = 0;
+  for (let i = 0; i < fullName.length; i++) {
+    hash = fullName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
+/**
+ * Get action text for history item
+ */
+export const getHistoryActionText = (history: TaskHistory): string => {
+  if (history.action === 'Created') {
+    return 'created the Work item';
+  } else if (history.action === 'Assigned' || history.action === 'Reassigned') {
+    return 'changed the Assignee';
+  } else if (history.action === 'StatusChanged' || history.fieldName === 'Status') {
+    return 'changed the Status';
+  } else if (history.fieldName) {
+    return `updated the ${history.fieldName}`;
+  } else {
+    return history.actionDisplay || history.action || 'updated';
+  }
+};
+
+/**
+ * Format task history for display (legacy)
  */
 export const formatTaskHistory = (history: TaskHistory): string => {
   // Use backend's changeDescription if available
@@ -14,34 +65,34 @@ export const formatTaskHistory = (history: TaskHistory): string => {
   
   switch (history.action) {
     case "Created":
-      return `${changedBy} đã tạo công việc`;
+      return `${changedBy} created the work item`;
       
     case "Assigned":
-      return `${changedBy} đã giao việc cho ${history.toUser?.fullName || "N/A"}`;
+      return `${changedBy} assigned to ${history.toUser?.fullName || "N/A"}`;
       
     case "Reassigned":
-      return `${changedBy} đã chuyển giao từ ${history.fromUser?.fullName || "N/A"} sang ${history.toUser?.fullName || "N/A"}`;
+      return `${changedBy} reassigned from ${history.fromUser?.fullName || "N/A"} to ${history.toUser?.fullName || "N/A"}`;
       
     case "StatusChanged":
-      return `${changedBy} đã thay đổi trạng thái từ '${history.oldValue}' sang '${history.newValue}'`;
+      return `${changedBy} changed status from '${history.oldValue}' to '${history.newValue}'`;
       
     case "Updated":
       if (history.fieldName === "Title") {
-        return `${changedBy} đã thay đổi tiêu đề từ '${history.oldValue}' sang '${history.newValue}'`;
+        return `${changedBy} changed title from '${history.oldValue}' to '${history.newValue}'`;
       }
       if (history.fieldName === "Description") {
-        return `${changedBy} đã cập nhật mô tả`;
+        return `${changedBy} updated description`;
       }
       if (history.fieldName === "StartDate") {
-        return `${changedBy} đã thay đổi ngày bắt đầu từ ${history.oldValue} sang ${history.newValue}`;
+        return `${changedBy} changed start date from ${history.oldValue} to ${history.newValue}`;
       }
       if (history.fieldName === "EndDate") {
-        return `${changedBy} đã thay đổi hạn chót từ ${history.oldValue} sang ${history.newValue}`;
+        return `${changedBy} changed due date from ${history.oldValue} to ${history.newValue}`;
       }
-      return `${changedBy} đã cập nhật ${history.fieldName}`;
+      return `${changedBy} updated ${history.fieldName}`;
       
     default:
-      return `${changedBy} đã thực hiện thay đổi`;
+      return `${changedBy} made changes`;
   }
 };
 
@@ -85,26 +136,22 @@ export const getHistoryColor = (action: string): string => {
 };
 
 /**
- * Format date for display
+ * Format date for display (time ago)
  */
 export const formatHistoryDate = (dateString: string): string => {
   const date = new Date(dateString);
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  if (diffMins < 1) return "Vừa xong";
-  if (diffMins < 60) return `${diffMins} phút trước`;
-  if (diffHours < 24) return `${diffHours} giờ trước`;
-  if (diffDays < 7) return `${diffDays} ngày trước`;
-  
-  return new Intl.DateTimeFormat("vi-VN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  if (seconds < 60) return `${seconds} seconds ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days > 1 ? 's' : ''} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months > 1 ? 's' : ''} ago`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years > 1 ? 's' : ''} ago`;
 };

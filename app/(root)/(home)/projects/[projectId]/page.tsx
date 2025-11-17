@@ -159,6 +159,12 @@ const ProjectDetailPage = () => {
         return;
       }
 
+      // Ensure we have the current user ID to use as actorId (UpdateTaskRequest requires a string)
+      if (!user || !user.userId) {
+        toast.error('Không tìm thấy thông tin người dùng');
+        return;
+      }
+
       // console.log('Updating task:', taskData);
       
       // Prepare request data
@@ -166,7 +172,7 @@ const ProjectDetailPage = () => {
         id: taskToEdit.id,
         projectId: projectId,
         userId: taskData.assignee || undefined, // Only include userId if assignee is selected
-        actorId: user?.userId,
+        actorId: user.userId,
         title: taskData.title,
         description: taskData.description || '',
         status: taskData.status,

@@ -354,4 +354,78 @@ export const projectService = {
         }
     },
 
+    // Get project members by role 
+    async getProjectMembersByRole(projectId: string, role: string = 'Member'): Promise<{ success: boolean; data?: ProjectMember[]; error?: string }> {
+        try {
+            const response = await api.get<ApiResponse<ProjectMember[]>>(`/projects/${projectId}/members`, {
+                params: { role }
+            });
+            
+            if (response.data.success && response.data.data) {
+                return {
+                    success: true,
+                    data: response.data.data
+                };
+            } else {
+                return {
+                    success: false,
+                    error: response.data.message || 'Failed to fetch project members by role'
+                };
+            }
+        } catch (error: any) {
+            console.log('Get project members by role error:', error.response?.status, error.response?.data);
+            
+            // Handle 400/404 as empty result
+            if (error.response?.status === 400 || error.response?.status === 404) {
+                console.log('No members found for this role, returning empty array');
+                return {
+                    success: true,
+                    data: []
+                };
+            }
+            
+            console.error('Get project members by role error:', error);
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Failed to fetch project members by role'
+            };
+        }
+    },
+
+    // Get project managers (NEW)
+    async getProjectManagers(projectId: string): Promise<{ success: boolean; data?: ProjectMember[]; error?: string }> {
+        try {
+            const response = await api.get<ApiResponse<ProjectMember[]>>(`/projects/${projectId}/project-managers`);
+            
+            if (response.data.success && response.data.data) {
+                return {
+                    success: true,
+                    data: response.data.data
+                };
+            } else {
+                return {
+                    success: false,
+                    error: response.data.message || 'Failed to fetch project managers'
+                };
+            }
+        } catch (error: any) {
+            console.log('Get project managers error:', error.response?.status, error.response?.data);
+            
+            // Handle 400/404 as empty result
+            if (error.response?.status === 400 || error.response?.status === 404) {
+                console.log('No project managers found, returning empty array');
+                return {
+                    success: true,
+                    data: []
+                };
+            }
+            
+            console.error('Get project managers error:', error);
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Failed to fetch project managers'
+            };
+        }
+    },
+
 };

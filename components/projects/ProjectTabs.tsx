@@ -14,7 +14,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { ProjectSummary } from "./ProjectSummary";
-import { ProjectBoard } from "./ProjectBoard";
+import { ProjectTaskTable } from "./ProjectTaskTable";
 import { ProjectList } from "./ProjectList";
 // import { ProjectReports } from "./ProjectReports";
 import { ProjectSettings } from "./ProjectSettings";
@@ -121,7 +121,7 @@ export const ProjectTabs = ({
         return <ProjectSummary project={project} />;
       case "board":
         return (
-          <ProjectBoard
+          <ProjectTaskTable
             project={project}
             onTaskClick={onTaskClick}
             onCreateTask={onCreateTask}

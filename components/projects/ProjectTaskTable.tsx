@@ -9,8 +9,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/lib/rbac";
 import Pagination from "@/components/ui/Pagination";
 import { TaskStatus, getTaskStatusLabel, getTaskStatusColor } from "@/constants/status";
+import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
+import "@/app/styles/project-task-table.scss";
 
-interface ProjectBoardProps {
+interface ProjectTaskTableProps {
   project: Project;
   onTaskClick?: (task: any) => void;
   onCreateTask?: () => void;
@@ -28,14 +30,14 @@ const formatDate = (dateStr: string) => {
   return `${day}/${month}/${year}`;
 };
 
-export const ProjectBoard = ({
+export const ProjectTaskTable = ({
   project,
   onTaskClick,
   onCreateTask,
   onDeleteTask,
   onEditTask,
   refreshKey = 0,
-}: ProjectBoardProps) => {
+}: ProjectTaskTableProps) => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [groupBy, setGroupBy] = useState("none");
@@ -48,6 +50,10 @@ export const ProjectBoard = ({
 
   // Pagination state for each group
   const [groupPages, setGroupPages] = useState<Record<string, number>>({});
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<GetTaskResponse | null>(null);
 
   const projectId = project?.id?.toString();
   const userRole = user?.role;
@@ -256,24 +262,24 @@ export const ProjectBoard = ({
   }>);
 
   const handleDeleteTask = (e: React.MouseEvent, taskId: string, taskTitle: string) => {
-    e.stopPropagation(); // Ngăn chặn event bubbling để không trigger onTaskClick
+    e.stopPropagation();
     if (onDeleteTask) {
       onDeleteTask(taskId, taskTitle);
     }
   };
 
-  const handleEditTask = (e: React.MouseEvent, task: any) => {
-    e.stopPropagation(); // Ngăn chặn event bubbling để không trigger onTaskClick
-    if (onEditTask) {
-      onEditTask(task);
-    }
+  const handleRowClick = (task: any) => {
+    setSelectedTask(task);
+    setIsModalOpen(true);
   };
 
-  const handleViewTask = (e: React.MouseEvent, task: any) => {
-    e.stopPropagation(); // Ngăn chặn event bubbling để không trigger onTaskClick
-    if (onTaskClick) {
-      onTaskClick(task);
-    }
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedTask(null);
+  };
+
+  const handleSaveTask = () => {
+    fetchTasks(); // Refresh the task list after saving
   };
 
 
@@ -337,7 +343,11 @@ export const ProjectBoard = ({
                     {pagination.paginatedData.map((task, index) => {
                       const actualIndex = pagination.startIndex + index;
                       return (
-                        <tr key={task.id}>
+                        <tr 
+                          key={task.id} 
+                          onClick={() => handleRowClick(task)}
+                          style={{ cursor: 'pointer' }}
+                        >
                           <td className="stt-cell">{actualIndex + 1}</td>
                           <td className="title-cell" title={task.title}>
                             <span className="title-text">{task.title}</span>
@@ -362,22 +372,6 @@ export const ProjectBoard = ({
                           <td className="date-cell">{formatDate(task.endDate || '')}</td>
                           <td className="actions-cell">
                             <div className="action-buttons">
-                              <button
-                                className="action-btn view-btn"
-                                onClick={(e) => handleViewTask(e, task)}
-                                title="Xem chi tiết"
-                              >
-                              <Eye size={14} />
-                              </button>
-                            {onEditTask && (
-                              <button
-                                className="action-btn edit-btn"
-                                onClick={(e) => handleEditTask(e, task)}
-                                title="Chỉnh sửa"
-                              >
-                                <Edit size={14} />
-                              </button>
-                            )}
                             {isProjectManager && onDeleteTask && (
                               <button
                                 className="action-btn delete-btn"
@@ -412,293 +406,16 @@ export const ProjectBoard = ({
         )}
       </div>
 
-      <style jsx>{`
-        .project-board {
-          width: 100%;
-        }
-        
-        .create-task-container {
-          padding: 16px 0;
-          margin-bottom: 16px;
-        }
-        
-        .create-task-container button {
-          background: #ff5e13;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          padding: 8px 16px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-        
-        .create-task-container button:hover {
-          background: #e54d00;
-        }
-        
-        .task-list {
-          width: 100%;
-        }
-
-        .loading-state,
-        .empty-state {
-          text-align: center;
-          padding: 48px;
-          color: #6b7280;
-          font-size: 14px;
-        }
-
-        .loading-spinner {
-          width: 40px;
-          height: 40px;
-          border: 3px solid #e2e8f0;
-          border-top-color: #FF5E13;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-          margin: 0 auto 16px;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        .loading-state p,
-        .empty-state p {
-          margin: 0 0 20px 0;
-        }
-
-        .empty-state button {
-          background: transparent;
-          color: #FF5E13;
-          border: 1px solid #FF5E13;
-          border-radius: 8px;
-          padding: 10px 20px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .empty-state button:hover {
-          background: #FF5E13;
-          color: white;
-        }
-        
-        .task-group {
-          margin-bottom: 24px;
-        }
-        
-        .task-group:last-child {
-          margin-bottom: 0;
-        }
-        
-        .group-header {
-          background: #f9fafb;
-          padding: 12px 16px;
-          border-bottom: 1px solid #e5e7eb;
-          margin-bottom: 0;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-        
-        .group-title {
-          margin: 0;
-          font-size: 14px;
-          font-weight: 600;
-          color: #374151;
-        }
-        
-        .group-count {
-          background: #ff5e13;
-          color: white;
-          padding: 2px 8px;
-          border-radius: 12px;
-          font-size: 11px;
-          font-weight: 600;
-        }
-        
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          background: white;
-        }
-        
-        thead {
-          background: #f9fafb;
-        }
-        
-        th {
-          padding: 12px;
-          text-align: left;
-          font-size: 12px;
-          font-weight: 600;
-          color: #374151;
-          border-bottom: 1px solid #e5e7eb;
-          white-space: nowrap;
-        }
-        
-        td {
-          padding: 12px;
-          font-size: 13px;
-          color: #1f2937;
-          border-bottom: 1px solid #f3f4f6;
-        }
-        
-        tr:hover {
-          background: #f9fafb;
-        }
-        
-        /* Cố định độ rộng cột */
-        .stt-cell { 
-          width: 60px; 
-          text-align: center;
-        }
-        
-        .title-cell { 
-          max-width: 200px;
-        }
-        
-        .description-cell { 
-          max-width: 250px;
-        }
-        
-        .status-cell { 
-          white-space: nowrap;
-        }
-        
-        .assignee-cell { 
-          white-space: nowrap;
-        }
-        
-        .date-cell { 
-          white-space: nowrap;
-          font-size: 12px;
-          color: #6b7280;
-        }
-        
-        .actions-cell { 
-          white-space: nowrap;
-        }
-        
-        /* Text overflow handling */
-        .title-text {
-          display: block;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .description-text {
-          display: block;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .assignee-text {
-          display: block;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        
-        /* Status badges */
-        .status-badge {
-          display: inline-block;
-          padding: 4px 12px;
-          border-radius: 12px;
-          color: white;
-          font-size: 11px;
-          font-weight: 600;
-        }
-        
-        /* Action buttons */
-        .action-buttons {
-          display: flex;
-          gap: 6px;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: nowrap;
-        }
-        
-        .action-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 32px;
-          height: 32px;
-          border: 1px solid;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          opacity: 0.7;
-        }
-        
-        .action-btn:hover {
-          opacity: 1;
-          transform: scale(1.05);
-        }
-        
-        .view-btn {
-          background: #eff6ff;
-          color: #3b82f6;
-          border-color: #bfdbfe;
-        }
-        
-        .view-btn:hover {
-          background: #3b82f6;
-          color: white;
-          border-color: #3b82f6;
-        }
-        
-        .edit-btn {
-          background: #fffbeb;
-          color: #f59e0b;
-          border-color: #fde68a;
-        }
-        
-        .edit-btn:hover {
-          background: #f59e0b;
-          color: white;
-          border-color: #f59e0b;
-        }
-        
-        .delete-btn {
-          background: #fef2f2;
-          color: #ef4444;
-          border-color: #fecaca;
-        }
-        
-        .delete-btn:hover {
-          background: #ef4444;
-          color: white;
-          border-color: #ef4444;
-        }
-
-        .reassign-btn {
-          background: #fff7ed;
-          color: #ff5e13;
-          border-color: #fed7aa;
-        }
-
-        .reassign-btn:hover {
-          background: #ff5e13;
-          color: white;
-          border-color: #ff5e13;
-        }
-        
-        /* Responsive design */
-        @media (max-width: 768px) {
-          table {
-            min-width: 800px;
-          }
-          
-          .task-list {
-            overflow-x: scroll;
-          }
-        }
-      `}</style>
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          mode="edit"
+          onSave={handleSaveTask}
+        />
+      )}
     </div>
   );
 };
