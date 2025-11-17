@@ -16,39 +16,39 @@ export enum ProjectStatus {
   Completed = 'Completed'
 }
 
-// Task Status Labels (Vietnamese)
+// Task Status Labels (English)
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  [TaskStatus.NotStarted]: 'Chưa bắt đầu',
-  [TaskStatus.InProgress]: 'Đang thực hiện',
-  [TaskStatus.ReadyToReview]: 'Sẵn sàng đánh giá',
-  [TaskStatus.ReOpened]: 'Mở lại',
-  [TaskStatus.Cancelled]: 'Đã hủy',
-  [TaskStatus.Done]: 'Hoàn thành'
+  [TaskStatus.NotStarted]: 'Not Started',
+  [TaskStatus.InProgress]: 'In Progress',
+  [TaskStatus.ReadyToReview]: 'Ready To Review',
+  [TaskStatus.ReOpened]: 'Re-Opened',
+  [TaskStatus.Cancelled]: 'Cancelled',
+  [TaskStatus.Done]: 'Done'
 };
 
-// Project Status Labels (Vietnamese)
+// Project Status Labels (English)
 export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
-  [ProjectStatus.Scheduled]: 'Lập kế hoạch',
-  [ProjectStatus.InProgress]: 'Đang hoạt động',
-  [ProjectStatus.Paused]: 'Tạm dừng',
-  [ProjectStatus.Completed]: 'Hoàn thành'
+  [ProjectStatus.Scheduled]: 'Scheduled',
+  [ProjectStatus.InProgress]: 'In Progress',
+  [ProjectStatus.Paused]: 'Paused',
+  [ProjectStatus.Completed]: 'Completed'
 };
 
-// Reverse mapping: Vietnamese to Enum
+// Reverse mapping: English Label to Enum
 export const TASK_STATUS_FROM_LABEL: Record<string, TaskStatus> = {
-  'Chưa bắt đầu': TaskStatus.NotStarted,
-  'Đang thực hiện': TaskStatus.InProgress,
-  'Sẵn sàng đánh giá': TaskStatus.ReadyToReview,
-  'Mở lại': TaskStatus.ReOpened,
-  'Đã hủy': TaskStatus.Cancelled,
-  'Hoàn thành': TaskStatus.Done
+  'Not Started': TaskStatus.NotStarted,
+  'In Progress': TaskStatus.InProgress,
+  'Ready To Review': TaskStatus.ReadyToReview,
+  'Re-Opened': TaskStatus.ReOpened,
+  'Cancelled': TaskStatus.Cancelled,
+  'Done': TaskStatus.Done
 };
 
 export const PROJECT_STATUS_FROM_LABEL: Record<string, ProjectStatus> = {
-  'Lập kế hoạch': ProjectStatus.Scheduled,
-  'Đang hoạt động': ProjectStatus.InProgress,
-  'Tạm dừng': ProjectStatus.Paused,
-  'Hoàn thành': ProjectStatus.Completed
+  'Scheduled': ProjectStatus.Scheduled,
+  'In Progress': ProjectStatus.InProgress,
+  'Paused': ProjectStatus.Paused,
+  'Completed': ProjectStatus.Completed
 };
 
 // Helper functions
@@ -57,7 +57,7 @@ export const getTaskStatusLabel = (status: string | TaskStatus): string => {
   if (Object.values(TaskStatus).includes(status as TaskStatus)) {
     return TASK_STATUS_LABELS[status as TaskStatus];
   }
-  // If Vietnamese label
+  // If English label
   return status;
 };
 
@@ -66,7 +66,7 @@ export const getTaskStatusEnum = (status: string): TaskStatus => {
   if (Object.values(TaskStatus).includes(status as TaskStatus)) {
     return status as TaskStatus;
   }
-  // If Vietnamese label
+  // If English label
   return TASK_STATUS_FROM_LABEL[status] || TaskStatus.NotStarted;
 };
 
@@ -75,7 +75,7 @@ export const getProjectStatusLabel = (status: string | ProjectStatus): string =>
   if (Object.values(ProjectStatus).includes(status as ProjectStatus)) {
     return PROJECT_STATUS_LABELS[status as ProjectStatus];
   }
-  // If Vietnamese label
+  // If English label
   return status;
 };
 
@@ -84,7 +84,7 @@ export const getProjectStatusEnum = (status: string): ProjectStatus => {
   if (Object.values(ProjectStatus).includes(status as ProjectStatus)) {
     return status as ProjectStatus;
   }
-  // If Vietnamese label
+  // If English label
   return PROJECT_STATUS_FROM_LABEL[status] || ProjectStatus.Scheduled;
 };
 
@@ -132,13 +132,13 @@ export const getProjectStatusColor = (status: string | ProjectStatus): string =>
 export const ALL_TASK_STATUSES = Object.values(TaskStatus);
 export const ALL_PROJECT_STATUSES = Object.values(ProjectStatus);
 
-// Task status options for select/dropdown (Vietnamese labels)
+// Task status options for select/dropdown (English labels)
 export const TASK_STATUS_OPTIONS = ALL_TASK_STATUSES.map(status => ({
   value: status,
   label: TASK_STATUS_LABELS[status]
 }));
 
-// Project status options for select/dropdown (Vietnamese labels)
+// Project status options for select/dropdown (English labels)
 export const PROJECT_STATUS_OPTIONS = ALL_PROJECT_STATUSES.map(status => ({
   value: status,
   label: PROJECT_STATUS_LABELS[status]

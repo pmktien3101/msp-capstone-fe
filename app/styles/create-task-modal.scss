@@ -1,0 +1,444 @@
+.create-task-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.create-task-modal-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.create-task-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+
+  .modal-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #f3f4f6;
+      color: #1f2937;
+    }
+  }
+}
+
+.create-task-modal-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.create-task-modal-form {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.create-task-left-panel {
+  flex: 0 0 60%;
+  padding: 20px;
+  overflow-y: auto;
+  border-right: 1px solid #e5e7eb;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f3f4f6;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+
+    &:hover {
+      background: #9ca3af;
+    }
+  }
+}
+
+.create-task-right-panel {
+  flex: 0 0 40%;
+  padding: 20px;
+  overflow-y: scroll; // Force scrollbar to always show
+  overflow-x: hidden;
+  background: #f9fafb;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f3f4f6;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+
+    &:hover {
+      background: #9ca3af;
+    }
+  }
+}
+
+.create-task-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+
+  .form-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+
+    svg {
+      flex-shrink: 0;
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    background: white;
+    transition: all 0.2s ease;
+    width: 100%;
+    font-family: inherit;
+
+    &:focus {
+      outline: none;
+      border-color: #ff8c42;
+      box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+    }
+
+    &.error {
+      border-color: #ef4444;
+    }
+
+    &.disabled {
+      background: #f3f4f6;
+      color: #9ca3af;
+      cursor: not-allowed;
+      border-color: #e5e7eb;
+
+      &:hover {
+        border-color: #e5e7eb;
+      }
+    }
+
+    // Style date input to show dd/mm/yyyy format
+    &[type="date"] {
+      &::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        opacity: 0.6;
+        &:hover {
+          opacity: 1;
+        }
+      }
+      
+      &::-webkit-datetime-edit-fields-wrapper {
+        padding: 0;
+      }
+      
+      &::-webkit-datetime-edit-text {
+        padding: 0 2px;
+      }
+      
+      &::-webkit-datetime-edit-day-field,
+      &::-webkit-datetime-edit-month-field,
+      &::-webkit-datetime-edit-year-field {
+        padding: 0 2px;
+      }
+    }
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  .error-message {
+    font-size: 11px;
+    color: #ef4444;
+    font-weight: 500;
+  }
+}
+
+/* Custom Status Dropdown */
+.create-task-status-dropdown {
+  position: relative;
+
+  .status-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #ff8c42;
+    }
+
+    .status-badge {
+      color: white;
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .dropdown-arrow {
+      font-size: 9px;
+      color: #6b7280;
+      margin-left: 6px;
+    }
+  }
+
+  .status-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    overflow: hidden;
+
+    .status-dropdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: #f3f4f6;
+      }
+
+      .status-badge {
+        color: white;
+        padding: 4px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-block;
+      }
+
+      .checkmark {
+        color: #10b981;
+        font-weight: bold;
+        font-size: 13px;
+      }
+    }
+  }
+}
+
+/* Milestone Selection */
+.create-task-milestone-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .milestone-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #f3f4f6;
+    }
+
+    input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+      accent-color: #ff5e13;
+    }
+
+    .milestone-name {
+      font-size: 12px;
+      color: #4b5563;
+      line-height: 1.4;
+    }
+  }
+}
+
+/* Loading & Empty States */
+.create-task-loading-state,
+.create-task-empty-state {
+  padding: 8px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+/* Modal Footer */
+.create-task-modal-footer {
+  flex-shrink: 0;
+  border-top: 1px solid #e5e7eb;
+  padding: 20px 24px;
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+
+    .btn-cancel {
+      padding: 12px 24px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: white;
+      color: #374151;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+      }
+    }
+
+    .btn-submit {
+      padding: 12px 24px;
+      border: 2px solid #ff8c42;
+      border-radius: 8px;
+      background: white;
+      color: #ff8c42;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(255, 140, 66, 0.2);
+
+      &:hover {
+        transform: translateY(-1px);
+        background: #ff8c42;
+        color: white;
+        box-shadow: 0 4px 16px rgba(255, 140, 66, 0.3);
+      }
+    }
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .create-task-modal-form {
+    flex-direction: column;
+  }
+
+  .create-task-left-panel,
+  .create-task-right-panel {
+    flex: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .create-task-right-panel {
+    background: white;
+  }
+}
+
+@media (max-width: 768px) {
+  .create-task-modal-container {
+    width: 95%;
+    margin: 20px;
+    max-height: 95vh;
+  }
+
+  .create-task-modal-header {
+    padding: 16px;
+
+    .modal-title {
+      font-size: 18px;
+    }
+  }
+
+  .create-task-left-panel,
+  .create-task-right-panel {
+    padding: 16px;
+  }
+
+  .create-task-modal-footer {
+    padding: 16px;
+
+    .modal-actions {
+      flex-direction: column;
+
+      .btn-cancel,
+      .btn-submit {
+        width: 100%;
+      }
+    }
+  }
+}

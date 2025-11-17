@@ -17,6 +17,7 @@ import {
   getHistoryActionText, 
   formatHistoryDate 
 } from "@/utils/taskHistoryHelpers";
+import { getTaskStatusColor, getTaskStatusLabel } from "@/constants/status";
 import "@/app/styles/task-detail-modal.scss";
 
 interface TaskDetailModalProps {
@@ -169,33 +170,8 @@ export const TaskDetailModal = ({
     },
   ];
 
-  // Mock data for history
-  const mockHistory = [
-    {
-      id: 1,
-      action: "Cập nhật trạng thái",
-      detail: "Từ 'Not Started' → 'In Progress'",
-      user: "Nguyễn Văn A",
-      timestamp: "3 giờ trước",
-    },
-    {
-      id: 2,
-      action: "Giao cho",
-      detail: "Trần Thị B",
-      user: "Nguyễn Văn A",
-      timestamp: "5 giờ trước",
-    },
-    {
-      id: 3,
-      action: "Tạo task",
-      detail: "Task được tạo bởi PM",
-      user: "Nguyễn Văn A",
-      timestamp: "1 ngày trước",
-    },
-  ];
-
   // Statuses
-  const statuses = [
+  const TASK_STATUS_OPTIONS = [
     { value: "NotStarted", label: "Not Started" },
     { value: "InProgress", label: "In Progress" },
     { value: "ReadyToReview", label: "Ready To Review" },
@@ -421,29 +397,35 @@ export const TaskDetailModal = ({
                               </div>
                             );
                           } else if (item.action === 'StatusChanged' || item.fieldName === 'Status') {
+                            const oldStatusColor = item.oldValue ? getTaskStatusColor(item.oldValue) : '#6b7280';
+                            const newStatusColor = item.newValue ? getTaskStatusColor(item.newValue) : '#6b7280';
+                            const oldStatusLabel = item.oldValue ? getTaskStatusLabel(item.oldValue) : 'N/A';
+                            const newStatusLabel = item.newValue ? getTaskStatusLabel(item.newValue) : 'N/A';
+                            
                             detailContent = (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
                                 <span style={{
-                                  padding: '2px 8px',
-                                  border: '1px solid #d1d5db',
-                                  borderRadius: '3px',
-                                  fontSize: '12px',
-                                  textTransform: 'uppercase',
-                                  fontWeight: '500'
+                                  padding: '4px 12px',
+                                  borderRadius: '12px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  color: 'white',
+                                  backgroundColor: oldStatusColor,
+                                  textTransform: 'capitalize'
                                 }}>
-                                  {item.oldValue || 'N/A'}
+                                  {oldStatusLabel}
                                 </span>
-                                <span>→</span>
+                                <span style={{ color: '#9ca3af', fontWeight: '500' }}>→</span>
                                 <span style={{
-                                  padding: '2px 8px',
-                                  border: '1px solid #d1d5db',
-                                  borderRadius: '3px',
-                                  fontSize: '12px',
-                                  textTransform: 'uppercase',
-                                  fontWeight: '500',
-                                  backgroundColor: '#fef3c7'
+                                  padding: '4px 12px',
+                                  borderRadius: '12px',
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  color: 'white',
+                                  backgroundColor: newStatusColor,
+                                  textTransform: 'capitalize'
                                 }}>
-                                  {item.newValue || 'N/A'}
+                                  {newStatusLabel}
                                 </span>
                               </div>
                             );
@@ -507,7 +489,7 @@ export const TaskDetailModal = ({
                 value={editedTask.status}
                 onChange={(e) => handleUpdateField("status", e.target.value)}
               >
-                {statuses.map((status) => (
+                {TASK_STATUS_OPTIONS.map((status) => (
                   <option key={status.value} value={status.value}>
                     {status.label}
                   </option>
@@ -527,7 +509,7 @@ export const TaskDetailModal = ({
                 onChange={(e) => handleUpdateField("userId", e.target.value)}
                 disabled={isLoadingData}
               >
-                <option value="">Not assigned</option>
+                <option value="">Unassigned</option>
                 {members.map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.name}

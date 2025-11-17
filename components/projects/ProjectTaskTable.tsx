@@ -25,7 +25,7 @@ const formatDate = (dateStr: string) => {
   if (!dateStr) return "";
   const date = new Date(dateStr);
   const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0"); // Tháng trong JS từ 0-11
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // Months in JS are 0-11
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
 };
@@ -163,7 +163,7 @@ export const ProjectTaskTable = ({
     if (task.userId) {
       return memberMap[task.userId] || task.userId;
     }
-    return "Chưa giao"; // Return "Chưa giao" if no assignee
+    return "Unassigned"; // Return "Unassigned" if no assignee
   };
 
   // Helper to get milestone IDs from task
@@ -177,7 +177,7 @@ export const ProjectTaskTable = ({
   // Group tasks based on groupBy selection
   const groupTasks = (tasks: GetTaskResponse[]) => {
     if (groupBy === "none") {
-      return { "Tất cả": tasks };
+      return { "All": tasks };
     }
 
     const grouped: Record<string, GetTaskResponse[]> = {};
@@ -191,18 +191,18 @@ export const ProjectTaskTable = ({
           break;
         case "assignee":
           const assignee = getTaskAssignee(task);
-          groupKey = assignee || "Chưa giao";
+          groupKey = assignee || "Unassigned";
           break;
         case "milestone":
           const milestoneIds = getTaskMilestoneIds(task);
           if (milestoneIds.length > 0) {
-            groupKey = milestoneIds.length === 1 ? "Cột mốc đơn" : "Nhiều cột mốc";
+            groupKey = milestoneIds.length === 1 ? "Single Milestone" : "Multiple Milestones";
           } else {
-            groupKey = "Không có cột mốc";
+            groupKey = "No Milestone";
           }
           break;
         default:
-          groupKey = "Tất cả";
+          groupKey = "All";
       }
       
       if (!grouped[groupKey]) {
@@ -295,23 +295,23 @@ export const ProjectTaskTable = ({
       />
       {onCreateTask &&  isProjectManager && (
         <div className="create-task-container">
-          <button onClick={onCreateTask}>Tạo công việc mới</button>
+          <button onClick={onCreateTask}>Create New Task</button>
         </div>
       )}
 
-      {/* List table công việc */}
+      {/* Task List Table */}
       <div className="task-list">
         {isLoadingTasks ? (
           <div className="loading-state">
             <div className="loading-spinner"></div>
-            <p>Đang tải danh sách công việc...</p>
+            <p>Loading task list...</p>
           </div>
         ) : tasks.length === 0 ? (
           <div className="empty-state">
-            <p>Chưa có công việc nào trong dự án này</p>
+            <p>No tasks in this project yet</p>
           {onCreateTask && isProjectManager && (
             <div className="create-task-container">
-              <button onClick={onCreateTask}>Tạo công việc mới</button>
+              <button onClick={onCreateTask}>Create New Task</button>
             </div>
           )}
           </div>
@@ -322,31 +322,36 @@ export const ProjectTaskTable = ({
                 {groupBy !== "none" && (
                   <div className="group-header">
                     <h3 className="group-title">{groupName}</h3>
-                    <span className="group-count">({pagination.totalItems} công việc)</span>
+                    <span className="group-count">({pagination.totalItems} tasks)</span>
                   </div>
                 )}
                 
                 <table>
                   <thead>
                     <tr>
-                      <th>STT</th>
-                      <th>Tiêu đề</th>
-                      <th>Mô tả</th>
-                      <th>Trạng thái</th>
-                      <th>Người thực hiện</th>
-                      <th>Bắt đầu</th>
-                      <th>Kết thúc</th>
-                      <th>Thao tác</th>
+                      <th>No.</th>
+                      <th>Title</th>
+                      <th>Description</th>
+                      <th>Status</th>
+                      <th>Assignee</th>
+                      <th>Start</th>
+                      <th>End</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pagination.paginatedData.map((task, index) => {
                       const actualIndex = pagination.startIndex + index;
+                      const isOverdue = task.isOverdue && task.status !== 'Done' && task.status !== 'Cancelled';
                       return (
                         <tr 
                           key={task.id} 
                           onClick={() => handleRowClick(task)}
-                          style={{ cursor: 'pointer' }}
+                          style={{ 
+                            cursor: 'pointer',
+                            backgroundColor: isOverdue ? '#fef2f2' : undefined
+                          }}
+                          className={isOverdue ? 'overdue-row' : ''}
                         >
                           <td className="stt-cell">{actualIndex + 1}</td>
                           <td className="title-cell" title={task.title}>
@@ -363,20 +368,24 @@ export const ProjectTaskTable = ({
                               {getTaskStatusLabel(task.status)}
                             </span>
                           </td>
-                          <td className="assignee-cell" title={getTaskAssignee(task) || "Chưa giao"}>
+                          <td className="assignee-cell" title={getTaskAssignee(task) || "Unassigned"}>
                             <span className="assignee-text">
-                              {getTaskAssignee(task) || "Chưa giao"}
+                              {getTaskAssignee(task) || "Unassigned"}
                             </span>
                           </td>
                           <td className="date-cell">{formatDate(task.startDate || '')}</td>
-                          <td className="date-cell">{formatDate(task.endDate || '')}</td>
+                          <td className="date-cell">
+                            <span style={{ color: isOverdue ? '#dc2626' : undefined, fontWeight: isOverdue ? '600' : undefined }}>
+                              {formatDate(task.endDate || '')}
+                            </span>
+                          </td>
                           <td className="actions-cell">
                             <div className="action-buttons">
                             {isProjectManager && onDeleteTask && (
                               <button
                                 className="action-btn delete-btn"
                                 onClick={(e) => handleDeleteTask(e, task.id, task.title)}
-                                title="Xóa công việc"
+                                title="Delete task"
                               >
                                 <Trash2 size={14} />
                               </button>
