@@ -11,6 +11,9 @@ interface StatusOverviewProps {
     inProgress: number;
     todo: number;
     onHold: number;
+    readyToReview?: number;
+    reOpened?: number;
+    cancelled?: number;
     completionRate: number;
   };
 }
@@ -25,10 +28,10 @@ export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
   };
 
   const statusData = [
-    { status: TASK_STATUS_LABELS[TaskStatus.Completed], count: stats.completed || 0, color: '#10b981', percentage: safePercentage(stats.completed) },
+    { status: TASK_STATUS_LABELS[TaskStatus.Done], count: stats.completed || 0, color: '#10b981', percentage: safePercentage(stats.completed) },
     { status: TASK_STATUS_LABELS[TaskStatus.InProgress], count: stats.inProgress || 0, color: '#fb923c', percentage: safePercentage(stats.inProgress) },
     { status: TASK_STATUS_LABELS[TaskStatus.NotStarted], count: stats.todo || 0, color: '#6b7280', percentage: safePercentage(stats.todo) },
-    { status: TASK_STATUS_LABELS[TaskStatus.Paused], count: stats.onHold || 0, color: '#fbbf24', percentage: safePercentage(stats.onHold) }
+    { status: TASK_STATUS_LABELS[TaskStatus.ReadyToReview], count: stats.readyToReview || 0, color: '#8b5cf6', percentage: safePercentage(stats.readyToReview || 0) }
   ];
 
   const totalItems = total;

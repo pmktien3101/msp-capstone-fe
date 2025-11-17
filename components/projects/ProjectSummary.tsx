@@ -80,12 +80,15 @@ export function ProjectSummary({ project }: ProjectSummaryProps) {
   // Calculate stats from API data
   const stats = {
     total: projectTasks.length,
-    completed: projectTasks.filter(task => task.status === TaskStatus.Completed).length,
+    completed: projectTasks.filter(task => task.status === TaskStatus.Done).length,
     inProgress: projectTasks.filter(task => task.status === TaskStatus.InProgress).length,
     todo: projectTasks.filter(task => task.status === TaskStatus.NotStarted).length,
-    onHold: projectTasks.filter(task => task.status === TaskStatus.Paused).length,
+    onHold: projectTasks.filter(task => task.status === TaskStatus.ReadyToReview).length,
+    readyToReview: projectTasks.filter(task => task.status === TaskStatus.ReadyToReview).length,
+    reOpened: projectTasks.filter(task => task.status === TaskStatus.ReOpened).length,
+    cancelled: projectTasks.filter(task => task.status === TaskStatus.Cancelled).length,
     completionRate: projectTasks.length > 0 
-      ? Math.round((projectTasks.filter(task => task.status === TaskStatus.Completed).length / projectTasks.length) * 100) 
+      ? Math.round((projectTasks.filter(task => task.status === TaskStatus.Done).length / projectTasks.length) * 100) 
       : 0,
   };
 

@@ -351,7 +351,7 @@ const ProjectDetailPage = () => {
           
           const totalTasks = taskArray.length;
           const completedTasks = taskArray.filter((task: any) => 
-            task.status === TaskStatus.Completed
+            task.status === TaskStatus.Done
           ).length;
           
           const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;

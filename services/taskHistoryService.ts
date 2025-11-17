@@ -1,5 +1,5 @@
 import { api } from "./api";
-import type { TaskHistory } from "@/types/taskHistory";
+import type { TaskHistory, AvailableUser } from "@/types/taskHistory";
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -8,14 +8,21 @@ interface ApiResponse<T = any> {
 }
 
 export const taskHistoryService = {
+  /**
+   * Get available users for task reassignment
+   * @param taskId - Task ID
+   * @param fromUserId - Current user ID
+   */
   async getAvailableUsersForReassignment(
     taskId: string,
     fromUserId: string
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<AvailableUser[]>> {
     try {
-      const response = await api.get<ApiResponse>(
+      const response = await api.get<ApiResponse<AvailableUser[]>>(
         "/TaskHistories/available-users",
-        { params: { taskId, fromUserId } }
+        { 
+          params: { taskId, fromUserId } 
+        }
       );
       return response.data;
     } catch (error: any) {
@@ -29,7 +36,13 @@ export const taskHistoryService = {
     }
   },
 
-  async getTaskHistoriesByTaskId(taskId: string): Promise<ApiResponse<TaskHistory[]>> {
+  /**
+   * Get all task histories for a specific task
+   * @param taskId - Task ID
+   */
+  async getTaskHistoriesByTaskId(
+    taskId: string
+  ): Promise<ApiResponse<TaskHistory[]>> {
     try {
       const response = await api.get<ApiResponse<TaskHistory[]>>(
         `/TaskHistories/by-task/${taskId}`
@@ -41,7 +54,7 @@ export const taskHistoryService = {
         message:
           error.response?.data?.message ||
           error.message ||
-          "Failed to fetch task histories by task",
+          "Failed to fetch task histories",
       };
     }
   },

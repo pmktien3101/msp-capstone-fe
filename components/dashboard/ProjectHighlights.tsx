@@ -70,11 +70,11 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
       .slice(0, 3);
   };
 
-  // Task tạm dừng và đang làm
+  // Task sẵn sàng đánh giá và đang làm
   const getTasksByStatus = () => {
-    // Lọc task tạm dừng
+    // Lọc task sẵn sàng đánh giá
     const onHoldTasks = tasks.filter((task: any) => 
-      task.status === TaskStatus.Paused
+      task.status === TaskStatus.ReadyToReview
     );
 
     // Lọc task đang làm
@@ -158,7 +158,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
                 
                 // Calculate progress from tasks
                 const projectTasks = tasks.filter((task: any) => task.projectId === project.id);
-                const completedTasks = projectTasks.filter((task: any) => task.status === TaskStatus.Completed).length;
+                const completedTasks = projectTasks.filter((task: any) => task.status === TaskStatus.Done).length;
                 const progress = projectTasks.length > 0 ? Math.round((completedTasks / projectTasks.length) * 100) : 0;
                 
                 return (
@@ -275,7 +275,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
                     </div>
                     <div className="task-status on-hold">
                       <AlertCircle size={14} />
-                      <span>{TASK_STATUS_LABELS[TaskStatus.Paused]}</span>
+                      <span>{TASK_STATUS_LABELS[TaskStatus.ReadyToReview]}</span>
                     </div>
                   </div>
                 );

@@ -33,7 +33,7 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
     const projectTasks = tasks.filter((task: any) => task.projectId === projectId);
     if (projectTasks.length === 0) return 0;
     
-    const completedTasks = projectTasks.filter((task: any) => task.status === TaskStatus.Completed).length;
+    const completedTasks = projectTasks.filter((task: any) => task.status === TaskStatus.Done).length;
     return Math.round((completedTasks / projectTasks.length) * 100);
   };
 

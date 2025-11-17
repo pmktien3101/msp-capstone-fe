@@ -59,7 +59,7 @@ export default function DashboardPage() {
                 milestonesArray.push(...milestones.map((milestone: any) => ({ ...milestone, projectName: project.name })));
 
                 // Tính progress từ tasks
-                const completedTasks = tasks.filter((task: any) => task.status === TaskStatus.Completed).length;
+                const completedTasks = tasks.filter((task: any) => task.status === TaskStatus.Done).length;
                 const totalTasks = tasks.length;
                 const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 

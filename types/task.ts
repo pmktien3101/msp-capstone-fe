@@ -21,6 +21,7 @@ export interface GetTaskResponse {
   status: string;
   startDate?: string; // ISO 8601 UTC
   endDate?: string;   // ISO 8601 UTC
+  isOverdue: boolean; // Backend calculates overdue status
   createdAt: string;  // ISO 8601 UTC
   updatedAt: string;  // ISO 8601 UTC
   user?: GetUserResponse;
@@ -61,7 +62,6 @@ export interface Task extends GetTaskResponse {
   name?: string; // Alias for title
   
   // Computed fields
-  isOverdue?: boolean;
   daysRemaining?: number;
 }
 

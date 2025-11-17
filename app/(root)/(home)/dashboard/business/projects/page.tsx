@@ -84,7 +84,7 @@ const BusinessProjectsPage = () => {
               
               totalTasks = taskArray.length;
               completedTasks = taskArray.filter((task: any) => 
-                task.status === TaskStatus.Completed
+                task.status === TaskStatus.Done
               ).length;
               progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             }

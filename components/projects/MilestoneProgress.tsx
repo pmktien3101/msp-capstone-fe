@@ -50,7 +50,7 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
             );
 
             const totalTasks = milestoneTasks.length;
-            const completedTasks = milestoneTasks.filter(task => task.status === TaskStatus.Completed).length;
+            const completedTasks = milestoneTasks.filter(task => task.status === TaskStatus.Done).length;
             const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
             // Determine status based on progress and due date

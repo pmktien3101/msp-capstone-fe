@@ -2,9 +2,10 @@
 export enum TaskStatus {
   NotStarted = 'NotStarted',
   InProgress = 'InProgress',
-  Paused = 'Paused',
-  OverDue = 'OverDue',
-  Completed = 'Completed'
+  ReadyToReview = 'ReadyToReview',
+  ReOpened = 'ReOpened',
+  Cancelled = 'Cancelled',
+  Done = 'Done'
 }
 
 // Project Status Enum (synced with backend)
@@ -19,9 +20,10 @@ export enum ProjectStatus {
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.NotStarted]: 'Chưa bắt đầu',
   [TaskStatus.InProgress]: 'Đang thực hiện',
-  [TaskStatus.Paused]: 'Tạm dừng',
-  [TaskStatus.OverDue]: 'Quá hạn',
-  [TaskStatus.Completed]: 'Hoàn thành'
+  [TaskStatus.ReadyToReview]: 'Sẵn sàng đánh giá',
+  [TaskStatus.ReOpened]: 'Mở lại',
+  [TaskStatus.Cancelled]: 'Đã hủy',
+  [TaskStatus.Done]: 'Hoàn thành'
 };
 
 // Project Status Labels (Vietnamese)
@@ -36,9 +38,10 @@ export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
 export const TASK_STATUS_FROM_LABEL: Record<string, TaskStatus> = {
   'Chưa bắt đầu': TaskStatus.NotStarted,
   'Đang thực hiện': TaskStatus.InProgress,
-  'Tạm dừng': TaskStatus.Paused,
-  'Quá hạn': TaskStatus.OverDue,
-  'Hoàn thành': TaskStatus.Completed
+  'Sẵn sàng đánh giá': TaskStatus.ReadyToReview,
+  'Mở lại': TaskStatus.ReOpened,
+  'Đã hủy': TaskStatus.Cancelled,
+  'Hoàn thành': TaskStatus.Done
 };
 
 export const PROJECT_STATUS_FROM_LABEL: Record<string, ProjectStatus> = {
@@ -94,11 +97,13 @@ export const getTaskStatusColor = (status: string | TaskStatus): string => {
       return '#6b7280'; // gray
     case TaskStatus.InProgress:
       return '#3b82f6'; // blue
-    case TaskStatus.Paused:
+    case TaskStatus.ReadyToReview:
+      return '#8b5cf6'; // purple
+    case TaskStatus.ReOpened:
       return '#f59e0b'; // amber
-    case TaskStatus.OverDue:
+    case TaskStatus.Cancelled:
       return '#ef4444'; // red
-    case TaskStatus.Completed:
+    case TaskStatus.Done:
       return '#10b981'; // green
     default:
       return '#6b7280';

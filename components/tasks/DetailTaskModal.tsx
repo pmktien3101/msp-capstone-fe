@@ -120,15 +120,6 @@ export const DetailTaskModal = ({
     return formatDateHelper(dateString);
   };
 
-
-  const isOverdue = () => {
-    if (!task.endDate) return false;
-    if (!task.endDate) return false;
-    const endDate = new Date(task.endDate);
-    const today = new Date();
-    return endDate < today && task.status !== TaskStatus.Completed;
-  };
-
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>

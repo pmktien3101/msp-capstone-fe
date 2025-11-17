@@ -93,7 +93,7 @@ export const ProjectVisualization = ({ projects, tasks, milestones }: ProjectVis
       const projectTasks = tasks.filter((task: any) => task.projectId === project.id);
       if (projectTasks.length === 0) return 0;
       
-      const completedTasks = projectTasks.filter((task: any) => task.status === TaskStatus.Completed).length;
+      const completedTasks = projectTasks.filter((task: any) => task.status === TaskStatus.Done).length;
       return Math.round((completedTasks / projectTasks.length) * 100);
     });
 
@@ -159,7 +159,7 @@ export const ProjectVisualization = ({ projects, tasks, milestones }: ProjectVis
                 {projects.map(project => {
                   // Calculate progress for this project
                   const projectTasks = tasks.filter((task: any) => task.projectId === project.id);
-                  const completedTasks = projectTasks.filter((task: any) => task.status === TaskStatus.Completed).length;
+                  const completedTasks = projectTasks.filter((task: any) => task.status === TaskStatus.Done).length;
                   const progress = projectTasks.length > 0 ? Math.round((completedTasks / projectTasks.length) * 100) : 0;
                   
                   // Count unique members
