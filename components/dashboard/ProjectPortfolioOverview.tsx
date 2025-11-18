@@ -48,8 +48,8 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
   const statusStats = {
     active: projects.filter(p => p.status === ProjectStatus.InProgress).length,
     completed: projects.filter(p => p.status === ProjectStatus.Completed).length,
-    planning: projects.filter(p => p.status === ProjectStatus.Scheduled).length,
-    'on-hold': projects.filter(p => p.status === ProjectStatus.Paused).length,
+    planning: projects.filter(p => p.status === ProjectStatus.NotStarted).length,
+    'on-hold': projects.filter(p => p.status === ProjectStatus.OnHold).length,
   };
 
   const totalProjects = projects.length;
@@ -91,8 +91,9 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
             <option value="all">Tất cả dự án</option>
             <option value={ProjectStatus.InProgress}>Đang triển khai</option>
             <option value={ProjectStatus.Completed}>Hoàn thành</option>
-            <option value={ProjectStatus.Scheduled}>Đã lên lịch</option>
-            <option value={ProjectStatus.Paused}>Tạm dừng</option>
+            <option value={ProjectStatus.NotStarted}>Chưa bắt đầu</option>
+            <option value={ProjectStatus.OnHold}>Tạm dừng</option>
+            <option value={ProjectStatus.Cancelled}>Đã hủy</option>
           </select>
         </div>
       </div>

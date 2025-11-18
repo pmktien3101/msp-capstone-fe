@@ -60,7 +60,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
-      status: ProjectStatus.Scheduled,
+      status: ProjectStatus.NotStarted,
       members: [],
     },
   });
@@ -200,10 +200,10 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
                       <SelectValue placeholder="Chọn trạng thái" />
                     </SelectTrigger>
                     <SelectContent className="z-[9999]" position="popper" side="bottom" align="start">
-                      <SelectItem value={ProjectStatus.Scheduled}>
+                      <SelectItem value={ProjectStatus.NotStarted}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <Calendar size={16} />
-                          Lập kế hoạch
+                          Chưa bắt đầu
                         </div>
                       </SelectItem>
                     </SelectContent>

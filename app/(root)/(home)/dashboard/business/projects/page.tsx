@@ -137,13 +137,14 @@ const BusinessProjectsPage = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; text: string; bg: string }> = {
-      [ProjectStatus.InProgress]: { color: '#10B981', text: PROJECT_STATUS_LABELS[ProjectStatus.InProgress], bg: '#ECFDF5' },
-      [ProjectStatus.Completed]: { color: '#059669', text: PROJECT_STATUS_LABELS[ProjectStatus.Completed], bg: '#D1FAE5' },
-      [ProjectStatus.Paused]: { color: '#F59E0B', text: PROJECT_STATUS_LABELS[ProjectStatus.Paused], bg: '#FEF3C7' },
-      [ProjectStatus.Scheduled]: { color: '#6B7280', text: PROJECT_STATUS_LABELS[ProjectStatus.Scheduled], bg: '#F3F4F6' }
+      [ProjectStatus.NotStarted]: { color: '#6B7280', text: PROJECT_STATUS_LABELS[ProjectStatus.NotStarted], bg: '#F3F4F6' },
+      [ProjectStatus.InProgress]: { color: '#3B82F6', text: PROJECT_STATUS_LABELS[ProjectStatus.InProgress], bg: '#DBEAFE' },
+      [ProjectStatus.OnHold]: { color: '#F59E0B', text: PROJECT_STATUS_LABELS[ProjectStatus.OnHold], bg: '#FEF3C7' },
+      [ProjectStatus.Completed]: { color: '#10B981', text: PROJECT_STATUS_LABELS[ProjectStatus.Completed], bg: '#ECFDF5' },
+      [ProjectStatus.Cancelled]: { color: '#EF4444', text: PROJECT_STATUS_LABELS[ProjectStatus.Cancelled], bg: '#FEE2E2' }
     };
 
-    const config = statusConfig[status] || statusConfig[ProjectStatus.Scheduled];
+    const config = statusConfig[status] || statusConfig[ProjectStatus.NotStarted];
     return (
       <span
         className="status-badge"
@@ -274,10 +275,11 @@ const BusinessProjectsPage = () => {
             onChange={(e) => setStatusFilter(e.target.value as any)}
           >
             <option value="all">Tất cả trạng thái</option>
+            <option value={ProjectStatus.NotStarted}>{PROJECT_STATUS_LABELS[ProjectStatus.NotStarted]}</option>
             <option value={ProjectStatus.InProgress}>{PROJECT_STATUS_LABELS[ProjectStatus.InProgress]}</option>
+            <option value={ProjectStatus.OnHold}>{PROJECT_STATUS_LABELS[ProjectStatus.OnHold]}</option>
             <option value={ProjectStatus.Completed}>{PROJECT_STATUS_LABELS[ProjectStatus.Completed]}</option>
-            <option value={ProjectStatus.Paused}>{PROJECT_STATUS_LABELS[ProjectStatus.Paused]}</option>
-            <option value={ProjectStatus.Scheduled}>{PROJECT_STATUS_LABELS[ProjectStatus.Scheduled]}</option>
+            <option value={ProjectStatus.Cancelled}>{PROJECT_STATUS_LABELS[ProjectStatus.Cancelled]}</option>
           </select>
         </div>
 

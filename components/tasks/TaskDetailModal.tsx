@@ -170,8 +170,8 @@ export const TaskDetailModal = ({
     },
   ];
 
-  // Statuses
-  const TASK_STATUS_OPTIONS = [
+  // Statuses - filtered based on user role
+  const ALL_TASK_STATUS_OPTIONS = [
     { value: "NotStarted", label: "Not Started" },
     { value: "InProgress", label: "In Progress" },
     { value: "ReadyToReview", label: "Ready To Review" },
@@ -179,6 +179,16 @@ export const TaskDetailModal = ({
     { value: "Cancelled", label: "Cancelled" },
     { value: "Done", label: "Done" },
   ];
+
+  const MEMBER_STATUS_OPTIONS = [
+    { value: "NotStarted", label: "Not Started" },
+    { value: "InProgress", label: "In Progress" },
+    { value: "ReadyToReview", label: "Ready To Review" },
+  ];
+
+  // Determine which status options to show based on user role
+  const isMember = user?.role === 'Member';
+  const TASK_STATUS_OPTIONS = isMember ? MEMBER_STATUS_OPTIONS : ALL_TASK_STATUS_OPTIONS;
 
   const handleSubmitComment = () => {
     if (commentText.trim()) {
@@ -189,6 +199,16 @@ export const TaskDetailModal = ({
 
   const handleUpdateField = (field: string, value: any) => {
     setEditedTask({ ...editedTask, [field]: value });
+  };
+
+  // Format date from ISO to yyyy-mm-dd for input value (date input requires this format)
+  const formatDateForInput = (isoDate: string) => {
+    if (!isoDate) return "";
+    const date = new Date(isoDate);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${year}-${month}-${day}`;
   };
 
   const handleSaveTask = async () => {
@@ -545,12 +565,22 @@ export const TaskDetailModal = ({
                 <Calendar size={16} />
                 Start Date
               </label>
-              <input
-                type="date"
-                className="info-input"
-                value={editedTask.startDate?.split('T')[0] || ""}
-                onChange={(e) => handleUpdateField("startDate", e.target.value)}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="date"
+                  className="info-input"
+                  value={formatDateForInput(editedTask.startDate)}
+                  onChange={(e) => {
+                    const dateValue = e.target.value; // yyyy-mm-dd format from date input
+                    if (dateValue) {
+                      handleUpdateField("startDate", new Date(dateValue).toISOString());
+                    } else {
+                      handleUpdateField("startDate", "");
+                    }
+                  }}
+                  style={{ colorScheme: 'light' }}
+                />
+              </div>
             </div>
 
             {/* End Date */}
@@ -559,12 +589,22 @@ export const TaskDetailModal = ({
                 <Calendar size={16} />
                 End Date
               </label>
-              <input
-                type="date"
-                className="info-input"
-                value={editedTask.endDate?.split('T')[0] || ""}
-                onChange={(e) => handleUpdateField("endDate", e.target.value)}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="date"
+                  className="info-input"
+                  value={formatDateForInput(editedTask.endDate)}
+                  onChange={(e) => {
+                    const dateValue = e.target.value; // yyyy-mm-dd format from date input
+                    if (dateValue) {
+                      handleUpdateField("endDate", new Date(dateValue).toISOString());
+                    } else {
+                      handleUpdateField("endDate", "");
+                    }
+                  }}
+                  style={{ colorScheme: 'light' }}
+                />
+              </div>
             </div>
 
             {/* Milestones */}

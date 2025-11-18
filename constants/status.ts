@@ -10,10 +10,11 @@ export enum TaskStatus {
 
 // Project Status Enum (synced with backend)
 export enum ProjectStatus {
-  Scheduled = 'Scheduled',
+  NotStarted = 'NotStarted',
   InProgress = 'InProgress',
-  Paused = 'Paused',
-  Completed = 'Completed'
+  OnHold = 'OnHold',
+  Completed = 'Completed',
+  Cancelled = 'Cancelled'
 }
 
 // Task Status Labels (English)
@@ -28,10 +29,11 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
 
 // Project Status Labels (English)
 export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
-  [ProjectStatus.Scheduled]: 'Scheduled',
+  [ProjectStatus.NotStarted]: 'Not Started',
   [ProjectStatus.InProgress]: 'In Progress',
-  [ProjectStatus.Paused]: 'Paused',
-  [ProjectStatus.Completed]: 'Completed'
+  [ProjectStatus.OnHold]: 'On Hold',
+  [ProjectStatus.Completed]: 'Completed',
+  [ProjectStatus.Cancelled]: 'Cancelled'
 };
 
 // Reverse mapping: English Label to Enum
@@ -45,10 +47,11 @@ export const TASK_STATUS_FROM_LABEL: Record<string, TaskStatus> = {
 };
 
 export const PROJECT_STATUS_FROM_LABEL: Record<string, ProjectStatus> = {
-  'Scheduled': ProjectStatus.Scheduled,
+  'Not Started': ProjectStatus.NotStarted,
   'In Progress': ProjectStatus.InProgress,
-  'Paused': ProjectStatus.Paused,
-  'Completed': ProjectStatus.Completed
+  'On Hold': ProjectStatus.OnHold,
+  'Completed': ProjectStatus.Completed,
+  'Cancelled': ProjectStatus.Cancelled
 };
 
 // Helper functions
@@ -85,7 +88,7 @@ export const getProjectStatusEnum = (status: string): ProjectStatus => {
     return status as ProjectStatus;
   }
   // If English label
-  return PROJECT_STATUS_FROM_LABEL[status] || ProjectStatus.Scheduled;
+  return PROJECT_STATUS_FROM_LABEL[status] || ProjectStatus.NotStarted;
 };
 
 // Task status colors
@@ -115,14 +118,16 @@ export const getProjectStatusColor = (status: string | ProjectStatus): string =>
   const enumStatus = typeof status === 'string' ? getProjectStatusEnum(status) : status;
   
   switch (enumStatus) {
-    case ProjectStatus.Scheduled:
-      return '#f59e0b'; // amber
-    case ProjectStatus.InProgress:
-      return '#10b981'; // green
-    case ProjectStatus.Paused:
-      return '#ef4444'; // red
-    case ProjectStatus.Completed:
+    case ProjectStatus.NotStarted:
       return '#6b7280'; // gray
+    case ProjectStatus.InProgress:
+      return '#3b82f6'; // blue
+    case ProjectStatus.OnHold:
+      return '#f59e0b'; // amber
+    case ProjectStatus.Completed:
+      return '#10b981'; // green
+    case ProjectStatus.Cancelled:
+      return '#ef4444'; // red
     default:
       return '#6b7280';
   }

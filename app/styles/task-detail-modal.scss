@@ -409,6 +409,29 @@
       border-color: #ff5e13;
       box-shadow: 0 0 0 3px rgba(255, 94, 19, 0.1);
     }
+
+    // Date input styling to show dd/mm/yyyy format
+    &[type="date"] {
+      position: relative;
+      
+      // For browsers that support ::-webkit-calendar-picker-indicator
+      &::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+      }
+
+      // Force dd/mm/yyyy display (works in some browsers)
+      &::-webkit-datetime-edit-fields-wrapper {
+        display: flex;
+      }
+      
+      &::-webkit-datetime-edit-day-field,
+      &::-webkit-datetime-edit-month-field,
+      &::-webkit-datetime-edit-year-field {
+        &::before {
+          content: attr(aria-label);
+        }
+      }
+    }
   }
 
   .custom-status-dropdown {

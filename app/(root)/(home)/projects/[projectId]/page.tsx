@@ -398,9 +398,10 @@ const ProjectDetailPage = () => {
             <h1 className="project-title">{project.name}</h1>
             <span className={`status-badge ${
               project.status === ProjectStatus.InProgress ? 'status-active' :
-              project.status === ProjectStatus.Scheduled ? 'status-planning' :
-              project.status === ProjectStatus.Paused ? 'status-on-hold' :
-              project.status === ProjectStatus.Completed ? 'status-completed' : ''
+              project.status === ProjectStatus.NotStarted ? 'status-planning' :
+              project.status === ProjectStatus.OnHold ? 'status-on-hold' :
+              project.status === ProjectStatus.Completed ? 'status-completed' :
+              project.status === ProjectStatus.Cancelled ? 'status-cancelled' : ''
             }`}>
               {getProjectStatusLabel(project.status)}
             </span>

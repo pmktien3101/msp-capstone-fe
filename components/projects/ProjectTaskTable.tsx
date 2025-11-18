@@ -30,6 +30,23 @@ const formatDate = (dateStr: string) => {
   return `${day}/${month}/${year}`;
 };
 
+// Calculate overdue days
+const calculateOverdueDays = (endDate: string, status: string): number => {
+  if (!endDate || status === 'Done' || status === 'Cancelled') {
+    return 0;
+  }
+  
+  const end = new Date(endDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  
+  const diffTime = today.getTime() - end.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays > 0 ? diffDays : 0;
+};
+
 export const ProjectTaskTable = ({
   project,
   onTaskClick,
@@ -336,22 +353,19 @@ export const ProjectTaskTable = ({
                       <th>Assignee</th>
                       <th>Start</th>
                       <th>End</th>
+                      <th>Overdue Days</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pagination.paginatedData.map((task, index) => {
                       const actualIndex = pagination.startIndex + index;
-                      const isOverdue = task.isOverdue && task.status !== 'Done' && task.status !== 'Cancelled';
+                      const overdueDays = calculateOverdueDays(task.endDate || '', task.status);
                       return (
                         <tr 
                           key={task.id} 
                           onClick={() => handleRowClick(task)}
-                          style={{ 
-                            cursor: 'pointer',
-                            backgroundColor: isOverdue ? '#fef2f2' : undefined
-                          }}
-                          className={isOverdue ? 'overdue-row' : ''}
+                          style={{ cursor: 'pointer' }}
                         >
                           <td className="stt-cell">{actualIndex + 1}</td>
                           <td className="title-cell" title={task.title}>
@@ -375,20 +389,46 @@ export const ProjectTaskTable = ({
                           </td>
                           <td className="date-cell">{formatDate(task.startDate || '')}</td>
                           <td className="date-cell">
-                            <span style={{ color: isOverdue ? '#dc2626' : undefined, fontWeight: isOverdue ? '600' : undefined }}>
+                            <span style={{ 
+                              color: overdueDays > 0 ? '#dc2626' : undefined, 
+                              fontWeight: overdueDays > 0 ? '600' : undefined 
+                            }}>
                               {formatDate(task.endDate || '')}
                             </span>
                           </td>
+                          <td className="overdue-cell">
+                            {overdueDays > 0 ? (
+                              <span className="overdue-badge">
+                                {overdueDays} {overdueDays === 1 ? 'day' : 'days'}
+                              </span>
+                            ) : (
+                              <span className="on-time">-</span>
+                            )}
+                          </td>
                           <td className="actions-cell">
                             <div className="action-buttons">
-                            {isProjectManager && onDeleteTask && (
+                            {/* Member sees View icon, PM/BO sees Delete icon */}
+                            {isMember ? (
                               <button
-                                className="action-btn delete-btn"
-                                onClick={(e) => handleDeleteTask(e, task.id, task.title)}
-                                title="Delete task"
+                                className="action-btn view-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRowClick(task);
+                                }}
+                                title="View task details"
                               >
-                                <Trash2 size={14} />
+                                <Eye size={14} />
                               </button>
+                            ) : (
+                              isProjectManager && onDeleteTask && (
+                                <button
+                                  className="action-btn delete-btn"
+                                  onClick={(e) => handleDeleteTask(e, task.id, task.title)}
+                                  title="Delete task"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )
                             )}
                           </div>
                         </td>
