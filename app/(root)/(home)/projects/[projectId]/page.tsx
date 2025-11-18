@@ -425,7 +425,7 @@ const ProjectDetailPage = () => {
           </div>
         </div>
         <div className="project-actions">
-          {(activeTab === "board" || activeTab === "list") && canCreateMilestone && (
+          {activeTab === "board" && canCreateMilestone && (
             <button 
               className="create-milestone-btn"
               onClick={handleCreateMilestone}
@@ -450,6 +450,7 @@ const ProjectDetailPage = () => {
         availableProjectManagers={availableProjectManagers}
         refreshKey={refreshKey}
         onProjectUpdate={handleProjectUpdate}
+        onCreateMilestone={handleCreateMilestone}
       />
       
       {/* Task Detail Modal */}

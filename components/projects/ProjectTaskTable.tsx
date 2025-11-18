@@ -10,6 +10,7 @@ import { UserRole } from "@/lib/rbac";
 import Pagination from "@/components/ui/Pagination";
 import { TaskStatus, getTaskStatusLabel, getTaskStatusColor } from "@/constants/status";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import "@/app/styles/project-task-table.scss";
 
 interface ProjectTaskTableProps {
@@ -71,6 +72,10 @@ export const ProjectTaskTable = ({
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<GetTaskResponse | null>(null);
+
+  // Confirm delete state
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<{ id: string; title: string } | null>(null);
 
   const projectId = project?.id?.toString();
   const userRole = user?.role;
@@ -280,9 +285,16 @@ export const ProjectTaskTable = ({
 
   const handleDeleteTask = (e: React.MouseEvent, taskId: string, taskTitle: string) => {
     e.stopPropagation();
-    if (onDeleteTask) {
-      onDeleteTask(taskId, taskTitle);
+    setTaskToDelete({ id: taskId, title: taskTitle });
+    setIsConfirmDeleteOpen(true);
+  };
+
+  const confirmDeleteTask = () => {
+    if (taskToDelete && onDeleteTask) {
+      onDeleteTask(taskToDelete.id, taskToDelete.title);
     }
+    setIsConfirmDeleteOpen(false);
+    setTaskToDelete(null);
   };
 
   const handleRowClick = (task: any) => {
@@ -465,6 +477,20 @@ export const ProjectTaskTable = ({
           onSave={handleSaveTask}
         />
       )}
+
+      {/* Confirm Delete Task Dialog */}
+      <ConfirmDialog
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => {
+          setIsConfirmDeleteOpen(false);
+          setTaskToDelete(null);
+        }}
+        onConfirm={confirmDeleteTask}
+        title="Xóa Công Việc"
+        description={`Bạn có chắc muốn xóa công việc "${taskToDelete?.title}"? Hành động này không thể hoàn tác.`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+      />
     </div>
   );
 };

@@ -12,6 +12,8 @@ import { taskService } from "@/services/taskService";
 import { toast } from "react-toastify";
 import Pagination from "@/components/ui/Pagination";
 import { usePagination } from "@/hooks/usePagination";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Button } from "@/components/ui/button";
 import {
   Calendar,
   CheckCircle,
@@ -22,15 +24,17 @@ import {
   Trash2,
   AlertCircle,
   TrendingUp,
+  Plus,
 } from "lucide-react";
 import "@/app/styles/milestone-list-view.scss";
 
 interface MilestoneListViewProps {
   project: Project;
   refreshKey?: number;
+  onCreateMilestone?: () => void;
 }
 
-export const MilestoneListView = ({ project, refreshKey }: MilestoneListViewProps) => {
+export const MilestoneListView = ({ project, refreshKey, onCreateMilestone }: MilestoneListViewProps) => {
   const { hasRole } = useAuth();
   const [milestones, setMilestones] = useState<MilestoneBackend[]>([]);
   const [tasks, setTasks] = useState<GetTaskResponse[]>([]);
@@ -38,6 +42,10 @@ export const MilestoneListView = ({ project, refreshKey }: MilestoneListViewProp
   const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
   const [editedMilestone, setEditedMilestone] = useState<Partial<MilestoneBackend>>({});
   const [isSaving, setIsSaving] = useState(false);
+
+  // Confirm delete state
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [milestoneToDelete, setMilestoneToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Check if user is Member (read-only mode)
   const isMemberRole = hasRole(UserRole.MEMBER);
@@ -67,7 +75,6 @@ export const MilestoneListView = ({ project, refreshKey }: MilestoneListViewProp
                      (milestonesResponse.data as any).items || [];
         setMilestones(items);
       } else {
-        toast.error('Unable to load milestone list');
         setMilestones([]);
       }
 
@@ -196,25 +203,31 @@ export const MilestoneListView = ({ project, refreshKey }: MilestoneListViewProp
   };
 
   // Delete milestone
-  const handleDeleteMilestone = async (milestoneId: string) => {
+  const handleDeleteMilestone = (milestone: MilestoneBackend) => {
     if (!canEdit) return;
     
-    if (!confirm('Are you sure you want to delete this milestone?')) {
-      return;
-    }
+    setMilestoneToDelete({ id: milestone.id, name: milestone.name });
+    setIsConfirmDeleteOpen(true);
+  };
+
+  const confirmDeleteMilestone = async () => {
+    if (!milestoneToDelete) return;
 
     try {
-      const response = await milestoneService.deleteMilestone(milestoneId);
+      const response = await milestoneService.deleteMilestone(milestoneToDelete.id);
       
       if (response.success) {
-        toast.success('Milestone deleted successfully');
+        toast.success('Xóa milestone thành công');
         await fetchData();
       } else {
-        toast.error(response.error || 'Unable to delete milestone');
+        toast.error(response.error || 'Không thể xóa milestone');
       }
     } catch (error) {
       console.error('Error deleting milestone:', error);
-      toast.error('Error deleting milestone');
+      toast.error('Lỗi khi xóa milestone');
+    } finally {
+      setIsConfirmDeleteOpen(false);
+      setMilestoneToDelete(null);
     }
   };
 
@@ -234,12 +247,67 @@ export const MilestoneListView = ({ project, refreshKey }: MilestoneListViewProp
 
   return (
     <div className="milestone-list-view">
-      <div className="milestones-header">
-        <h2>Milestone List</h2>
-        <div className="milestone-count">
-          <Target size={18} />
-          <span>{milestones.length} milestones</span>
+      {/* Header */}
+      <div 
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '24px',
+          padding: '0 4px'
+        }}
+      >
+        <div>
+          <h3 
+            style={{
+              fontSize: '20px',
+              fontWeight: 600,
+              color: '#1f2937',
+              margin: '0 0 8px 0'
+            }}
+          >
+            Project Milestones
+          </h3>
+          <p 
+            style={{
+              fontSize: '14px',
+              color: '#6b7280',
+              margin: 0
+            }}
+          >
+            Track and manage project milestones and deliverables
+          </p>
         </div>
+        {canEdit && onCreateMilestone && (
+          <Button
+            onClick={onCreateMilestone}
+            style={{
+              background: 'transparent',
+              color: '#FF5E13',
+              border: '1px solid #FF5E13',
+              borderRadius: '8px',
+              padding: '10px 20px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#FF5E13';
+              e.currentTarget.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = '#FF5E13';
+            }}
+          >
+            <Plus size={16} />
+            Create Milestone
+          </Button>
+        )}
       </div>
 
       {milestones.length === 0 ? (
@@ -269,7 +337,7 @@ export const MilestoneListView = ({ project, refreshKey }: MilestoneListViewProp
                         <Edit3 size={16} />
                       </button>
                       <button
-                        onClick={() => handleDeleteMilestone(milestone.id)}
+                        onClick={() => handleDeleteMilestone(milestone)}
                         className="action-btn delete-btn"
                         title="Delete"
                       >
@@ -403,6 +471,20 @@ export const MilestoneListView = ({ project, refreshKey }: MilestoneListViewProp
           )}
         </>
       )}
+
+      {/* Confirm Delete Milestone Dialog */}
+      <ConfirmDialog
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => {
+          setIsConfirmDeleteOpen(false);
+          setMilestoneToDelete(null);
+        }}
+        onConfirm={confirmDeleteMilestone}
+        title="Xóa Milestone"
+        description={`Bạn có chắc muốn xóa milestone "${milestoneToDelete?.name}"? Hành động này không thể hoàn tác.`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+      />
     </div>
   );
 };

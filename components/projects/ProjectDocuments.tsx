@@ -9,6 +9,7 @@ import { documentService } from '@/services/documentService';
 import { uploadFileToCloudinary } from '@/services/uploadFileService';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'react-toastify';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { 
   Upload, 
   Search, 
@@ -52,7 +53,11 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
   const [editDescription, setEditDescription] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const pageSize = 5; 
+  const pageSize = 5;
+  
+  // Confirm delete state
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Fetch documents when component mounts
   useEffect(() => {
@@ -145,7 +150,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
 
   const handleUpload = async () => {
     if (!uploadFile || !currentUser.id) {
-      toast.error('Vui lòng chọn file và đăng nhập');
+      toast.error('Please select a file and log in');
       return;
     }
 
@@ -155,7 +160,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
       const fileUrl = await uploadFileToCloudinary(uploadFile);
       
       if (!fileUrl) {
-        toast.error('Không thể tải file lên Cloudinary');
+        toast.error('Unable to upload file to Cloudinary');
         return;
       }
 
@@ -170,46 +175,89 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
       });
 
       if (result.success) {
-        toast.success('Tải lên tài liệu thành công!');
         setUploadFile(null);
         setUploadDescription('');
         setShowUploadModal(false);
         // Refresh documents list
         fetchDocuments();
       } else {
-        toast.error(`Lỗi: ${result.error}`);
+        toast.error(`Error: ${result.error}`);
       }
     } catch (error) {
       console.error('Error uploading document:', error);
-      toast.error('Có lỗi xảy ra khi tải lên tài liệu');
+      toast.error('An error occurred while uploading document');
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDownload = (document: GetDocumentResponse) => {
-    // Open file URL in new tab to download
-    window.open(document.fileUrl, '_blank');
+  const handleDownload = async (doc: GetDocumentResponse) => {
+    try {
+      // For Cloudinary URLs, add fl_attachment parameter to force download
+      let downloadUrl = doc.fileUrl;
+      
+      if (downloadUrl.includes('cloudinary.com')) {
+        // Check if URL already has parameters
+        const hasParams = downloadUrl.includes('?');
+        const separator = hasParams ? '&' : '?';
+        downloadUrl = `${downloadUrl}${separator}fl_attachment:${encodeURIComponent(doc.name)}`;
+      }
+      
+      // Create a temporary link element to trigger download
+      const link = window.document.createElement('a');
+      link.href = downloadUrl;
+      link.download = doc.name;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      
+      // For cross-origin downloads, we need to fetch and create blob
+      if (downloadUrl.includes('cloudinary.com')) {
+        const response = await fetch(downloadUrl);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        link.href = blobUrl;
+        
+        window.document.body.appendChild(link);
+        link.click();
+        window.document.body.removeChild(link);
+        
+        // Clean up blob URL
+        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
+      } else {
+        window.document.body.appendChild(link);
+        link.click();
+        window.document.body.removeChild(link);
+      }
+      
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast.error('Error downloading document');
+    }
   };
 
-  const handleDelete = async (documentId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa tài liệu này?')) {
-      return;
-    }
+  const handleDelete = (document: GetDocumentResponse) => {
+    setDocumentToDelete({ id: document.id, name: document.name });
+    setIsConfirmDeleteOpen(true);
+  };
+
+  const confirmDeleteDocument = async () => {
+    if (!documentToDelete) return;
 
     try {
-      const result = await documentService.deleteDocument(documentId);
+      const result = await documentService.deleteDocument(documentToDelete.id);
       
       if (result.success) {
-        toast.success('Xóa tài liệu thành công!');
-        // Refresh documents list
+        toast.success('Document deleted successfully!');
         fetchDocuments();
       } else {
-        toast.error(`Lỗi: ${result.error}`);
+        toast.error(`Error: ${result.error}`);
       }
     } catch (error) {
       console.error('Error deleting document:', error);
-      toast.error('Có lỗi xảy ra khi xóa tài liệu');
+      toast.error('An error occurred while deleting document');
+    } finally {
+      setIsConfirmDeleteOpen(false);
+      setDocumentToDelete(null);
     }
   };
 
@@ -239,7 +287,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
               margin: '0 0 8px 0'
             }}
           >
-            Tài liệu dự án
+            Project Documents
           </h3>
           <p 
             style={{
@@ -248,7 +296,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
               margin: 0
             }}
           >
-            Quản lý và chia sẻ tài liệu liên quan đến dự án
+            Manage and share project-related documents
           </p>
         </div>
         <Button
@@ -277,7 +325,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
           }}
         >
           <Upload size={16} />
-          Tải lên tài liệu
+          Upload Document
         </Button>
       </div>
 
@@ -290,7 +338,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
       >
         <Input
           type="text"
-          placeholder="Tìm kiếm tài liệu..."
+          placeholder="Search documents..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
@@ -332,7 +380,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
           >
             <Loader2 size={48} className="text-gray-400 animate-spin mx-auto mb-4" />
             <p style={{ margin: 0, fontSize: '16px' }}>
-              Đang tải danh sách tài liệu...
+              Loading document list...
             </p>
           </div>
         ) : filteredDocuments.length === 0 ? (
@@ -350,11 +398,11 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
               <FolderOpen size={48} className="text-gray-400" />
             </div>
             <p style={{ margin: 0, fontSize: '16px' }}>
-              {searchQuery ? 'Không tìm thấy tài liệu nào' : 'Chưa có tài liệu nào'}
+              {searchQuery ? 'No documents found' : 'No documents yet'}
             </p>
             {!searchQuery && (
               <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
-                Hãy tải lên tài liệu đầu tiên của bạn
+                Upload your first document
               </p>
             )}
           </div>
@@ -436,7 +484,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                 >
                   <span>{formatFileSize(document.size)}</span>
                   <span>•</span>
-                  <span>Tải lên bởi {document.owner?.fullName || 'N/A'}</span>
+                  <span>Uploaded by {document.owner?.fullName || 'N/A'}</span>
                   <span>•</span>
                   <span>{formatDate(document.createdAt)}</span>
                 </div>
@@ -465,10 +513,10 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                   }}
                 >
                   <Download size={14} />
-                  Tải xuống
+                  Download
                 </Button>
                 <Button
-                  onClick={() => handleDelete(document.id)}
+                  onClick={() => handleDelete(document)}
                   style={{
                     background: '#fef2f2',
                     color: '#dc2626',
@@ -483,7 +531,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                   }}
                 >
                   <Trash2 size={14} />
-                  Xóa
+                  Delete
                 </Button>
                 <Button
                   onClick={() => {
@@ -506,7 +554,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                   }}
                 >
                   <FileText size={14} />
-                  Chỉnh sửa
+                  Edit
                 </Button>
               </div>
             </div>
@@ -540,7 +588,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
               fontWeight: 500
             }}
           >
-            Trước
+            Previous
           </Button>
           
           <div 
@@ -585,7 +633,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
               fontWeight: 500
             }}
           >
-            Sau
+            Next
           </Button>
         </div>
       )}
@@ -627,7 +675,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                 margin: '0 0 20px 0'
               }}
             >
-              Tải lên tài liệu
+              Upload Document
             </h3>
 
             <div style={{ marginBottom: '20px' }}>
@@ -640,7 +688,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                   marginBottom: '8px'
                 }}
               >
-                Chọn tài liệu
+                Select Document
               </label>
               <input
                 type="file"
@@ -661,7 +709,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                     margin: '8px 0 0 0'
                   }}
                 >
-                  Đã chọn: {uploadFile.name} ({formatFileSize(uploadFile.size)})
+                  Selected: {uploadFile.name} ({formatFileSize(uploadFile.size)})
                 </p>
               )}
             </div>
@@ -676,12 +724,12 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                   marginBottom: '8px'
                 }}
               >
-                Mô tả (tùy chọn)
+                Description (optional)
               </label>
               <Input
                 value={uploadDescription}
                 onChange={(e) => setUploadDescription(e.target.value)}
-                placeholder="Mô tả ngắn về tài liệu..."
+                placeholder="Brief description of the document..."
                 style={{
                   width: '100%',
                   padding: '12px',
@@ -713,7 +761,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                   opacity: isUploading ? 0.5 : 1
                 }}
               >
-                Hủy
+                Cancel
               </Button>
               <Button
                 onClick={handleUpload}
@@ -745,7 +793,7 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                 }}
               >
                 {isUploading && <Loader2 size={16} className="animate-spin" />}
-                {isUploading ? 'Đang tải lên...' : 'Tải lên'}
+                {isUploading ? 'Uploading...' : 'Upload'}
               </Button>
             </div>
           </div>
@@ -781,21 +829,21 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#1f2937', margin: '0 0 20px 0' }}>
-              Chỉnh sửa tài liệu
+              Edit Document
             </h3>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Tên tài liệu</label>
-              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Tên tài liệu" />
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Document Name</label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Document name" />
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Mô tả (tùy chọn)</label>
-              <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Mô tả ngắn về tài liệu..." />
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Description (optional)</label>
+              <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Brief description of the document..." />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <Button onClick={() => setShowEditModal(false)} style={{ padding: '10px 20px', background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px' }}>Hủy</Button>
+              <Button onClick={() => setShowEditModal(false)} style={{ padding: '10px 20px', background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px' }}>Cancel</Button>
               <Button
                 onClick={async () => {
                   if (!editingDocument) return;
@@ -803,26 +851,40 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                     const payload = { id: editingDocument.id, name: editName, description: editDescription || undefined };
                     const res = await documentService.updateDocument(payload);
                     if (res.success) {
-                      toast.success('Cập nhật tài liệu thành công!');
+                      toast.success('Document updated successfully!');
                       setShowEditModal(false);
                       setEditingDocument(null);
                       fetchDocuments();
                     } else {
-                      toast.error(`Lỗi: ${res.error}`);
+                      toast.error(`Error: ${res.error}`);
                     }
                   } catch (err) {
                     console.error('Error updating document:', err);
-                    toast.error('Có lỗi xảy ra khi cập nhật tài liệu');
+                    toast.error('An error occurred while updating document');
                   }
                 }}
                 style={{ padding: '10px 20px', background: '#FF5E13', color: 'white', borderRadius: '8px' }}
               >
-                Lưu
+                Save
               </Button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Document Dialog */}
+      <ConfirmDialog
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => {
+          setIsConfirmDeleteOpen(false);
+          setDocumentToDelete(null);
+        }}
+        onConfirm={confirmDeleteDocument}
+        title="Delete Document"
+        description={`Are you sure you want to delete document "${documentToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 };

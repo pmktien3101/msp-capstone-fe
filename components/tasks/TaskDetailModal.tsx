@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, MessageSquare, History, Calendar, User, Flag, Target } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { X, MessageSquare, History, Calendar, User, Flag, Target, Trash2, Edit2 } from "lucide-react";
 import { projectService } from "@/services/projectService";
 import { milestoneService } from "@/services/milestoneService";
 import { taskService } from "@/services/taskService";
 import { taskHistoryService } from "@/services/taskHistoryService";
+import { commentService } from "@/services/commentService";
 import { GetTaskResponse } from "@/types/task";
 import { MilestoneBackend } from "@/types/milestone";
 import { TaskHistory } from "@/types/taskHistory";
+import { GetCommentResponse } from "@/types/comment";
 import { toast } from "react-toastify";
 import { useAuth } from "@/hooks/useAuth";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { 
   getUserInitials, 
   getAvatarColor, 
@@ -49,14 +52,21 @@ export const TaskDetailModal = ({
   });
 
   const [commentText, setCommentText] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
+  const [isConfirmDeleteCommentOpen, setIsConfirmDeleteCommentOpen] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   
   // API data
   const [members, setMembers] = useState<any[]>([]);
   const [reviewers, setReviewers] = useState<any[]>([]);
   const [milestones, setMilestones] = useState<MilestoneBackend[]>([]);
   const [taskHistories, setTaskHistories] = useState<TaskHistory[]>([]);
+  const [comments, setComments] = useState<GetCommentResponse[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isLoadingComments, setIsLoadingComments] = useState(true);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   // Fetch project data when modal opens
   useEffect(() => {
@@ -136,6 +146,46 @@ export const TaskDetailModal = ({
     }
   }, [task?.id, isOpen]);
 
+  // Function to fetch comments
+  const fetchComments = useCallback(async () => {
+    if (!task?.id) {
+      return;
+    }
+
+    setIsLoadingComments(true);
+    try {
+      const response = await commentService.getCommentsByTaskId(task.id);
+      
+      if (response.success && response.data) {
+        
+        // Handle both array and PagingResponse format
+        let commentsList: GetCommentResponse[] = [];
+        
+        if (Array.isArray(response.data)) {
+          commentsList = response.data;
+        } else if (response.data.items && Array.isArray(response.data.items)) {
+          commentsList = response.data.items;
+        } else {
+          console.warn('[Comments] Unexpected data format:', response.data);
+        }
+        setComments(commentsList);
+      } else {
+        setComments([]);
+      }
+    } catch (error) {
+      setComments([]);
+    } finally {
+      setIsLoadingComments(false);
+    }
+  }, [task?.id]);
+
+  // Fetch comments when modal opens
+  useEffect(() => {
+    if (isOpen && task?.id) {
+      fetchComments();
+    }
+  }, [isOpen, task?.id, fetchComments]);
+
   // Update editedTask when task prop changes
   useEffect(() => {
     if (task) {
@@ -152,23 +202,22 @@ export const TaskDetailModal = ({
     }
   }, [task]);
 
-  // Mock data for comments
-  const mockComments = [
-    {
-      id: 1,
-      author: "Nguyễn Văn A",
-      avatar: "NA",
-      content: "Task này cần hoàn thành trước deadline nhé team!",
-      timestamp: "2 giờ trước",
-    },
-    {
-      id: 2,
-      author: "Trần Thị B",
-      avatar: "TB",
-      content: "Đã xem và đang làm, dự kiến hoàn thành trong hôm nay.",
-      timestamp: "1 giờ trước",
-    },
-  ];
+  // Format comment timestamp
+  const formatCommentTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
 
   // Statuses - filtered based on user role
   const ALL_TASK_STATUS_OPTIONS = [
@@ -190,10 +239,101 @@ export const TaskDetailModal = ({
   const isMember = user?.role === 'Member';
   const TASK_STATUS_OPTIONS = isMember ? MEMBER_STATUS_OPTIONS : ALL_TASK_STATUS_OPTIONS;
 
-  const handleSubmitComment = () => {
-    if (commentText.trim()) {
-      console.log("New comment:", commentText);
-      setCommentText("");
+  const handleSubmitComment = async () => {
+    if (!commentText.trim()) return;
+    
+    if (!user?.userId || !task?.id) {
+      toast.error("Không thể tạo bình luận");
+      return;
+    }
+
+    setIsSubmittingComment(true);
+    try {
+      const response = await commentService.createComment({
+        taskId: task.id,
+        userId: user.userId,
+        content: commentText.trim(),
+      });
+
+      if (response.success) {
+        toast.success("Comment thành công");
+        setCommentText("");
+        await fetchComments(); // Refresh comments list
+      } else {
+        toast.error(response.error || "Failed to post comment");
+      }
+    } catch (error) {
+      console.error("Error posting comment:", error);
+      toast.error("An error occurred while posting comment");
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleEditComment = (comment: GetCommentResponse) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentText(comment.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingCommentText("");
+  };
+
+  const handleSaveEditComment = async (commentId: string) => {
+    if (!editingCommentText.trim()) {
+      toast.error("Comment không thể bị trống");
+      return;
+    }
+
+    try {
+      const response = await commentService.updateComment({
+        id: commentId,
+        content: editingCommentText.trim(),
+      });
+
+      if (response.success) {
+        toast.success("Cập nhật bình luận thành công");
+        setEditingCommentId(null);
+        setEditingCommentText("");
+        await fetchComments(); // Refresh comments list
+      } else {
+        toast.error(response.error || "Lỗi khi cập nhật comment");
+      }
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      toast.error("An error occurred while updating comment");
+    }
+  };
+
+  const handleDeleteComment = (commentId: string) => {
+    if (!user?.userId) {
+      toast.error("Unable to delete comment");
+      return;
+    }
+
+    setDeletingCommentId(commentId);
+    setIsConfirmDeleteCommentOpen(true);
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!deletingCommentId || !user?.userId) return;
+
+    try {
+      const response = await commentService.deleteComment(deletingCommentId, user.userId);
+
+      if (response.success) {
+        toast.success("Xóa bình luận thành công");
+        await fetchComments(); // Refresh comments list
+      } else {
+        toast.error(response.error || "Xóa bình luận thất bại");
+      }
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast.error("Đã xảy ra lỗi khi xóa bình luận");
+    } finally {
+      setIsConfirmDeleteCommentOpen(false);
+      setDeletingCommentId(null);
     }
   };
 
@@ -320,7 +460,7 @@ export const TaskDetailModal = ({
                   onClick={() => setActiveTab("comments")}
                 >
                   <MessageSquare size={16} />
-                  Comments ({mockComments.length})
+                  Comments ({comments.length})
                 </button>
                 <button
                   className={`tab-btn ${activeTab === "history" ? "active" : ""}`}
@@ -337,18 +477,128 @@ export const TaskDetailModal = ({
                   <div className="comments-tab">
                     {/* Comment List */}
                     <div className="comments-list">
-                      {mockComments.map((comment) => (
-                        <div key={comment.id} className="comment-item">
-                          <div className="comment-avatar">{comment.avatar}</div>
-                          <div className="comment-content">
-                            <div className="comment-header">
-                              <span className="comment-author">{comment.author}</span>
-                              <span className="comment-time">{comment.timestamp}</span>
-                            </div>
-                            <p className="comment-text">{comment.content}</p>
-                          </div>
+                      {isLoadingComments ? (
+                        <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                          Loading comments...
                         </div>
-                      ))}
+                      ) : comments.length === 0 ? (
+                        <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                          No comments yet. Be the first to comment!
+                        </div>
+                      ) : (
+                        comments.map((comment) => {
+                          const author = comment.user?.fullName || comment.user?.email || 'Unknown';
+                          const initials = getUserInitials(author);
+                          const avatarColor = getAvatarColor(author);
+                          const canEdit = user?.userId === comment.userId;
+                          const isEditing = editingCommentId === comment.id;
+
+                          return (
+                            <div key={comment.id} className="comment-item">
+                              <div 
+                                className="comment-avatar" 
+                                style={{
+                                  backgroundColor: avatarColor,
+                                  color: 'white',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 'bold',
+                                  fontSize: '14px'
+                                }}
+                              >
+                                {initials}
+                              </div>
+                              <div className="comment-content" style={{ flex: 1 }}>
+                                <div className="comment-header">
+                                  <span className="comment-author">{author}</span>
+                                  <span className="comment-time">{formatCommentTime(comment.createdAt)}</span>
+                                  {canEdit && !isEditing && (
+                                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+                                      <button
+                                        className="edit-comment-btn"
+                                        onClick={() => handleEditComment(comment)}
+                                        title="Edit comment"
+                                        style={{
+                                          background: 'none',
+                                          border: 'none',
+                                          color: '#3b82f6',
+                                          cursor: 'pointer',
+                                          padding: '4px',
+                                          display: 'flex',
+                                          alignItems: 'center'
+                                        }}
+                                      >
+                                        <Edit2 size={14} />
+                                      </button>
+                                      <button
+                                        className="delete-comment-btn"
+                                        onClick={() => handleDeleteComment(comment.id)}
+                                        title="Delete comment"
+                                        style={{
+                                          background: 'none',
+                                          border: 'none',
+                                          color: '#ef4444',
+                                          cursor: 'pointer',
+                                          padding: '4px',
+                                          display: 'flex',
+                                          alignItems: 'center'
+                                        }}
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                                {isEditing ? (
+                                  <div style={{ marginTop: '8px' }}>
+                                    <textarea
+                                      className="comment-input"
+                                      value={editingCommentText}
+                                      onChange={(e) => setEditingCommentText(e.target.value)}
+                                      rows={3}
+                                      style={{ width: '100%', marginBottom: '8px' }}
+                                    />
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                      <button
+                                        onClick={handleCancelEdit}
+                                        style={{
+                                          padding: '6px 12px',
+                                          background: '#f3f4f6',
+                                          border: '1px solid #d1d5db',
+                                          borderRadius: '6px',
+                                          cursor: 'pointer',
+                                          fontSize: '13px'
+                                        }}
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        onClick={() => handleSaveEditComment(comment.id)}
+                                        disabled={!editingCommentText.trim()}
+                                        style={{
+                                          padding: '6px 12px',
+                                          background: '#ff5e13',
+                                          color: 'white',
+                                          border: 'none',
+                                          borderRadius: '6px',
+                                          cursor: editingCommentText.trim() ? 'pointer' : 'not-allowed',
+                                          fontSize: '13px',
+                                          opacity: editingCommentText.trim() ? 1 : 0.5
+                                        }}
+                                      >
+                                        Save
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="comment-text">{comment.content}</p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
 
                     {/* Add Comment */}
@@ -359,13 +609,14 @@ export const TaskDetailModal = ({
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
                         rows={3}
+                        disabled={isSubmittingComment}
                       />
                       <button
                         className="submit-comment-btn"
                         onClick={handleSubmitComment}
-                        disabled={!commentText.trim()}
+                        disabled={!commentText.trim() || isSubmittingComment}
                       >
-                        Post Comment
+                        {isSubmittingComment ? 'Posting...' : 'Post Comment'}
                       </button>
                     </div>
                   </div>
@@ -656,6 +907,24 @@ export const TaskDetailModal = ({
           )}
         </div>
       </div>
+
+      {/* Confirm Delete Comment Dialog */}
+      {isConfirmDeleteCommentOpen && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <ConfirmDialog
+            isOpen={isConfirmDeleteCommentOpen}
+            onClose={() => {
+              setIsConfirmDeleteCommentOpen(false);
+              setDeletingCommentId(null);
+            }}
+            onConfirm={confirmDeleteComment}
+            title="Xóa Bình Luận"
+            description="Bạn có chắc muốn xóa bình luận này? Hành động này không thể hoàn tác."
+            confirmText="Xóa"
+            cancelText="Hủy"
+          />
+        </div>
+      )}
     </div>
   );
 };

@@ -34,6 +34,7 @@ interface ProjectTabsProps {
   availableProjectManagers?: any[];
   refreshKey?: number;
   onProjectUpdate?: () => void;
+  onCreateMilestone?: () => void;
 }
 
 export const ProjectTabs = ({
@@ -47,6 +48,7 @@ export const ProjectTabs = ({
   availableProjectManagers = [],
   refreshKey = 0,
   onProjectUpdate,
+  onCreateMilestone,
 }: ProjectTabsProps) => {
   const [activeTab, setActiveTab] = useState(initialActiveTab);
 
@@ -131,7 +133,7 @@ export const ProjectTabs = ({
           />
         );
       case "list":
-        return <ProjectList project={project} refreshKey={refreshKey} />;
+        return <ProjectList project={project} refreshKey={refreshKey} onCreateMilestone={onCreateMilestone} />;
       case "documents":
         return <ProjectDocuments project={project} />;
       case "meetings":
