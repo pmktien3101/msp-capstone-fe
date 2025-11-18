@@ -349,14 +349,12 @@ export const CreateTaskModal = ({
 
         {/* Footer */}
         <div className="create-task-modal-footer">
-          <div className="modal-actions">
             <button type="button" className="btn-cancel" onClick={handleClose}>
               Cancel
             </button>
             <button type="submit" className="btn-submit" form="create-task-form">
               {taskToEdit ? "Update Task" : "Create Task"}
             </button>
-          </div>
         </div>
       </div>
     </div>

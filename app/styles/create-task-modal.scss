@@ -41,6 +41,7 @@
   justify-content: space-between;
   padding: 20px 24px;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0; // Đảm bảo header không bị co lại
 
   .modal-title {
     margin: 0;
@@ -66,20 +67,22 @@
 }
 
 .create-task-modal-body {
-  display: flex;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
+  display: flex;
 }
 
 .create-task-modal-form {
   display: flex;
   width: 100%;
   height: 100%;
+  min-height: 0;
 }
 
 .create-task-left-panel {
   flex: 0 0 60%;
-  padding: 20px;
+  padding: 24px; // Tăng padding như detail modal
   overflow-y: auto;
   border-right: 1px solid #e5e7eb;
 
@@ -103,10 +106,10 @@
 
 .create-task-right-panel {
   flex: 0 0 40%;
-  padding: 20px;
-  overflow-y: scroll; // Force scrollbar to always show
-  overflow-x: hidden;
+  padding: 24px; // Tăng padding như detail modal
+  overflow-y: auto;
   background: #f9fafb;
+  min-height: 0;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -129,8 +132,8 @@
 .create-task-form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 8px; // Tăng gap lên
+  margin-bottom: 20px; // Tăng margin như detail modal
 
   .form-label {
     display: flex;
@@ -150,19 +153,20 @@
   .form-input,
   .form-select,
   .form-textarea {
-    padding: 8px 12px;
+    padding: 10px 12px; // Tăng padding
     border: 1px solid #d1d5db;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 14px; // Tăng font size
     background: white;
     transition: all 0.2s ease;
     width: 100%;
     font-family: inherit;
+    color: #1f2937;
 
     &:focus {
       outline: none;
-      border-color: #ff8c42;
-      box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
+      border-color: #ff5e13; // Đổi màu focus cho đồng nhất
+      box-shadow: 0 0 0 3px rgba(255, 94, 19, 0.1);
     }
 
     &.error {
@@ -180,7 +184,6 @@
       }
     }
 
-    // Style date input to show dd/mm/yyyy format
     &[type="date"] {
       &::-webkit-calendar-picker-indicator {
         cursor: pointer;
@@ -212,118 +215,63 @@
   }
 
   .error-message {
-    font-size: 11px;
+    font-size: 12px; // Tăng font size cho dễ đọc
     color: #ef4444;
     font-weight: 500;
   }
 }
 
-/* Custom Status Dropdown */
-.create-task-status-dropdown {
-  position: relative;
-
-  .status-dropdown-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 10px;
-    background: white;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      border-color: #ff8c42;
-    }
-
-    .status-badge {
-      color: white;
-      padding: 4px 10px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-weight: 600;
-      display: inline-block;
-    }
-
-    .dropdown-arrow {
-      font-size: 9px;
-      color: #6b7280;
-      margin-left: 6px;
-    }
-  }
-
-  .status-dropdown-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    margin-top: 4px;
-    background: white;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    overflow: hidden;
-
-    .status-dropdown-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 10px;
-      cursor: pointer;
-      transition: background 0.15s ease;
-
-      &:hover {
-        background: #f3f4f6;
-      }
-
-      .status-badge {
-        color: white;
-        padding: 4px 10px;
-        border-radius: 10px;
-        font-size: 12px;
-        font-weight: 600;
-        display: inline-block;
-      }
-
-      .checkmark {
-        color: #10b981;
-        font-weight: bold;
-        font-size: 13px;
-      }
-    }
-  }
-}
-
-/* Milestone Selection */
+/* Milestone Selection với max-height và scroll */
 .create-task-milestone-selection {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px; // Tăng gap
+  max-height: 240px; // Giới hạn chiều cao
+  overflow-y: auto; // Cho phép scroll
+  padding-right: 4px; // Space cho scrollbar
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 2px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 2px;
+
+    &:hover {
+      background: #9ca3af;
+    }
+  }
 
   .milestone-checkbox {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    border-radius: 4px;
+    gap: 8px; // Tăng gap
+    padding: 8px; // Tăng padding
+    border-radius: 6px; // Tăng border radius
     cursor: pointer;
     transition: all 0.2s;
+    flex-shrink: 0; // Ngăn item bị co lại
 
     &:hover {
       background: #f3f4f6;
     }
 
     input[type="checkbox"] {
-      width: 14px;
-      height: 14px;
+      width: 16px; // Tăng size
+      height: 16px;
       cursor: pointer;
       accent-color: #ff5e13;
+      flex-shrink: 0;
     }
 
     .milestone-name {
-      font-size: 12px;
+      font-size: 13px; // Tăng font size
       color: #4b5563;
       line-height: 1.4;
     }
@@ -333,62 +281,61 @@
 /* Loading & Empty States */
 .create-task-loading-state,
 .create-task-empty-state {
-  padding: 8px;
+  padding: 12px; // Tăng padding
   text-align: center;
   color: #6b7280;
-  font-size: 12px;
+  font-size: 13px; // Tăng font size
   background: #f9fafb;
   border-radius: 6px;
 }
 
 /* Modal Footer */
 .create-task-modal-footer {
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
   border-top: 1px solid #e5e7eb;
-  padding: 20px 24px;
-
-  .modal-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
+  flex-shrink: 0; // Đảm bảo footer không bị co lại
 
     .btn-cancel {
-      padding: 12px 24px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      background: white;
-      color: #374151;
+      padding: 10px 20px; // Điều chỉnh padding
+      border: none;
+      border-radius: 6px;
+      background: #f3f4f6;
+      color: #6b7280;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
 
       &:hover {
-        background: #f9fafb;
-        border-color: #9ca3af;
+        background: #e5e7eb;
+        color: #374151;
       }
     }
 
     .btn-submit {
-      padding: 12px 24px;
-      border: 2px solid #ff8c42;
-      border-radius: 8px;
-      background: white;
-      color: #ff8c42;
+      padding: 10px 20px; // Điều chỉnh padding
+      border: none;
+      border-radius: 6px;
+      background: #ff5e13;
+      color: white;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
-      box-shadow: 0 2px 8px rgba(255, 140, 66, 0.2);
 
       &:hover {
-        transform: translateY(-1px);
-        background: #ff8c42;
-        color: white;
-        box-shadow: 0 4px 16px rgba(255, 140, 66, 0.3);
+        background: #e54d00;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
     }
-  }
 }
 
 /* Responsive Design */
@@ -399,8 +346,11 @@
 
   .create-task-left-panel,
   .create-task-right-panel {
-    flex: 100%;
+    flex: 1 1 100%;
     border-right: none;
+  }
+
+  .create-task-left-panel {
     border-bottom: 1px solid #e5e7eb;
   }
 
@@ -411,9 +361,8 @@
 
 @media (max-width: 768px) {
   .create-task-modal-container {
-    width: 95%;
-    margin: 20px;
     max-height: 95vh;
+    margin: 10px;
   }
 
   .create-task-modal-header {
