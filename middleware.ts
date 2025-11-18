@@ -137,19 +137,20 @@ export function middleware(request: NextRequest) {
     pathname === route || pathname.startsWith(route)
   );
   
-  // Get access token from cookies or headers
-  const accessToken = request.cookies.get('accessToken')?.value || 
-                     request.headers.get('authorization')?.replace('Bearer ', '');
+  // Get access token from headers (Authorization header)
+  // Note: Token is stored in localStorage on client-side, middleware can only check Authorization header
+  const authHeader = request.headers.get('authorization');
+  const accessToken = authHeader?.replace('Bearer ', '');
   
   // Validate token format and expiration
   const isValidToken = accessToken && isTokenValid(accessToken);
   
-  // If accessing a protected route without valid token, let client-side handle refresh
-  // Only redirect if there's no token at all (not just expired)
+  // For protected routes: if no token in header, allow request to pass through
+  // Client-side will handle auth check and redirect if needed
+  // This is because token is in localStorage, not in headers for initial page load
   if (isProtectedRoute && !accessToken) {
-    const signInUrl = new URL('/sign-in', request.url);
-    signInUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(signInUrl);
+    // Allow request to pass - client-side AuthGuard will handle redirect
+    return NextResponse.next();
   }
   
   // If accessing admin routes, check for admin role

@@ -27,10 +27,11 @@ const AuthGuard = ({
   useEffect(() => {
     const checkAuth = () => {
       const token = getAccessToken();
+      console.log("AuthGuard: Checking auth, token exists:", !!token);
       
       // If no token at all, redirect to sign-in
       if (!token) {
-        console.log("No access token found, redirecting to sign-in");
+        console.log("AuthGuard: No access token found, redirecting to landing");
         setHasPermission(false);
         router.push("/landing");
         setIsLoading(false);
@@ -41,21 +42,24 @@ const AuthGuard = ({
       const authenticated = isAuthenticated();
       const user = getCurrentUser();
       
+      console.log("AuthGuard: Authenticated:", authenticated, "User:", user?.email);
+      
       setIsUserAuthenticated(authenticated);
       
       if (authenticated && user) {
         // Check role-based access
         if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
-          console.log(`User role ${user.role} not authorized for this route`);
+          console.log(`AuthGuard: User role ${user.role} not authorized for this route`);
           setHasPermission(false);
           router.push("/dashboard");
           return;
         }
         
+        console.log("AuthGuard: User authenticated and authorized");
         setHasPermission(true);
       } else {
         setHasPermission(false);
-        console.log("User not authenticated, redirecting to sign-in");
+        console.log("AuthGuard: User not authenticated, redirecting to landing");
         router.push("/landing");
       }
       

@@ -1,31 +1,76 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/useUser';
+import { getAccessToken } from '@/lib/auth';
+import { extractUserFromToken } from '@/lib/jwt';
+import { normalizeRole } from '@/lib/rbac';
 
 export default function DashboardPage() {
-  const { role } = useUser();
+  const { role, setUserData } = useUser();
   const router = useRouter();
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    console.log("Dashboard: useEffect 1, role:", role);
+    // If role is not set, try to extract from token
+    if (!role) {
+      const token = getAccessToken();
+      console.log("Dashboard: Token exists:", !!token);
+      if (token) {
+        try {
+          const userInfo = extractUserFromToken(token);
+          console.log("Dashboard: Extracted user info:", userInfo?.email, userInfo?.role);
+          if (userInfo) {
+            const normalizedRole = normalizeRole(userInfo.role);
+            console.log("Dashboard: Setting user data with role:", normalizedRole);
+            setUserData({
+              userId: userInfo.userId,
+              email: userInfo.email,
+              fullName: userInfo.fullName,
+              role: normalizedRole,
+              avatarUrl: userInfo.avatarUrl || ''
+            });
+            setIsInitialized(true);
+            return;
+          }
+        } catch (error) {
+          console.error('Dashboard: Error extracting user from token:', error);
+        }
+      }
+    } else {
+      console.log("Dashboard: Role already set:", role);
+    }
+    setIsInitialized(true);
+  }, [role, setUserData]);
 
   useEffect(() => {
     // Redirect based on user role
-    switch (role) {
-      case 'Admin':
-        router.push('/dashboard/admin/dashboard');
-        break;
-      case 'BusinessOwner':
-        router.push('/dashboard/business');
-        break;
-      case 'Member':
-        router.push('/dashboard/member');
-        break;
-      case 'pm':
-      default:
-        router.push('/dashboard/pm');
-        break;
+    console.log("Dashboard: useEffect 2, isInitialized:", isInitialized, "role:", role);
+    if (isInitialized && role) {
+      console.log("Dashboard: Redirecting based on role:", role);
+      switch (role) {
+        case 'Admin':
+          console.log("Dashboard: Redirecting to /dashboard/admin/dashboard");
+          router.push('/dashboard/admin/dashboard');
+          break;
+        case 'BusinessOwner':
+          console.log("Dashboard: Redirecting to /dashboard/business");
+          router.push('/dashboard/business');
+          break;
+        case 'Member':
+          console.log("Dashboard: Redirecting to /dashboard/member");
+          router.push('/dashboard/member');
+          break;
+        case 'pm':
+        default:
+          console.log("Dashboard: Redirecting to /dashboard/pm");
+          router.push('/dashboard/pm');
+          break;
+      }
     }
-  }, [role, router]);
+  }, [role, router, isInitialized]);
 
   return (
     <div className="dashboard-loading">
