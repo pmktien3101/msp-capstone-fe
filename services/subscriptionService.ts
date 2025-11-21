@@ -71,4 +71,23 @@ export const subscriptionService = {
         };
       }
     },
+    async getActiveSubscriptionByUserIdWithUsage(userId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+      try {
+        const response = await api.get<ApiResponse<any>>(`/subscriptions/active/${userId}/usage`);
+        return {
+          success: response.data.success,
+          data: response.data.data,
+          error: response.data.success ? undefined : response.data.message,
+        };
+      } catch (error: any) {
+        console.error("Get active subscriptions error:", error);
+        return {
+          success: false,
+          error:
+            error.response?.data?.message ||
+            error.message ||
+            "Failed to get active subscriptions",
+        };
+      }
+    },
 }

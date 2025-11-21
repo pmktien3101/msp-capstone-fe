@@ -1,4 +1,4 @@
-import { Limitation } from "./limitation";
+import { Limitation, LimitationUsage } from "./limitation";
 
 export interface Package {
   id: string;
@@ -8,5 +8,5 @@ export interface Package {
   currency: string;
   billingCycle: number;
   isDeleted: boolean;
-  limitations: Limitation[] | null;
+  limitations: LimitationUsage[] | null;
 }

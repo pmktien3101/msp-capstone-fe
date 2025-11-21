@@ -10,9 +10,13 @@ import { toast } from "react-toastify";
 import { OrganizationInvitationResponse, SendInvitationResult } from "@/types/organizeInvitation";
 import { organizeInvitationService } from "@/services/organizeInvitationService";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useMemberLimitationCheck } from "@/hooks/useLimitationCheck";
 
 const MembersRolesPage = () => {
   const { user } = useAuth();
+  const currentSubscription = useSubscription();
+  const { checkMemberLimitation } = useMemberLimitationCheck();
 
   // States
   const [showEditRoleModal, setShowEditRoleModal] = useState(false);
@@ -182,21 +186,77 @@ const MembersRolesPage = () => {
     setInviteEmails(inviteEmails.filter((e) => e !== email));
   };
 
-  // Send invitations
+  // Check member limitation before opening invite modal
+  const handleOpenInviteModal = () => {
+    if (!checkMemberLimitation()) {
+      return; // Limit reached, prevent opening modal
+    }
+
+    // Mở modal nếu chưa đạt giới hạn
+    setShowInviteModal(true);
+  };
+
+  // Check member limitation before sending invites
   const handleSendInvites = async () => {
     if (inviteEmails.length === 0) return;
+
+    // Check basic limitation
+    if (!checkMemberLimitation()) {
+      return; // Limit reached
+    }
+
+    // Check if inviting multiple members would exceed limit
+    if (currentSubscription?.package?.limitations) {
+      const memberLimitation = currentSubscription.package.limitations.find(
+        (lim: any) => lim.limitationType === 'NumberMemberInOrganization'
+      );
+
+      if (memberLimitation) {
+        const { limitValue, usedValue, limitUnit } = memberLimitation;
+        const currentUsed = usedValue ?? 0;
+        const maxAllowed = limitValue ?? 0;
+        const remainingSlots = maxAllowed - currentUsed;
+
+        // Check if number of emails exceeds remaining slots
+        if (inviteEmails.length > remainingSlots) {
+          toast.error(
+            `Không thể mời ${inviteEmails.length} thành viên. ` +
+            `Bạn chỉ còn ${remainingSlots} slot trống trong gói hiện tại (${currentUsed}/${maxAllowed} ${limitUnit || 'thành viên'} đã sử dụng).`,
+            {
+              autoClose: 6000,
+              position: 'top-center',
+            }
+          );
+          return;
+        }
+
+        // Warning if approaching limit after inviting
+        const futureUsed = currentUsed + inviteEmails.length;
+        const futurePercent = (futureUsed / maxAllowed) * 100;
+        if (futurePercent >= 90 && futurePercent < 100) {
+          toast.warning(
+            `Sau khi mời, bạn sẽ có ${futureUsed}/${maxAllowed} thành viên. Gần đạt giới hạn!`,
+            {
+              autoClose: 4000,
+              position: 'top-center',
+            }
+          );
+        }
+      }
+    }
+
+    // Proceed with sending invites
     setLoadingInvite(true);
     setInviteResult(null);
     try {
       const res = await organizeInvitationService.sendInvitations(inviteEmails);
       if (res.success && res.data) {
         setInviteResult(res.data);
-        // Tự động thêm các email gửi thành công vào sentInvites (nếu muốn hiển thị)
         setSentInvites([
           ...sentInvites,
           ...res.data.filter(r => r.success).map(r => r.email)
         ]);
-        setInviteEmails([]); // Clear input
+        setInviteEmails([]);
       } else {
         toast.error(res.error || "Không thể gửi lời mời");
       }
@@ -397,7 +457,7 @@ const MembersRolesPage = () => {
                 <span className="member-count">{filteredMembers.length} thành viên</span>
               </div>
               <div className="header-actions">
-                <button className="add-member-btn" onClick={() => setShowInviteModal(true)}>
+                <button className="add-member-btn" onClick={handleOpenInviteModal}>
                   <Plus size={22} strokeWidth={2} />
                   Mời thành viên
                 </button>
@@ -479,7 +539,8 @@ const MembersRolesPage = () => {
                     </div>
                   </div>
                 ))
-              )}
+                )
+              }
             </div>
           </div>
         </>

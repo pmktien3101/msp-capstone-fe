@@ -9,6 +9,7 @@ import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
 import { toast } from "react-toastify";
 import { PROJECT_STATUS_OPTIONS, getProjectStatusLabel } from "@/constants/status";
+import { useMemberInProjectLimitationCheck } from "@/hooks/useLimitationCheck";
 import { 
   Plus, 
   Edit, 
@@ -42,6 +43,8 @@ interface ProjectSettingsProps {
 }
 
 export const ProjectSettings = ({ project, availableProjectManagers = [], onProjectUpdate }: ProjectSettingsProps) => {
+  const { checkMemberInProjectLimit } = useMemberInProjectLimitationCheck();
+
   // Helper function to format ISO date to YYYY-MM-DD
   const formatDateForInput = (dateString?: string) => {
     if (!dateString) return '';
@@ -170,6 +173,12 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
   };
 
   const handleAddMember = async (member: Member) => {
+    // Check member count limitation before adding
+    const newMemberCount = members.length + 1;
+    if (!checkMemberInProjectLimit(newMemberCount)) {
+      return; // Limit exceeded, don't add
+    }
+
     setShowAddMemberModal(false);
     
     // Re-fetch members from API to get latest data
