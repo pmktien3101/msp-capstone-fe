@@ -27,7 +27,7 @@ const Sidebar = () => {
   const adminSidebarItems: SidebarItem[] = [
     {
       id: "admin-dashboard",
-      label: "Tổng quan",
+      label: "Dashboard",
       route: "/dashboard/admin/dashboard",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -43,13 +43,13 @@ const Sidebar = () => {
     },
     {
       id: "revenue",
-      label: "Doanh thu",
+      label: "Revenue",
       route: "/dashboard/admin/revenue",
       icon: <MdMoney size={24} color="currentColor" />,
     },
     {
       id: "business-owners",
-      label: "Chủ doanh nghiệp",
+      label: "Business Owners",
       route: "/dashboard/admin/business",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -88,7 +88,7 @@ const Sidebar = () => {
     },
     {
       id: "limitations",
-      label: "Giới hạn",
+      label: "Limitations",
       route: "/dashboard/admin/limitations",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -111,7 +111,7 @@ const Sidebar = () => {
     },
     {
       id: "packages",
-      label: "Gói dịch vụ",
+      label: "Packages",
       route: "/dashboard/admin/packages",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -138,7 +138,7 @@ const Sidebar = () => {
   const businessOwnerSidebarItems: SidebarItem[] = [
     {
       id: "business-dashboard",
-      label: "Tổng quan",
+      label: "Dashboard",
       route: "/dashboard/business",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -154,7 +154,7 @@ const Sidebar = () => {
     },
     {
       id: "members-roles",
-      label: "Thành viên",
+      label: "Members & Roles",
       route: "/dashboard/business/members",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -193,7 +193,7 @@ const Sidebar = () => {
     },
     {
       id: "projects",
-      label: "Dự án",
+      label: "Projects",
       route: "/dashboard/business/projects",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -223,7 +223,7 @@ const Sidebar = () => {
     },
     {
       id: "subscription-billing",
-      label: "Gói & Thanh toán",
+      label: "Subscription & Billing",
       route: "/dashboard/business/subscription",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -250,7 +250,7 @@ const Sidebar = () => {
   const pmSidebarItems: SidebarItem[] = [
     {
       id: "dashboard",
-      label: "Tổng Quan Dự Án",
+      label: "Dashboard",
       route: "/dashboard/pm",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -266,7 +266,7 @@ const Sidebar = () => {
     },
     {
       id: "meetings",
-      label: "Cuộc Họp",
+      label: "Meetings",
       route: "/meetings",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -321,7 +321,7 @@ const Sidebar = () => {
   const memberSidebarItems: SidebarItem[] = [
     {
       id: "member-dashboard",
-      label: "Tổng quan",
+      label: "Dashboard",
       route: "/dashboard/member",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -337,7 +337,7 @@ const Sidebar = () => {
     },
     {
       id: "calendar",
-      label: "Lịch",
+      label: "Calendar",
       route: "/calendar",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -388,7 +388,7 @@ const Sidebar = () => {
     },
     {
       id: "business",
-      label: "Doanh Nghiệp",
+      label: "Businesses",
       route: "/business",
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -560,7 +560,7 @@ const Sidebar = () => {
                   />
                 </svg>
               </div>
-              <div className="item-label">Đăng Xuất</div>
+              <div className="item-label">Logout</div>
             </div>
           </div>
         </div>
