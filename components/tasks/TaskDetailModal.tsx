@@ -40,6 +40,13 @@ export const TaskDetailModal = ({
 }: TaskDetailModalProps) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"comments" | "history">("comments");
+  
+  // Check if member can edit this task
+  const isMember = user?.role === 'Member';
+  const isTaskAssignedToUser = task?.userId === user?.userId;
+  const isTaskLocked = task?.status === 'ReadyToReview' || task?.status === 'Done' || task?.status === 'Cancelled';
+  const canMemberEdit = isMember ? (isTaskAssignedToUser && !isTaskLocked) : true;
+  
   const [editedTask, setEditedTask] = useState({
     title: task?.title || "",
     description: task?.description || "",
@@ -236,7 +243,7 @@ export const TaskDetailModal = ({
   ];
 
   // Determine which status options to show based on user role
-  const isMember = user?.role === 'Member';
+  // If task status is ReOpened, member can see it but cannot change it
   const TASK_STATUS_OPTIONS = isMember ? MEMBER_STATUS_OPTIONS : ALL_TASK_STATUS_OPTIONS;
 
   const handleSubmitComment = async () => {
@@ -418,7 +425,7 @@ export const TaskDetailModal = ({
             {/* Title */}
             <div className="field-group">
               <label className="field-label">Title</label>
-              {mode === "edit" ? (
+              {mode === "edit" && canMemberEdit ? (
                 <input
                   type="text"
                   className="field-input"
@@ -434,7 +441,7 @@ export const TaskDetailModal = ({
             {/* Description */}
             <div className="field-group">
               <label className="field-label">Description</label>
-              {mode === "edit" ? (
+              {mode === "edit" && canMemberEdit ? (
                 <textarea
                   className="field-textarea"
                   value={editedTask.description}
@@ -759,7 +766,12 @@ export const TaskDetailModal = ({
                 className="info-select"
                 value={editedTask.status}
                 onChange={(e) => handleUpdateField("status", e.target.value)}
+                disabled={mode === "view" || !canMemberEdit}
               >
+                {/* If current status is ReOpened and user is member, show it as disabled option */}
+                {isMember && editedTask.status === "ReOpened" && (
+                  <option value="ReOpened">Re-Opened</option>
+                )}
                 {TASK_STATUS_OPTIONS.map((status) => (
                   <option key={status.value} value={status.value}>
                     {status.label}
@@ -778,7 +790,7 @@ export const TaskDetailModal = ({
                 className="info-select"
                 value={editedTask.userId}
                 onChange={(e) => handleUpdateField("userId", e.target.value)}
-                disabled={isLoadingData}
+                disabled={isLoadingData || mode === "view" || !canMemberEdit}
               >
                 <option value="">Unassigned</option>
                 {members.map((member) => (
@@ -799,7 +811,7 @@ export const TaskDetailModal = ({
                 className="info-select"
                 value={editedTask.reviewerId}
                 onChange={(e) => handleUpdateField("reviewerId", e.target.value)}
-                disabled={isLoadingData}
+                disabled={isLoadingData || mode === "view" || !canMemberEdit}
               >
                 <option value="">No reviewer</option>
                 {reviewers.map((reviewer) => (
@@ -829,6 +841,7 @@ export const TaskDetailModal = ({
                       handleUpdateField("startDate", "");
                     }
                   }}
+                  disabled={mode === "view" || !canMemberEdit}
                   style={{ colorScheme: 'light' }}
                 />
               </div>
@@ -853,6 +866,7 @@ export const TaskDetailModal = ({
                       handleUpdateField("endDate", "");
                     }
                   }}
+                  disabled={mode === "view" || !canMemberEdit}
                   style={{ colorScheme: 'light' }}
                 />
               </div>
@@ -885,6 +899,7 @@ export const TaskDetailModal = ({
                             : editedTask.milestoneIds.filter((id: string) => id !== milestone.id);
                           handleUpdateField("milestoneIds", newMilestoneIds);
                         }}
+                        disabled={mode === "view" || !canMemberEdit}
                       />
                       <span>{milestone.name}</span>
                     </label>
@@ -900,7 +915,7 @@ export const TaskDetailModal = ({
           <button className="cancel-btn" onClick={onClose}>
             Cancel
           </button>
-          {mode === "edit" && (
+          {mode === "edit" && canMemberEdit && (
             <button className="save-btn" onClick={handleSaveTask}>
               Save Changes
             </button>

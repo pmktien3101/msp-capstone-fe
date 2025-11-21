@@ -404,7 +404,7 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone }: Mi
                       </div>
 
                       {milestone.description && (
-                        <p className="milestone-description">{milestone.description}</p>
+                        <p className="milestone-description">Description: {milestone.description}</p>
                       )}
                     </>
                   )}
@@ -441,7 +441,7 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone }: Mi
                   ) : (
                     <div className="milestone-meta">
                       <div className="meta-item">
-                        <Calendar size={16} />
+                        <Calendar size={16} /> Due Date: 
                         <span className={isOverdue ? 'due-date overdue' : 'due-date'}>
                           {formatDateForDisplay(milestone.dueDate)}
                         </span>

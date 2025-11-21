@@ -1,360 +1,366 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { X, Calendar, User, Flag, FileText, Layers } from "lucide-react";
-import { milestoneService } from "@/services/milestoneService";
+import { useState, useEffect } from "react";
+import { X, Calendar, User, Flag, Target } from "lucide-react";
 import { projectService } from "@/services/projectService";
+import { milestoneService } from "@/services/milestoneService";
+import { taskService } from "@/services/taskService";
+import { MilestoneBackend } from "@/types/milestone";
+import { toast } from "react-toastify";
 import { useAuth } from "@/hooks/useAuth";
-import { UserRole } from "@/lib/rbac";
-import type { MilestoneBackend } from "@/types/milestone";
-import type { ProjectMember } from "@/types/project";
-import { 
-  TaskStatus, 
-  TASK_STATUS_OPTIONS, 
-  getTaskStatusEnum, 
-  getTaskStatusColor, 
-  getTaskStatusLabel 
-} from "@/constants/status";
 import "@/app/styles/create-task-modal.scss";
 
 interface CreateTaskModalProps {
+  projectId: string;
   isOpen: boolean;
   onClose: () => void;
-  milestoneId?: string;
-  defaultStatus?: string;
-  onCreateTask: (taskData: any) => void;
-  projectId?: string;
-  taskToEdit?: any;
+  onSuccess?: () => void;
 }
 
-export const CreateTaskModal = ({ 
-  isOpen, 
-  onClose, 
-  milestoneId, 
-  defaultStatus = TaskStatus.NotStarted,
-  onCreateTask,
+const MEMBER_CREATE_STATUS_OPTIONS = [
+  { value: 'NotStarted', label: 'Not Started' },
+  { value: 'InProgress', label: 'In Progress' },
+];
+
+const ALL_STATUS_OPTIONS = [
+  { value: 'NotStarted', label: 'Not Started' },
+  { value: 'InProgress', label: 'In Progress' },
+  { value: 'ReadyToReview', label: 'Ready to Review' },
+  { value: 'Done', label: 'Done' },
+  { value: 'Cancelled', label: 'Cancelled' },
+];
+
+export const CreateTaskModal = ({
   projectId,
-  taskToEdit
+  isOpen,
+  onClose,
+  onSuccess,
 }: CreateTaskModalProps) => {
   const { user } = useAuth();
-  const isMember = user?.role === UserRole.MEMBER;
-
-  // Form state
-  const [formData, setFormData] = useState({
+  const isMember = user?.role === 'Member';
+  
+  const [taskData, setTaskData] = useState({
     title: "",
     description: "",
-    milestoneIds: milestoneId ? [milestoneId] : [],
-    status: defaultStatus,
-    assignee: "",
+    status: "NotStarted",
+    userId: "",
+    reviewerId: "",
     startDate: "",
-    endDate: ""
+    endDate: "",
+    milestoneIds: [] as string[],
   });
 
-  // UI state
-  const [errors, setErrors] = useState<any>({});
-
-  // Data state
+  const [members, setMembers] = useState<any[]>([]);
+  const [reviewers, setReviewers] = useState<any[]>([]);
   const [milestones, setMilestones] = useState<MilestoneBackend[]>([]);
-  const [members, setMembers] = useState<ProjectMember[]>([]);
-  const [isLoadingMilestones, setIsLoadingMilestones] = useState(false);
-  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Load milestones
   useEffect(() => {
-    if (isOpen && projectId) {
-      loadMilestones();
-    }
-  }, [isOpen, projectId]);
+    const fetchData = async () => {
+      if (!projectId || !isOpen) return;
 
-  // Load members
-  useEffect(() => {
-    if (isOpen && projectId) {
-      loadMembers();
-    }
-  }, [isOpen, projectId]);
+      setIsLoadingData(true);
+      try {
+        const membersResponse = await projectService.getProjectMembersByRole(projectId, 'Member');
+        if (membersResponse.success && membersResponse.data) {
+          const membersList = membersResponse.data
+            .filter((pm: any) => pm.member)
+            .map((pm: any) => ({
+              id: pm.member.id,
+              name: pm.member.fullName || pm.member.email,
+              email: pm.member.email,
+            }));
+          setMembers(membersList);
+        }
 
-  // Pre-fill form when editing
+        const reviewersResponse = await projectService.getProjectManagers(projectId);
+        if (reviewersResponse.success && reviewersResponse.data) {
+          const reviewersList = reviewersResponse.data
+            .filter((pm: any) => pm.member)
+            .map((pm: any) => ({
+              id: pm.member.id,
+              name: pm.member.fullName || pm.member.email,
+              email: pm.member.email,
+            }));
+          setReviewers(reviewersList);
+        }
+
+        const milestonesResponse = await milestoneService.getMilestonesByProjectId(projectId);
+        if (milestonesResponse.success && milestonesResponse.data) {
+          const items = Array.isArray(milestonesResponse.data) 
+            ? milestonesResponse.data 
+            : (milestonesResponse.data as any).items || [];
+          setMilestones(items);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Error loading data');
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchData();
+  }, [projectId, isOpen]);
+
   useEffect(() => {
-    if (taskToEdit) {
-      setFormData({
-        title: taskToEdit.title || "",
-        description: taskToEdit.description || "",
-        milestoneIds: taskToEdit.milestoneIds || [],
-        status: taskToEdit.status || defaultStatus,
-        assignee: taskToEdit.assignee || "",
-        startDate: taskToEdit.startDate || "",
-        endDate: taskToEdit.endDate || ""
+    if (isOpen) {
+      setTaskData({
+        title: "",
+        description: "",
+        status: "NotStarted",
+        userId: "",
+        reviewerId: "",
+        startDate: "",
+        endDate: "",
+        milestoneIds: [],
       });
     }
-  }, [taskToEdit, defaultStatus]);
-
-  const loadMilestones = async () => {
-    if (!projectId) return;
-    
-    setIsLoadingMilestones(true);
-    try {
-      const response = await milestoneService.getMilestonesByProjectId(projectId);
-      setMilestones(response.data || []);
-    } catch (error) {
-      console.error("Error loading milestones:", error);
-      setMilestones([]);
-    } finally {
-      setIsLoadingMilestones(false);
-    }
-  };
-
-  const loadMembers = async () => {
-    if (!projectId) return;
-    
-    setIsLoadingMembers(true);
-    try {
-      const response = await projectService.getProjectMembers(projectId);
-      setMembers(response.data || []);
-    } catch (error) {
-      console.error("Error loading members:", error);
-      setMembers([]);
-    } finally {
-      setIsLoadingMembers(false);
-    }
-  };
-
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev: any) => ({ ...prev, [field]: "" }));
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors: any = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = "Task title is required";
-    }
-
-    if (!formData.description.trim()) {
-      newErrors.description = "Description is required";
-    }
-
-    if (!formData.startDate) {
-      newErrors.startDate = "Start date is required";
-    }
-
-    if (!formData.endDate) {
-      newErrors.endDate = "End date is required";
-    }
-
-    if (formData.startDate && formData.endDate) {
-      const start = new Date(formData.startDate);
-      const end = new Date(formData.endDate);
-      if (end < start) {
-        newErrors.endDate = "End date must be after start date";
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (validateForm()) {
-      onCreateTask(formData);
-      handleClose();
-    }
-  };
+  }, [isOpen]);
 
   const handleClose = () => {
-    setFormData({
-      title: "",
-      description: "",
-      milestoneIds: milestoneId ? [milestoneId] : [],
-      status: defaultStatus,
-      assignee: "",
-      startDate: "",
-      endDate: ""
-    });
-    setErrors({});
-    onClose();
+    if (!isSaving) {
+      onClose();
+    }
   };
+
+  const handleSave = async () => {
+    if (!taskData.title.trim()) {
+      toast.error('Please enter task title');
+      return;
+    }
+    if (!taskData.userId) {
+      toast.error('Please select assignee');
+      return;
+    }
+    if (!taskData.startDate || !taskData.endDate) {
+      toast.error('Please select start and end dates');
+      return;
+    }
+
+    const start = new Date(taskData.startDate);
+    const end = new Date(taskData.endDate);
+    if (end < start) {
+      toast.error('End date must be after start date');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      const createData = {
+        projectId,
+        title: taskData.title.trim(),
+        description: taskData.description.trim(),
+        status: taskData.status,
+        userId: taskData.userId,
+        reviewerId: taskData.reviewerId || undefined,
+        startDate: new Date(taskData.startDate).toISOString(),
+        endDate: new Date(taskData.endDate).toISOString(),
+        milestoneIds: taskData.milestoneIds,
+      };
+
+      const response = await taskService.createTask(createData);
+
+      if (response.success) {
+        toast.success('Task created successfully');
+        onSuccess?.();
+        onClose();
+      } else {
+        toast.error(response.error || 'Unable to create task');
+      }
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast.error('Error creating task');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const toggleMilestone = (milestoneId: string) => {
+    setTaskData(prev => ({
+      ...prev,
+      milestoneIds: prev.milestoneIds.includes(milestoneId)
+        ? prev.milestoneIds.filter(id => id !== milestoneId)
+        : [...prev.milestoneIds, milestoneId]
+    }));
+  };
+
+  const statusOptions = isMember ? MEMBER_CREATE_STATUS_OPTIONS : ALL_STATUS_OPTIONS;
 
   if (!isOpen) return null;
 
   return (
     <div className="create-task-modal-overlay" onClick={handleClose}>
       <div className="create-task-modal-container" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="create-task-modal-header">
-          <h2 className="modal-title">
-            {taskToEdit ? "Edit Task" : "Create New Task"}
-          </h2>
-          <button className="close-btn" onClick={handleClose}>
+        <div className="modal-header">
+          <h2 className="modal-title">Create New Task</h2>
+          <button 
+            className="close-button" 
+            onClick={handleClose}
+            disabled={isSaving}
+          >
             <X size={20} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="create-task-modal-body">
-          <form id="create-task-form" onSubmit={handleSubmit} className="create-task-modal-form">
-            {/* Left Panel */}
-            <div className="create-task-left-panel">
-              {/* Task Title */}
-              <div className="create-task-form-group">
-                <label className="form-label">
-                  <FileText size={16} />
-                  Task Title *
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  className={`form-input ${errors.title ? "error" : ""}`}
-                  placeholder="Enter task title"
-                />
-                {errors.title && <span className="error-message">{errors.title}</span>}
-              </div>
-
-              {/* Description */}
-              <div className="create-task-form-group">
-                <label className="form-label">
-                  <FileText size={16} />
-                  Description * 
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => handleInputChange("description", e.target.value)}
-                  className={`form-textarea ${errors.description ? "error" : ""}`}
-                  placeholder="Describe the task in detail"
-                  rows={8}
-                />
-                {errors.description && <span className="error-message">{errors.description}</span>}
-              </div>
+        <div className="modal-body">
+          {isLoadingData ? (
+            <div className="loading-state">
+              <div className="loading-spinner"></div>
+              <p>Loading data...</p>
             </div>
+          ) : (
+            <div className="modal-content-grid">
+              <div className="left-column">
+                <div className="form-group">
+                  <label className="form-label">
+                    <span className="label-text">Task Title</span>
+                    <span className="required-mark">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={taskData.title}
+                    onChange={(e) => setTaskData({ ...taskData, title: e.target.value })}
+                    placeholder="Enter task title..."
+                    disabled={isSaving}
+                  />
+                </div>
 
-            {/* Right Panel */}
-            <div className="create-task-right-panel">
-              {/* Status */}
-              <div className="create-task-form-group">
-                <label className="form-label">
-                  <Flag size={16} />
-                  Status
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => handleInputChange("status", e.target.value)}
-                  className="form-select"
-                >
-                  {TASK_STATUS_OPTIONS.map((status) => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="form-group">
+                  <label className="form-label">
+                    <span className="label-text">Description</span>
+                  </label>
+                  <textarea
+                    className="form-textarea"
+                    value={taskData.description}
+                    onChange={(e) => setTaskData({ ...taskData, description: e.target.value })}
+                    placeholder="Enter task description..."
+                    rows={5}
+                    disabled={isSaving}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    <Target size={16} />
+                    <span className="label-text">Milestones</span>
+                  </label>
+                  <div className="milestone-list">
+                    {milestones.length === 0 ? (
+                      <p className="no-data-text">No milestones available</p>
+                    ) : (
+                      milestones.map(milestone => (
+                        <label key={milestone.id} className="milestone-checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={taskData.milestoneIds.includes(milestone.id)}
+                            onChange={() => toggleMilestone(milestone.id)}
+                            disabled={isSaving}
+                          />
+                          <span>{milestone.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+                
               </div>
 
-              {/* Assignee */}
-              <div className="create-task-form-group">
-                <label className="form-label">
-                  <User size={16} />
-                  Assignee
-                </label>
-                {isLoadingMembers ? (
-                  <div className="create-task-loading-state">Loading members...</div>
-                ) : (
+              <div className="right-column">
+                <div className="form-group">
+                  <label className="form-label">
+                    <Flag size={16} />
+                    <span className="label-text">Status</span>
+                  </label>
                   <select
-                    value={formData.assignee}
-                    onChange={(e) => handleInputChange("assignee", e.target.value)}
-                    className={`form-select ${isMember ? 'disabled' : ''}`}
-                    disabled={isMember}
-                    title={isMember ? "You don't have permission to change assignee" : ""}
+                    className="form-select"
+                    value={taskData.status}
+                    onChange={(e) => setTaskData({ ...taskData, status: e.target.value })}
+                    disabled={isSaving}
                   >
-                    <option value="">Unassigned</option>
-                    {members.map((projectMember) => (
-                      <option key={projectMember.id} value={projectMember.userId}>
-                        {projectMember.member?.fullName || projectMember.member?.email || 'Unknown'}
+                    {statusOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
                       </option>
                     ))}
                   </select>
-                )}
-              </div>
+                </div>
 
-              {/* Start Date */}
-              <div className="create-task-form-group">
-                <label className="form-label">
-                  <Calendar size={16} />
-                  Start Date *
-                </label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => handleInputChange("startDate", e.target.value)}
-                  className={`form-input ${errors.startDate ? "error" : ""}`}
-                  placeholder="dd/mm/yyyy"
-                />
-                {errors.startDate && <span className="error-message">{errors.startDate}</span>}
-              </div>
-
-              {/* End Date */}
-              <div className="create-task-form-group">
-                <label className="form-label">
-                  <Calendar size={16} />
-                  End Date *
-                </label>
-                <input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => handleInputChange("endDate", e.target.value)}
-                  className={`form-input ${errors.endDate ? "error" : ""}`}
-                  placeholder="dd/mm/yyyy"
-                />
-                {errors.endDate && <span className="error-message">{errors.endDate}</span>}
-              </div>
-
-              {/* Milestones */}
-              <div className="create-task-form-group">
-                <label className="form-label">
-                  <Layers size={16} />
-                  Related Milestones
-                </label>
-                {isLoadingMilestones ? (
-                  <div className="create-task-loading-state">Loading milestones...</div>
-                ) : milestones.length === 0 ? (
-                  <div className="create-task-empty-state">No milestones available</div>
-                ) : (
-                  <div className="create-task-milestone-selection">
-                    {milestones.map((milestone) => (
-                      <label key={milestone.id} className="milestone-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={formData.milestoneIds.includes(milestone.id.toString())}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              handleInputChange("milestoneIds", [...formData.milestoneIds, milestone.id.toString()]);
-                            } else {
-                              handleInputChange("milestoneIds", formData.milestoneIds.filter((id: string) => id !== milestone.id.toString()));
-                            }
-                          }}
-                        />
-                        <span className="milestone-name">{milestone.name}</span>
-                      </label>
+                <div className="form-group">
+                  <label className="form-label">
+                    <User size={16} />
+                    <span className="label-text">Assignee</span>
+                    <span className="required-mark">*</span>
+                  </label>
+                  <select
+                    className="form-select"
+                    value={taskData.userId}
+                    onChange={(e) => setTaskData({ ...taskData, userId: e.target.value })}
+                    disabled={isSaving}
+                  >
+                    <option value="">Select assignee</option>
+                    {members.map(member => (
+                      <option key={member.id} value={member.id}>
+                        {member.name}
+                      </option>
                     ))}
-                  </div>
-                )}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    <Calendar size={16} />
+                    <span className="label-text">Start Date</span>
+                    <span className="required-mark">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={taskData.startDate}
+                    onChange={(e) => setTaskData({ ...taskData, startDate: e.target.value })}
+                    disabled={isSaving}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    <Calendar size={16} />
+                    <span className="label-text">End Date</span>
+                    <span className="required-mark">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={taskData.endDate}
+                    onChange={(e) => setTaskData({ ...taskData, endDate: e.target.value })}
+                    disabled={isSaving}
+                  />
+                </div>
+
+                
               </div>
             </div>
-          </form>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="create-task-modal-footer">
-            <button type="button" className="btn-cancel" onClick={handleClose}>
-              Cancel
-            </button>
-            <button type="submit" className="btn-submit" form="create-task-form">
-              {taskToEdit ? "Update Task" : "Create Task"}
-            </button>
+        <div className="modal-footer">
+          <button 
+            className="footer-button cancel-button" 
+            onClick={handleClose}
+            disabled={isSaving}
+          >
+            Cancel
+          </button>
+          <button 
+            className="footer-button save-button" 
+            onClick={handleSave}
+            disabled={isSaving || isLoadingData}
+          >
+            {isSaving ? 'Creating...' : 'Create Task'}
+          </button>
         </div>
       </div>
     </div>

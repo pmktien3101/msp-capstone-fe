@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Project } from "@/types/project";
-import { BoardHeader } from "./BoardHeader";
+import { TaskListHeader } from "./TaskListHeader";
 import { Trash2, Eye, Edit, MoreVertical, UserPlus } from "lucide-react";
 import { taskService } from "@/services/taskService";
 import { projectService } from "@/services/projectService";
@@ -10,6 +10,7 @@ import { UserRole } from "@/lib/rbac";
 import Pagination from "@/components/ui/Pagination";
 import { TaskStatus, getTaskStatusLabel, getTaskStatusColor } from "@/constants/status";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
+import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import "@/app/styles/project-task-table.scss";
 
@@ -60,6 +61,18 @@ export const ProjectTaskTable = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [groupBy, setGroupBy] = useState("none");
   
+  // Filter states for members (removed "all" from filterType)
+  const [filterType, setFilterType] = useState<"my" | "status" | "dueDate">("my");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dueDateFilter, setDueDateFilter] = useState<"overdue" | "today" | "week" | "all">("all");
+  
+  // PM filter states (multi-select)
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [dateRangeStart, setDateRangeStart] = useState<string>("");
+  const [dateRangeEnd, setDateRangeEnd] = useState<string>("");
+  const [quickFilter, setQuickFilter] = useState<"all" | "overdue" | "readyToReview" | null>(null);
+  
   // State for tasks and members
   const [tasks, setTasks] = useState<GetTaskResponse[]>([]);
   const [members, setMembers] = useState<any[]>([]);
@@ -72,6 +85,9 @@ export const ProjectTaskTable = ({
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<GetTaskResponse | null>(null);
+
+  // Create task modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Confirm delete state
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
@@ -169,12 +185,109 @@ export const ProjectTaskTable = ({
     members.map((m) => [m.id, m.name])
   );
 
-  // Filter tasks by search query
-  const filteredTasks = tasks.filter(
-    (task) =>
-      task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Filter tasks by search query and filters
+  const filteredTasks = tasks.filter((task) => {
+    // Search query filter
+    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    if (!matchesSearch) return false;
+
+    // For members: apply single-select filters
+    if (isMember) {
+      // Filter by type
+      if (filterType === "my" && task.userId !== userId) {
+        return false;
+      }
+      
+      // Status filter
+      if (filterType === "status" && statusFilter !== "all") {
+        if (task.status !== statusFilter) {
+          return false;
+        }
+      }
+      
+      // Due date filter
+      if (filterType === "dueDate" && dueDateFilter !== "all") {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endDate = task.endDate ? new Date(task.endDate) : null;
+        
+        if (!endDate) return false;
+        
+        endDate.setHours(0, 0, 0, 0);
+        
+        if (dueDateFilter === "overdue") {
+          if (endDate >= today) return false;
+        } else if (dueDateFilter === "today") {
+          if (endDate.getTime() !== today.getTime()) return false;
+        } else if (dueDateFilter === "week") {
+          const weekFromNow = new Date(today);
+          weekFromNow.setDate(weekFromNow.getDate() + 7);
+          if (endDate > weekFromNow || endDate < today) return false;
+        }
+      }
+    } else {
+      // For PM/BO: apply multi-select filters
+      
+      // Quick filter (overrides other filters when not null or "all")
+      if (quickFilter && quickFilter !== "all") {
+        if (quickFilter === "overdue") {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const endDate = task.endDate ? new Date(task.endDate) : null;
+          
+          if (!endDate) return false;
+          endDate.setHours(0, 0, 0, 0);
+          
+          // Task is overdue if end date is before today and status is not Done/Cancelled
+          if (endDate >= today || task.status === 'Done' || task.status === 'Cancelled') {
+            return false;
+          }
+        } else if (quickFilter === "readyToReview") {
+          if (task.status !== 'ReadyToReview') {
+            return false;
+          }
+        }
+      }
+      
+      // Member filter (if any selected)
+      if (selectedMemberIds.length > 0) {
+        if (!task.userId || !selectedMemberIds.includes(task.userId)) {
+          return false;
+        }
+      }
+      
+      // Status filter (if any selected)
+      if (selectedStatuses.length > 0) {
+        if (!selectedStatuses.includes(task.status)) {
+          return false;
+        }
+      }
+      
+      // Date range filter
+      if (dateRangeStart || dateRangeEnd) {
+        const taskEndDate = task.endDate ? new Date(task.endDate) : null;
+        if (!taskEndDate) return false;
+        
+        taskEndDate.setHours(0, 0, 0, 0);
+        
+        if (dateRangeStart) {
+          const startDate = new Date(dateRangeStart);
+          startDate.setHours(0, 0, 0, 0);
+          if (taskEndDate < startDate) return false;
+        }
+        
+        if (dateRangeEnd) {
+          const endDate = new Date(dateRangeEnd);
+          endDate.setHours(0, 0, 0, 0);
+          if (taskEndDate > endDate) return false;
+        }
+      }
+    }
+
+    return true;
+  });
 
   // Helper to get assignee info from task
   const getTaskAssignee = (task: GetTaskResponse): string => {
@@ -311,20 +424,46 @@ export const ProjectTaskTable = ({
     fetchTasks(); // Refresh the task list after saving
   };
 
+  const handleCreateTask = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCreateTaskSuccess = () => {
+    fetchTasks(); // Refresh the task list after creating
+  };
 
   return (
     <div className="project-board">
-      <BoardHeader
+      <TaskListHeader
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         groupBy={groupBy}
         onGroupByChange={setGroupBy}
         members={members}
         userRole={userRole}
+        // Member-specific filters
+        isMember={isMember}
+        filterType={filterType}
+        onFilterTypeChange={setFilterType}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        dueDateFilter={dueDateFilter}
+        onDueDateFilterChange={setDueDateFilter}
+        // PM-specific filters (multi-select)
+        selectedMemberIds={selectedMemberIds}
+        onMemberIdsChange={setSelectedMemberIds}
+        selectedStatuses={selectedStatuses}
+        onStatusesChange={setSelectedStatuses}
+        dateRangeStart={dateRangeStart}
+        onDateRangeStartChange={setDateRangeStart}
+        dateRangeEnd={dateRangeEnd}
+        onDateRangeEndChange={setDateRangeEnd}
+        quickFilter={quickFilter}
+        onQuickFilterChange={setQuickFilter}
       />
-      {onCreateTask &&  isProjectManager && (
+      {isProjectManager && (
         <div className="create-task-container">
-          <button onClick={onCreateTask}>Create New Task</button>
+          <button onClick={handleCreateTask}>Create New Task</button>
         </div>
       )}
 
@@ -338,9 +477,9 @@ export const ProjectTaskTable = ({
         ) : tasks.length === 0 ? (
           <div className="empty-state">
             <p>No tasks in this project yet</p>
-          {onCreateTask && isProjectManager && (
+          {isProjectManager && (
             <div className="create-task-container">
-              <button onClick={onCreateTask}>Create New Task</button>
+              <button onClick={handleCreateTask}>Create New Task</button>
             </div>
           )}
           </div>
@@ -466,6 +605,14 @@ export const ProjectTaskTable = ({
           })
         )}
       </div>
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        projectId={projectId}
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={handleCreateTaskSuccess}
+      />
 
       {/* Task Detail Modal */}
       {selectedTask && (
