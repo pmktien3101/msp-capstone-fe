@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Edit, Trash2, Users } from "lucide-react";
+import { Trash2, Users } from "lucide-react";
 
 import packageService from "@/services/packageService";
 import { toast } from "react-toastify";
@@ -9,7 +9,6 @@ import { useUser } from "@/hooks/useUser";
 import limitationService from "@/services/limitationService";
 
 const AdminPackages = () => {
-  const [activeTab, setActiveTab] = useState("packages");
   const [showAddPlanModal, setShowAddPlanModal] = useState(false);
   const [showEditPlanModal, setShowEditPlanModal] = useState(false);
   const [showViewPlanModal, setShowViewPlanModal] = useState(false);
@@ -112,42 +111,6 @@ const AdminPackages = () => {
       mounted = false;
     };
   }, []);
-
-  const subscriptions = [
-    {
-      id: 1,
-      companyName: "Công ty ABC",
-      planName: "Premium",
-      status: "active",
-      startDate: "2024-01-15",
-      endDate: "2024-02-15",
-      amount: "$79",
-      paymentMethod: "Credit Card",
-      nextBilling: "2024-02-15",
-    },
-    {
-      id: 2,
-      companyName: "Công ty XYZ",
-      planName: "Basic",
-      status: "active",
-      startDate: "2024-01-20",
-      endDate: "2024-02-20",
-      amount: "$29",
-      paymentMethod: "Bank Transfer",
-      nextBilling: "2024-02-20",
-    },
-    {
-      id: 3,
-      companyName: "Công ty DEF",
-      planName: "Pro",
-      status: "trial",
-      startDate: "2024-02-01",
-      endDate: "2024-02-15",
-      amount: "$0",
-      paymentMethod: "Trial",
-      nextBilling: "2024-02-15",
-    },
-  ];
 
   // Handler functions for adding new plan
   const handleAddPlan = () => {
@@ -523,125 +486,101 @@ const AdminPackages = () => {
         <p>Manage service plans and customer subscriptions</p>
       </div>
 
-      {/* Tabs */}
-      <div className="tabs-section">
-        <button
-          className={`tab-btn ${activeTab === "packages" ? "active" : ""}`}
-          onClick={() => setActiveTab("packages")}
-        >
-          Packages
-        </button>
-        <button
-          className={`tab-btn ${activeTab === "subscriptions" ? "active" : ""}`}
-          onClick={() => setActiveTab("subscriptions")}
-        >
-          Subscriptions
-        </button>
-      </div>
+      {/* Packages (single view) */}
+      <div className="plans-content">
+        <div className="plans-header">
+          <h2></h2>
+          <button
+            className="add-plan-btn"
+            onClick={() => setShowAddPlanModal(true)}
+          >
+            + Add
+          </button>
+        </div>
 
-      {/* Packages Tab */}
-      {activeTab === "packages" && (
-        <div className="plans-content">
-          <div className="plans-header">
-            <h2>Packages</h2>
-            <button
-              className="add-plan-btn"
-              onClick={() => setShowAddPlanModal(true)}
-            >
-              + Add
-            </button>
-          </div>
-
-          <div className="plans-grid">
-            {plans.map((plan: any) => (
-              <div key={plan.id} className="plan-card modern pricing-card">
-                <div className="card-top pricing-top">
-                  <div className="card-title">
-                    <h3>{plan.name}</h3>
-                    {plan.activeSubscriptions > 5 && (
-                      <span className="badge-popular">Popular</span>
-                    )}
-                  </div>
-
-                  <div className="card-price">
-                    <div className="price-wrap">
-                      <span className="currency">
-                        {currencySymbol(plan.currency ?? plan.Currency)}
-                      </span>
-                      <span className="price">{plan.price}</span>
-                      <span className="period">
-                        /{formatPeriodLabel(plan.period, plan.billingCycle)}
-                      </span>
-                    </div>
-                  </div>
+        <div className="plans-grid">
+          {plans.map((plan: any) => (
+            <div key={plan.id} className="plan-card modern pricing-card">
+              <div className="card-top pricing-top">
+                <div className="card-title">
+                  <h3>{plan.name}</h3>
+                  {plan.activeSubscriptions > 5 && (
+                    <span className="badge-popular">Popular</span>
+                  )}
                 </div>
 
-                <div className="modern-features pricing-features">
-                  <ul>
-                    {(plan.limitations || [])
-                      .slice(0, 6)
-                      .map((limItem: any, idx: number) => {
-                        const lim = getLimFromItem(limItem);
-                        if (!lim)
-                          return (
-                            <li
-                              key={String(limItem) + idx}
-                              className="feature-row"
-                            >
-                              <span className="feature-text">
-                                {String(limItem)}
-                              </span>
-                            </li>
-                          );
-                        return (
-                          <li key={lim.id ?? idx} className="feature-row">
-                            <span className="feature-text">
-                              {lim.name ?? lim.Name}
-                            </span>
-                            <span className="feature-meta">
-                              {lim.isUnlimited || lim.IsUnlimited
-                                ? "Unlimited"
-                                : lim.limitValue ?? lim.LimitValue
-                                ? `${lim.limitValue ?? lim.LimitValue}${
-                                    lim.limitUnit ?? lim.LimitUnit
-                                      ? ` ${lim.limitUnit ?? lim.LimitUnit}`
-                                      : ""
-                                  }`
-                                : ""}
-                            </span>
-                          </li>
-                        );
-                      })}
-                  </ul>
-                </div>
-
-                <div className="plan-footer pricing-footer">
-                  <div className="plan-limits" />
-
-                  <div className="plan-actions modern-actions pricing-actions">
-                    <div className="small-actions">
-                      <button
-                        className="icon-btn"
-                        onClick={() => handleEditPlan(plan)}
-                        title="Edit"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        className="icon-btn danger"
-                        onClick={() => handleDeletePlan(plan)}
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                <div className="card-price">
+                  <div className="price-wrap">
+                    <span className="currency">
+                      {currencySymbol(plan.currency ?? plan.Currency)}
+                    </span>
+                    <span className="price">{plan.price}</span>
+                    <span className="period">
+                      /{formatPeriodLabel(plan.period, plan.billingCycle)}
+                    </span>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+
+              <div className="modern-features pricing-features">
+                <ul>
+                  {(plan.limitations || [])
+                    .slice(0, 6)
+                    .map((limItem: any, idx: number) => {
+                      const lim = getLimFromItem(limItem);
+                      if (!lim)
+                        return (
+                          <li
+                            key={String(limItem) + idx}
+                            className="feature-row"
+                          >
+                            <span className="feature-text">
+                              {String(limItem)}
+                            </span>
+                          </li>
+                        );
+                      return (
+                        <li key={lim.id ?? idx} className="feature-row">
+                          <span className="feature-text">
+                            {lim.name ?? lim.Name}
+                          </span>
+                          <span className="feature-meta">
+                            {lim.isUnlimited || lim.IsUnlimited
+                              ? "Unlimited"
+                              : lim.limitValue ?? lim.LimitValue
+                              ? `${lim.limitValue ?? lim.LimitValue}${
+                                  lim.limitUnit ?? lim.LimitUnit
+                                    ? ` ${lim.limitUnit ?? lim.LimitUnit}`
+                                    : ""
+                                }`
+                              : ""}
+                          </span>
+                        </li>
+                      );
+                    })}
+                </ul>
+              </div>
+
+              <div className="plan-footer pricing-footer">
+                <div className="plan-limits" />
+
+                <div className="plan-actions modern-actions pricing-actions">
+                  <div className="small-actions">
+                    {/* Edit button removed per request */}
+                    <button
+                      className="icon-btn danger"
+                      onClick={() => handleDeletePlan(plan)}
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Add Plan Modal */}
       {showAddPlanModal && (
@@ -890,15 +829,7 @@ const AdminPackages = () => {
               >
                 Close
               </button>
-              <button
-                className="btn-edit"
-                onClick={() => {
-                  setShowViewPlanModal(false);
-                  handleEditPlan(selectedPlan);
-                }}
-              >
-                Edit
-              </button>
+              {/* Edit action removed from view modal per request */}
             </div>
           </div>
         </div>

@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Eye,
-  Edit,
-  X,
-  Search,
-  CheckCircle,
-  XCircle,
-  UserX,
-} from "lucide-react";
+import { Eye, X, Search, CheckCircle, XCircle, UserX } from "lucide-react";
 import { toast } from "react-toastify";
 import { userService } from "@/services/userService";
 import type { BusinessOwner } from "@/types/auth";
@@ -218,16 +210,6 @@ const AdminBusinessOwners = () => {
     );
   };
 
-  function getDaysLeft(expireDate?: string) {
-    if (!expireDate) return "-";
-    const today = new Date();
-    const exp = new Date(expireDate);
-    const diff = Math.ceil(
-      (exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return diff > 0 ? diff : 0;
-  }
-
   return (
     <div className="admin-business-owners">
       <div className="page-header">
@@ -381,9 +363,7 @@ const AdminBusinessOwners = () => {
                   </>
                 ) : (
                   <>
-                    <button className="action-btn edit" title="Edit">
-                      <Edit size={16} />
-                    </button>
+                    {/* Edit button removed per request */}
                     {businessOwner.isApproved && (
                       <button
                         className={`action-btn ${
@@ -614,27 +594,6 @@ const AdminBusinessOwners = () => {
                       {new Date(
                         selectedBusinessOwner.createdAt
                       ).toLocaleDateString("en-US")}
-                    </span>
-                  </div>
-                  <hr style={{ margin: "16px 0" }} />
-                  <div className="detail-row">
-                    <span className="detail-label">Subscription Plan:</span>
-                    <span className="detail-value">
-                      {(selectedBusinessOwner as any).packageName || "-"}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Expiry Date:</span>
-                    <span className="detail-value">
-                      {(selectedBusinessOwner as any).packageExpireDate || "-"}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Days Left:</span>
-                    <span className="detail-value">
-                      {getDaysLeft(
-                        (selectedBusinessOwner as any).packageExpireDate
-                      )}
                     </span>
                   </div>
                 </div>
