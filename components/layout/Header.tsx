@@ -88,13 +88,11 @@ const Header = () => {
       <div className="header-right">
         {/* Search Bar */}
         <div className="header-search">
-          {/* <div className="search-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="11" cy="11" r="8" stroke="#FF5E13" strokeWidth="2" />
-              <path d="m21 21-4.35-4.35" stroke="#FF5E13" strokeWidth="2" />
-            </svg>
-          </div> */}
-          <input type="text" placeholder="Tìm kiếm" className="search-input" />
+          <input
+            type="text"
+            placeholder="Search anything..."
+            className="search-input"
+          />
         </div>
 
         {/* Notification Bell - Real-time */}
