@@ -14,6 +14,7 @@ import { Member, Participant } from "@/types";
 import { projectService } from "@/services/projectService";
 import { milestoneService } from "@/services/milestoneService";
 import { meetingService } from "@/services/meetingService";
+import { useMemberInMeetingLimitationCheck } from "@/hooks/useLimitationCheck";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -64,6 +65,7 @@ export default function MeetingForm({
 }: MeetingFormProps) {
   const { userId } = useUser();
   const client = useStreamVideoClient();
+  const { checkMemberInMeetingLimit } = useMemberInMeetingLimitationCheck();
   const [callDetails, setCallDetails] = useState<Call>();
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
@@ -143,6 +145,19 @@ export default function MeetingForm({
   }, [projectId]);
 
   const handleParticipantChange = (participantId: string) => {
+    // Check if adding or removing
+    const isAdding = !selectedParticipants.includes(participantId);
+    
+    if (isAdding) {
+      // Check limitation before adding participant
+      const newCount = selectedParticipants.length + 1;
+      if (!checkMemberInMeetingLimit(newCount)) {
+        // Limit exceeded, don't add
+        return;
+      }
+    }
+
+    // Update state
     setSelectedParticipants((prev) =>
       prev.includes(participantId)
         ? prev.filter((id) => id !== participantId)
@@ -160,6 +175,11 @@ export default function MeetingForm({
     if (!client || !userId) {
       toast.error("Stream client chưa được khởi tạo");
       return;
+    }
+
+    // Final check: verify participant count doesn't exceed limit
+    if (!checkMemberInMeetingLimit(selectedParticipants.length)) {
+      return; // Limit exceeded, don't submit
     }
 
     setIsCreating(true);

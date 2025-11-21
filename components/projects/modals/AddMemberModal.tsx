@@ -7,6 +7,7 @@ import { Member } from '@/types/member';
 import { Plus, Search, X, Trash2, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { userService } from '@/services/userService';
 import { projectService } from '@/services/projectService';
+import { useMemberInProjectLimitationCheck } from '@/hooks/useLimitationCheck';
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function AddMemberModal({
   ownerId,
   userRole
 }: AddMemberModalProps) {
+  const { checkMemberInProjectLimit } = useMemberInProjectLimitationCheck();
   const [searchQuery, setSearchQuery] = useState('');
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -120,6 +122,12 @@ export function AddMemberModal({
       setError('User ID không hợp lệ');
       console.error('Invalid user selected:', selectedUser);
       return;
+    }
+
+    // Check member count limitation before adding
+    const newMemberCount = existingMembers.length + 1;
+    if (!checkMemberInProjectLimit(newMemberCount)) {
+      return; // Limit exceeded, don't add
     }
 
     setAdding(true);

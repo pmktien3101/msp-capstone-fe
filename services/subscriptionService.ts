@@ -6,6 +6,7 @@ interface ApiResponse<T = any> {
   data?: T;
   message?: string;
 }
+
 export const subscriptionService = {
   async createSubscription(
     data: CreateSubscriptionPayload
@@ -55,7 +56,56 @@ export const subscriptionService = {
     }
   },
 
-  // Fetch all subscriptions and map to a simplified display model
+
+  async getActiveSubscriptionByUserId(
+    userId: string
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await api.get<ApiResponse<any>>(
+        `/subscriptions/active/${userId}`
+      );
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.success ? undefined : response.data.message,
+      };
+    } catch (error: any) {
+      console.error("Get active subscriptions error:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to get active subscriptions",
+      };
+    }
+  },
+
+  async getActiveSubscriptionByUserIdWithUsage(
+    userId: string
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const response = await api.get<ApiResponse<any>>(
+        `/subscriptions/active/${userId}/usage`
+      );
+      return {
+        success: response.data.success,
+        data: response.data.data,
+        error: response.data.success ? undefined : response.data.message,
+      };
+    } catch (error: any) {
+      console.error("Get active subscription (with usage) error:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to get active subscription (with usage)",
+      };
+    }
+  },
+
+
   async getAllSubscriptions(): Promise<{
     success: boolean;
     data?: any;
@@ -120,30 +170,6 @@ export const subscriptionService = {
           error.response?.data?.message ||
           error.message ||
           "Failed to get subscriptions",
-      };
-    }
-  },
-
-  async getActiveSubscriptionByUserId(
-    userId: string
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
-    try {
-      const response = await api.get<ApiResponse<any>>(
-        `/subscriptions/active/${userId}`
-      );
-      return {
-        success: response.data.success,
-        data: response.data.data,
-        error: response.data.success ? undefined : response.data.message,
-      };
-    } catch (error: any) {
-      console.error("Get active subscriptions error:", error);
-      return {
-        success: false,
-        error:
-          error.response?.data?.message ||
-          error.message ||
-          "Failed to get active subscriptions",
       };
     }
   },
