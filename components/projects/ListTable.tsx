@@ -950,8 +950,10 @@ export const ListTable = ({
       <CreateTaskModal
         isOpen={createTaskModal.isOpen}
         onClose={closeCreateTaskModal}
-        milestoneId={createTaskModal.milestoneId}
-        onCreateTask={handleCreateTask}
+        onSuccess={() => {
+          // Refresh tasks or handle success
+          closeCreateTaskModal();
+        }}
         projectId={project.id}
       />
 

@@ -475,18 +475,20 @@ const ProjectDetailPage = () => {
       <CreateTaskModal
         isOpen={isCreateTaskModalOpen}
         onClose={handleCloseCreateTaskModal}
-        onCreateTask={handleSubmitTask}
+        onSuccess={() => {
+          handleCloseCreateTaskModal();
+          setRefreshKey(prev => prev + 1);
+        }}
         projectId={projectId}
       />
 
       {/* Edit Task Modal */}
       {taskToEdit && (
-        <CreateTaskModal
+        <DetailTaskModal
           isOpen={isEditTaskModalOpen}
           onClose={handleCloseEditTaskModal}
-          onCreateTask={handleUpdateTask}
+          task={taskToEdit as any}
           projectId={projectId}
-          taskToEdit={taskToEdit}
         />
       )}
 
