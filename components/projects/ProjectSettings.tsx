@@ -350,7 +350,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="form-group">
               <label className="form-label">
                 <User size={14} />
-                Project Manager
+                Project Owner
               </label>
               <input
                 type="text"

@@ -149,7 +149,6 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
           <span className="project-count">{projects.length}</span>
         </div>
         <div className="section-actions">
-          {/* Chỉ hiện nút tạo dự án cho PM */}
           {(user?.role === UserRole.PROJECT_MANAGER || user?.role === 'ProjectManager') && (
             <button 
               className="add-project-btn"

@@ -28,7 +28,7 @@ const ProjectsPage = () => {
 
   const fetchProjects = async () => {
     if (!user?.userId || !user?.role) {
-      setError('Không tìm thấy thông tin người dùng');
+      setError('User information not found');
       setLoading(false);
       return;
     }
@@ -56,11 +56,11 @@ const ProjectsPage = () => {
         setProjects(result.data.items);
       } else {
         console.error('[ProjectsPage] Failed to fetch projects:', result.error);
-        setError(result.error || 'Không thể tải danh sách dự án');
+        setError(result.error || 'Unable to load project list');
       }
     } catch (error: any) {
       console.error('[ProjectsPage] Fetch projects error:', error);
-      setError(error.message || 'Đã xảy ra lỗi khi tải dự án');
+      setError(error.message || 'An error occurred while loading projects');
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ const ProjectsPage = () => {
       fetchProjects();
     } else if (!isAuthenticated) {
       setLoading(false);
-      setError('Vui lòng đăng nhập để xem dự án');
+      setError('Please login to view projects');
     }
   }, [isAuthenticated, user?.userId]); // Only depend on user.userId (stable value), not entire user object
 
@@ -110,13 +110,13 @@ const ProjectsPage = () => {
         );
         setShowEditProjectModal(false);
         setSelectedProject(null);
-        toast.success('Cập nhật dự án thành công!');
+        toast.success('Project updated successfully!');
       } else {
-        toast.error(result.error || 'Không thể cập nhật dự án');
+        toast.error(result.error || 'Unable to update project');
       }
     } catch (error) {
       console.error('Update project error:', error);
-      toast.error('Đã xảy ra lỗi khi cập nhật dự án');
+      toast.error('An error occurred while updating project');
     }
   };
 
@@ -145,7 +145,7 @@ const ProjectsPage = () => {
         <div className="projects-content">
           <div className="loading-container">
             <div className="loading-spinner"></div>
-            <p>Đang tải dự án...</p>
+            <p>Loading projects...</p>
           </div>
         </div>
       </div>
@@ -159,7 +159,7 @@ const ProjectsPage = () => {
         <div className="projects-content">
           <div className="error-container">
             <p className="error-message">{error}</p>
-            <button onClick={fetchProjects} className="retry-button">Thử lại</button>
+            <button onClick={fetchProjects} className="retry-button">Retry</button>
           </div>
         </div>
       </div>
@@ -194,32 +194,6 @@ const ProjectsPage = () => {
           onUpdateProject={handleUpdateProject}
         />
       )}
-
-      <style jsx>{`
-        .projects-page {
-          min-height: 100vh;
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-          padding: 0;
-        }
-
-        .projects-content {
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: 0 24px 40px 24px;
-        }
-
-        @media (max-width: 768px) {
-          .projects-content {
-            padding: 0 16px 24px 16px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .projects-content {
-            padding: 0 12px 20px 12px;
-          }
-        }
-      `}</style>
     </div>
   )
 }

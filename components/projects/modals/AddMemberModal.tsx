@@ -7,6 +7,7 @@ import { Member } from '@/types/member';
 import { Plus, Search, X, Trash2, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { userService } from '@/services/userService';
 import { projectService } from '@/services/projectService';
+import '@/app/styles/add-member-modal.scss';
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export function AddMemberModal({
 
   const fetchAvailableUsers = async () => {
     if (!ownerId) {
-      setError('Không tìm thấy Owner ID');
+      setError('Owner ID not found');
       return;
     }
     
@@ -58,11 +59,11 @@ export function AddMemberModal({
       if (result.success && result.data) {
         setAvailableUsers(result.data);
       } else {
-        setError(result.error || 'Không thể tải danh sách người dùng');
+        setError(result.error || 'Unable to load user list');
       }
     } catch (err: any) {
       console.error('Error fetching users:', err);
-      setError(err.message || 'Đã xảy ra lỗi khi tải người dùng');
+      setError(err.message || 'An error occurred while loading users');
     } finally {
       setLoading(false);
     }
@@ -109,7 +110,7 @@ export function AddMemberModal({
 
   const handleAddMember = async (selectedUser: any) => {
     if (!projectId) {
-      setError('Không tìm thấy ID dự án');
+      setError('Project ID not found');
       return;
     }
 
@@ -117,7 +118,7 @@ export function AddMemberModal({
     const userIdToAdd = selectedUser.userId || selectedUser.id;
     
     if (!userIdToAdd) {
-      setError('User ID không hợp lệ');
+      setError('Invalid User ID');
       console.error('Invalid user selected:', selectedUser);
       return;
     }
@@ -149,7 +150,7 @@ export function AddMemberModal({
         };
         
         onAddMember(newMember);
-        setSuccess(`Đã thêm ${selectedUser.fullName} vào dự án!`);
+        setSuccess(`Added ${selectedUser.fullName} to the project!`);
         
         // Refresh available users list
         await fetchAvailableUsers();
@@ -159,13 +160,13 @@ export function AddMemberModal({
           handleClose();
         }, 1500);
       } else {
-        const errorMsg = result.error || 'Không thể thêm thành viên';
+        const errorMsg = result.error || 'Unable to add member';
         setError(errorMsg);
         console.error('Add member failed:', errorMsg);
       }
     } catch (err: any) {
       console.error('Error adding member:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Đã xảy ra lỗi khi thêm thành viên';
+      const errorMsg = err.response?.data?.message || err.message || 'An error occurred while adding member';
       setError(errorMsg);
     } finally {
       setAdding(false);
@@ -182,286 +183,76 @@ export function AddMemberModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: 'white',
-          borderRadius: '12px',
-          width: '100%',
-          maxWidth: '600px',
-          maxHeight: '80vh',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="add-member-modal-overlay" onClick={onClose}>
+      <div className="add-member-modal-content" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '20px 24px',
-            borderBottom: '1px solid #e5e7eb'
-          }}
-        >
-          <h2
-            style={{
-              fontSize: '20px',
-              fontWeight: 600,
-              color: '#1f2937',
-              margin: 0
-            }}
-          >
-            {userRole === 'businessowner' ? 'Thêm người quản lý' : 'Thêm thành viên'}
+        <div className="add-member-modal-header">
+          <h2>
+            {userRole === 'businessowner' ? 'Add Manager' : 'Add Member'}
           </h2>
-          <button
-            style={{
-              width: '32px',
-              height: '32px',
-              border: 'none',
-              background: 'none',
-              color: '#6b7280',
-              cursor: 'pointer',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s ease'
-            }}
-            onClick={handleClose}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-              e.currentTarget.style.color = '#374151';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#6b7280';
-            }}
-          >
+          <button className="btn-close" onClick={handleClose}>
             <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <div
-          style={{
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '24px',
-            flex: 1,
-            overflowY: 'auto'
-          }}
-        >
+        <div className="add-member-modal-body">
           {/* Error Message */}
           {error && (
-            <div
-              style={{
-                padding: '12px 16px',
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <AlertCircle size={16} style={{ color: '#dc2626', flexShrink: 0 }} />
-              <span style={{ color: '#991b1b', fontSize: '14px' }}>{error}</span>
+            <div className="alert-message error">
+              <AlertCircle size={16} />
+              <span>{error}</span>
             </div>
           )}
 
           {/* Success Message */}
           {success && (
-            <div
-              style={{
-                padding: '12px 16px',
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <CheckCircle size={16} style={{ color: '#16a34a', flexShrink: 0 }} />
-              <span style={{ color: '#15803d', fontSize: '14px' }}>{success}</span>
+            <div className="alert-message success">
+              <CheckCircle size={16} />
+              <span>{success}</span>
             </div>
           )}
 
           {/* Loading State */}
           {loading && (
-            <div
-              style={{
-                padding: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '12px'
-              }}
-            >
-              <Loader2 size={20} style={{ color: '#FF5E13', animation: 'spin 1s linear infinite' }} />
-              <span style={{ color: '#6b7280', fontSize: '14px' }}>Đang tải danh sách thành viên...</span>
+            <div className="loading-state">
+              <Loader2 size={20} />
+              <span>Loading member list...</span>
             </div>
           )}
 
           {/* Search */}
-          <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#374151',
-                marginBottom: '8px'
-              }}
-            >
-              Tìm kiếm thành viên
-            </label>
-            <div style={{ position: 'relative' }}>
-              <Search
-                size={16}
-                style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#6b7280'
-                }}
-              />
+          <div className="search-field">
+            <label>Search members</label>
+            <div className="search-input-wrapper">
+              <Search size={16} />
               <Input
                 type="text"
-                placeholder="Tìm theo tên, email hoặc vai trò..."
+                placeholder="Search by name, email or role..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  paddingLeft: '40px',
-                  padding: '12px 12px 12px 40px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px'
-                }}
               />
             </div>
           </div>
 
           {/* Current Members */}
           {existingMembers.length > 0 && (
-            <div>
-              <h4
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  color: '#374151',
-                  margin: '0 0 12px 0'
-                }}
-              >
-                Thành viên hiện tại ({existingMembers.length})
-              </h4>
-              <div
-                style={{
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px'
-                }}
-              >
+            <div className="members-section">
+              <h4>Current Members ({existingMembers.length})</h4>
+              <div className="members-list">
                 {existingMembers.map((member, index) => (
-                  <div
-                    key={member.id || (member as any).userId || `existing-${index}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px',
-                      borderBottom: '1px solid #f3f4f6',
-                      transition: 'background-color 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f9fafb';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        background: '#FF5E13',
-                        color: 'white',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '14px',
-                        fontWeight: 600
-                      }}
-                    >
+                  <div key={member.id || (member as any).userId || `existing-${index}`} className="member-item">
+                    <div className="member-avatar existing">
                       {member.avatar}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          fontWeight: 500,
-                          color: '#374151',
-                          fontSize: '14px'
-                        }}
-                      >
-                        {member.name}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '12px',
-                          color: '#6b7280'
-                        }}
-                      >
-                        {member.email} • {member.role}
-                      </div>
+                    <div className="member-info">
+                      <div className="member-name">{member.name}</div>
+                      <div className="member-details">{member.email} • {member.role}</div>
                     </div>
                     {/* Show delete button based on user role */}
                     {(userRole?.toLowerCase() === 'businessowner' || 
                       (userRole?.toLowerCase() === 'projectmanager' && member.role?.toLowerCase() === 'member')) && (
-                      <button
-                        onClick={() => onRemoveMember(member.id)}
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          border: 'none',
-                          background: '#ef4444',
-                          color: 'white',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#dc2626';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = '#ef4444';
-                        }}
-                      >
+                      <button className="btn-remove" onClick={() => onRemoveMember(member.id)}>
                         <Trash2 size={14} />
                       </button>
                     )}
@@ -473,25 +264,9 @@ export function AddMemberModal({
 
           {/* Available Users */}
           {!loading && filteredUsers.length > 0 && (
-            <div>
-              <h4
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  color: '#374151',
-                  margin: '0 0 12px 0'
-                }}
-              >
-                Thành viên có sẵn ({filteredUsers.length})
-              </h4>
-              <div
-                style={{
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px'
-                }}
-              >
+            <div className="members-section">
+              <h4>Available Members ({filteredUsers.length})</h4>
+              <div className="members-list">
                 {filteredUsers.map((availableUser, index) => {
                   const userId = availableUser.userId || availableUser.id;
                   const userRole = availableUser.role || availableUser.roleName || 'Member';
@@ -499,63 +274,20 @@ export function AddMemberModal({
                   return (
                     <div
                       key={userId || availableUser.email || `available-${index}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        padding: '12px',
-                        borderBottom: '1px solid #f3f4f6',
-                        cursor: adding ? 'not-allowed' : 'pointer',
-                        opacity: adding ? 0.6 : 1,
-                        transition: 'background-color 0.2s ease'
-                      }}
+                      className={`member-item clickable ${adding ? 'disabled' : ''}`}
                       onClick={() => !adding && handleAddMember(availableUser)}
-                      onMouseEnter={(e) => {
-                        if (!adding) e.currentTarget.style.backgroundColor = '#f9fafb';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
                     >
-                      <div
-                        style={{
-                          width: '40px',
-                          height: '40px',
-                          background: '#10b981',
-                          color: 'white',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '14px',
-                          fontWeight: 600
-                        }}
-                      >
+                      <div className="member-avatar available">
                         {availableUser.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            fontWeight: 500,
-                            color: '#374151',
-                            fontSize: '14px'
-                          }}
-                        >
-                          {availableUser.fullName}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: '12px',
-                            color: '#6b7280'
-                          }}
-                        >
-                          {availableUser.email} • {userRole}
-                        </div>
+                      <div className="member-info">
+                        <div className="member-name">{availableUser.fullName}</div>
+                        <div className="member-details">{availableUser.email} • {userRole}</div>
                       </div>
                       {adding ? (
-                        <Loader2 size={16} style={{ color: '#FF5E13', animation: 'spin 1s linear infinite' }} />
+                        <Loader2 size={16} className="icon-loading" />
                       ) : (
-                        <Plus size={16} style={{ color: '#10b981' }} />
+                        <Plus size={16} className="icon-add" />
                       )}
                     </div>
                   );
@@ -566,28 +298,14 @@ export function AddMemberModal({
 
           {/* No Available Users */}
           {!loading && filteredUsers.length === 0 && availableUsers.length > 0 && (
-            <div
-              style={{
-                padding: '24px',
-                textAlign: 'center',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}
-            >
-              Không tìm thấy thành viên phù hợp với tìm kiếm của bạn
+            <div className="empty-state">
+              No members found matching your search
             </div>
           )}
 
           {!loading && availableUsers.length === 0 && (
-            <div
-              style={{
-                padding: '24px',
-                textAlign: 'center',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}
-            >
-              Không có thành viên khả dụng để thêm vào dự án
+            <div className="empty-state">
+              No available members to add to the project
             </div>
           )}
         </div>
