@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Eye,
-  Edit,
-  Trash2,
-  X,
-  Search,
-  CheckCircle,
-  XCircle,
-  UserX,
-} from "lucide-react";
+import { Eye, X, Search, CheckCircle, XCircle, UserX } from "lucide-react";
 import { toast } from "react-toastify";
 import { userService } from "@/services/userService";
 import type { BusinessOwner } from "@/types/auth";
@@ -115,16 +106,14 @@ const AdminBusinessOwners = () => {
             )
           );
           toast.success(
-            result.message || "Đã cập nhật trạng thái hoạt động thành công!"
+            result.message || "Active status updated successfully!"
           );
         } else {
-          toast.error(
-            result.error || "Không thể cập nhật trạng thái hoạt động"
-          );
+          toast.error(result.error || "Could not update active status");
         }
       } catch (error) {
         console.error("Error toggling active status:", error);
-        toast.error("Đã xảy ra lỗi khi cập nhật trạng thái hoạt động");
+        toast.error("An error occurred while updating active status");
       }
       setShowDeactivateModal(false);
       setSelectedBusinessOwner(null);
@@ -146,16 +135,14 @@ const AdminBusinessOwners = () => {
             )
           );
           toast.success(
-            result.message || "Đã phê duyệt tài khoản doanh nghiệp thành công!"
+            result.message || "Business account approved successfully!"
           );
         } else {
-          toast.error(
-            result.error || "Không thể phê duyệt tài khoản doanh nghiệp"
-          );
+          toast.error(result.error || "Could not approve business account");
         }
       } catch (error) {
         console.error("Error approving business owner:", error);
-        toast.error("Đã xảy ra lỗi khi phê duyệt tài khoản doanh nghiệp");
+        toast.error("An error occurred while approving business account");
       }
       setShowApproveModal(false);
       setSelectedBusinessOwner(null);
@@ -173,16 +160,14 @@ const AdminBusinessOwners = () => {
             businessOwners.filter((bo) => bo.id !== selectedBusinessOwner.id)
           );
           toast.success(
-            result.message || "Đã từ chối tài khoản doanh nghiệp thành công!"
+            result.message || "Business account rejected successfully!"
           );
         } else {
-          toast.error(
-            result.error || "Không thể từ chối tài khoản doanh nghiệp"
-          );
+          toast.error(result.error || "Could not reject business account");
         }
       } catch (error) {
         console.error("Error rejecting business owner:", error);
-        toast.error("Đã xảy ra lỗi khi từ chối tài khoản doanh nghiệp");
+        toast.error("An error occurred while rejecting business account");
       }
       setShowRejectModal(false);
       setSelectedBusinessOwner(null);
@@ -194,13 +179,13 @@ const AdminBusinessOwners = () => {
     const isActive = businessOwner.isActive;
 
     const statusConfig = {
-      active: { color: "#D1FAE5", textColor: "#065F46", text: "Hoạt động" },
+      active: { color: "#D1FAE5", textColor: "#065F46", text: "Active" },
       inactive: {
         color: "#F3F4F6",
         textColor: "#6B7280",
-        text: "Ngừng hoạt động",
+        text: "Inactive",
       },
-      pending: { color: "#FEF3C7", textColor: "#D97706", text: "Chờ duyệt" },
+      pending: { color: "#FEF3C7", textColor: "#D97706", text: "Pending" },
     };
 
     let config;
@@ -225,21 +210,11 @@ const AdminBusinessOwners = () => {
     );
   };
 
-  function getDaysLeft(expireDate?: string) {
-    if (!expireDate) return "-";
-    const today = new Date();
-    const exp = new Date(expireDate);
-    const diff = Math.ceil(
-      (exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return diff > 0 ? diff : 0;
-  }
-
   return (
     <div className="admin-business-owners">
       <div className="page-header">
-        <h1>Quản Lý Chủ Doanh Nghiệp</h1>
-        <p>Quản lý tất cả các chủ doanh nghiệp đang sử dụng hệ thống</p>
+        <h1>Manage Business Owners</h1>
+        <p>Manage all business owners using the system</p>
       </div>
 
       {/* Filters */}
@@ -247,7 +222,7 @@ const AdminBusinessOwners = () => {
         <div className="search-box">
           <input
             type="text"
-            placeholder="Tìm kiếm theo tên, email hoặc tên tổ chức..."
+            placeholder="Search by name, email, or organization..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -261,7 +236,7 @@ const AdminBusinessOwners = () => {
             className={`filter-btn ${filterStatus === "all" ? "active" : ""}`}
             onClick={() => setFilterStatus("all")}
           >
-            Tất cả
+            All
           </button>
           <button
             className={`filter-btn ${
@@ -269,7 +244,7 @@ const AdminBusinessOwners = () => {
             }`}
             onClick={() => setFilterStatus("pending")}
           >
-            Chờ duyệt
+            Pending
           </button>
           <button
             className={`filter-btn ${
@@ -277,7 +252,7 @@ const AdminBusinessOwners = () => {
             }`}
             onClick={() => setFilterStatus("active")}
           >
-            Hoạt động
+            Active
           </button>
           <button
             className={`filter-btn ${
@@ -285,7 +260,7 @@ const AdminBusinessOwners = () => {
             }`}
             onClick={() => setFilterStatus("inactive")}
           >
-            Ngừng hoạt động
+            Inactive
           </button>
         </div>
       </div>
@@ -294,19 +269,19 @@ const AdminBusinessOwners = () => {
       <div className="stats-row">
         <div className="stat-item">
           <span className="stat-number">{businessOwners.length}</span>
-          <span className="stat-label">Tổng chủ doanh nghiệp</span>
+          <span className="stat-label">Total Owners</span>
         </div>
         <div className="stat-item">
           <span className="stat-number">
             {businessOwners.filter((bo) => !bo.isApproved).length}
           </span>
-          <span className="stat-label">Chờ duyệt</span>
+          <span className="stat-label">Pending</span>
         </div>
         <div className="stat-item">
           <span className="stat-number">
             {businessOwners.filter((bo) => bo.isApproved).length}
           </span>
-          <span className="stat-label">Đang hoạt động</span>
+          <span className="stat-label">Active</span>
         </div>
         <div className="stat-item">
           <span className="stat-number">
@@ -315,25 +290,25 @@ const AdminBusinessOwners = () => {
                 .length
             }
           </span>
-          <span className="stat-label">Ngừng hoạt động</span>
+          <span className="stat-label">Inactive</span>
         </div>
       </div>
 
       {/* Business Owners Table */}
       <div className="business-owners-table">
         <div className="table-header">
-          <div className="table-cell">Họ và tên</div>
+          <div className="table-cell">Full Name</div>
           <div className="table-cell">Email</div>
-          <div className="table-cell">Số điện thoại</div>
-          <div className="table-cell">Tên tổ chức</div>
-          <div className="table-cell">Trạng thái</div>
-          <div className="table-cell">Ngày tạo tài khoản</div>
-          <div className="table-cell">Hành động</div>
+          <div className="table-cell">Phone</div>
+          <div className="table-cell">Organization</div>
+          <div className="table-cell">Status</div>
+          <div className="table-cell">Account Created</div>
+          <div className="table-cell">Actions</div>
         </div>
 
         {filteredBusinessOwners.map((businessOwner) => (
           <div key={businessOwner.id} className="table-row">
-            <div className="table-cell" data-label="Họ và tên">
+            <div className="table-cell" data-label="Full Name">
               <div className="business-owner-info">
                 <div className="business-owner-avatar">
                   {businessOwner.fullName.charAt(0)}
@@ -346,25 +321,25 @@ const AdminBusinessOwners = () => {
             <div className="table-cell" data-label="Email">
               {businessOwner.email}
             </div>
-            <div className="table-cell" data-label="Số điện thoại">
+            <div className="table-cell" data-label="Phone">
               {businessOwner.phoneNumber}
             </div>
-            <div className="table-cell" data-label="Tên tổ chức">
+            <div className="table-cell" data-label="Organization">
               <span className="organization-badge">
                 {businessOwner.organization}
               </span>
             </div>
-            <div className="table-cell" data-label="Trạng thái">
+            <div className="table-cell" data-label="Status">
               {getStatusBadge(businessOwner)}
             </div>
-            <div className="table-cell" data-label="Ngày tạo tài khoản">
-              {new Date(businessOwner.createdAt).toLocaleDateString("vi-VN")}
+            <div className="table-cell" data-label="Account Created">
+              {new Date(businessOwner.createdAt).toLocaleDateString("en-US")}
             </div>
-            <div className="table-cell" data-label="Hành động">
+            <div className="table-cell" data-label="Actions">
               <div className="action-buttons">
                 <button
                   className="action-btn view"
-                  title="Xem chi tiết"
+                  title="View Details"
                   onClick={() => handleViewBusinessOwner(businessOwner)}
                 >
                   <Eye size={16} />
@@ -373,14 +348,14 @@ const AdminBusinessOwners = () => {
                   <>
                     <button
                       className="action-btn approve"
-                      title="Phê duyệt"
+                      title="Approve"
                       onClick={() => handleApproveBusinessOwner(businessOwner)}
                     >
                       <CheckCircle size={16} />
                     </button>
                     <button
                       className="action-btn reject"
-                      title="Từ chối"
+                      title="Reject"
                       onClick={() => handleRejectBusinessOwner(businessOwner)}
                     >
                       <XCircle size={16} />
@@ -388,18 +363,14 @@ const AdminBusinessOwners = () => {
                   </>
                 ) : (
                   <>
-                    <button className="action-btn edit" title="Chỉnh sửa">
-                      <Edit size={16} />
-                    </button>
+                    {/* Edit button removed per request */}
                     {businessOwner.isApproved && (
                       <button
                         className={`action-btn ${
                           businessOwner.isActive ? "deactivate" : "activate"
                         }`}
                         title={
-                          businessOwner.isActive
-                            ? "Ngừng hoạt động"
-                            : "Kích hoạt"
+                          businessOwner.isActive ? "Deactivate" : "Activate"
                         }
                         onClick={() =>
                           handleDeactivateBusinessOwner(businessOwner)
@@ -423,8 +394,8 @@ const AdminBusinessOwners = () => {
             <div className="modal-header">
               <h3>
                 {selectedBusinessOwner.isActive
-                  ? "Xác nhận vô hiệu hóa Business Owner"
-                  : "Xác nhận kích hoạt Business Owner"}
+                  ? "Confirm Deactivate Business Owner"
+                  : "Confirm Activate Business Owner"}
               </h3>
               <button
                 className="modal-close"
@@ -435,8 +406,8 @@ const AdminBusinessOwners = () => {
             </div>
             <div className="modal-body">
               <p>
-                Bạn có chắc chắn muốn{" "}
-                {selectedBusinessOwner.isActive ? "vô hiệu hóa" : "kích hoạt"}{" "}
+                Are you sure you want to{" "}
+                {selectedBusinessOwner.isActive ? "deactivate" : "activate"}{" "}
                 Business Owner <strong>{selectedBusinessOwner.fullName}</strong>
                 ?
               </p>
@@ -446,8 +417,8 @@ const AdminBusinessOwners = () => {
                 }
               >
                 {selectedBusinessOwner.isActive
-                  ? "Business Owner sẽ không thể truy cập hệ thống nhưng dữ liệu sẽ được giữ lại."
-                  : "Business Owner sẽ có thể truy cập và sử dụng hệ thống trở lại."}
+                  ? "The business owner will not be able to access the system, but data will be retained."
+                  : "The business owner will be able to access and use the system again."}
               </p>
             </div>
             <div className="modal-footer">
@@ -455,7 +426,7 @@ const AdminBusinessOwners = () => {
                 className="btn-cancel"
                 onClick={() => setShowDeactivateModal(false)}
               >
-                Hủy
+                Cancel
               </button>
               <button
                 className={
@@ -465,7 +436,7 @@ const AdminBusinessOwners = () => {
                 }
                 onClick={confirmDeactivate}
               >
-                {selectedBusinessOwner.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
+                {selectedBusinessOwner.isActive ? "Deactivate" : "Activate"}
               </button>
             </div>
           </div>
@@ -477,7 +448,7 @@ const AdminBusinessOwners = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>Xác nhận phê duyệt Business Owner</h3>
+              <h3>Confirm Approval of Business Owner</h3>
               <button
                 className="modal-close"
                 onClick={() => setShowApproveModal(false)}
@@ -487,12 +458,12 @@ const AdminBusinessOwners = () => {
             </div>
             <div className="modal-body">
               <p>
-                Bạn có chắc chắn muốn phê duyệt Business Owner{" "}
+                Are you sure you want to approve Business Owner{" "}
                 <strong>{selectedBusinessOwner.fullName}</strong>?
               </p>
               <p className="success-text">
-                Sau khi phê duyệt, Business Owner sẽ có thể truy cập và sử dụng
-                hệ thống.
+                After approval, the business owner will be able to access and
+                use the system.
               </p>
             </div>
             <div className="modal-footer">
@@ -500,10 +471,10 @@ const AdminBusinessOwners = () => {
                 className="btn-cancel"
                 onClick={() => setShowApproveModal(false)}
               >
-                Hủy
+                Cancel
               </button>
               <button className="btn-approve" onClick={confirmApprove}>
-                Phê duyệt
+                Approve
               </button>
             </div>
           </div>
@@ -515,7 +486,7 @@ const AdminBusinessOwners = () => {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>Xác nhận từ chối Business Owner</h3>
+              <h3>Confirm Rejection of Business Owner</h3>
               <button
                 className="modal-close"
                 onClick={() => setShowRejectModal(false)}
@@ -525,12 +496,12 @@ const AdminBusinessOwners = () => {
             </div>
             <div className="modal-body">
               <p>
-                Bạn có chắc chắn muốn từ chối yêu cầu đăng ký của{" "}
+                Are you sure you want to reject the registration request of{" "}
                 <strong>{selectedBusinessOwner.fullName}</strong>?
               </p>
               <p className="warning-text">
-                Yêu cầu đăng ký sẽ bị xóa và Business Owner sẽ không thể truy
-                cập hệ thống.
+                The registration request will be removed and the business owner
+                will not be able to access the system.
               </p>
             </div>
             <div className="modal-footer">
@@ -538,10 +509,10 @@ const AdminBusinessOwners = () => {
                 className="btn-cancel"
                 onClick={() => setShowRejectModal(false)}
               >
-                Hủy
+                Cancel
               </button>
               <button className="btn-reject" onClick={confirmReject}>
-                Từ chối
+                Reject
               </button>
             </div>
           </div>
@@ -553,7 +524,7 @@ const AdminBusinessOwners = () => {
         <div className="modal-overlay">
           <div className="modal-content detail-modal">
             <div className="modal-header">
-              <h3>Thông tin Business Owner</h3>
+              <h3>Business Owner Details</h3>
               <button
                 className="modal-close"
                 onClick={() => setShowDetailModal(false)}
@@ -582,20 +553,20 @@ const AdminBusinessOwners = () => {
                     </span>
                   </div>
                   <div className="detail-row">
-                    <span className="detail-label">Số điện thoại:</span>
+                    <span className="detail-label">Phone:</span>
                     <span className="detail-value">
                       {selectedBusinessOwner.phoneNumber || "-"}
                     </span>
                   </div>
                   <div className="detail-row">
-                    <span className="detail-label">Tên tổ chức:</span>
+                    <span className="detail-label">Organization:</span>
                     <span className="detail-value">
                       {selectedBusinessOwner.organization}
                     </span>
                   </div>
                   {selectedBusinessOwner.businessLicense && (
                     <div className="detail-row license-row">
-                      <span className="detail-label">Giấy phép kinh doanh:</span>
+                      <span className="detail-label">Business License:</span>
                       <div className="license-display">
                         <img
                           src={selectedBusinessOwner.businessLicense}
@@ -609,41 +580,20 @@ const AdminBusinessOwners = () => {
                         <button
                           className="view-license-btn"
                           onClick={() => setShowLicensePreview(true)}
-                          title="Xem giấy phép"
+                          title="View license"
                         >
                           <Eye size={16} />
-                          <span>Xem</span>
+                          <span>View</span>
                         </button>
                       </div>
                     </div>
                   )}
                   <div className="detail-row">
-                    <span className="detail-label">Ngày tạo tài khoản:</span>
+                    <span className="detail-label">Account Created:</span>
                     <span className="detail-value">
                       {new Date(
                         selectedBusinessOwner.createdAt
-                      ).toLocaleDateString("vi-VN")}
-                    </span>
-                  </div>
-                  <hr style={{ margin: "16px 0" }} />
-                  <div className="detail-row">
-                    <span className="detail-label">Gói sử dụng:</span>
-                    <span className="detail-value">
-                      {(selectedBusinessOwner as any).packageName || "-"}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Ngày hết hạn:</span>
-                    <span className="detail-value">
-                      {(selectedBusinessOwner as any).packageExpireDate || "-"}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Số ngày còn hạn:</span>
-                    <span className="detail-value">
-                      {getDaysLeft(
-                        (selectedBusinessOwner as any).packageExpireDate
-                      )}
+                      ).toLocaleDateString("en-US")}
                     </span>
                   </div>
                 </div>
@@ -659,7 +609,7 @@ const AdminBusinessOwners = () => {
                       handleRejectBusinessOwner(selectedBusinessOwner);
                     }}
                   >
-                    Từ chối
+                    Reject
                   </button>
                   <button
                     className="btn-approve"
@@ -668,7 +618,7 @@ const AdminBusinessOwners = () => {
                       handleApproveBusinessOwner(selectedBusinessOwner);
                     }}
                   >
-                    Phê duyệt
+                    Approve
                   </button>
                 </>
               )}
@@ -676,7 +626,7 @@ const AdminBusinessOwners = () => {
                 className="btn-cancel"
                 onClick={() => setShowDetailModal(false)}
               >
-                Đóng
+                Close
               </button>
             </div>
           </div>
@@ -685,7 +635,10 @@ const AdminBusinessOwners = () => {
 
       {/* License Preview Modal */}
       {showLicensePreview && selectedBusinessOwner?.businessLicense && (
-        <div className="modal-overlay" onClick={() => setShowLicensePreview(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowLicensePreview(false)}
+        >
           <div
             className="license-preview-modal"
             onClick={(e) => e.stopPropagation()}
@@ -703,7 +656,7 @@ const AdminBusinessOwners = () => {
               className="license-preview-image"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
-                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' font-family='Arial' font-size='20' fill='%23999'%3EKhông thể tải hình ảnh%3C/text%3E%3C/svg%3E";
+                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f0f0f0' width='400' height='300'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' font-family='Arial' font-size='20' fill='%23999'%3EUnable to load image%3C/text%3E%3C/svg%3E";
               }}
             />
           </div>

@@ -16,6 +16,7 @@ import { useForm } from "react-hook-form";
 import { Project } from "@/types/project";
 import { Edit, X, Save } from 'lucide-react';
 import { PROJECT_STATUS_OPTIONS } from '@/constants/status';
+import '@/app/styles/edit-project-modal.scss';
 
 interface EditProjectModalProps {
   isOpen: boolean;
@@ -72,77 +73,77 @@ export function EditProjectModal({ isOpen, onClose, project, onUpdateProject }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] h-[80vh] flex flex-col">
+      <DialogContent className="edit-project-modal sm:max-w-[600px] h-[80vh] flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <DialogTitle className="dialog-title">
             <Edit size={20} />
-            Chỉnh Sửa Dự Án
+            Edit Project
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
-          <div className="space-y-4 flex-1 overflow-y-auto scrollbar-hide">
-            <div>
-              <Label htmlFor="name">Tên dự án *</Label>
+          <div className="form-content scrollbar-hide">
+            <div className="form-field">
+              <Label htmlFor="name">Project Name *</Label>
               <Input
                 id="name"
-                placeholder="Nhập tên dự án"
-                {...register("name", { required: "Tên dự án là bắt buộc" })}
-                className={errors.name ? "border-red-500" : ""}
+                placeholder="Enter project name"
+                {...register("name", { required: "Project name is required" })}
+                className={errors.name ? "error" : ""}
               />
               {errors.name && (
-                <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
+                <p className="error-text">{errors.name.message}</p>
               )}
             </div>
 
-            <div>
-              <Label htmlFor="description">Mô tả *</Label>
+            <div className="form-field">
+              <Label htmlFor="description">Description *</Label>
               <Textarea
                 id="description"
-                placeholder="Mô tả dự án"
-                {...register("description", { required: "Mô tả là bắt buộc" })}
-                className={errors.description ? "border-red-500" : ""}
+                placeholder="Project description"
+                {...register("description", { required: "Description is required" })}
+                className={errors.description ? "error" : ""}
               />
               {errors.description && (
-                <p className="text-sm text-red-500 mt-1">{errors.description.message}</p>
+                <p className="error-text">{errors.description.message}</p>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="startDate">Ngày bắt đầu *</Label>
+            <div className="date-grid">
+              <div className="form-field">
+                <Label htmlFor="startDate">Start Date *</Label>
                 <Input
                   id="startDate"
                   type="date"
-                  {...register("startDate", { required: "Ngày bắt đầu là bắt buộc" })}
-                  className={errors.startDate ? "border-red-500" : ""}
+                  {...register("startDate", { required: "Start date is required" })}
+                  className={errors.startDate ? "error" : ""}
                 />
                 {errors.startDate && (
-                  <p className="text-sm text-red-500 mt-1">{errors.startDate.message}</p>
+                  <p className="error-text">{errors.startDate.message}</p>
                 )}
               </div>
-              <div>
-                <Label htmlFor="endDate">Ngày kết thúc *</Label>
+              <div className="form-field">
+                <Label htmlFor="endDate">End Date *</Label>
                 <Input
                   id="endDate"
                   type="date"
-                  {...register("endDate", { required: "Ngày kết thúc là bắt buộc" })}
-                  className={errors.endDate ? "border-red-500" : ""}
+                  {...register("endDate", { required: "End date is required" })}
+                  className={errors.endDate ? "error" : ""}
                 />
                 {errors.endDate && (
-                  <p className="text-sm text-red-500 mt-1">{errors.endDate.message}</p>
+                  <p className="error-text">{errors.endDate.message}</p>
                 )}
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="status">Trạng thái *</Label>
+            <div className="form-field">
+              <Label htmlFor="status">Status *</Label>
               <select
                 id="status"
-                {...register("status", { required: "Trạng thái là bắt buộc" })}
-                className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${errors.status ? "border-red-500" : ""}`}
+                {...register("status", { required: "Status is required" })}
+                className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${errors.status ? "error" : ""}`}
               >
-                <option value="">Chọn trạng thái</option>
+                <option value="">Select status</option>
                 {PROJECT_STATUS_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -150,84 +151,32 @@ export function EditProjectModal({ isOpen, onClose, project, onUpdateProject }: 
                 ))}
               </select>
               {errors.status && (
-                <p className="text-sm text-red-500 mt-1">{errors.status.message}</p>
+                <p className="error-text">{errors.status.message}</p>
               )}
             </div>
 
           </div>
 
-          <DialogFooter className="flex-shrink-0 mt-4">
+          <DialogFooter className="dialog-footer">
             <Button 
               type="button" 
               variant="secondary" 
               onClick={onClose}
-              style={{
-                background: 'transparent',
-                color: '#6b7280',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                padding: '10px 20px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f3f4f6';
-                e.currentTarget.style.borderColor = '#9ca3af';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.borderColor = '#d1d5db';
-              }}
+              className="btn-cancel"
             >
               <X size={16} />
-              Hủy bỏ
+              Cancel
             </Button>
             <Button 
               type="submit"
-              style={{
-                background: 'transparent',
-                color: '#FF5E13',
-                border: '1px solid #FF5E13',
-                borderRadius: '8px',
-                padding: '10px 20px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#FF5E13';
-                e.currentTarget.style.color = 'white';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = '#FF5E13';
-              }}
+              className="btn-submit"
             >
               <Save size={16} />
-              Cập nhật dự án
+              Update Project
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
-      
-      <style jsx>{`
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </Dialog>
   );
 }

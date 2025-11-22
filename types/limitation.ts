@@ -7,8 +7,20 @@ export interface Limitation {
   limitUnit?: string;
   createdAt?: string;
   updatedAt?: string;
+  limitationType?: string;
 }
-
+export interface LimitationUsage {
+  id: string;
+  name: string;
+  description?: string;
+  isUnlimited?: boolean;
+  limitValue?: number;
+  limitUnit?: string;
+  limitationType?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  usedValue?: number;
+}
 // Matches MSP.Application.Models.Requests.Limitation.CreateLimitationRequest
 export interface CreateLimitationRequest {
   name: string;
@@ -16,6 +28,7 @@ export interface CreateLimitationRequest {
   isUnlimited: boolean;
   limitValue: number;
   limitUnit: string;
+  limitationType: string;
 }
 
 // Matches MSP.Application.Models.Requests.Limitation.UpdateLimitationRequest
@@ -26,6 +39,7 @@ export interface UpdateLimitationRequest {
   isUnlimited: boolean;
   limitValue: number;
   limitUnit: string;
+  limitationType: string;
 }
 
 export interface PagingRequest {

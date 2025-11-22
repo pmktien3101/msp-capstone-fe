@@ -50,7 +50,7 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
             );
 
             const totalTasks = milestoneTasks.length;
-            const completedTasks = milestoneTasks.filter(task => task.status === TaskStatus.Completed).length;
+            const completedTasks = milestoneTasks.filter(task => task.status === TaskStatus.Done).length;
             const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
             // Determine status based on progress and due date
@@ -90,18 +90,18 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
     fetchData();
   }, [project?.id]);
 
-  // Kiểm tra project có tồn tại không
+  // Check if project exists
   if (!project) {
     return (
       <div className="milestone-progress">
         <div className="section-header">
           <div className="section-title">
-            <h3>Tiến độ cột mốc</h3>
-            <p>Theo dõi tiến độ hoàn thành các cột mốc dự án.</p>
+            <h3>Milestone Progress</h3>
+            <p>Track the completion progress of project milestones.</p>
           </div>
         </div>
         <div className="no-data-message">
-          <p>Không có thông tin dự án</p>
+          <p>No project information</p>
         </div>
       </div>
     );
@@ -113,12 +113,12 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
       <div className="milestone-progress">
         <div className="section-header">
           <div className="section-title">
-            <h3>Tiến độ cột mốc</h3>
-            <p>Theo dõi tiến độ hoàn thành các cột mốc dự án.</p>
+            <h3>Milestone Progress</h3>
+            <p>Track the completion progress of project milestones.</p>
           </div>
         </div>
         <div className="milestones-list">
-          <p>Đang tải dữ liệu...</p>
+          <p>Loading data...</p>
         </div>
       </div>
     );
@@ -163,8 +163,8 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
     <div className="milestone-progress">
       <div className="section-header">
         <div className="section-title">
-          <h3>Tiến độ cột mốc</h3>
-          <p>Xem tiến độ các mốc quan trọng trong dự án.</p>
+          <h3>Milestone Progress</h3>
+          <p>View the progress of key milestones in the project.</p>
         </div>
         <a 
           href="#" 
@@ -176,14 +176,14 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
             window.dispatchEvent(event);
           }}
         >
-          Xem tất cả
+          View all
         </a>
       </div>
 
       <div className="milestones-list">
         {milestones.length === 0 ? (
           <div className="no-milestones-message">
-            <p>Chưa có cột mốc nào được tạo</p>
+            <p>No milestones created yet</p>
           </div>
         ) : (
           milestones.map((milestone) => (
@@ -238,12 +238,12 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
                   />
                 </svg>
                 <span>
-                  Hạn: {new Date(milestone.dueDate).toLocaleDateString("vi-VN")}
+                  Due: {new Date(milestone.dueDate).toLocaleDateString("en-US")}
                 </span>
               </div>
               <div className="milestone-tasks">
                 <span>
-                  {milestone.completedTasks}/{milestone.totalTasks} công việc hoàn thành
+                  {milestone.completedTasks}/{milestone.totalTasks} {milestone.totalTasks === 1 ? 'task' : 'tasks'} completed
                 </span>
               </div>
             </div>

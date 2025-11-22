@@ -8,6 +8,8 @@ import { useUser } from "@/hooks/useUser";
 import { UserRole } from "@/lib/rbac";
 import { useAuth } from "@/hooks/useAuth";
 import { NotificationBell } from "@/components/layout/NotificationBell";
+import { User, LogOut } from "lucide-react";
+import "@/app/styles/header.scss";
 
 const Header = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -84,19 +86,8 @@ const Header = () => {
         <div className="brand-name">MSP</div>
       </div>
 
-      {/* Right Side - Search, Notify, User */}
+      {/* Right Side - Notify, User */}
       <div className="header-right">
-        {/* Search Bar */}
-        <div className="header-search">
-          {/* <div className="search-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="11" cy="11" r="8" stroke="#FF5E13" strokeWidth="2" />
-              <path d="m21 21-4.35-4.35" stroke="#FF5E13" strokeWidth="2" />
-            </svg>
-          </div> */}
-          <input type="text" placeholder="Tìm kiếm" className="search-input" />
-        </div>
-
         {/* Notification Bell - Real-time */}
         <NotificationBell />
 
@@ -134,53 +125,14 @@ const Header = () => {
                 }}
               >
                 <div className="dropdown-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <circle
-                      cx="12"
-                      cy="7"
-                      r="4"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <User size={16} />
                 </div>
                 <span>Profile</span>
               </div>
               <div className="dropdown-divider"></div>
               <div className="dropdown-item logout-item" onClick={handleLogout}>
                 <div className="dropdown-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M16 17L21 12L16 7"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M21 12H9"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <LogOut size={16} />
                 </div>
                 <span>Logout</span>
               </div>
@@ -188,189 +140,6 @@ const Header = () => {
           )}
         </div>
       </div>
-
-      <style jsx>{`
-        .header-container {
-          width: 100%;
-          height: 90px;
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 24px;
-        }
-
-        .header-background {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: white;
-          box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.16);
-          z-index: -1;
-        }
-
-        .header-brand {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 200px;
-        }
-
-        .brand-logo {
-          width: 50px;
-          height: 45px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .logo-placeholder {
-          width: 40px;
-          height: 40px;
-          background: linear-gradient(135deg, #ff5e13, #ffa463);
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 16px;
-          font-weight: 700;
-          font-family: "Inter", sans-serif;
-        }
-
-        .brand-name {
-          color: #ff5e13;
-          font-size: 25px;
-          font-family: "Inter", sans-serif;
-          font-weight: 600;
-        }
-
-        .header-right {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .header-search {
-          width: 300px;
-          height: 44px;
-          background: #fefefe;
-          border: 1px solid #ffa463;
-          border-radius: 6px;
-          display: flex;
-          align-items: center;
-          padding: 0 16px;
-        }
-
-        .search-icon {
-          margin-right: 12px;
-        }
-
-        .search-input {
-          flex: 1;
-          border: none;
-          outline: none;
-          background: transparent;
-          color: #787486;
-          font-size: 14px;
-          font-family: "Inter", sans-serif;
-        }
-
-        .search-input::placeholder {
-          color: #787486;
-        }
-
-        .notification-icon {
-          cursor: pointer;
-          padding: 8px;
-          border-radius: 8px;
-          transition: background-color 0.2s ease;
-        }
-
-        .notification-icon:hover {
-          background-color: #fdf0d2;
-        }
-
-        .user-info {
-          text-align: right;
-        }
-
-        .user-name {
-          color: #0d062d;
-          font-size: 16px;
-          font-family: "Inter", sans-serif;
-          font-weight: 400;
-        }
-
-        .user-location {
-          color: #787486;
-          font-size: 14px;
-          font-family: "Inter", sans-serif;
-          font-weight: 400;
-        }
-
-        .user-avatar-container {
-          position: relative;
-        }
-
-        .user-avatar {
-          cursor: pointer;
-        }
-
-        .user-dropdown {
-          position: absolute;
-          top: 100%;
-          right: 0;
-          margin-top: 8px;
-          background: white;
-          border-radius: 8px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-          border: 1px solid #e5e7eb;
-          min-width: 200px;
-          z-index: 1000;
-          overflow: hidden;
-        }
-
-        .dropdown-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 16px;
-          cursor: pointer;
-          transition: background-color 0.2s ease;
-          color: #374151;
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .dropdown-item:hover {
-          background-color: #f9fafb;
-        }
-
-        .dropdown-item.logout-item {
-          color: #ef4444;
-        }
-
-        .dropdown-item.logout-item:hover {
-          background-color: #fef2f2;
-        }
-
-        .dropdown-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 16px;
-          height: 16px;
-        }
-
-        .dropdown-divider {
-          height: 1px;
-          background-color: #e5e7eb;
-          margin: 4px 0;
-        }
-      `}</style>
     </div>
   );
 };

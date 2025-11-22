@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -17,6 +17,7 @@ import {
   ChevronUp,
   Activity
 } from 'lucide-react';
+import '@/app/styles/project-highlights.scss';
 
 interface ProjectHighlightsProps {
   projects: Project[];
@@ -43,20 +44,20 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
       return newSet;
     });
   };
-  // Tính toán các dự án ưu tiên (dự án đang thực hiện có endDate gần nhất)
+  // Calculate priority projects (in-progress projects with nearest endDate)
   const getPriorityProjects = () => {
     return projects
-      .filter(project => project.status === ProjectStatus.InProgress) // Chỉ lấy dự án đang thực hiện
+      .filter(project => project.status === ProjectStatus.InProgress) // Only get in-progress projects
       .sort((a, b) => {
         if (!a.endDate || !b.endDate) return 0;
         const aEndDate = new Date(a.endDate);
         const bEndDate = new Date(b.endDate);
-        return aEndDate.getTime() - bEndDate.getTime(); // Sắp xếp theo endDate gần nhất
+        return aEndDate.getTime() - bEndDate.getTime(); // Sort by nearest endDate
       })
-      .slice(0, 3); // Lấy top 3 dự án có endDate gần nhất
+      .slice(0, 3); // Get top 3 projects with nearest endDate
   };
 
-  // Top 3 milestone quan trọng sắp đến hạn
+  // Top 3 important milestones coming due
   const getUpcomingMilestones = () => {
     const now = new Date();
     const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -70,21 +71,25 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
       .slice(0, 3);
   };
 
-  // Task tạm dừng và đang làm
+  // Tasks ready to review and in progress
   const getTasksByStatus = () => {
-    // Lọc task tạm dừng
+    // Filter tasks ready to review
     const onHoldTasks = tasks.filter((task: any) => 
-      task.status === TaskStatus.Paused
+      task.status === TaskStatus.ReadyToReview
     );
 
-    // Lọc task đang làm
-    const inProgressTasks = tasks.filter((task: any) => 
-      task.status === TaskStatus.InProgress
-    );
+    // Filter in-progress tasks and sort by nearest endDate
+    const inProgressTasks = tasks
+      .filter((task: any) => task.status === TaskStatus.InProgress)
+      .sort((a: any, b: any) => {
+        if (!a.endDate || !b.endDate) return 0;
+        return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+      })
+      .slice(0, 3); // Only get 3 tasks
 
     return {
       onHold: onHoldTasks.slice(0, 5),
-      inProgress: inProgressTasks.slice(0, 5)
+      inProgress: inProgressTasks
     };
   };
 
@@ -114,10 +119,10 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
 
   const getPriorityLabel = (level: string) => {
     switch (level) {
-      case 'critical': return 'Cấp bách';
-      case 'high': return 'Cao';
-      case 'medium': return 'Trung bình';
-      default: return 'Trung bình';
+      case 'critical': return 'Critical';
+      case 'high': return 'High';
+      case 'medium': return 'Medium';
+      default: return 'Medium';
     }
   };
 
@@ -125,8 +130,8 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
     <div className="project-highlights">
       {/* Header */}
       <div className="section-header">
-        <h2>Dự án đang theo dõi</h2>
-        <p>Các dự án ưu tiên và milestone quan trọng</p>
+        <h2>Projects Being Tracked</h2>
+        <p>Priority projects and important milestones</p>
       </div>
 
       <div className="highlights-grid">
@@ -135,7 +140,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
           <div className="card-header" onClick={() => toggleCard('priority')}>
             <div className="card-title">
               <AlertTriangle size={20} />
-              <h3>Dự án ưu tiên (dự án đang thực hiện)</h3>
+              <h3>Priority Projects (In Progress)</h3>
             </div>
             <div className="card-header-right">
               <span className="count-badge">{priorityProjects.length}</span>
@@ -147,7 +152,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
             {priorityProjects.length === 0 ? (
               <div className="empty-state">
                 <CheckCircle2 size={32} />
-                <p>Không có dự án ưu tiên</p>
+                <p>No priority projects</p>
               </div>
             ) : (
               priorityProjects.map(project => {
@@ -158,7 +163,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
                 
                 // Calculate progress from tasks
                 const projectTasks = tasks.filter((task: any) => task.projectId === project.id);
-                const completedTasks = projectTasks.filter((task: any) => task.status === TaskStatus.Completed).length;
+                const completedTasks = projectTasks.filter((task: any) => task.status === TaskStatus.Done).length;
                 const progress = projectTasks.length > 0 ? Math.round((completedTasks / projectTasks.length) * 100) : 0;
                 
                 return (
@@ -169,7 +174,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
                       <div className="item-details">
                         <span className="deadline">
                           <Calendar size={14} />
-                          {'Còn lại: ' + (daysUntilDeadline > 0 ? `${daysUntilDeadline} ngày` : 'Quá hạn')}
+                          {daysUntilDeadline > 0 ? `${daysUntilDeadline} ${daysUntilDeadline === 1 ? 'day' : 'days'} left` : 'Overdue'}
                         </span>
                         <span className="progress">{progress}%</span>
                       </div>
@@ -195,7 +200,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
           <div className="card-header" onClick={() => toggleCard('milestones')}>
             <div className="card-title">
               <Flag size={20} />
-              <h3>Cột mốc sắp đến hạn</h3>
+              <h3>Upcoming Milestones</h3>
             </div>
             <div className="card-header-right">
               <span className="count-badge">{upcomingMilestones.length}</span>
@@ -207,7 +212,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
             {upcomingMilestones.length === 0 ? (
               <div className="empty-state">
                 <CheckCircle2 size={32} />
-                <p>Không có cột mốc sắp đến hạn</p>
+                <p>No upcoming milestones</p>
               </div>
             ) : (
               upcomingMilestones.map((milestone: any) => {
@@ -228,7 +233,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
                     </div>
                     <div className="milestone-due">
                       <Clock size={14} />
-                      <span>{daysUntilDue} ngày</span>
+                      <span>{daysUntilDue} {daysUntilDue === 1 ? 'day' : 'days'}</span>
                     </div>
                   </div>
                 );
@@ -237,12 +242,12 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
           </div>
         </div>
 
-        {/* On Hold Tasks */}
+        {/* Ready To Review Tasks */}
         <div className="highlight-card">
           <div className="card-header" onClick={() => toggleCard('onHold')}>
             <div className="card-title">
               <AlertTriangle size={20} />
-              <h3>Công việc tạm dừng</h3>
+              <h3>Ready To Review Tasks</h3>
             </div>
             <div className="card-header-right">
               <span className="count-badge">{onHold.length}</span>
@@ -254,7 +259,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
             {onHold.length === 0 ? (
               <div className="empty-state">
                 <CheckCircle2 size={32} />
-                <p>Không có công việc tạm dừng</p>
+                <p>No tasks ready to review</p>
               </div>
             ) : (
               onHold.map((task: any) => {
@@ -262,9 +267,9 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
                 return (
                   <div key={task.id} className="task-item">
                     <div className="task-info">
-                      <h4>{task.name}</h4>
+                      <h4>{task.title || task.name}</h4>
                       <div className="task-meta">
-                        <p className="assignee">{task.user?.fullName || 'Chưa phân công'}</p>
+                        <p className="assignee">{task.user?.fullName || 'Unassigned'}</p>
                         <p 
                           className="project project-link"
                           onClick={() => project && handleProjectClick(project.id)}
@@ -275,7 +280,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
                     </div>
                     <div className="task-status on-hold">
                       <AlertCircle size={14} />
-                      <span>{TASK_STATUS_LABELS[TaskStatus.Paused]}</span>
+                      <span>{TASK_STATUS_LABELS[TaskStatus.ReadyToReview]}</span>
                     </div>
                   </div>
                 );
@@ -289,7 +294,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
           <div className="card-header" onClick={() => toggleCard('inProgress')}>
             <div className="card-title">
               <Activity size={20} />
-              <h3>Công việc đang làm</h3>
+              <h3>In Progress Tasks (Top 3 by Deadline)</h3>
             </div>
             <div className="card-header-right">
               <span className="count-badge">{inProgress.length}</span>
@@ -301,23 +306,34 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
             {inProgress.length === 0 ? (
               <div className="empty-state">
                 <CheckCircle2 size={32} />
-                <p>Không có công việc đang làm</p>
+                <p>No tasks in progress</p>
               </div>
             ) : (
               inProgress.map((task: any) => {
                 const project = projects.find((p: any) => p.id === task.projectId);
+                const endDate = task.endDate ? new Date(task.endDate) : null;
+                const daysUntilDeadline = endDate ? Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+                
                 return (
                   <div key={task.id} className="task-item">
                     <div className="task-info">
-                      <h4>{task.name}</h4>
+                      <h4>{task.title || task.name}</h4>
                       <div className="task-meta">
-                        <p className="assignee">{task.user?.fullName || 'Chưa phân công'}</p>
+                        <p className="assignee">{task.user?.fullName || 'Unassigned'}</p>
                         <p 
                           className="project project-link"
                           onClick={() => project && handleProjectClick(project.id)}
                         >
                           {task.projectName || project?.name}
                         </p>
+                        {daysUntilDeadline !== null && (
+                          <p className="deadline-info">
+                            <Calendar size={12} />
+                            {daysUntilDeadline > 0 
+                              ? `${daysUntilDeadline} ${daysUntilDeadline === 1 ? 'day' : 'days'} left` 
+                              : 'Overdue'}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="task-status in-progress">
@@ -331,306 +347,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .project-highlights {
-          background: white;
-          border-radius: 12px;
-          padding: 24px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .section-header {
-          margin-bottom: 24px;
-          padding-bottom: 16px;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .section-header h2 {
-          margin: 0 0 4px 0;
-          font-size: 24px;
-          font-weight: 700;
-          color: #111827;
-        }
-
-        .section-header p {
-          margin: 0;
-          color: #6b7280;
-          font-size: 14px;
-        }
-
-        .highlights-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 20px;
-        }
-
-        .highlight-card {
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          background: white;
-          overflow: hidden;
-        }
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px;
-          background: #f9fafb;
-          border-bottom: 1px solid #e5e7eb;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-
-        .card-header:hover {
-          background: #f3f4f6;
-        }
-
-        .card-header-right {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .card-title {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .card-title h3 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: #111827;
-        }
-
-        .count-badge {
-          background: #3b82f6;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-
-        .card-content {
-          padding: 16px;
-          max-height: 300px;
-          overflow-y: auto;
-          transition: all 0.3s ease;
-          overflow: hidden;
-        }
-
-        .card-content.collapsed {
-          max-height: 0;
-          padding: 0 16px;
-          opacity: 0;
-        }
-
-        .card-content.expanded {
-          max-height: 300px;
-          padding: 16px;
-          opacity: 1;
-        }
-
-        .empty-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 32px 16px;
-          color: #6b7280;
-          text-align: center;
-        }
-
-        .empty-state p {
-          margin: 8px 0 0 0;
-          font-size: 14px;
-        }
-
-        .priority-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 0;
-          border-bottom: 1px solid #f3f4f6;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-
-        .priority-item:hover {
-          background-color: #f9fafb;
-        }
-
-        .priority-item:last-child {
-          border-bottom: none;
-        }
-
-        .priority-indicator {
-          width: 4px;
-          height: 40px;
-          border-radius: 2px;
-        }
-
-        .item-content {
-          flex: 1;
-        }
-
-        .item-content h4 {
-          margin: 0 0 4px 0;
-          font-size: 14px;
-          font-weight: 600;
-          color: #111827;
-        }
-
-        .item-details {
-          display: flex;
-          gap: 12px;
-          font-size: 12px;
-          color: #6b7280;
-        }
-
-        .item-details span {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .progress-bar {
-          width: 100%;
-          height: 6px;
-          background: #e5e7eb;
-          border-radius: 3px;
-          overflow: hidden;
-          margin-top: 8px;
-        }
-
-        .progress-fill {
-          height: 100%;
-          border-radius: 3px;
-          transition: width 0.3s ease;
-        }
-
-
-        .milestone-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 0;
-          border-bottom: 1px solid #f3f4f6;
-        }
-
-        .milestone-item:last-child {
-          border-bottom: none;
-        }
-
-        .milestone-info h4 {
-          margin: 0 0 2px 0;
-          font-size: 14px;
-          font-weight: 600;
-          color: #111827;
-        }
-
-        .milestone-info p {
-          margin: 0;
-          font-size: 12px;
-          color: #3b82f6;
-          font-weight: 500;
-        }
-
-        .project-link {
-          cursor: pointer;
-          transition: color 0.2s;
-        }
-
-        .project-link:hover {
-          color: #1d4ed8;
-          text-decoration: underline;
-        }
-
-        .milestone-due {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 12px;
-          color: #f59e0b;
-          font-weight: 500;
-        }
-
-        .task-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 0;
-          border-bottom: 1px solid #f3f4f6;
-        }
-
-        .task-item:last-child {
-          border-bottom: none;
-        }
-
-        .task-info h4 {
-          margin: 0 0 2px 0;
-          font-size: 14px;
-          font-weight: 600;
-          color: #111827;
-        }
-
-        .task-meta {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-
-        .task-meta p {
-          margin: 0;
-          font-size: 12px;
-          color: #6b7280;
-        }
-
-        .task-meta .project {
-          font-weight: 500;
-          color: #3b82f6;
-        }
-
-        .task-status {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          font-weight: 500;
-        }
-
-        .task-status.overdue {
-          background: #fef2f2;
-          color: #ef4444;
-        }
-
-        .task-status.on-hold {
-          background: #fef3c7;
-          color: #f59e0b;
-        }
-
-        .task-status.in-progress {
-          background: #dbeafe;
-          color: #3b82f6;
-        }
-
-        .task-status.review {
-          background: #dbeafe;
-          color: #3b82f6;
-        }
-
-        @media (max-width: 768px) {
-          .highlights-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
     </div>
   );
 };
+

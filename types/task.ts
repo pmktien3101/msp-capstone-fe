@@ -16,14 +16,17 @@ export interface GetTaskResponse {
   id: string;
   projectId: string;
   userId?: string;
+  reviewerId?: string;
   title: string;
   description?: string;
   status: string;
   startDate?: string; // ISO 8601 UTC
   endDate?: string;   // ISO 8601 UTC
+  isOverdue: boolean; // Backend calculates overdue status
   createdAt: string;  // ISO 8601 UTC
   updatedAt: string;  // ISO 8601 UTC
   user?: GetUserResponse;
+  reviewer?: GetUserResponse;
   milestones?: TaskMilestoneResponse[];
 }
 
@@ -45,7 +48,8 @@ export interface UpdateTaskRequest {
   id: string;
   projectId: string;
   userId?: string;
-  actorId?: string;
+  reviewerId?: string;
+  actorId: string;
   title: string;
   description?: string;
   status: string;
@@ -61,19 +65,8 @@ export interface Task extends GetTaskResponse {
   name?: string; // Alias for title
   
   // Computed fields
-  isOverdue?: boolean;
   daysRemaining?: number;
 }
-
-// Task status options
-export const TASK_STATUS = {
-  TODO: 'todo',
-  IN_PROGRESS: 'in-progress',
-  REVIEW: 'review',
-  DONE: 'done',
-} as const;
-
-export type TaskStatus = typeof TASK_STATUS[keyof typeof TASK_STATUS];
 
 // Task form data for create/edit modals
 export interface TaskFormData {

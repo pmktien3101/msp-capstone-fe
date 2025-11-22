@@ -8,18 +8,18 @@ interface UpcomingMeetingsProps {
 }
 
 export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
-  // Kiểm tra project có tồn tại không
+  // Check if project exists
   if (!project) {
     return (
       <div className="upcoming-meetings">
         <div className="section-header">
           <div className="section-title">
-            <h3>Cuộc họp sắp tới</h3>
-            <p>Danh sách các cuộc họp sắp diễn ra.</p>
+            <h3>Upcoming Meetings</h3>
+            <p>List of scheduled upcoming meetings.</p>
           </div>
         </div>
         <div className="no-meetings-message">
-          <p>Không có thông tin dự án</p>
+          <p>No project information</p>
         </div>
       </div>
     );
@@ -43,8 +43,8 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
     return {
-      date: date.toLocaleDateString('vi-VN'),
-      time: date.toLocaleTimeString('vi-VN', { 
+      date: date.toLocaleDateString('en-US'),
+      time: date.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
         minute: '2-digit',
         hour12: false 
@@ -63,8 +63,8 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
     <div className="upcoming-meetings">
       <div className="section-header">
         <div className="section-title">
-          <h3>Các cuộc họp sắp tới</h3>
-          <p>Danh sách cuộc họp được lên lịch.</p>
+          <h3>Upcoming Meetings</h3>
+          <p>List of scheduled meetings.</p>
         </div>
       </div>
 
@@ -97,7 +97,7 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
                       <h4 className="meeting-title">{meeting.title}</h4>
                       <div className="meeting-status">
                         <div className="status-dot"></div>
-                        <span>Sắp tới</span>
+                        <span>Upcoming</span>
                       </div>
                     </div>
                     
@@ -114,13 +114,13 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
                           );
                         })}
                         {participants.length > 4 && (
-                          <div className="participant-more" title={`+${participants.length - 4} người khác`}>
+                          <div className="participant-more" title={`+${participants.length - 4} more`}>
                             +{participants.length - 4}
                           </div>
                         )}
                       </div>
                       <div className="participants-count">
-                        {participants.length} người tham gia
+                        {participants.length} {participants.length === 1 ? 'participant' : 'participants'}
                       </div>
                     </div>
                   </div>
@@ -131,7 +131,7 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
                         <path d="M15 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         <path d="M8 11L12 15L16 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                      Tham gia
+                      Join
                     </button>
                   </div>
                 </div>
@@ -148,7 +148,7 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
                 <path d="M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <p>Không có cuộc họp sắp tới</p>
+            <p>No upcoming meetings</p>
           </div>
         )}
       </div>

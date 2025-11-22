@@ -1,28 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Eye,
-  Edit,
-  Trash2,
-  Users,
-  HardDrive,
-  Headphones,
-  Plug,
-  Shield,
-  BarChart3,
-  Handshake,
-  Video,
-  Palette,
-  Zap,
-} from "lucide-react";
+import { Trash2, Users } from "lucide-react";
 
 import packageService from "@/services/packageService";
+import { toast } from "react-toastify";
 import { useUser } from "@/hooks/useUser";
 import limitationService from "@/services/limitationService";
 
 const AdminPackages = () => {
-  const [activeTab, setActiveTab] = useState("packages");
   const [showAddPlanModal, setShowAddPlanModal] = useState(false);
   const [showEditPlanModal, setShowEditPlanModal] = useState(false);
   const [showViewPlanModal, setShowViewPlanModal] = useState(false);
@@ -42,294 +28,10 @@ const AdminPackages = () => {
   const [limitations, setLimitations] = useState<any[]>([]);
   const [loadingLimitations, setLoadingLimitations] = useState(false);
 
-  // Danh sách các tính năng được phân nhóm
-  const featureGroups = [
-    {
-      id: "users",
-      name: "Số lượng người dùng",
-      icon: Users,
-      color: "#3B82F6",
-      features: [
-        {
-          id: "users_10",
-          name: "Tối đa 10 người dùng",
-          description: "Cho phép tối đa 10 thành viên trong team",
-        },
-        {
-          id: "users_25",
-          name: "Tối đa 25 người dùng",
-          description: "Cho phép tối đa 25 thành viên trong team",
-        },
-        {
-          id: "users_50",
-          name: "Tối đa 50 người dùng",
-          description: "Cho phép tối đa 50 thành viên trong team",
-        },
-        {
-          id: "users_100",
-          name: "Tối đa 100 người dùng",
-          description: "Cho phép tối đa 100 thành viên trong team",
-        },
-        {
-          id: "users_unlimited",
-          name: "Không giới hạn người dùng",
-          description: "Không giới hạn số lượng thành viên",
-        },
-      ],
-    },
-    {
-      id: "storage",
-      name: "Dung lượng lưu trữ",
-      icon: HardDrive,
-      color: "#10B981",
-      features: [
-        {
-          id: "storage_5gb",
-          name: "5GB lưu trữ",
-          description: "Dung lượng lưu trữ 5GB",
-        },
-        {
-          id: "storage_10gb",
-          name: "10GB lưu trữ",
-          description: "Dung lượng lưu trữ 10GB",
-        },
-        {
-          id: "storage_25gb",
-          name: "25GB lưu trữ",
-          description: "Dung lượng lưu trữ 25GB",
-        },
-        {
-          id: "storage_50gb",
-          name: "50GB lưu trữ",
-          description: "Dung lượng lưu trữ 50GB",
-        },
-        {
-          id: "storage_100gb",
-          name: "100GB lưu trữ",
-          description: "Dung lượng lưu trữ 100GB",
-        },
-        {
-          id: "storage_500gb",
-          name: "500GB lưu trữ",
-          description: "Dung lượng lưu trữ 500GB",
-        },
-        {
-          id: "storage_1tb",
-          name: "1TB lưu trữ",
-          description: "Dung lượng lưu trữ 1TB",
-        },
-        {
-          id: "storage_unlimited",
-          name: "Không giới hạn lưu trữ",
-          description: "Dung lượng lưu trữ không giới hạn",
-        },
-      ],
-    },
-    {
-      id: "support",
-      name: "Hỗ trợ khách hàng",
-      icon: Headphones,
-      color: "#F59E0B",
-      features: [
-        {
-          id: "support_email",
-          name: "Hỗ trợ email",
-          description: "Hỗ trợ khách hàng qua email",
-        },
-        {
-          id: "support_chat",
-          name: "Hỗ trợ chat",
-          description: "Hỗ trợ khách hàng qua chat trực tuyến",
-        },
-        {
-          id: "support_24_7",
-          name: "Hỗ trợ 24/7",
-          description: "Hỗ trợ khách hàng 24/7",
-        },
-        {
-          id: "support_phone",
-          name: "Hỗ trợ phone",
-          description: "Hỗ trợ khách hàng qua điện thoại",
-        },
-        {
-          id: "support_priority",
-          name: "Priority support",
-          description: "Hỗ trợ ưu tiên cao",
-        },
-      ],
-    },
-    {
-      id: "integrations",
-      name: "Tích hợp & API",
-      icon: Plug,
-      color: "#8B5CF6",
-      features: [
-        {
-          id: "api_access",
-          name: "API access",
-          description: "Truy cập API để tích hợp với hệ thống khác",
-        },
-        {
-          id: "custom_integrations",
-          name: "Custom integrations",
-          description: "Tích hợp tùy chỉnh với các công cụ khác",
-        },
-        {
-          id: "sso_integration",
-          name: "SSO integration",
-          description: "Tích hợp Single Sign-On",
-        },
-        {
-          id: "webhook_support",
-          name: "Webhook support",
-          description: "Hỗ trợ webhook",
-        },
-      ],
-    },
-    {
-      id: "security",
-      name: "Bảo mật & Sao lưu",
-      icon: Shield,
-      color: "#EF4444",
-      features: [
-        {
-          id: "advanced_security",
-          name: "Advanced security",
-          description: "Bảo mật nâng cao",
-        },
-        {
-          id: "backup_recovery",
-          name: "Backup & recovery",
-          description: "Sao lưu và khôi phục dữ liệu",
-        },
-        {
-          id: "white_label",
-          name: "White-label solution",
-          description: "Giải pháp white-label",
-        },
-      ],
-    },
-    {
-      id: "analytics",
-      name: "Phân tích & Báo cáo",
-      icon: BarChart3,
-      color: "#06B6D4",
-      features: [
-        {
-          id: "advanced_analytics",
-          name: "Advanced analytics",
-          description: "Phân tích dữ liệu nâng cao",
-        },
-        {
-          id: "custom_reports",
-          name: "Custom reports",
-          description: "Báo cáo tùy chỉnh",
-        },
-      ],
-    },
-    {
-      id: "collaboration",
-      name: "Cộng tác & Quản lý",
-      icon: Handshake,
-      color: "#84CC16",
-      features: [
-        {
-          id: "team_collaboration",
-          name: "Team collaboration tools",
-          description: "Công cụ cộng tác nhóm",
-        },
-        {
-          id: "project_management",
-          name: "Project management",
-          description: "Quản lý dự án",
-        },
-        {
-          id: "time_tracking",
-          name: "Time tracking",
-          description: "Theo dõi thời gian",
-        },
-        {
-          id: "file_sharing",
-          name: "File sharing",
-          description: "Chia sẻ tệp tin",
-        },
-        {
-          id: "document_collaboration",
-          name: "Document collaboration",
-          description: "Cộng tác tài liệu",
-        },
-        {
-          id: "version_control",
-          name: "Version control",
-          description: "Kiểm soát phiên bản",
-        },
-      ],
-    },
-    {
-      id: "communication",
-      name: "Giao tiếp & Họp",
-      icon: Video,
-      color: "#EC4899",
-      features: [
-        {
-          id: "video_conferencing",
-          name: "Video conferencing",
-          description: "Họp video trực tuyến",
-        },
-        {
-          id: "screen_sharing",
-          name: "Screen sharing",
-          description: "Chia sẻ màn hình",
-        },
-      ],
-    },
-    {
-      id: "customization",
-      name: "Tùy chỉnh & Giao diện",
-      icon: Palette,
-      color: "#F97316",
-      features: [
-        {
-          id: "custom_branding",
-          name: "Custom branding",
-          description: "Tùy chỉnh thương hiệu",
-        },
-        {
-          id: "multi_language",
-          name: "Multi-language support",
-          description: "Hỗ trợ đa ngôn ngữ",
-        },
-        {
-          id: "mobile_app",
-          name: "Mobile app access",
-          description: "Truy cập ứng dụng di động",
-        },
-        {
-          id: "desktop_app",
-          name: "Desktop app access",
-          description: "Truy cập ứng dụng desktop",
-        },
-      ],
-    },
-    {
-      id: "automation",
-      name: "Tự động hóa",
-      icon: Zap,
-      color: "#EAB308",
-      features: [
-        {
-          id: "automated_workflows",
-          name: "Automated workflows",
-          description: "Quy trình tự động",
-        },
-      ],
-    },
-  ];
-
   const [plans, setPlans] = useState<any[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { userId } = useUser();
 
-  // Fetch packages from API (if available) and replace mock plans
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -346,6 +48,12 @@ const AdminPackages = () => {
             id: (p.id ?? p.ID) || idx + 1,
             name: p.name ?? p.title ?? `Package ${idx + 1}`,
             price: p.price ?? 0,
+            currency:
+              p.currency ??
+              p.Currency ??
+              p.CurrencyCode ??
+              p.CurrencySymbol ??
+              "USD",
             period:
               p.period ??
               (p.billingCycle === 0
@@ -398,46 +106,11 @@ const AdminPackages = () => {
         setLoadingLimitations(false);
       }
     })();
+
     return () => {
       mounted = false;
     };
   }, []);
-
-  const subscriptions = [
-    {
-      id: 1,
-      companyName: "Công ty ABC",
-      planName: "Premium",
-      status: "active",
-      startDate: "2024-01-15",
-      endDate: "2024-02-15",
-      amount: "$79",
-      paymentMethod: "Credit Card",
-      nextBilling: "2024-02-15",
-    },
-    {
-      id: 2,
-      companyName: "Công ty XYZ",
-      planName: "Basic",
-      status: "active",
-      startDate: "2024-01-20",
-      endDate: "2024-02-20",
-      amount: "$29",
-      paymentMethod: "Bank Transfer",
-      nextBilling: "2024-02-20",
-    },
-    {
-      id: 3,
-      companyName: "Công ty DEF",
-      planName: "Pro",
-      status: "trial",
-      startDate: "2024-02-01",
-      endDate: "2024-02-15",
-      amount: "$0",
-      paymentMethod: "Trial",
-      nextBilling: "2024-02-15",
-    },
-  ];
 
   // Handler functions for adding new plan
   const handleAddPlan = () => {
@@ -467,10 +140,8 @@ const AdminPackages = () => {
             console.error("Server rejected create package:", res.error);
             // show user the server error so it's easier to debug
             try {
-              window.alert(`Tạo gói thất bại: ${res.error}`);
-            } catch (e) {
-              /* ignore server-side render */
-            }
+              toast.error(`Create package failed: ${res.error}`);
+            } catch (e) {}
           }
           if (res.success && res.data) {
             const p = res.data;
@@ -492,11 +163,11 @@ const AdminPackages = () => {
             };
             setPlans((prev) => [...prev, mapped]);
           } else {
-            // fallback to local add
             const planToAdd = {
               id: plans.length + 1,
               name: newPlan.name,
               price: parseInt(newPlan.price),
+              currency: newPlan.currency || "USD",
               period: newPlan.period,
               billingCycle: (function () {
                 const map: Record<string, number> = {
@@ -519,6 +190,7 @@ const AdminPackages = () => {
             id: plans.length + 1,
             name: newPlan.name,
             price: parseInt(newPlan.price),
+            currency: newPlan.currency || "USD",
             period: newPlan.period,
             features: newPlan.features,
             activeSubscriptions: 0,
@@ -542,18 +214,6 @@ const AdminPackages = () => {
     }
   };
 
-  const handleToggleLimitation = (limId: string | number) => {
-    setNewPlan((prev: any) => {
-      const has = prev.limitations?.includes(limId);
-      return {
-        ...prev,
-        limitations: has
-          ? prev.limitations.filter((x: any) => x !== limId)
-          : [...(prev.limitations || []), limId],
-      };
-    });
-  };
-
   const handleNewPlanChange = (field: string, value: any) => {
     setNewPlan((prev) => ({
       ...prev,
@@ -561,42 +221,7 @@ const AdminPackages = () => {
     }));
   };
 
-  const handleFeatureToggle = (featureId: string, groupId: string) => {
-    setNewPlan((prev) => {
-      const currentFeatures = prev.features;
-
-      // Tìm nhóm hiện tại
-      const currentGroup = featureGroups.find((g) => g.id === groupId);
-      if (!currentGroup) return prev;
-
-      // Lấy tên feature từ ID
-      const feature = currentGroup.features.find((f) => f.id === featureId);
-      if (!feature) return prev;
-
-      // Xóa tất cả features trong nhóm này
-      const otherGroupFeatures = currentGroup.features.map((f) => f.name);
-      const featuresWithoutCurrentGroup = currentFeatures.filter(
-        (f) => !otherGroupFeatures.includes(f)
-      );
-
-      // Nếu feature đã được chọn, bỏ chọn nó
-      if (currentFeatures.includes(feature.name)) {
-        return {
-          ...prev,
-          features: featuresWithoutCurrentGroup,
-        };
-      } else {
-        // Nếu chưa chọn, thêm feature mới
-        return {
-          ...prev,
-          features: [...featuresWithoutCurrentGroup, feature.name],
-        };
-      }
-    });
-  };
-
   const handleSelectAllFeatures = () => {
-    // If limitations are available, select all limitations as features
     if (limitations && limitations.length > 0) {
       setNewPlan((prev: any) => ({
         ...prev,
@@ -605,13 +230,6 @@ const AdminPackages = () => {
       }));
       return;
     }
-
-    // Fallback: Chọn feature đầu tiên của mỗi mock group
-    const firstFeatures = featureGroups.map((group) => group.features[0].name);
-    setNewPlan((prev) => ({
-      ...prev,
-      features: firstFeatures,
-    }));
   };
 
   const handleClearAllFeatures = () => {
@@ -642,7 +260,7 @@ const AdminPackages = () => {
   const renderFeatureLabel = (featureName: string) => {
     const lim = limitations.find((l: any) => l.name === featureName);
     if (!lim) return featureName;
-    if (lim.isUnlimited) return `${lim.name} (Không giới hạn)`;
+    if (lim.isUnlimited) return `${lim.name} (Unlimited)`;
     if (lim.limitValue !== null && lim.limitValue !== undefined) {
       return `${lim.name}: ${lim.limitValue}${
         lim.limitUnit ? ` ${lim.limitUnit}` : ""
@@ -652,21 +270,15 @@ const AdminPackages = () => {
   };
 
   const formatPeriodLabel = (period?: string, billingCycle?: number) => {
-    if (billingCycle === 0) return "Tháng";
-    if (billingCycle === 1) return "Quý";
-    if (billingCycle === 2) return "Năm";
+    if (billingCycle === 0) return "Month";
+    if (billingCycle === 1) return "Quarter";
+    if (billingCycle === 2) return "Year";
     if (!period) return "";
     const p = String(period).toLowerCase();
-    if (p === "month" || p === "tháng") return "Tháng";
-    if (p === "quarter" || p === "quý") return "Quý";
-    if (p === "year" || p === "năm" || p === "nam") return "Năm";
+    if (p === "month" || p === "tháng") return "Month";
+    if (p === "quarter" || p === "quý") return "Quarter";
+    if (p === "year" || p === "năm" || p === "nam") return "Year";
     return period;
-  };
-
-  // Handler functions for plan actions
-  const handleViewPlan = (plan: any) => {
-    setSelectedPlan(plan);
-    setShowViewPlanModal(true);
   };
 
   const handleEditPlan = (plan: any) => {
@@ -688,9 +300,35 @@ const AdminPackages = () => {
     setShowDeleteConfirm(true);
   };
 
-  const confirmDeletePlan = () => {
-    if (selectedPlan) {
-      setPlans((prev) => prev.filter((plan) => plan.id !== selectedPlan.id));
+  const confirmDeletePlan = async () => {
+    if (!selectedPlan) return;
+    setIsDeleting(true);
+    try {
+      const res = await packageService.deletePackage(String(selectedPlan.id));
+      if (res.success) {
+        setPlans((prev) => prev.filter((plan) => plan.id !== selectedPlan.id));
+        try {
+          toast.success("Package deleted successfully");
+        } catch (e) {}
+      } else {
+        try {
+          toast.error(
+            `Delete package failed: ${
+              res.error || res.message || "Server error"
+            }`
+          );
+        } catch (e) {}
+      }
+    } catch (err) {
+      try {
+        toast.error(
+          `Delete package failed: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
+      } catch (e) {}
+    } finally {
+      setIsDeleting(false);
       setShowDeleteConfirm(false);
       setSelectedPlan(null);
     }
@@ -728,6 +366,13 @@ const AdminPackages = () => {
               id: p.id ?? p.ID ?? selectedPlan.id,
               name: p.name ?? payload.name,
               price: p.price ?? payload.price,
+              currency:
+                p.currency ??
+                p.Currency ??
+                payload.Currency ??
+                selectedPlan.currency ??
+                selectedPlan.Currency ??
+                "USD",
               period: p.period ?? payload.period,
               billingCycle:
                 p.billingCycle ??
@@ -751,6 +396,11 @@ const AdminPackages = () => {
               ...selectedPlan,
               name: newPlan.name,
               price: parseInt(newPlan.price),
+              currency:
+                newPlan.currency ||
+                selectedPlan.currency ||
+                selectedPlan.Currency ||
+                "USD",
               period: newPlan.period,
               features: newPlan.features,
               limitations: newPlan.limitations ?? [],
@@ -796,10 +446,10 @@ const AdminPackages = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { color: "#D1FAE5", textColor: "#065F46", text: "Hoạt động" },
-      trial: { color: "#FEF3C7", textColor: "#92400E", text: "Dùng thử" },
-      cancelled: { color: "#FEE2E2", textColor: "#991B1B", text: "Đã hủy" },
-      expired: { color: "#F3F4F6", textColor: "#6B7280", text: "Hết hạn" },
+      active: { color: "#D1FAE5", textColor: "#065F46", text: "Active" },
+      trial: { color: "#FEF3C7", textColor: "#92400E", text: "Trial" },
+      cancelled: { color: "#FEE2E2", textColor: "#991B1B", text: "Cancelled" },
+      expired: { color: "#F3F4F6", textColor: "#6B7280", text: "Expired" },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig];
@@ -816,161 +466,121 @@ const AdminPackages = () => {
     );
   };
 
+  // Per request: don't convert or map — show the response value verbatim.
+  const currencySymbol = (codeOrSymbol?: string | null) => {
+    if (codeOrSymbol === undefined || codeOrSymbol === null) return "";
+    return String(codeOrSymbol);
+  };
+
+  // Resolve a limitation entry which may be either an id (string) or an object
+  const getLimFromItem = (item: any) => {
+    if (!item) return null;
+    if (typeof item === "object") return item;
+    return limitations.find((l: any) => l.id === item || l.Id === item) || null;
+  };
+
   return (
     <div className="admin-packages">
       <div className="page-header">
-        <h1>Quản Lý Gói & Đăng Ký</h1>
-        <p>Quản lý các gói và đăng ký của khách hàng</p>
+        <h1>Package & Subscription Management</h1>
+        <p>Manage service plans and customer subscriptions</p>
       </div>
 
-      {/* Tabs */}
-      <div className="tabs-section">
-        <button
-          className={`tab-btn ${activeTab === "packages" ? "active" : ""}`}
-          onClick={() => setActiveTab("packages")}
-        >
-          Gói Dịch Vụ
-        </button>
-        <button
-          className={`tab-btn ${activeTab === "subscriptions" ? "active" : ""}`}
-          onClick={() => setActiveTab("subscriptions")}
-        >
-          Đăng Ký
-        </button>
-      </div>
+      {/* Packages (single view) */}
+      <div className="plans-content">
+        <div className="plans-header">
+          <h2></h2>
+          <button
+            className="add-plan-btn"
+            onClick={() => setShowAddPlanModal(true)}
+          >
+            + Add
+          </button>
+        </div>
 
-      {/* Packages Tab */}
-      {activeTab === "packages" && (
-        <div className="plans-content">
-          <div className="plans-header">
-            <h2>Danh Sách Gói Dịch Vụ</h2>
-            <button
-              className="add-plan-btn"
-              onClick={() => setShowAddPlanModal(true)}
-            >
-              + Thêm Gói Mới
-            </button>
-          </div>
-
-          <div className="plans-grid">
-            {plans.map((plan: any) => (
-              <div key={plan.id} className="plan-card">
-                <div className="plan-header">
+        <div className="plans-grid">
+          {plans.map((plan: any) => (
+            <div key={plan.id} className="plan-card modern pricing-card">
+              <div className="card-top pricing-top">
+                <div className="card-title">
                   <h3>{plan.name}</h3>
-                  <div className="plan-price">
-                    <span className="price">${plan.price}</span>
+                  {plan.activeSubscriptions > 5 && (
+                    <span className="badge-popular">Popular</span>
+                  )}
+                </div>
+
+                <div className="card-price">
+                  <div className="price-wrap">
+                    <span className="currency">
+                      {currencySymbol(plan.currency ?? plan.Currency)}
+                    </span>
+                    <span className="price">{plan.price}</span>
                     <span className="period">
                       /{formatPeriodLabel(plan.period, plan.billingCycle)}
                     </span>
                   </div>
                 </div>
-                <div className="plan-features">
-                  {(plan.features || []).map((feature: any, index: number) => (
-                    <div key={index} className="feature-item">
-                      <span className="feature-icon">✓</span>
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="plan-stats">
-                  <div className="stat">
-                    <span className="stat-label">Đăng ký hoạt động</span>
-                    <span className="stat-value">
-                      {plan.activeSubscriptions}
-                    </span>
-                  </div>
-                  <div className="stat">
-                    <span className="stat-label">Doanh thu tháng</span>
-                    <span className="stat-value">{plan.revenue}</span>
-                  </div>
-                </div>
-
-                <div className="plan-actions">
-                  <button
-                    className="action-btn edit"
-                    onClick={() => handleEditPlan(plan)}
-                    title="Chỉnh sửa gói"
-                  >
-                    <Edit size={16} />
-                    <span>Chỉnh sửa</span>
-                  </button>
-
-                  <button
-                    className="action-btn delete"
-                    onClick={() => handleDeletePlan(plan)}
-                    title="Xóa gói"
-                  >
-                    <Trash2 size={16} />
-                    <span>Xóa</span>
-                  </button>
-                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Subscriptions Tab */}
-      {activeTab === "subscriptions" && (
-        <div className="subscriptions-content">
-          <div className="subscriptions-header">
-            <h2>Danh Sách Đăng Ký</h2>
-            <div className="subscriptions-filters">
-              <select className="filter-select">
-                <option value="all">Tất cả trạng thái</option>
-                <option value="active">Hoạt động</option>
-                <option value="trial">Dùng thử</option>
-                <option value="cancelled">Đã hủy</option>
-              </select>
-            </div>
-          </div>
+              <div className="modern-features pricing-features">
+                <ul>
+                  {(plan.limitations || [])
+                    .slice(0, 6)
+                    .map((limItem: any, idx: number) => {
+                      const lim = getLimFromItem(limItem);
+                      if (!lim)
+                        return (
+                          <li
+                            key={String(limItem) + idx}
+                            className="feature-row"
+                          >
+                            <span className="feature-text">
+                              {String(limItem)}
+                            </span>
+                          </li>
+                        );
+                      return (
+                        <li key={lim.id ?? idx} className="feature-row">
+                          <span className="feature-text">
+                            {lim.name ?? lim.Name}
+                          </span>
+                          <span className="feature-meta">
+                            {lim.isUnlimited || lim.IsUnlimited
+                              ? "Unlimited"
+                              : lim.limitValue ?? lim.LimitValue
+                              ? `${lim.limitValue ?? lim.LimitValue}${
+                                  lim.limitUnit ?? lim.LimitUnit
+                                    ? ` ${lim.limitUnit ?? lim.LimitUnit}`
+                                    : ""
+                                }`
+                              : ""}
+                          </span>
+                        </li>
+                      );
+                    })}
+                </ul>
+              </div>
 
-          <div className="subscriptions-table">
-            <div className="table-header">
-              <div className="table-cell">Công ty</div>
-              <div className="table-cell">Gói</div>
-              <div className="table-cell">Trạng thái</div>
-              <div className="table-cell">Ngày bắt đầu</div>
-              <div className="table-cell">Ngày kết thúc</div>
-              <div className="table-cell">Số tiền</div>
-              <div className="table-cell">Phương thức</div>
-              <div className="table-cell">Thanh toán tiếp</div>
-              <div className="table-cell">Hành động</div>
-            </div>
+              <div className="plan-footer pricing-footer">
+                <div className="plan-limits" />
 
-            {subscriptions.map((subscription: any) => (
-              <div key={subscription.id} className="table-row">
-                <div className="table-cell">
-                  <div className="company-info">
-                    <div className="company-avatar">
-                      {subscription.companyName.charAt(0)}
-                    </div>
-                    <span>{subscription.companyName}</span>
-                  </div>
-                </div>
-                <div className="table-cell">
-                  <span className="plan-badge">{subscription.planName}</span>
-                </div>
-                <div className="table-cell">
-                  {getStatusBadge(subscription.status)}
-                </div>
-                <div className="table-cell">{subscription.startDate}</div>
-                <div className="table-cell">{subscription.endDate}</div>
-                <div className="table-cell">{subscription.amount}</div>
-                <div className="table-cell">{subscription.paymentMethod}</div>
-                <div className="table-cell">{subscription.nextBilling}</div>
-                <div className="table-cell">
-                  <div className="action-buttons">
-                    <button className="action-btn edit">✏️</button>
-                    <button className="action-btn more">⋯</button>
+                <div className="plan-actions modern-actions pricing-actions">
+                  <div className="small-actions">
+                    {/* Edit button removed per request */}
+                    <button
+                      className="icon-btn danger"
+                      onClick={() => handleDeletePlan(plan)}
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Add Plan Modal */}
       {showAddPlanModal && (
@@ -980,7 +590,7 @@ const AdminPackages = () => {
         >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Thêm Gói Dịch Vụ Mới</h3>
+              <h3>Add New</h3>
               <button
                 className="modal-close"
                 onClick={() => setShowAddPlanModal(false)}
@@ -990,31 +600,31 @@ const AdminPackages = () => {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Tên gói:</label>
+                <label>Package name:</label>
                 <input
                   type="text"
                   value={newPlan.name}
                   onChange={(e) => handleNewPlanChange("name", e.target.value)}
-                  placeholder="Nhập tên gói (ví dụ: Pro, Advanced...)"
+                  placeholder="Enter package name (e.g. Pro, Advanced...)"
                   className="form-input"
                 />
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Giá:</label>
+                  <label>Price:</label>
                   <input
                     type="number"
                     value={newPlan.price}
                     onChange={(e) =>
                       handleNewPlanChange("price", e.target.value)
                     }
-                    placeholder="Nhập giá (ví dụ: 99)"
+                    placeholder="Enter price (e.g. 99)"
                     className="form-input"
                   />
                 </div>
                 <div className="form-group">
-                  <label>Chu kỳ:</label>
+                  <label>Period:</label>
                   <select
                     value={newPlan.period}
                     onChange={(e) =>
@@ -1022,28 +632,28 @@ const AdminPackages = () => {
                     }
                     className="form-select"
                   >
-                    <option value="month">Tháng</option>
-                    <option value="year">Năm</option>
-                    <option value="quarter">Quý</option>
+                    <option value="month">Month</option>
+                    <option value="year">Year</option>
+                    <option value="quarter">Quarter</option>
                   </select>
                 </div>
               </div>
 
               <div className="form-group">
-                <label>Mô tả:</label>
+                <label>Description:</label>
                 <textarea
                   value={newPlan.description}
                   onChange={(e) =>
                     handleNewPlanChange("description", e.target.value)
                   }
-                  placeholder="Mô tả ngắn cho gói (tùy chọn)"
+                  placeholder="Short description (optional)"
                   className="form-input"
                   rows={3}
                 />
               </div>
 
               <div className="form-group">
-                <label>Tiền tệ:</label>
+                <label>Currency:</label>
                 <select
                   value={newPlan.currency}
                   onChange={(e) =>
@@ -1060,11 +670,11 @@ const AdminPackages = () => {
               {/* status removed from create form per request */}
 
               <div className="form-group">
-                <label>Giới hạn:</label>
+                <label>Limits:</label>
                 <div className="feature-selector">
                   <div className="selected-features-preview">
                     <span className="selected-count">
-                      Đã chọn: {newPlan.features.length} giới hạn
+                      Selected: {newPlan.features.length} limits
                     </span>
                     {newPlan.features.length > 0 && (
                       <div className="selected-features-list">
@@ -1075,7 +685,7 @@ const AdminPackages = () => {
                         ))}
                         {newPlan.features.length > 3 && (
                           <span className="more-features">
-                            +{newPlan.features.length - 3} khác
+                            +{newPlan.features.length - 3} more
                           </span>
                         )}
                       </div>
@@ -1087,8 +697,8 @@ const AdminPackages = () => {
                     onClick={() => setShowFeatureSidebar(true)}
                   >
                     {newPlan.features.length === 0
-                      ? "Chọn giới hạn"
-                      : "Chỉnh sửa giới hạn"}
+                      ? "Select limits"
+                      : "Edit limits"}
                   </button>
                 </div>
               </div>
@@ -1099,21 +709,21 @@ const AdminPackages = () => {
                 className="btn-cancel"
                 onClick={() => setShowAddPlanModal(false)}
               >
-                Hủy
+                Cancel
               </button>
               <button
                 className="btn-save"
                 onClick={handleAddPlan}
                 disabled={!newPlan.name || !newPlan.price}
               >
-                Thêm gói
+                Add Package
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* View Plan Modal */}
+      {/* View Package Modal */}
       {showViewPlanModal && selectedPlan && (
         <div
           className="modal-overlay"
@@ -1124,7 +734,7 @@ const AdminPackages = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h3>Chi Tiết Gói Dịch Vụ</h3>
+              <h3>Package Details</h3>
               <button
                 className="modal-close"
                 onClick={() => setShowViewPlanModal(false)}
@@ -1137,7 +747,12 @@ const AdminPackages = () => {
                 <div className="view-plan-header">
                   <h2>{selectedPlan.name}</h2>
                   <div className="view-plan-price">
-                    <span className="price">${selectedPlan.price}</span>
+                    <span className="price">
+                      {currencySymbol(
+                        selectedPlan.currency ?? selectedPlan.Currency
+                      )}
+                      {selectedPlan.price}
+                    </span>
                     <span className="period">
                       /
                       {formatPeriodLabel(
@@ -1149,53 +764,59 @@ const AdminPackages = () => {
                 </div>
 
                 <div className="view-plan-status">
-                  <span className="status-label">Trạng thái:</span>
+                  <span className="status-label">Status:</span>
                   {getStatusBadge(selectedPlan.status)}
                 </div>
 
                 <div className="view-plan-features">
-                  <h4>Giới hạn:</h4>
+                  <h4>Limits:</h4>
                   <ul className="features-list">
                     {(selectedPlan.limitations || []).length === 0 && (
-                      <li className="feature-item muted">Không có giới hạn</li>
+                      <li className="feature-item muted">No limits</li>
                     )}
-                    {(selectedPlan.limitations || []).map((limId: any) => {
-                      const lim = limitations.find((l) => l.id === limId);
-                      if (!lim)
+                    {(selectedPlan.limitations || []).map(
+                      (limItem: any, i: number) => {
+                        const lim = getLimFromItem(limItem);
+                        if (!lim)
+                          return (
+                            <li
+                              key={String(limItem) + i}
+                              className="feature-item"
+                            >
+                              <span>{String(limItem)}</span>
+                            </li>
+                          );
                         return (
-                          <li key={limId} className="feature-item">
-                            <span>{limId}</span>
+                          <li key={lim.id ?? i} className="feature-item">
+                            <span className="feature-icon">✓</span>
+                            <span>
+                              {lim.name ?? lim.Name}
+                              {lim.isUnlimited || lim.IsUnlimited
+                                ? " (Unlimited)"
+                                : lim.limitValue ?? lim.LimitValue
+                                ? `: ${lim.limitValue ?? lim.LimitValue}${
+                                    lim.limitUnit ?? lim.LimitUnit
+                                      ? ` ${lim.limitUnit ?? lim.LimitUnit}`
+                                      : ""
+                                  }`
+                                : ""}
+                            </span>
                           </li>
                         );
-                      return (
-                        <li key={lim.id} className="feature-item">
-                          <span className="feature-icon">✓</span>
-                          <span>
-                            {lim.name}
-                            {lim.isUnlimited
-                              ? " (Không giới hạn)"
-                              : lim.limitValue !== null &&
-                                lim.limitValue !== undefined
-                              ? `: ${lim.limitValue}${
-                                  lim.limitUnit ? ` ${lim.limitUnit}` : ""
-                                }`
-                              : ""}
-                          </span>
-                        </li>
-                      );
-                    })}
+                      }
+                    )}
                   </ul>
                 </div>
 
                 <div className="view-plan-stats">
                   <div className="stat-item">
-                    <span className="stat-label">Đăng ký hoạt động:</span>
+                    <span className="stat-label">Active subscriptions:</span>
                     <span className="stat-value">
                       {selectedPlan.activeSubscriptions}
                     </span>
                   </div>
                   <div className="stat-item">
-                    <span className="stat-label">Doanh thu tháng:</span>
+                    <span className="stat-label">Monthly revenue:</span>
                     <span className="stat-value">{selectedPlan.revenue}</span>
                   </div>
                 </div>
@@ -1206,17 +827,9 @@ const AdminPackages = () => {
                 className="btn-cancel"
                 onClick={() => setShowViewPlanModal(false)}
               >
-                Đóng
+                Close
               </button>
-              <button
-                className="btn-edit"
-                onClick={() => {
-                  setShowViewPlanModal(false);
-                  handleEditPlan(selectedPlan);
-                }}
-              >
-                Chỉnh sửa
-              </button>
+              {/* Edit action removed from view modal per request */}
             </div>
           </div>
         </div>
@@ -1230,7 +843,7 @@ const AdminPackages = () => {
         >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Chỉnh Sửa Gói Dịch Vụ</h3>
+              <h3>Edit Package</h3>
               <button
                 className="modal-close"
                 onClick={() => setShowEditPlanModal(false)}
@@ -1240,31 +853,31 @@ const AdminPackages = () => {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Tên gói:</label>
+                <label>Package name:</label>
                 <input
                   type="text"
                   value={newPlan.name}
                   onChange={(e) => handleNewPlanChange("name", e.target.value)}
-                  placeholder="Nhập tên gói (ví dụ: Pro, Advanced...)"
+                  placeholder="Enter package name (e.g. Pro, Advanced...)"
                   className="form-input"
                 />
               </div>
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Giá:</label>
+                  <label>Price:</label>
                   <input
                     type="number"
                     value={newPlan.price}
                     onChange={(e) =>
                       handleNewPlanChange("price", e.target.value)
                     }
-                    placeholder="Nhập giá (ví dụ: 99)"
+                    placeholder="Enter price (e.g. 99)"
                     className="form-input"
                   />
                 </div>
                 <div className="form-group">
-                  <label>Chu kỳ:</label>
+                  <label>Period:</label>
                   <select
                     value={newPlan.period}
                     onChange={(e) =>
@@ -1272,28 +885,28 @@ const AdminPackages = () => {
                     }
                     className="form-select"
                   >
-                    <option value="month">Tháng</option>
-                    <option value="year">Năm</option>
-                    <option value="quarter">Quý</option>
+                    <option value="month">Month</option>
+                    <option value="year">Year</option>
+                    <option value="quarter">Quarter</option>
                   </select>
                 </div>
               </div>
 
               <div className="form-group">
-                <label>Mô tả:</label>
+                <label>Description:</label>
                 <textarea
                   value={newPlan.description}
                   onChange={(e) =>
                     handleNewPlanChange("description", e.target.value)
                   }
-                  placeholder="Mô tả ngắn cho gói (tùy chọn)"
+                  placeholder="Short description (optional)"
                   className="form-input"
                   rows={3}
                 />
               </div>
 
               <div className="form-group">
-                <label>Tiền tệ:</label>
+                <label>Currency:</label>
                 <select
                   value={newPlan.currency}
                   onChange={(e) =>
@@ -1310,11 +923,11 @@ const AdminPackages = () => {
               {/* status removed from edit form per request */}
 
               <div className="form-group">
-                <label>Giới hạn:</label>
+                <label>Limits:</label>
                 <div className="feature-selector">
                   <div className="selected-features-preview">
                     <span className="selected-count">
-                      Đã chọn: {newPlan.limitations.length} giới hạn
+                      Selected: {newPlan.limitations.length} limits
                     </span>
                     {newPlan.features.length > 0 && (
                       <div className="selected-features-list">
@@ -1325,7 +938,7 @@ const AdminPackages = () => {
                         ))}
                         {newPlan.features.length > 3 && (
                           <span className="more-features">
-                            +{newPlan.features.length - 3} khác
+                            +{newPlan.features.length - 3} more
                           </span>
                         )}
                       </div>
@@ -1337,8 +950,8 @@ const AdminPackages = () => {
                     onClick={() => setShowFeatureSidebar(true)}
                   >
                     {newPlan.features.length === 0
-                      ? "Chọn giới hạn"
-                      : "Chỉnh sửa giới hạn"}
+                      ? "Select limits"
+                      : "Edit limits"}
                   </button>
                 </div>
               </div>
@@ -1348,14 +961,14 @@ const AdminPackages = () => {
                 className="btn-cancel"
                 onClick={() => setShowEditPlanModal(false)}
               >
-                Hủy
+                Cancel
               </button>
               <button
                 className="btn-save"
                 onClick={handleUpdatePlan}
                 disabled={!newPlan.name || !newPlan.price}
               >
-                Cập nhật
+                Update
               </button>
             </div>
           </div>
@@ -1373,7 +986,7 @@ const AdminPackages = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h3>Xác nhận xóa gói</h3>
+              <h3>Confirm Delete Package</h3>
               <button
                 className="modal-close"
                 onClick={() => setShowDeleteConfirm(false)}
@@ -1384,21 +997,27 @@ const AdminPackages = () => {
             <div className="modal-body">
               <div className="delete-confirmation">
                 <div className="warning-icon">⚠️</div>
-                <h4>Bạn có chắc chắn muốn xóa gói "{selectedPlan.name}"?</h4>
+                <h4>
+                  Are you sure you want to delete the package "
+                  {selectedPlan.name}"?
+                </h4>
                 <p>
-                  Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan đến
-                  gói này sẽ bị xóa vĩnh viễn.
+                  This action cannot be undone. All data related to this package
+                  will be permanently deleted.
                 </p>
 
                 <div className="plan-summary">
                   <div className="summary-item">
-                    <span className="label">Tên gói:</span>
+                    <span className="label">Package name:</span>
                     <span className="value">{selectedPlan.name}</span>
                   </div>
                   <div className="summary-item">
-                    <span className="label">Giá:</span>
+                    <span className="label">Price:</span>
                     <span className="value">
-                      ${selectedPlan.price}/
+                      {currencySymbol(
+                        selectedPlan.currency ?? selectedPlan.Currency
+                      )}
+                      {selectedPlan.price}/
                       {formatPeriodLabel(
                         selectedPlan.period,
                         selectedPlan.billingCycle
@@ -1406,7 +1025,7 @@ const AdminPackages = () => {
                     </span>
                   </div>
                   <div className="summary-item">
-                    <span className="label">Đăng ký hoạt động:</span>
+                    <span className="label">Active subscriptions:</span>
                     <span className="value">
                       {selectedPlan.activeSubscriptions}
                     </span>
@@ -1418,11 +1037,16 @@ const AdminPackages = () => {
               <button
                 className="btn-cancel"
                 onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
               >
-                Hủy
+                Cancel
               </button>
-              <button className="btn-delete" onClick={confirmDeletePlan}>
-                Xóa gói
+              <button
+                className="btn-delete"
+                onClick={confirmDeletePlan}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Plan"}
               </button>
             </div>
           </div>
@@ -1437,7 +1061,7 @@ const AdminPackages = () => {
         >
           <div className="feature-sidebar" onClick={(e) => e.stopPropagation()}>
             <div className="sidebar-header">
-              <h3>Chọn Giới Hạn</h3>
+              <h3>Select Limits</h3>
               <button
                 className="sidebar-close"
                 onClick={() => setShowFeatureSidebar(false)}
@@ -1451,13 +1075,13 @@ const AdminPackages = () => {
                 className="action-btn select-all"
                 onClick={handleSelectAllFeatures}
               >
-                Chọn tất cả
+                Select all
               </button>
               <button
                 className="action-btn clear-all"
                 onClick={handleClearAllFeatures}
               >
-                Xóa tất cả
+                Clear all
               </button>
             </div>
 
@@ -1469,7 +1093,7 @@ const AdminPackages = () => {
                       {/* icon placeholder */}
                       <Users size={20} />
                     </div>
-                    <h4 className="group-title">Giới hạn</h4>
+                    <h4 className="group-title">Limits</h4>
                   </div>
                   <div className="features-grid">
                     {limitations.map((lim: any) => (
@@ -1497,7 +1121,7 @@ const AdminPackages = () => {
                             <h5 className="feature-title">{lim.name}</h5>
                             <span className="feature-meta">
                               {lim.isUnlimited
-                                ? "Không giới hạn"
+                                ? "Unlimited"
                                 : lim.limitValue !== null &&
                                   lim.limitValue !== undefined
                                 ? `${lim.limitValue}${
@@ -1517,71 +1141,21 @@ const AdminPackages = () => {
                   </div>
                 </div>
               ) : (
-                featureGroups.map((group) => {
-                  const IconComponent = group.icon;
-                  return (
-                    <div key={group.id} className="feature-group">
-                      <div className="group-header">
-                        <div
-                          className="group-icon"
-                          style={{ color: group.color }}
-                        >
-                          <IconComponent size={20} />
-                        </div>
-                        <h4 className="group-title">{group.name}</h4>
-                      </div>
-                      <div className="features-grid">
-                        {group.features.map((feature) => (
-                          <div
-                            key={feature.id}
-                            className={`feature-card ${
-                              newPlan.features.includes(feature.name)
-                                ? "selected"
-                                : ""
-                            }`}
-                            onClick={() =>
-                              handleFeatureToggle(feature.id, group.id)
-                            }
-                          >
-                            <div className="feature-card-header">
-                              <input
-                                type="radio"
-                                name={group.id}
-                                checked={newPlan.features.includes(
-                                  feature.name
-                                )}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  handleFeatureToggle(feature.id, group.id);
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="feature-radio"
-                              />
-                            </div>
-                            <div className="feature-card-body">
-                              <h5 className="feature-title">{feature.name}</h5>
-                              <p className="feature-description">
-                                {feature.description}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })
+                <div className="no-limitations" style={{ padding: 16 }}>
+                  <p>No limits to display</p>
+                </div>
               )}
             </div>
 
             <div className="sidebar-footer">
               <div className="selected-summary">
-                <span>Đã chọn: {newPlan.features.length} giới hạn</span>
+                <span>Selected: {newPlan.features.length} limits</span>
               </div>
               <button
                 className="confirm-btn"
                 onClick={() => setShowFeatureSidebar(false)}
               >
-                Xác nhận
+                Confirm
               </button>
             </div>
           </div>
@@ -1689,8 +1263,23 @@ const AdminPackages = () => {
 
         .plans-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+          grid-template-columns: 1fr; /* fallback: single column on very small screens */
           gap: 24px;
+          justify-content: center;
+          width: 100%;
+        }
+
+        /* Responsive: 2 columns on medium, 3 columns on large screens */
+        @media (min-width: 768px) {
+          .plans-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (min-width: 1100px) {
+          .plans-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
         }
 
         .plan-card {
@@ -1706,6 +1295,259 @@ const AdminPackages = () => {
 
         .plan-card:hover {
           transform: translateY(-4px);
+        }
+
+        /* Modern card styles */
+        .plan-card.modern {
+          padding: 0;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          border-radius: 14px;
+          border: 1px solid #f3f4f6;
+          width: 100%;
+          min-width: 0;
+          max-width: 360px; /* keep cards a sensible max width */
+          height: 480px;
+          background: white;
+        }
+
+        .card-top {
+          background: linear-gradient(180deg, #ff5e13 0%, #ff8a3d 100%);
+          padding: 12px 18px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .card-title h3 {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 800;
+          color: #ffffff;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+        }
+
+        .badge-popular {
+          display: inline-block;
+          margin-left: 8px;
+          background: linear-gradient(90deg, #ffb88c, #ff5e13);
+          color: white;
+          padding: 6px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .card-price {
+          text-align: right;
+        }
+
+        .price-wrap {
+          display: flex;
+          align-items: baseline;
+          gap: 6px;
+          justify-content: center;
+        }
+        .price-wrap .currency {
+          font-size: 18px;
+          color: rgba(255, 255, 255, 0.9);
+        }
+        .price-wrap .price {
+          font-size: 34px;
+          font-weight: 900;
+          color: #ffffff;
+          line-height: 1;
+        }
+        .price-wrap .period {
+          font-size: 14px;
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* pricing-specific */
+        .pricing-card {
+          display: flex;
+          flex-direction: column;
+          /* ensure footer sticks to bottom and features scroll */
+          justify-content: space-between;
+        }
+
+        .pricing-top {
+          padding-top: 18px;
+          padding-bottom: 18px;
+        }
+
+        .modern-features {
+          padding: 0;
+          background: white;
+        }
+        .pricing-features ul {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+        }
+        .pricing-features {
+          /* take remaining space and allow scrolling if content overflows */
+          flex: 1 1 auto;
+          overflow: auto;
+        }
+        .pricing-features .feature-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 18px;
+          border-top: 1px solid #f3f4f6;
+          font-size: 14px;
+          color: #0d062d;
+        }
+        .pricing-features .feature-row:first-child {
+          border-top: none;
+        }
+        .feature-meta {
+          color: #6b7280;
+          font-weight: 600;
+          font-size: 13px;
+        }
+        .modern-features ul {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .modern-features .feature-line {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #0d062d;
+          font-size: 14px;
+        }
+        .modern-features .feature-line svg {
+          flex: 0 0 18px;
+        }
+
+        .plan-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 16px 18px;
+          background: #ffffff;
+          border-top: 1px solid #f3f4f6;
+        }
+
+        .plan-limits {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+
+        .plan-limits ul {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .plan-limits .more-limits {
+          margin-top: 6px;
+          color: #6b7280;
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .limit-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 6px 8px;
+          border-radius: 8px;
+          background: #fff;
+        }
+
+        .limit-name {
+          font-weight: 600;
+          color: #0d062d;
+          font-size: 13px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .limit-meta {
+          color: #6b7280;
+          font-size: 13px;
+          margin-left: 8px;
+          white-space: nowrap;
+        }
+
+        .btn-delete:disabled,
+        .btn-cancel:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+
+        .modern-actions {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+        .select-btn {
+          background: linear-gradient(90deg, #ff8a3d, #ff5e13);
+          color: white;
+          border: none;
+          padding: 10px 16px;
+          border-radius: 10px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .select-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(255, 94, 19, 0.18);
+        }
+
+        .small-actions {
+          display: flex;
+          gap: 8px;
+        }
+        .icon-btn {
+          width: 38px;
+          height: 38px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+          background: white;
+          cursor: pointer;
+        }
+        .icon-btn.danger {
+          background: linear-gradient(90deg, #ff7b7b, #e02424);
+          color: white;
+          border: transparent;
+        }
+
+        .signup-btn {
+          background: #f3f4f6;
+          color: #6b7280;
+          border: none;
+          padding: 10px 22px;
+          border-radius: 24px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          cursor: pointer;
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+        }
+        .signup-btn:hover {
+          transform: translateY(-2px);
         }
 
         .plan-header {
@@ -2644,6 +2486,24 @@ const AdminPackages = () => {
 
           .feature-description {
             font-size: 10px;
+          }
+        }
+
+        /* Responsive: make pricing cards full-width on small screens */
+        @media (max-width: 768px) {
+          .plans-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+          .plan-card.modern {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            height: auto;
+          }
+          .pricing-features {
+            max-height: none;
+            overflow: visible;
           }
         }
 

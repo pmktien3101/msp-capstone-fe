@@ -14,7 +14,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { ProjectSummary } from "./ProjectSummary";
-import { ProjectBoard } from "./ProjectBoard";
+import { ProjectTaskTable } from "./ProjectTaskTable";
 import { ProjectList } from "./ProjectList";
 // import { ProjectReports } from "./ProjectReports";
 import { ProjectSettings } from "./ProjectSettings";
@@ -34,6 +34,7 @@ interface ProjectTabsProps {
   availableProjectManagers?: any[];
   refreshKey?: number;
   onProjectUpdate?: () => void;
+  onCreateMilestone?: () => void;
 }
 
 export const ProjectTabs = ({
@@ -47,6 +48,7 @@ export const ProjectTabs = ({
   availableProjectManagers = [],
   refreshKey = 0,
   onProjectUpdate,
+  onCreateMilestone,
 }: ProjectTabsProps) => {
   const [activeTab, setActiveTab] = useState(initialActiveTab);
 
@@ -80,37 +82,37 @@ export const ProjectTabs = ({
   const tabs = [
     {
       id: "summary",
-      label: "Tổng quan",
+      label: "Summary",
       icon: <LayoutDashboard size={20} />,
     },
     {
       id: "board",
-      label: "Công việc",
+      label: "Tasks",
       icon: <BiTask size={20} />,
     },
     {
       id: "list",
-      label: "Cột mốc",
+      label: "Milestones",
       icon: <Flag size={20} />,
     },
     {
       id: "documents",
-      label: "Tài liệu",
+      label: "Documents",
       icon: <FileText size={20} />,
     },
     {
       id: "meetings",
-      label: "Cuộc họp",
+      label: "Meetings",
       icon: <Video size={20} />,
     },
     // {
     //   id: "reports",
-    //   label: "Báo cáo",
+    //   label: "Reports",
     //   icon: <BarChart3 size={20} />,
     // },
     {
       id: "settings",
-      label: "Cài đặt",
+      label: "Settings",
       icon: <Settings size={20} />,
     },
   ];
@@ -121,7 +123,7 @@ export const ProjectTabs = ({
         return <ProjectSummary project={project} />;
       case "board":
         return (
-          <ProjectBoard
+          <ProjectTaskTable
             project={project}
             onTaskClick={onTaskClick}
             onCreateTask={onCreateTask}
@@ -131,7 +133,7 @@ export const ProjectTabs = ({
           />
         );
       case "list":
-        return <ProjectList project={project} refreshKey={refreshKey} />;
+        return <ProjectList project={project} refreshKey={refreshKey} onCreateMilestone={onCreateMilestone} />;
       case "documents":
         return <ProjectDocuments project={project} />;
       case "meetings":

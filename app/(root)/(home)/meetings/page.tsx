@@ -4,6 +4,9 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import { UserRole } from "@/lib/rbac";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useMeetingLimitationCheck } from "@/hooks/useLimitationCheck";
+import { toast } from "react-toastify";
 import {
   mockMeetings,
   mockProject,
@@ -45,6 +48,7 @@ interface Meeting {
 const MeetingsPage = () => {
   const { role } = useUser();
   const router = useRouter();
+  const { checkMeetingLimitation } = useMeetingLimitationCheck();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState("all");
   const [selectedMilestone, setSelectedMilestone] = useState("all");
@@ -155,8 +159,8 @@ const MeetingsPage = () => {
   };
 
   const handleCardClick = (meetingId: string) => {
-    // router.push(`/meeting-detail/${meetingId}`);
-    router.push(`/meeting-detail/3b2140ee-24c5-4d12-8eb8-6de2a3f4fdd0`);
+    router.push(`/meeting-detail/${meetingId}`);
+    // router.push(`/meeting-detail/3b2140ee-24c5-4d12-8eb8-6de2a3f4fdd0`);
   };
 
   const handleJoinMeeting = (e: React.MouseEvent, meetingTitle: string) => {
@@ -165,6 +169,12 @@ const MeetingsPage = () => {
   };
 
   const handleOpenCreateModal = () => {
+    // Check meeting limitation before opening modal
+    if (!checkMeetingLimitation()) {
+      return; // Limit reached, prevent opening modal
+    }
+
+    // Open modal if limit not reached
     setIsCreateModalOpen(true);
   };
 
@@ -290,7 +300,7 @@ const MeetingsPage = () => {
         </div>
         <button className="create-meeting-btn" onClick={handleOpenCreateModal}>
           <Plus size={16} />
-          Tạo cuộc họp mới
+          Create new meeting
         </button>
       </div>
 

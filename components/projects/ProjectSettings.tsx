@@ -9,6 +9,7 @@ import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
 import { toast } from "react-toastify";
 import { PROJECT_STATUS_OPTIONS, getProjectStatusLabel } from "@/constants/status";
+import { useMemberInProjectLimitationCheck } from "@/hooks/useLimitationCheck";
 import { 
   Plus, 
   Edit, 
@@ -26,6 +27,7 @@ import {
   Paperclip,
   UserCog
 } from "lucide-react";
+import "@/app/styles/project-settings.scss";
 
 interface ProjectManager {
   id: string;
@@ -41,6 +43,8 @@ interface ProjectSettingsProps {
 }
 
 export const ProjectSettings = ({ project, availableProjectManagers = [], onProjectUpdate }: ProjectSettingsProps) => {
+  const { checkMemberInProjectLimit } = useMemberInProjectLimitationCheck();
+
   // Helper function to format ISO date to YYYY-MM-DD
   const formatDateForInput = (dateString?: string) => {
     if (!dateString) return '';
@@ -120,7 +124,6 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
       setIsLoadingMembers(true);
       try {
         const result = await projectService.getProjectMembers(project.id);
-        console.log('ProjectSettings - Fetched members:', result);
         
         if (result.success && result.data) {
           // Transform ProjectMember[] to Member[]
@@ -136,7 +139,6 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
               avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase()
             }));
           
-          console.log('ProjectSettings - Transformed members:', transformedMembers);
           setMembers(transformedMembers);
         }
       } catch (error) {
@@ -170,13 +172,13 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
     }));
   };
 
-  const handleSave = () => {
-    // TODO: Implement save functionality
-    console.log("Saving settings:", settings);
-    console.log("Saving members:", members);
-  };
-
   const handleAddMember = async (member: Member) => {
+    // Check member count limitation before adding
+    const newMemberCount = members.length + 1;
+    if (!checkMemberInProjectLimit(newMemberCount)) {
+      return; // Limit exceeded, don't add
+    }
+
     setShowAddMemberModal(false);
     
     // Re-fetch members from API to get latest data
@@ -217,15 +219,12 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
       if (result.success) {
         // Remove from UI on success
         setMembers((prev) => prev.filter((m) => (m.pmId || m.id) !== memberToDelete.id));
-        console.log('Successfully deleted member:', memberToDelete.name);
-        toast.success('Đã xóa thành viên thành công!');
+        toast.success('Member removed successfully!');
       } else {
-        console.error('Failed to delete member:', result.error);
-        toast.error(`Lỗi khi xóa thành viên: ${result.error || 'Unknown error'}`);
+        toast.error(`Error removing member: ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error deleting member:', error);
-      toast.error('Đã xảy ra lỗi khi xóa thành viên');
+      toast.error('An error occurred while removing member');
     } finally {
       setMemberToDelete(null);
       setIsConfirmDeleteMemberOpen(false);
@@ -244,7 +243,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
 
   const handleSaveBasicInfo = async () => {
     if (!project.id) {
-      toast.error('Không tìm thấy thông tin dự án');
+      toast.error('Project information not found');
       return;
     }
 
@@ -266,19 +265,17 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
         console.log('[ProjectSettings] Project updated successfully:', result.data);
         setSettings(tempSettings);
         setIsEditingBasicInfo(false);
-        toast.success('Cập nhật thông tin dự án thành công!');
+        toast.success('Project information updated successfully!');
         
         // Trigger parent component to refetch data
         if (onProjectUpdate) {
           onProjectUpdate();
         }
       } else {
-        console.error('[ProjectSettings] Failed to update project:', result.error);
-        toast.error(`Lỗi: ${result.error || 'Không thể cập nhật thông tin dự án'}`);
+        toast.error(`Error: ${result.error || 'Failed to update project information'}`);
       }
     } catch (error) {
-      console.error('[ProjectSettings] Error updating project:', error);
-      toast.error('Có lỗi xảy ra khi cập nhật thông tin dự án');
+      toast.error('An error occurred while updating project information');
     }
   };
 
@@ -297,14 +294,14 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="section-icon">
               <Settings size={16} color="white" />
             </div>
-            <h4>Thông tin cơ bản</h4>
+            <h4>Basic Information</h4>
             {!isEditingBasicInfo && canEditBasicInfo && (
               <button
                 className="btn btn-secondary"
                 onClick={handleStartEdit}
               >
                 <Edit size={14} />
-                Chỉnh sửa
+                Edit
               </button>
             )}
           </div>
@@ -313,14 +310,14 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="form-group full-width">
               <label className="form-label">
                 <User size={14} />
-                Tên dự án
+                Project Name
               </label>
               <input
                 type="text"
                 value={isEditingBasicInfo ? tempSettings.name : settings.name}
                 onChange={(e) => handleTempInputChange("name", e.target.value)}
                 className="form-input"
-                placeholder="Nhập tên dự án"
+                placeholder="Enter project name"
                 disabled={!isEditingBasicInfo}
               />
             </div>
@@ -328,14 +325,14 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="form-group full-width">
               <label className="form-label">
                 <MessageSquare size={14} />
-                Mô tả
+                Description
               </label>
               <textarea
                 value={isEditingBasicInfo ? tempSettings.description : settings.description}
                 onChange={(e) => handleTempInputChange("description", e.target.value)}
                 className="form-textarea"
                 rows={3}
-                placeholder="Mô tả chi tiết về dự án"
+                placeholder="Detailed project description"
                 disabled={!isEditingBasicInfo}
               />
             </div>
@@ -343,7 +340,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="form-group">
               <label className="form-label">
                 <Shield size={14} />
-                Trạng thái
+                Status
               </label>
               <select
                 value={isEditingBasicInfo ? tempSettings.status : settings.status}
@@ -362,14 +359,14 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="form-group">
               <label className="form-label">
                 <User size={14} />
-                Quản lý dự án
+                Project Owner
               </label>
               <input
                 type="text"
                 value={isEditingBasicInfo ? tempSettings.manager : settings.manager}
                 onChange={(e) => handleTempInputChange("manager", e.target.value)}
                 className="form-input"
-                placeholder="Tên người quản lý"
+                placeholder="Manager name"
                 disabled={!isEditingBasicInfo}
               />
             </div>
@@ -377,7 +374,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="form-group">
               <label className="form-label">
                 <Calendar size={14} />
-                Ngày bắt đầu
+                Start Date
               </label>
               <input
                 type="date"
@@ -391,7 +388,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="form-group">
               <label className="form-label">
                 <Calendar size={14} />
-                Ngày kết thúc
+                End Date
               </label>
               <input
                 type="date"
@@ -403,22 +400,29 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             </div>
           </div>
 
-          {/* Action buttons inside Basic Info card */}
+          {/* Action buttons */}
           {isEditingBasicInfo && (
-            <div className="card-actions">
+            <div style={{ 
+              display: 'flex', 
+              gap: '10px', 
+              justifyContent: 'flex-end',
+              marginTop: '20px',
+              paddingTop: '16px',
+              borderTop: '2px solid #FFF4ED'
+            }}>
               <button 
                 className="btn btn-secondary"
                 onClick={handleCancelEdit}
               >
                 <X size={14} />
-                Hủy
+                Cancel
               </button>
               <button 
                 className="btn btn-primary"
                 onClick={handleSaveBasicInfo}
               >
                 <Save size={14} />
-                Lưu thay đổi
+                Save Changes
               </button>
             </div>
           )}
@@ -429,14 +433,14 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="section-icon">
               <Bell size={16} color="white" />
             </div>
-          <h4>Thông báo</h4>
+          <h4>Notifications</h4>
           </div>
           
           <div className={`checkbox-grid ${Object.keys(settings.notifications).length % 2 === 1 ? 'three-columns' : ''}`}>
             <div className="checkbox-card">
               <div className="checkbox-header">
                 <Mail size={16} color="#FF5E13" />
-                <span className="checkbox-title">Email thông báo</span>
+                <span className="checkbox-title">Email Notifications</span>
               </div>
               <label className="checkbox-toggle">
               <input
@@ -453,7 +457,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="checkbox-card">
               <div className="checkbox-header">
                 <MessageSquare size={16} color="#FF5E13" />
-                <span className="checkbox-title">Slack thông báo</span>
+                <span className="checkbox-title">Slack Notifications</span>
               </div>
               <label className="checkbox-toggle">
               <input
@@ -470,7 +474,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="checkbox-card">
               <div className="checkbox-header">
                 <Bell size={16} color="#FF5E13" />
-                <span className="checkbox-title">Thông báo trong ứng dụng</span>
+                <span className="checkbox-title">In-App Notifications</span>
               </div>
               <label className="checkbox-toggle">
               <input
@@ -491,14 +495,14 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="section-icon">
               <Users size={16} color="white" />
             </div>
-            <h4>Thành viên dự án ({members.length})</h4>
+            <h4>Project Members ({members.length})</h4>
             {canAddMember && (
               <button
                 className="btn btn-primary"
                 onClick={() => setShowAddMemberModal(true)}
               >
                 <Plus size={14} />
-                {userRole === 'businessowner' ? 'Thêm người quản lý' : 'Thêm thành viên'}
+                {userRole === 'businessowner' ? 'Add Manager' : 'Add Member'}
               </button>
             )}
           </div>
@@ -508,22 +512,22 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                 <div className="empty-icon">
                   <Users size={40} color="#9CA3AF" />
                 </div>
-                <h5>Đang tải thành viên...</h5>
+                <h5>Loading members...</h5>
               </div>
             ) : members.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">
                   <Users size={40} color="#9CA3AF" />
                 </div>
-                <h5>Chưa có thành viên nào</h5>
-                <p>Hãy thêm thành viên đầu tiên để bắt đầu cộng tác!</p>
+                <h5>No members yet</h5>
+                <p>Add your first member to start collaborating!</p>
                 {canAddMember && (
                   <button
                     className="btn btn-primary"
                     onClick={() => setShowAddMemberModal(true)}
                   >
                     <Plus size={14} />
-                    {userRole === 'businessowner' ? 'Thêm người quản lý đầu tiên' : 'Thêm thành viên đầu tiên'}
+                    {userRole === 'businessowner' ? 'Add First Manager' : 'Add First Member'}
                   </button>
                 )}
               </div>
@@ -554,7 +558,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                           <button
                             className="btn btn-sm btn-danger"
                             onClick={() => handleDeleteMember(member.id)}
-                            title="Xóa thành viên"
+                            title="Remove member"
                           >
                             <Trash2 size={12} />
                           </button>
@@ -588,420 +592,11 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
           setMemberToDelete(null);
         }}
         onConfirm={confirmDeleteMember}
-        title="Xóa thành viên"
-        description={`Bạn có chắc chắn muốn xóa thành viên ${memberToDelete?.name} khỏi dự án này không? Hành động này không thể hoàn tác.`}
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title="Remove Member"
+        description={`Are you sure you want to remove ${memberToDelete?.name} from this project? This action cannot be undone.`}
+        confirmText="Remove"
+        cancelText="Cancel"
       />
-
-      <style jsx>{`
-        .project-settings {
-          width: 100%;
-          background: #FAFAFA;
-          min-height: 100vh;
-          padding: 20px;
-        }
-
-        .settings-content {
-          max-width: 1100px;
-          margin: 0 auto;
-        }
-
-        .settings-section {
-          margin-bottom: 20px;
-          background: white;
-          border-radius: 10px;
-          padding: 20px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-          border: 1px solid #E5E7EB;
-          transition: box-shadow 0.2s ease;
-        }
-
-        .settings-section:hover {
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.08);
-        }
-
-        .section-header {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 20px;
-          padding-bottom: 12px;
-          border-bottom: 2px solid #FFF4ED;
-        }
-
-        .section-header h4 {
-          font-size: 16px;
-          font-weight: 700;
-          color: #1F2937;
-          margin: 0;
-          flex: 1;
-        }
-
-        .section-icon {
-          width: 28px;
-          height: 28px;
-          background: linear-gradient(135deg, #FF5E13, #FF8C42);
-          border-radius: 7px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 2px 6px rgba(255, 94, 19, 0.25);
-        }
-
-        .form-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .form-group.full-width {
-          grid-column: 1 / -1;
-        }
-
-        .form-label {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          font-weight: 600;
-          color: #374151;
-          margin-bottom: 6px;
-        }
-
-        .form-input,
-        .form-textarea,
-        .form-select {
-          width: 100%;
-          padding: 10px 12px;
-          border: 2px solid #E5E7EB;
-          border-radius: 7px;
-          font-size: 13px;
-          transition: all 0.2s ease;
-          background: white;
-          font-weight: 500;
-        }
-
-        .form-input:focus,
-        .form-textarea:focus,
-        .form-select:focus {
-          outline: none;
-          border-color: #FF5E13;
-          box-shadow: 0 0 0 3px rgba(255, 94, 19, 0.1);
-        }
-
-        .form-textarea {
-          resize: vertical;
-          min-height: 70px;
-        }
-
-        .form-input:disabled,
-        .form-textarea:disabled,
-        .form-select:disabled {
-          background: #F9FAFB;
-          color: #6B7280;
-          cursor: not-allowed;
-          border-color: #E5E7EB;
-        }
-
-        .checkbox-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-        }
-
-        .checkbox-grid.three-columns {
-          grid-template-columns: repeat(3, 1fr);
-        }
-
-        .checkbox-card {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 12px;
-          background: #FAFBFC;
-          border: 2px solid #E5E7EB;
-          border-radius: 8px;
-          transition: all 0.2s ease;
-        }
-
-        .checkbox-card:hover {
-          border-color: #FFD4B8;
-          background: #FFF4ED;
-        }
-
-        .checkbox-header {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .checkbox-title {
-          font-weight: 600;
-          color: #374151;
-          font-size: 13px;
-        }
-
-        .checkbox-toggle {
-          position: relative;
-          display: inline-block;
-          width: 40px;
-          height: 22px;
-        }
-
-        .checkbox-toggle input {
-          opacity: 0;
-          width: 0;
-          height: 0;
-        }
-
-        .toggle-slider {
-          position: absolute;
-          cursor: pointer;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: #CBD5E1;
-          transition: all 0.3s ease;
-          border-radius: 22px;
-        }
-
-        .toggle-slider:before {
-          position: absolute;
-          content: "";
-          height: 16px;
-          width: 16px;
-          left: 3px;
-          bottom: 3px;
-          background: white;
-          transition: all 0.3s ease;
-          border-radius: 50%;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        input:checked + .toggle-slider {
-          background: linear-gradient(135deg, #FF5E13, #FF8C42);
-        }
-
-        input:checked + .toggle-slider:before {
-          transform: translateX(18px);
-        }
-
-        .members-list {
-          margin-top: 12px;
-        }
-
-        .empty-state {
-          text-align: center;
-          padding: 40px 20px;
-          background: #F9FAFB;
-          border: 2px dashed #D1D5DB;
-          border-radius: 10px;
-        }
-
-        .empty-icon {
-          margin-bottom: 12px;
-          color: #9CA3AF;
-        }
-
-        .empty-state h5 {
-          font-size: 16px;
-          font-weight: 700;
-          color: #374151;
-          margin: 0 0 6px 0;
-        }
-
-        .empty-state p {
-          color: #6B7280;
-          margin: 0 0 20px 0;
-          font-size: 13px;
-        }
-
-        .members-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 12px;
-        }
-
-        .member-card {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px;
-          background: white;
-          border: 2px solid #E5E7EB;
-          border-radius: 10px;
-          transition: all 0.2s ease;
-        }
-
-        .member-card:hover {
-          border-color: #FFD4B8;
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.1);
-        }
-
-        .pm-card {
-          border-color: #FFE8D9;
-          background: linear-gradient(135deg, #FFFBF8 0%, #FFFFFF 100%);
-        }
-
-        .pm-card:hover {
-          border-color: #FF5E13;
-        }
-
-        .pm-badge {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          background: linear-gradient(135deg, #FF5E13, #FF8C42);
-          color: white;
-          padding: 3px 10px;
-          border-radius: 10px;
-          font-size: 9px;
-          font-weight: 700;
-          letter-spacing: 0.5px;
-          box-shadow: 0 2px 6px rgba(255, 94, 19, 0.25);
-        }
-
-        .member-avatar {
-          width: 40px;
-          height: 40px;
-          background: linear-gradient(135deg, #FF5E13, #FF8C42);
-          color: white;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 16px;
-          font-weight: 700;
-          flex-shrink: 0;
-          box-shadow: 0 2px 6px rgba(255, 94, 19, 0.25);
-        }
-
-        .member-info {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .member-name {
-          font-weight: 700;
-          color: #1F2937;
-          font-size: 14px;
-          margin-bottom: 3px;
-        }
-
-        .member-role {
-          font-size: 11px;
-          color: #FF5E13;
-          font-weight: 600;
-          margin-bottom: 2px;
-        }
-
-        .member-email {
-          font-size: 11px;
-          color: #6B7280;
-          font-weight: 500;
-        }
-
-        .member-actions {
-          display: flex;
-          gap: 6px;
-        }
-
-        .btn {
-          padding: 8px 14px;
-          border-radius: 7px;
-          font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          border: none;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          white-space: nowrap;
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, #FF5E13, #FF8C42);
-          color: white;
-          box-shadow: 0 2px 6px rgba(255, 94, 19, 0.25);
-        }
-
-        .btn-primary:hover {
-          box-shadow: 0 4px 10px rgba(255, 94, 19, 0.35);
-          transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-          background: #F3F4F6;
-          color: #4B5563;
-          border: 2px solid #E5E7EB;
-        }
-
-        .btn-secondary:hover {
-          background: #E5E7EB;
-        }
-
-        .btn-danger {
-          background: #EF4444;
-          color: white;
-          box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
-        }
-
-        .btn-danger:hover {
-          background: #DC2626;
-          box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
-        }
-
-        .btn-sm {
-          padding: 6px 10px;
-          font-size: 11px;
-        }
-
-        .card-actions {
-          display: flex;
-          gap: 10px;
-          justify-content: flex-end;
-          margin-top: 20px;
-          padding-top: 16px;
-          border-top: 2px solid #FFF4ED;
-        }
-
-        @media (max-width: 1024px) {
-          .form-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .checkbox-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .members-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .project-settings {
-            padding: 16px;
-          }
-          
-          .settings-section {
-            padding: 16px;
-          }
-
-          .btn {
-            width: 100%;
-            justify-content: center;
-          }
-        }
-      `}</style>
     </div>
   );
 };
