@@ -9,6 +9,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/lib/rbac';
 import { getProjectStatusColor, getProjectStatusLabel } from '@/constants/status';
 import '@/app/styles/project-section.scss';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useProjectLimitationCheck } from '@/hooks/useLimitationCheck';
+import { toast } from 'react-toastify';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -23,7 +26,8 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllProjects, setShowAllProjects] = useState(false);
-
+  const currentSubscription = useSubscription();
+  const { checkProjectLimitation } = useProjectLimitationCheck();
   // Fetch projects from API - wrapped in useCallback to prevent infinite loop
   const fetchProjects = useCallback(async () => {
     // Only fetch if user is authenticated
@@ -85,6 +89,12 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
   };
 
   const handleCreateProject = () => {
+    // Check project limitation before opening modal
+    if (!checkProjectLimitation()) {
+      return; // Limit reached, prevent opening modal
+    }
+
+    // Open modal if limit not reached
     openCreateModal();
   };
 

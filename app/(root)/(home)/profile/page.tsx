@@ -125,8 +125,8 @@ export default function ProfilePage() {
       <div className="profile-page">
         <div className="profile-container">
           <div className="profile-header">
-            <h1 className="profile-title">Hồ Sơ Cá Nhân</h1>
-            <p className="profile-subtitle">Quản lý thông tin cá nhân</p>
+            <h1 className="profile-title">Profile</h1>
+            <p className="profile-subtitle">Manage your personal information</p>
           </div>
 
           <div className="profile-sections">
@@ -174,14 +174,14 @@ export default function ProfilePage() {
                   <div className="profile-info">
                     <div className="profile-name-row">
                       <h2 className="profile-name">
-                        {profile.name || "(Chưa có tên)"}
+                        {profile.name || "(No name)"}
                       </h2>
                       <span className={roleInfo.className}>
                         {roleInfo.label}
                       </span>
                     </div>
                     <p className="profile-email">
-                      {profile.email || "(Chưa có email)"}
+                      {profile.email || "(No email)"}
                     </p>
                     {profile.businessName && (
                       <div className="business-info">
@@ -202,10 +202,10 @@ export default function ProfilePage() {
                     {isEditing ? (
                       <>
                         <Save className="icon save-icon" />
-                        Lưu Thay Đổi
+                        Save Changes
                       </>
                     ) : (
-                      "Chỉnh Sửa"
+                      "Edit Profile"
                     )}
                   </Button>
                 </div>
@@ -215,16 +215,16 @@ export default function ProfilePage() {
             {/* Basic Information */}
             <Card className="card profile-basic-card">
               <CardHeader>
-                <CardTitle className="card-title">Thông Tin Cơ Bản</CardTitle>
+                <CardTitle className="card-title">Basic Information</CardTitle>
                 <CardDescription>
-                  Thông tin cá nhân và liên hệ của bạn
+                  Your personal and contact information
                 </CardDescription>
               </CardHeader>
               <CardContent className="card-body">
                 <div className="profile-grid">
                   <div className="field-group">
                     <Label htmlFor="name" className="profile-label">
-                      Họ và Tên
+                      Full Name
                     </Label>
                     <Input
                       id="name"
@@ -234,7 +234,7 @@ export default function ProfilePage() {
                       }
                       disabled={!isEditing}
                       className="profile-input"
-                      placeholder="(Chưa có tên)"
+                      placeholder="(No name provided)"
                     />
                   </div>
 
@@ -248,13 +248,13 @@ export default function ProfilePage() {
                       value={profile.email}
                       disabled
                       className="profile-input disabled"
-                      placeholder="(Chưa có email)"
+                      placeholder="(No email provided)"
                     />
                   </div>
 
                   <div className="field-group">
                     <Label htmlFor="phone" className="profile-label">
-                      Số Điện Thoại
+                      Phone Number
                     </Label>
                     <Input
                       id="phone"
@@ -265,14 +265,14 @@ export default function ProfilePage() {
                       }
                       disabled={!isEditing}
                       className="profile-input"
-                      placeholder="(Chưa có số điện thoại)"
+                      placeholder="(No phone number provided)"
                     />
                   </div>
                 </div>
 
                 <div className="field-group">
                   <Label htmlFor="bio" className="profile-label">
-                    Giới Thiệu
+                    Bio
                   </Label>
                   <Textarea
                     id="bio"
@@ -282,7 +282,7 @@ export default function ProfilePage() {
                     }
                     disabled={!isEditing}
                     rows={3}
-                    placeholder="Viết vài dòng giới thiệu về bản thân..."
+                    placeholder="Write a few lines about yourself..."
                     className="profile-textarea"
                   />
                 </div>

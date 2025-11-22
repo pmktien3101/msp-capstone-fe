@@ -7,6 +7,8 @@ import packageService from "@/services/packageService";
 import { useUser } from "@/hooks/useUser";
 import { Package } from "@/types/package";
 import { SubscriptionResponse } from "@/types/subscription";
+import { useSubscription } from "@/hooks/useSubscription";
+
 
 interface DisplayPackage extends Package {
   isPopular?: boolean;
@@ -24,7 +26,7 @@ const SubscriptionBillingPage = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<DisplayPackage | null>(null);
   const [upgrading, setUpgrading] = useState(false);
-
+  // const currentSubscription = useSubscription();
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -40,6 +42,7 @@ const SubscriptionBillingPage = () => {
             setBillingPeriod(cycle === 2 ? "yearly" : "monthly");
           }
         }
+        console.log("Current Subscription:", currentSubscription);
 
         // 2) Fetch lịch sử thanh toán (all subscriptions by userId)
         if (userId) {
@@ -191,7 +194,7 @@ const SubscriptionBillingPage = () => {
             <div className="plan-features">
               <h4>Giới hạn bao gồm:</h4>
               <ul>
-                {currentPackage?.limitations ? (
+                {currentPackage.limitations && currentPackage.limitations.length > 0 ? (
                   currentPackage.limitations.map((limitation, index) => (
                     <li key={limitation.id ?? index}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -218,23 +221,19 @@ const SubscriptionBillingPage = () => {
         )}
       </div>
 
-      {/* Billing Period Toggle */}
-   <div className="billing-toggle-section" style={{ marginBottom: 32 }}>
+ {/*       {/* Billing Period Toggle */}
+
+      {/* <div className="billing-toggle-section" style={{ marginBottom: 32 }}>
         <div className="billing-toggle">
           <button className={`toggle-btn ${billingPeriod === "monthly" ? "active" : ""}`} onClick={() => setBillingPeriod("monthly")}>
             Hàng tháng
           </button>
-          <button className={`toggle-btn ${billingPeriod === "yearly" ? "active" : ""}`} onClick={() => setBillingPeriod("yearly")}>
-            Hàng năm
-            {/* <span className="discount-badge">Tiết kiệm 20%</span> */}
-          </button>
-        </div>
-      </div>
-
+          <button className={`toggle-btn ${billingPeriod === "yearly" ? "active" : ""}`} onClick={() => s     </div>
+      </div> */}
 
       {/* Available Packages */}
       <div className="available-plans-section">
-        <h2>Gói Có Sẵn</h2>
+        <h2>Available Packages</h2>
         <div className="plans-grid">
           {packages.length > 0 ? (
             packages.map((pkg) => {

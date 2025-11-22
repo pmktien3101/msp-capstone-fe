@@ -45,7 +45,7 @@ const Sidebar = ({ onCollapsedChange }: SidebarProps) => {
   const adminSidebarItems: SidebarItem[] = [
     {
       id: "admin-dashboard",
-      label: "Overview",
+      label: "Dashboard",
       route: "/dashboard/admin/dashboard",
       icon: <LayoutDashboard size={22} />,
     },
@@ -79,13 +79,13 @@ const Sidebar = ({ onCollapsedChange }: SidebarProps) => {
   const businessOwnerSidebarItems: SidebarItem[] = [
     {
       id: "business-dashboard",
-      label: "Overview",
+      label: "Dashboard",
       route: "/dashboard/business",
       icon: <LayoutDashboard size={22} />,
     },
     {
       id: "members-roles",
-      label: "Members",
+      label: "Members & Roles",
       route: "/dashboard/business/members",
       icon: <Users size={22} />,
     },
@@ -107,7 +107,7 @@ const Sidebar = ({ onCollapsedChange }: SidebarProps) => {
   const pmSidebarItems: SidebarItem[] = [
     {
       id: "dashboard",
-      label: "Project Overview",
+      label: "Dashboard",
       route: "/dashboard/pm",
       icon: <LayoutDashboard size={22} />,
     },
@@ -123,7 +123,7 @@ const Sidebar = ({ onCollapsedChange }: SidebarProps) => {
   const memberSidebarItems: SidebarItem[] = [
     {
       id: "member-dashboard",
-      label: "Overview",
+      label: "Dashboard",
       route: "/dashboard/member",
       icon: <LayoutDashboard size={22} />,
     },
@@ -135,7 +135,7 @@ const Sidebar = ({ onCollapsedChange }: SidebarProps) => {
     },
     {
       id: "business",
-      label: "Business",
+      label: "Businesses",
       route: "/business",
       icon: <Building2 size={22} />,
     },

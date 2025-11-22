@@ -1,85 +1,115 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
+import { subscriptionService } from "@/services/subscriptionService";
 
-interface Revenue {
-  id: number;
+type Revenue = {
+  id: string;
   businessOwner: string;
   packageName: string;
   amount: number;
+  currency?: string;
   paidDate: string;
-}
-
-const initialRevenues: Revenue[] = [
-  {
-    id: 1,
-    businessOwner: "Nguyễn Văn A",
-    packageName: "Gói Pro",
-    amount: 5000000,
-    paidDate: "2024-09-01",
-  },
-  {
-    id: 2,
-    businessOwner: "Trần Thị B",
-    packageName: "Gói Basic",
-    amount: 2000000,
-    paidDate: "2024-09-05",
-  },
-  {
-    id: 3,
-    businessOwner: "Lê Văn C",
-    packageName: "Gói Premium",
-    amount: 10000000,
-    paidDate: "2024-09-10",
-  },
-  {
-    id: 4,
-    businessOwner: "Phạm Thị D",
-    packageName: "Gói Pro",
-    amount: 5000000,
-    paidDate: "2024-09-12",
-  },
-  {
-    id: 5,
-    businessOwner: "Ngô Văn E",
-    packageName: "Gói Basic",
-    amount: 2000000,
-    paidDate: "2024-09-15",
-  },
-];
-
-const packageOptions = [
-  "Tất cả",
-  ...Array.from(new Set(initialRevenues.map((r) => r.packageName))),
-];
+};
 
 const AdminRevenue = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [packageFilter, setPackageFilter] = useState("Tất cả");
+  const [packageFilter, setPackageFilter] = useState("All");
+  const [revenues, setRevenues] = useState<Revenue[]>([]);
+  const [packageOptions, setPackageOptions] = useState<string[]>(["All"]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredRevenues = initialRevenues.filter((revenue) => {
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await subscriptionService.getAllSubscriptions();
+        if (!mounted) return;
+        if (!res.success) {
+          setError(res.error || "Failed to load subscriptions");
+          setRevenues([]);
+          setPackageOptions(["All"]);
+        } else {
+          const mapped: Revenue[] = (res.data || []).map((s: any) => ({
+            id: s.id,
+            businessOwner: s.user?.fullName || "-",
+            packageName: s.package?.name || "-",
+            amount:
+              typeof s.totalPrice === "number"
+                ? s.totalPrice
+                : Number(s.totalPrice) || 0,
+            currency: s.package?.currency,
+            paidDate: s.paidAt
+              ? new Date(s.paidAt).toLocaleString()
+              : s.startDate || "-",
+          }));
+          setRevenues(mapped);
+          const options = Array.from(new Set(mapped.map((r) => r.packageName)));
+          setPackageOptions(["All", ...options]);
+        }
+      } catch (err: any) {
+        setError(err?.message || "Failed to load subscriptions");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const filteredRevenues = revenues.filter((revenue) => {
     const matchesSearch =
       revenue.businessOwner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      revenue.packageName.toLowerCase().includes(searchTerm.toLowerCase());
+      revenue.packageName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      revenue.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPackage =
-      packageFilter === "Tất cả" || revenue.packageName === packageFilter;
+      packageFilter === "All" || revenue.packageName === packageFilter;
     return matchesSearch && matchesPackage;
   });
 
   const totalRevenue = filteredRevenues.reduce((sum, r) => sum + r.amount, 0);
 
-  // Tính tổng doanh thu theo từng gói
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredRevenues.length / itemsPerPage)
+  );
+
+  useEffect(() => {
+    // reset to first page when filters or data change
+    setCurrentPage(1);
+  }, [searchTerm, packageFilter, revenues]);
+
+  const displayedRevenues = filteredRevenues.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   const packageRevenueMap: Record<string, number> = {};
   filteredRevenues.forEach((r) => {
     packageRevenueMap[r.packageName] =
       (packageRevenueMap[r.packageName] || 0) + r.amount;
   });
 
-  // Tìm gói có doanh thu cao nhất
-  const highestPackage =
-    Object.entries(packageRevenueMap).length > 0
-      ? Object.entries(packageRevenueMap).reduce((a, b) =>
+  // Overall stats (not affected by search/package filters)
+  const overallTotalTransactions = revenues.length;
+  const overallTotalRevenue = revenues.reduce((sum, r) => sum + r.amount, 0);
+  const overallPackageRevenueMap: Record<string, number> = {};
+  revenues.forEach((r) => {
+    overallPackageRevenueMap[r.packageName] =
+      (overallPackageRevenueMap[r.packageName] || 0) + r.amount;
+  });
+  const overallHighestPackage =
+    Object.entries(overallPackageRevenueMap).length > 0
+      ? Object.entries(overallPackageRevenueMap).reduce((a, b) =>
           a[1] > b[1] ? a : b
         )
       : ["-", 0];
@@ -87,16 +117,15 @@ const AdminRevenue = () => {
   return (
     <div className="admin-revenue">
       <div className="page-header">
-        <h1>Quản Lý Doanh Thu</h1>
-        <p>Danh sách các gói dịch vụ mà chủ doanh nghiệp đã thanh toán</p>
+        <h1>Revenue Management</h1>
+        <p>List of packages paid by business owners</p>
       </div>
 
-      {/* Filters */}
       <div className="filters-section">
         <div className="search-box">
           <input
             type="text"
-            placeholder="Tìm kiếm theo tên chủ doanh nghiệp hoặc gói..."
+            placeholder="Search by owner, package or id..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -117,60 +146,140 @@ const AdminRevenue = () => {
         </select>
       </div>
 
-      {/* Stats */}
       <div className="stats-row">
         <div className="stat-item">
-          <span className="stat-number">{filteredRevenues.length}</span>
-          <span className="stat-label">Tổng giao dịch</span>
+          <span className="stat-number">{overallTotalTransactions}</span>
+          <span className="stat-label">Total Transactions</span>
         </div>
         <div className="stat-item">
-          <span className="stat-number">{totalRevenue.toLocaleString()}₫</span>
-          <span className="stat-label">Tổng doanh thu</span>
+          <span className="stat-number">
+            {overallTotalRevenue.toLocaleString()}
+          </span>
+          <span className="stat-label">Total Revenue</span>
         </div>
         <div className="stat-item stat-highlight">
           <span className="stat-number">
-            {highestPackage[0]}
+            {overallHighestPackage[0]}
             <br />
             <span style={{ fontSize: 14, color: "#fff" }}>
-              {highestPackage[1].toLocaleString()}₫
+              {Number(overallHighestPackage[1]).toLocaleString()}
             </span>
           </span>
-          <span className="stat-label">Gói có doanh thu cao nhất</span>
+          <span className="stat-label">Top Earning Package</span>
         </div>
       </div>
 
-      {/* Revenue Table */}
-      <div className="revenue-table">
-        <div className="table-header">
-          <div className="table-cell">Chủ doanh nghiệp</div>
-          <div className="table-cell">Gói dịch vụ</div>
-          <div className="table-cell">Số tiền</div>
-          <div className="table-cell">Ngày thanh toán</div>
-        </div>
+      {loading ? (
+        <div>Loading subscriptions...</div>
+      ) : error ? (
+        <div style={{ color: "#d9534f" }}>Error: {error}</div>
+      ) : (
+        <div className="revenue-table">
+          <div className="table-header">
+            <div className="table-cell">Business Owner</div>
+            <div className="table-cell">Package</div>
+            <div className="table-cell">Amount</div>
+            <div className="table-cell">Paid Date</div>
+          </div>
 
-        {filteredRevenues.map((revenue) => (
-          <div key={revenue.id} className="table-row">
-            <div className="table-cell" data-label="Business Owner">
-              {revenue.businessOwner}
+          {displayedRevenues.map((revenue) => (
+            <div key={revenue.id} className="table-row">
+              <div className="table-cell" data-label="Business Owner">
+                {revenue.businessOwner}
+              </div>
+              <div className="table-cell" data-label="Package">
+                <span className="package-badge">{revenue.packageName}</span>
+              </div>
+              <div className="table-cell" data-label="Amount">
+                {revenue.amount.toLocaleString()} {revenue.currency || "VND"}
+              </div>
+              <div className="table-cell" data-label="Paid Date">
+                {revenue.paidDate}
+              </div>
             </div>
-            <div className="table-cell" data-label="Gói dịch vụ">
-              <span className="package-badge">{revenue.packageName}</span>
+          ))}
+
+          {/* Pagination controls */}
+          <div className="pagination">
+            <div className="page-info">
+              Showing{" "}
+              {filteredRevenues.length === 0
+                ? 0
+                : (currentPage - 1) * itemsPerPage + 1}{" "}
+              - {Math.min(currentPage * itemsPerPage, filteredRevenues.length)}{" "}
+              of {filteredRevenues.length}
             </div>
-            <div className="table-cell" data-label="Số tiền">
-              {revenue.amount.toLocaleString()}₫
-            </div>
-            <div className="table-cell" data-label="Ngày thanh toán">
-              {revenue.paidDate}
+            <div className="page-controls">
+              <button
+                className="page-button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Prev
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  className={`page-button ${p === currentPage ? "active" : ""}`}
+                  onClick={() => setCurrentPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+
+              <button
+                className="page-button"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       <style jsx>{`
         .admin-revenue {
           max-width: 1400px;
           margin: 0 auto;
           padding: 24px;
+        }
+        .pagination {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          border-top: 1px solid #f3f4f6;
+          gap: 12px;
+        }
+        .page-info {
+          color: #6b6b6b;
+          font-size: 14px;
+        }
+        .page-controls {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+        .page-button {
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: 1px solid #e5e7eb;
+          background: #fff;
+          cursor: pointer;
+        }
+        .page-button[disabled] {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .page-button.active {
+          background: #ff5e13;
+          color: #fff;
+          border-color: #ff5e13;
         }
         .page-header {
           margin-bottom: 32px;

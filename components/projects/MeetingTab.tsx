@@ -11,6 +11,7 @@ import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 import { toast } from "react-toastify";
 import { Eye, Pencil, Plus, X } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
+import { useMeetingLimitationCheck } from "@/hooks/useLimitationCheck";
 import { useStreamVideoClient } from "@stream-io/video-react-sdk";
 
 interface MeetingTabProps {
@@ -44,6 +45,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   );
   const [callInstance, setCallInstance] = useState<any>(null);
   const client = useStreamVideoClient();
+  const { checkMeetingLimitation } = useMeetingLimitationCheck();
 
   const {
     meetings: backendMeetings,
@@ -191,12 +193,15 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
         </div>
         {!isMember && (
           <Button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              if (checkMeetingLimitation()) {
+                setShowCreateModal(true);
+              }
+            }}
             style={{
               background: "transparent",
               color: "#FF5E13",
-              border: "1px solid #FF5E13",
-              borderRadius: "8px",
+              border: "none",
               padding: "10px 20px",
               cursor: "pointer",
               fontSize: "14px",

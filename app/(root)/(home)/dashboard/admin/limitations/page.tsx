@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Plus, Search, X, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Search, X, Trash2, Eye } from "lucide-react";
 import limitationService from "@/services/limitationService";
 
 const AdminLimitations: React.FC = () => {
@@ -17,11 +17,20 @@ const AdminLimitations: React.FC = () => {
   const [form, setForm] = useState({
     name: "",
     description: "",
+    limitationType: "",
     isUnlimited: false,
     limitValue: "",
     limitUnit: "",
     isDeleted: false,
   });
+
+  const limitationTypeOptions = [
+    { value: "NumberProject", label: "Number of projects" },
+    { value: "NumberMeeting", label: "Number of meetings" },
+    { value: "NumberMemberInOrganization", label: "Members in organization" },
+    { value: "NumberMemberInProject", label: "Members in project" },
+    { value: "NumberMemberInMeeting", label: "Members in meeting" },
+  ];
 
   const filtered = items.filter((it) => {
     // hide deleted items
@@ -49,6 +58,7 @@ const AdminLimitations: React.FC = () => {
           id: it.Id ?? it.id,
           name: it.Name ?? it.name,
           description: it.Description ?? it.description,
+          limitationType: it.LimitationType ?? it.limitationType,
           isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
           limitValue: it.LimitValue ?? it.limitValue ?? null,
           limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
@@ -62,7 +72,7 @@ const AdminLimitations: React.FC = () => {
           setItems(((data as any).items || []).map(normalize));
         else setItems([]);
       } else {
-        setError(res.error || "Không thể tải danh sách giới hạn");
+        setError(res.error || "Unable to load limitations list");
       }
     } catch (err: any) {
       setError(err?.message || String(err));
@@ -75,6 +85,7 @@ const AdminLimitations: React.FC = () => {
     setForm({
       name: "",
       description: "",
+      limitationType: "",
       isUnlimited: false,
       limitValue: "",
       limitUnit: "",
@@ -94,12 +105,14 @@ const AdminLimitations: React.FC = () => {
   }, [showAdd]);
 
   async function saveAdd() {
-    if (!form.name) return alert("Tên bắt buộc");
+    if (!form.name) return alert("Name is required");
+    if (!form.limitationType) return alert("Limitation type is required");
     setLoading(true);
     try {
       const payload: any = {
         name: form.name,
         description: form.description,
+        limitationType: form.limitationType,
         isUnlimited: !!form.isUnlimited,
         ...(form.isUnlimited
           ? {}
@@ -114,6 +127,7 @@ const AdminLimitations: React.FC = () => {
           id: it.Id ?? it.id,
           name: it.Name ?? it.name,
           description: it.Description ?? it.description,
+          limitationType: it.LimitationType ?? it.limitationType,
           isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
           limitValue: it.LimitValue ?? it.limitValue ?? null,
           limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
@@ -123,7 +137,7 @@ const AdminLimitations: React.FC = () => {
         setItems((s) => [...s, normalize(created) as any]);
         setShowAdd(false);
       } else {
-        alert(res.error || "Tạo giới hạn thất bại");
+        alert(res.error || "Failed to create limitation");
       }
     } catch (err: any) {
       alert(err?.message || String(err));
@@ -137,6 +151,7 @@ const AdminLimitations: React.FC = () => {
     setForm({
       name: item.name,
       description: item.description,
+      limitationType: item.limitationType ?? "",
       isUnlimited: !!item.isUnlimited,
       limitValue: item.limitValue ?? "",
       limitUnit: item.limitUnit ?? "",
@@ -153,6 +168,7 @@ const AdminLimitations: React.FC = () => {
         limitationId: active.id,
         name: form.name,
         description: form.description,
+        limitationType: form.limitationType,
         isUnlimited: !!form.isUnlimited,
         ...(form.isUnlimited
           ? {}
@@ -167,6 +183,7 @@ const AdminLimitations: React.FC = () => {
           id: it.Id ?? it.id,
           name: it.Name ?? it.name,
           description: it.Description ?? it.description,
+          limitationType: it.LimitationType ?? it.limitationType,
           isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
           limitValue: it.LimitValue ?? it.limitValue ?? null,
           limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
@@ -179,7 +196,7 @@ const AdminLimitations: React.FC = () => {
         setShowEdit(false);
         setActive(null);
       } else {
-        alert(res.error || "Cập nhật thất bại");
+        alert(res.error || "Failed to update");
       }
     } catch (err: any) {
       alert(err?.message || String(err));
@@ -189,14 +206,14 @@ const AdminLimitations: React.FC = () => {
   }
 
   async function doDelete(item: any) {
-    if (!confirm(`Xóa giới hạn "${item.name}"?`)) return;
+    if (!confirm(`Delete limitation "${item.name}"?`)) return;
     setLoading(true);
     try {
       const res = await limitationService.deleteLimitation(item.id);
       if (res.success) {
         setItems((s) => s.filter((it) => it.id !== item.id));
       } else {
-        alert(res.error || res.message || "Xóa thất bại");
+        alert(res.error || res.message || "Failed to delete");
       }
     } catch (err: any) {
       alert(err?.message || String(err));
@@ -209,8 +226,8 @@ const AdminLimitations: React.FC = () => {
     <div className="lim-page">
       <div className="lim-header">
         <div>
-          <h1>Quản lý giới hạn</h1>
-          <p className="muted">Quản lý các giới hạn cho gói</p>
+          <h1>Manage Limitations</h1>
+          <p className="muted">Manage package limitations</p>
         </div>
         <div className="lim-actions">
           <div className="search">
@@ -218,21 +235,21 @@ const AdminLimitations: React.FC = () => {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Tìm kiếm..."
+              placeholder="Search..."
             />
           </div>
           <button className="btn add primary-cta" onClick={openAdd}>
             <Plus size={16} />
-            <span className="add-label">Thêm</span>
+            <span className="add-label">Add</span>
           </button>
         </div>
       </div>
 
       <div className="lim-table">
         <div className="row header">
-          <div>Tên</div>
-          <div>Có giới hạn</div>
-          <div>Hành động</div>
+          <div>Name</div>
+          <div>Limited</div>
+          <div>Actions</div>
         </div>
         {filtered.map((it) => (
           <div className="row" key={it.id}>
@@ -248,7 +265,7 @@ const AdminLimitations: React.FC = () => {
               </div>
               <div className="desc">{it.description}</div>
             </div>
-            <div>{!it.isUnlimited ? "Có" : "Không"}</div>
+            <div>{!it.isUnlimited ? "Yes" : "No"}</div>
             <div className="actions">
               <button
                 className="icon"
@@ -256,17 +273,15 @@ const AdminLimitations: React.FC = () => {
                   setActive(it);
                   setShowView(true);
                 }}
-                title="Xem"
+                title="View"
               >
                 <Eye size={14} />
               </button>
-              <button className="icon" onClick={() => openEdit(it)} title="Sửa">
-                <Edit size={14} />
-              </button>
+              {/* Edit button removed per request */}
               <button
                 className="icon danger"
                 onClick={() => doDelete(it)}
-                title="Xóa"
+                title="Delete"
               >
                 <Trash2 size={14} />
               </button>
@@ -285,11 +300,11 @@ const AdminLimitations: React.FC = () => {
         >
           <div className="card">
             <div className="card-head">
-              <h3 id="addLimTitle">Thêm giới hạn</h3>
+              <h3 id="addLimTitle">Add Limitation</h3>
               <button
                 className="close"
                 onClick={() => setShowAdd(false)}
-                aria-label="Đóng"
+                aria-label="Close"
               >
                 <X />
               </button>
@@ -297,23 +312,42 @@ const AdminLimitations: React.FC = () => {
             <div className="card-body">
               <div className="form-grid vertical">
                 <div className="field">
-                  <label htmlFor="lim-name">Tên</label>
+                  <label htmlFor="lim-type">Limitation type *</label>
+                  <select
+                    id="lim-type"
+                    className="text-input"
+                    value={form.limitationType}
+                    onChange={(e) =>
+                      setForm({ ...form, limitationType: e.target.value })
+                    }
+                  >
+                    <option value="">-- Select limitation type --</option>
+                    {limitationTypeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="lim-name">Name</label>
                   <input
                     id="lim-name"
                     className="text-input"
                     autoFocus
-                    placeholder="VD: Số dự án tối đa"
+                    placeholder="E.g.: Max number of projects"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                   />
                 </div>
 
                 <div className="field">
-                  <label htmlFor="lim-desc">Mô tả</label>
+                  <label htmlFor="lim-desc">Description</label>
                   <textarea
                     id="lim-desc"
                     className="text-input"
-                    placeholder="Mô tả ngắn về giới hạn"
+                    placeholder="Short description of the limitation"
                     value={form.description}
                     onChange={(e) =>
                       setForm({ ...form, description: e.target.value })
@@ -330,14 +364,14 @@ const AdminLimitations: React.FC = () => {
                         setForm({ ...form, isUnlimited: e.target.checked })
                       }
                     />
-                    <span>Không giới hạn</span>
+                    <span>Unlimited</span>
                   </label>
                 </div>
 
                 <>
                   {!form.isUnlimited && (
                     <div className="field">
-                      <label htmlFor="lim-value">Giá trị</label>
+                      <label htmlFor="lim-value">Value</label>
                       <input
                         id="lim-value"
                         type="number"
@@ -351,7 +385,7 @@ const AdminLimitations: React.FC = () => {
                   )}
 
                   <div className="field">
-                    <label htmlFor="lim-unit">Đơn vị</label>
+                    <label htmlFor="lim-unit">Unit</label>
                     <input
                       id="lim-unit"
                       className="text-input"
@@ -366,14 +400,14 @@ const AdminLimitations: React.FC = () => {
             </div>
             <div className="card-foot">
               <button className="btn" onClick={() => setShowAdd(false)}>
-                Hủy
+                Cancel
               </button>
               <button
                 className="btn primary"
                 onClick={saveAdd}
                 disabled={loading}
               >
-                {loading ? "Đang lưu..." : "Lưu"}
+                {loading ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
@@ -385,63 +419,83 @@ const AdminLimitations: React.FC = () => {
         <div className="modal">
           <div className="card">
             <div className="card-head">
-              <h3>Chỉnh sửa</h3>
+              <h3>Edit Limitation</h3>
               <button className="close" onClick={() => setShowEdit(false)}>
                 <X />
               </button>
             </div>
             <div className="card-body">
-              <label>Tên</label>
-              <input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-              <label>Mô tả</label>
-              <textarea
-                value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
-              />
-              <label>
-                <input
-                  type="checkbox"
-                  checked={form.isUnlimited}
-                  onChange={(e) =>
-                    setForm({ ...form, isUnlimited: e.target.checked })
-                  }
-                />{" "}
-                Không giới hạn
-              </label>
-
-              {!form.isUnlimited && (
-                <>
-                  <label>Giá trị</label>
-                  <input
-                    type="number"
-                    value={form.limitValue}
+              <div className="form-grid vertical">
+                <div className="field">
+                  <label htmlFor="lim-type">Limitation type *</label>
+                  <select
+                    id="lim-type"
+                    value={form.limitationType}
                     onChange={(e) =>
-                      setForm({ ...form, limitValue: e.target.value })
+                      setForm({ ...form, limitationType: e.target.value })
                     }
-                  />
-                </>
-              )}
+                  >
+                    <option value="">-- Select limitation type --</option>
+                    {limitationTypeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <label>Đơn vị</label>
-              <input
-                value={form.limitUnit}
-                onChange={(e) =>
-                  setForm({ ...form, limitUnit: e.target.value })
-                }
-              />
-            </div>
-            <div className="card-foot">
-              <button className="btn" onClick={() => setShowEdit(false)}>
-                Hủy
-              </button>
-              <button className="btn primary" onClick={saveEdit}>
-                Lưu
-              </button>
+                <label>Name</label>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
+                <label>Description</label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                />
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={form.isUnlimited}
+                    onChange={(e) =>
+                      setForm({ ...form, isUnlimited: e.target.checked })
+                    }
+                  />{" "}
+                  Unlimited
+                </label>
+
+                {!form.isUnlimited && (
+                  <>
+                    <label>Value</label>
+                    <input
+                      type="number"
+                      value={form.limitValue}
+                      onChange={(e) =>
+                        setForm({ ...form, limitValue: e.target.value })
+                      }
+                    />
+                  </>
+                )}
+
+                <label>Unit</label>
+                <input
+                  value={form.limitUnit}
+                  onChange={(e) =>
+                    setForm({ ...form, limitUnit: e.target.value })
+                  }
+                />
+              </div>
+              <div className="card-foot">
+                <button className="btn" onClick={() => setShowEdit(false)}>
+                  Cancel
+                </button>
+                <button className="btn primary" onClick={saveEdit}>
+                  Save
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -452,7 +506,7 @@ const AdminLimitations: React.FC = () => {
         <div className="modal">
           <div className="card small">
             <div className="card-head">
-              <h3>Chi tiết</h3>
+              <h3>Details</h3>
               <button className="close" onClick={() => setShowView(false)}>
                 <X />
               </button>
@@ -464,13 +518,13 @@ const AdminLimitations: React.FC = () => {
               <p>{active.description}</p>
               <p>
                 {active.isUnlimited
-                  ? "Không giới hạn"
+                  ? "Unlimited"
                   : `${active.limitValue} ${active.limitUnit || ""}`}
               </p>
             </div>
             <div className="card-foot">
               <button className="btn" onClick={() => setShowView(false)}>
-                Đóng
+                Close
               </button>
             </div>
           </div>
@@ -695,6 +749,27 @@ const AdminLimitations: React.FC = () => {
         .text-input:focus {
           box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08);
           border-color: #6366f1;
+        }
+        /* Special styling for limitation type field */
+        #lim-type {
+          padding: 10px 12px;
+          border-radius: 8px;
+          outline: none;
+          font-size: 14px;
+          background: linear-gradient(
+            135deg,
+            rgba(255, 94, 19, 0.04) 0%,
+            rgba(255, 122, 58, 0.02) 100%
+          );
+          color: #111827;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        #lim-type option {
+          background: white;
+          color: #111827;
+          padding: 8px;
         }
         .checkbox-row {
           grid-column: 1 / -1;
