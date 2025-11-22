@@ -12,8 +12,6 @@ export function ProjectHeader() {
   // Check if user can create projects (ProjectManager or BusinessOwner)
   const canCreateProject = role === 'ProjectManager' || role === 'BusinessOwner';
 
-  console.log('ProjectHeader - role:', role, 'canCreateProject:', canCreateProject);
-
   const handleCreateClick = () => {
     console.log('Create project button clicked!');
     openCreateModal();
@@ -23,8 +21,8 @@ export function ProjectHeader() {
     <div className="page-header">
       <div className="header-content">
         <div className="header-title">
-          <h1>Tất Cả Dự Án</h1>
-          <p>Quản lý và theo dõi tất cả các dự án của bạn</p>
+          <h1>All Projects</h1>
+          <p>Manage and track all your projects</p>
         </div>
         <div className="header-actions">
           {canCreateProject && (
@@ -62,7 +60,7 @@ export function ProjectHeader() {
               }}
             >
               <Plus size={16} />
-              Tạo Dự Án Mới
+              Create New Project
             </Button>
           )}
         </div>

@@ -82,37 +82,37 @@ export const ProjectTabs = ({
   const tabs = [
     {
       id: "summary",
-      label: "Tổng quan",
+      label: "Summary",
       icon: <LayoutDashboard size={20} />,
     },
     {
       id: "board",
-      label: "Công việc",
+      label: "Tasks",
       icon: <BiTask size={20} />,
     },
     {
       id: "list",
-      label: "Cột mốc",
+      label: "Milestones",
       icon: <Flag size={20} />,
     },
     {
       id: "documents",
-      label: "Tài liệu",
+      label: "Documents",
       icon: <FileText size={20} />,
     },
     {
       id: "meetings",
-      label: "Cuộc họp",
+      label: "Meetings",
       icon: <Video size={20} />,
     },
     // {
     //   id: "reports",
-    //   label: "Báo cáo",
+    //   label: "Reports",
     //   icon: <BarChart3 size={20} />,
     // },
     {
       id: "settings",
-      label: "Cài đặt",
+      label: "Settings",
       icon: <Settings size={20} />,
     },
   ];

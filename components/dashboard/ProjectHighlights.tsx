@@ -77,14 +77,18 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
       task.status === TaskStatus.ReadyToReview
     );
 
-    // Lọc task đang làm
-    const inProgressTasks = tasks.filter((task: any) => 
-      task.status === TaskStatus.InProgress
-    );
+    // Lọc task đang làm và sắp xếp theo endDate gần nhất
+    const inProgressTasks = tasks
+      .filter((task: any) => task.status === TaskStatus.InProgress)
+      .sort((a: any, b: any) => {
+        if (!a.endDate || !b.endDate) return 0;
+        return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+      })
+      .slice(0, 3); // Chỉ lấy 3 công việc
 
     return {
       onHold: onHoldTasks.slice(0, 5),
-      inProgress: inProgressTasks.slice(0, 5)
+      inProgress: inProgressTasks
     };
   };
 
@@ -114,10 +118,10 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
 
   const getPriorityLabel = (level: string) => {
     switch (level) {
-      case 'critical': return 'Cấp bách';
-      case 'high': return 'Cao';
-      case 'medium': return 'Trung bình';
-      default: return 'Trung bình';
+      case 'critical': return 'Critical';
+      case 'high': return 'High';
+      case 'medium': return 'Medium';
+      default: return 'Medium';
     }
   };
 
@@ -125,8 +129,8 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
     <div className="project-highlights">
       {/* Header */}
       <div className="section-header">
-        <h2>Dự án đang theo dõi</h2>
-        <p>Các dự án ưu tiên và milestone quan trọng</p>
+        <h2>Projects Being Tracked</h2>
+        <p>Priority projects and important milestones</p>
       </div>
 
       <div className="highlights-grid">
@@ -135,7 +139,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
           <div className="card-header" onClick={() => toggleCard('priority')}>
             <div className="card-title">
               <AlertTriangle size={20} />
-              <h3>Dự án ưu tiên (dự án đang thực hiện)</h3>
+              <h3>Priority Projects (In Progress)</h3>
             </div>
             <div className="card-header-right">
               <span className="count-badge">{priorityProjects.length}</span>
@@ -147,7 +151,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
             {priorityProjects.length === 0 ? (
               <div className="empty-state">
                 <CheckCircle2 size={32} />
-                <p>Không có dự án ưu tiên</p>
+                <p>No priority projects</p>
               </div>
             ) : (
               priorityProjects.map(project => {
@@ -169,7 +173,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
                       <div className="item-details">
                         <span className="deadline">
                           <Calendar size={14} />
-                          {'Còn lại: ' + (daysUntilDeadline > 0 ? `${daysUntilDeadline} ngày` : 'Quá hạn')}
+                          {daysUntilDeadline > 0 ? `${daysUntilDeadline} ${daysUntilDeadline === 1 ? 'day' : 'days'} left` : 'Overdue'}
                         </span>
                         <span className="progress">{progress}%</span>
                       </div>
@@ -195,7 +199,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
           <div className="card-header" onClick={() => toggleCard('milestones')}>
             <div className="card-title">
               <Flag size={20} />
-              <h3>Cột mốc sắp đến hạn</h3>
+              <h3>Upcoming Milestones</h3>
             </div>
             <div className="card-header-right">
               <span className="count-badge">{upcomingMilestones.length}</span>
@@ -207,7 +211,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
             {upcomingMilestones.length === 0 ? (
               <div className="empty-state">
                 <CheckCircle2 size={32} />
-                <p>Không có cột mốc sắp đến hạn</p>
+                <p>No upcoming milestones</p>
               </div>
             ) : (
               upcomingMilestones.map((milestone: any) => {
@@ -228,7 +232,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
                     </div>
                     <div className="milestone-due">
                       <Clock size={14} />
-                      <span>{daysUntilDue} ngày</span>
+                      <span>{daysUntilDue} {daysUntilDue === 1 ? 'day' : 'days'}</span>
                     </div>
                   </div>
                 );
@@ -237,12 +241,12 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
           </div>
         </div>
 
-        {/* On Hold Tasks */}
+        {/* Ready To Review Tasks */}
         <div className="highlight-card">
           <div className="card-header" onClick={() => toggleCard('onHold')}>
             <div className="card-title">
               <AlertTriangle size={20} />
-              <h3>Công việc tạm dừng</h3>
+              <h3>Ready To Review Tasks</h3>
             </div>
             <div className="card-header-right">
               <span className="count-badge">{onHold.length}</span>
@@ -254,7 +258,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
             {onHold.length === 0 ? (
               <div className="empty-state">
                 <CheckCircle2 size={32} />
-                <p>Không có công việc tạm dừng</p>
+                <p>No tasks ready to review</p>
               </div>
             ) : (
               onHold.map((task: any) => {
@@ -262,9 +266,9 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
                 return (
                   <div key={task.id} className="task-item">
                     <div className="task-info">
-                      <h4>{task.name}</h4>
+                      <h4>{task.title || task.name}</h4>
                       <div className="task-meta">
-                        <p className="assignee">{task.user?.fullName || 'Chưa phân công'}</p>
+                        <p className="assignee">{task.user?.fullName || 'Unassigned'}</p>
                         <p 
                           className="project project-link"
                           onClick={() => project && handleProjectClick(project.id)}
@@ -289,7 +293,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
           <div className="card-header" onClick={() => toggleCard('inProgress')}>
             <div className="card-title">
               <Activity size={20} />
-              <h3>Công việc đang làm</h3>
+              <h3>In Progress Tasks (Top 3 by Deadline)</h3>
             </div>
             <div className="card-header-right">
               <span className="count-badge">{inProgress.length}</span>
@@ -301,23 +305,34 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
             {inProgress.length === 0 ? (
               <div className="empty-state">
                 <CheckCircle2 size={32} />
-                <p>Không có công việc đang làm</p>
+                <p>No tasks in progress</p>
               </div>
             ) : (
               inProgress.map((task: any) => {
                 const project = projects.find((p: any) => p.id === task.projectId);
+                const endDate = task.endDate ? new Date(task.endDate) : null;
+                const daysUntilDeadline = endDate ? Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+                
                 return (
                   <div key={task.id} className="task-item">
                     <div className="task-info">
-                      <h4>{task.name}</h4>
+                      <h4>{task.title || task.name}</h4>
                       <div className="task-meta">
-                        <p className="assignee">{task.user?.fullName || 'Chưa phân công'}</p>
+                        <p className="assignee">{task.user?.fullName || 'Unassigned'}</p>
                         <p 
                           className="project project-link"
                           onClick={() => project && handleProjectClick(project.id)}
                         >
                           {task.projectName || project?.name}
                         </p>
+                        {daysUntilDeadline !== null && (
+                          <p className="deadline-info">
+                            <Calendar size={12} />
+                            {daysUntilDeadline > 0 
+                              ? `${daysUntilDeadline} ${daysUntilDeadline === 1 ? 'day' : 'days'} left` 
+                              : 'Overdue'}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="task-status in-progress">

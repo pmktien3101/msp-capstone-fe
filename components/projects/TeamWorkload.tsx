@@ -76,18 +76,18 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
     return gradients[Math.abs(hash) % gradients.length];
   };
 
-  // Kiểm tra project có tồn tại không
+  // Check if project exists
   if (!project) {
     return (
       <div className="team-workload">
         <div className="section-header">
           <div className="section-title">
-            <h3>Các thành viên trong nhóm</h3>
-            <p>Danh sách thành viên và công việc được giao.</p>
+            <h3>Team Members</h3>
+            <p>List of members and their assigned tasks.</p>
           </div>
         </div>
         <div className="no-data-message">
-          <p>Không có thông tin dự án</p>
+          <p>No project information</p>
         </div>
       </div>
     );
@@ -99,12 +99,12 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
       <div className="team-workload">
         <div className="section-header">
           <div className="section-title">
-            <h3>Các thành viên trong nhóm</h3>
-            <p>Danh sách thành viên và công việc được giao.</p>
+            <h3>Team Members</h3>
+            <p>List of members and their assigned tasks.</p>
           </div>
         </div>
         <div className="workload-content">
-          <p>Đang tải dữ liệu...</p>
+          <p>Loading data...</p>
         </div>
       </div>
     );
@@ -129,7 +129,7 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
   const workloadData = Object.entries(assigneeCounts).map(([userId, count]) => {
     if (userId === 'unassigned') {
       return {
-        assignee: 'Chưa giao',
+        assignee: 'Unassigned',
         percentage: totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0,
         color: '#6b7280',
         gradient: null,
@@ -154,8 +154,8 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
     <div className="team-workload">
       <div className="section-header">
         <div className="section-title">
-          <h3>Các thành viên trong nhóm</h3>
-          <p>Danh sách thành viên và công việc được giao.</p>
+          <h3>Team Members</h3>
+          <p>List of members and their assigned tasks.</p>
         </div>
       </div>
 
@@ -179,7 +179,7 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
                   )}
                   <div className="assignee-details">
                     <span className="assignee-name">{item.assignee}</span>
-                    <span className="assignee-tasks">{item.taskCount} công việc</span>
+                    <span className="assignee-tasks">{item.taskCount} {item.taskCount === 1 ? 'task' : 'tasks'}</span>
                   </div>
                 </div>
                 <span className="workload-percentage">{item.percentage}%</span>
@@ -199,11 +199,11 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
 
         <div className="workload-summary">
           <div className="summary-item">
-            <span className="summary-label">Tổng thành viên</span>
+            <span className="summary-label">Total Members</span>
             <span className="summary-value">{workloadData.length}</span>
           </div>
           <div className="summary-item">
-            <span className="summary-label">Công việc đã giao</span>
+            <span className="summary-label">Assigned Tasks</span>
             <span className="summary-value">{totalTasks - (assigneeCounts.unassigned || 0)}/{totalTasks}</span>
           </div>
         </div>

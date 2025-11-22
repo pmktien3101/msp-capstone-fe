@@ -40,8 +40,8 @@ export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
     <div className="status-overview">
       <div className="section-header">
         <div className="section-title">
-          <h3>Tổng quan trạng thái</h3>
-          <p>Xem tổng quan trạng thái các công việc của bạn.</p>
+          <h3>Status Overview</h3>
+          <p>View the status overview of your tasks.</p>
         </div>
         <a 
           href="#" 
@@ -53,7 +53,7 @@ export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
             window.dispatchEvent(event);
           }}
         >
-          Xem tất cả công việc
+          View all tasks
         </a>
       </div>
 
@@ -111,7 +111,7 @@ export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
             <div className="chart-center">
               <div className="center-text">
                 <span className="center-number">{totalItems}</span>
-                <span className="center-label">công việc</span>
+                <span className="center-label">tasks</span>
               </div>
             </div>
           </div>
@@ -123,7 +123,7 @@ export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
               <div className="legend-color" style={{ backgroundColor: item.color }}></div>
               <div className="legend-info">
                 <span className="legend-status">{item.status}</span>
-                <span className="legend-count">{item.count} công việc</span>
+                <span className="legend-count">{item.count} {item.count === 1 ? 'task' : 'tasks'}</span>
               </div>
             </div>
           ))}

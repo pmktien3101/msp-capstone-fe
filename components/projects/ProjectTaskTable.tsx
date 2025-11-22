@@ -13,6 +13,7 @@ import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import "@/app/styles/project-task-table.scss";
+import { formatDate } from "@/lib/formatDate";
 
 interface ProjectTaskTableProps {
   project: Project;
@@ -22,15 +23,6 @@ interface ProjectTaskTableProps {
   onEditTask?: (task: any) => void;
   refreshKey?: number;
 }
-
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0"); // Months in JS are 0-11
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
 
 // Calculate overdue days
 const calculateOverdueDays = (endDate: string, status: string): number => {

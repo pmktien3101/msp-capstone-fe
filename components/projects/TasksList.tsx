@@ -8,6 +8,7 @@ import { taskService } from '@/services/taskService';
 import { usePagination } from '@/hooks/usePagination';
 import Pagination from '@/components/ui/Pagination';
 import '@/app/styles/tasks-list.scss';
+import { formatDate } from '@/lib/formatDate';
 
 interface TasksListProps {
   project: Project;
@@ -74,17 +75,17 @@ export const TasksList = ({ project }: TasksListProps) => {
     itemsPerPage: 5,
   });
 
-  // Kiểm tra project có tồn tại không
+  // Check if project exists
   if (!project) {
     return (
       <div className="tasks-list">
         <div className="section-header">
           <div className="section-title">
-            <h3>Công việc đang làm</h3>
+            <h3>In Progress Tasks</h3>
           </div>
         </div>
         <div className="no-data-message">
-          <p>Không có thông tin dự án</p>
+          <p>No project information</p>
         </div>
       </div>
     );
@@ -96,12 +97,12 @@ export const TasksList = ({ project }: TasksListProps) => {
       <div className="tasks-list">
         <div className="section-header">
           <div className="section-title">
-            <h3>Công việc đang làm</h3>
+            <h3>In Progress Tasks</h3>
           </div>
         </div>
         <div className="tasks-content">
           <div className="no-tasks-message">
-            <p>Đang tải dữ liệu...</p>
+            <p>Loading data...</p>
           </div>
         </div>
       </div>
@@ -112,7 +113,7 @@ export const TasksList = ({ project }: TasksListProps) => {
     <div className="tasks-list">
       <div className="section-header">
         <div className="section-title">
-          <h3>Công việc đang làm</h3>
+          <h3>In Progress Tasks</h3>
         </div>
         <a 
           href="#" 
@@ -124,7 +125,7 @@ export const TasksList = ({ project }: TasksListProps) => {
             window.dispatchEvent(event);
           }}
         >
-          Xem tất cả
+          View all
         </a>
       </div>
 
@@ -137,8 +138,8 @@ export const TasksList = ({ project }: TasksListProps) => {
                 <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <h4>Không có công việc nào đang làm</h4>
-            <p>Tất cả công việc đang chờ bắt đầu hoặc đã hoàn thành.</p>
+            <h4>No tasks in progress</h4>
+            <p>All tasks are either pending to start or have been completed.</p>
           </div>
         ) : (
           <div className="tasks-list-items">
@@ -167,7 +168,7 @@ export const TasksList = ({ project }: TasksListProps) => {
                           <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </div>
-                      <span className="assignee-name">Chưa giao</span>
+                      <span className="assignee-name">Unassigned</span>
                     </div>
                   )}
                 </div>
@@ -179,7 +180,7 @@ export const TasksList = ({ project }: TasksListProps) => {
                     <path d="M3 10H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     <path d="M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  <span>{task.endDate ? new Date(task.endDate).toLocaleDateString('vi-VN') : 'Chưa có'}</span>
+                  <span>{task.endDate ? formatDate(task.endDate) : 'No deadline'}</span>
                 </div>
                 
                 <div 

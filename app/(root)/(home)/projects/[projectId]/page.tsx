@@ -21,6 +21,7 @@ import { taskService } from '@/services/taskService';
 import { toast } from 'react-toastify';
 import { useProjectModal } from '@/contexts/ProjectModalContext';
 import { ProjectStatus, TaskStatus, getProjectStatusLabel } from '@/constants/status';
+import { formatDate } from '@/lib/formatDate';
 
 const ProjectDetailPage = () => {
   const params = useParams();
@@ -97,16 +98,16 @@ const ProjectDetailPage = () => {
       const response = await taskService.createTask(requestData);
       
       if (response.success) {
-        toast.success('Tạo công việc thành công!');
+        toast.success('Task created successfully!');
         setIsCreateTaskModalOpen(false);
         // Trigger refresh
         setRefreshKey(prev => prev + 1);
       } else {
-        toast.error(`Lỗi: ${response.error || 'Không thể tạo công việc'}`);
+        toast.error(`Error: ${response.error || 'Unable to create task'}`);
       }
     } catch (error: any) {
       // console.error('Error creating task:', error);
-      toast.error('Có lỗi xảy ra khi tạo công việc. Vui lòng thử lại!');
+      toast.error('An error occurred while creating the task. Please try again!');
     }
   };
 
@@ -114,7 +115,7 @@ const ProjectDetailPage = () => {
     // Set task to delete for confirmation modal
     setTaskToDelete({ 
       id: taskId, 
-      title: taskTitle || 'công việc này' 
+      title: taskTitle || 'this task' 
     });
     setIsDeleteTaskModalOpen(true);
   };
@@ -128,17 +129,17 @@ const ProjectDetailPage = () => {
       const response = await taskService.deleteTask(taskToDelete.id);
       
       if (response.success) {
-        toast.success(`Đã xóa công việc: ${taskToDelete.title}`);
+        toast.success(`Task deleted: ${taskToDelete.title}`);
         setTaskToDelete(null);
         setIsDeleteTaskModalOpen(false);
         // Trigger refresh to reload task list
         setRefreshKey(prev => prev + 1);
       } else {
-        toast.error(`Lỗi: ${response.error || 'Không thể xóa công việc'}`);
+        toast.error(`Error: ${response.error || 'Unable to delete task'}`);
       }
     } catch (error: any) {
       // console.error('Error deleting task:', error);
-      toast.error('Có lỗi xảy ra khi xóa công việc. Vui lòng thử lại!');
+      toast.error('An error occurred while deleting the task. Please try again!');
     }
   };
 
@@ -155,13 +156,13 @@ const ProjectDetailPage = () => {
   const handleUpdateTask = async (taskData: any) => {
     try {
       if (!taskToEdit?.id) {
-        toast.error('Không tìm thấy thông tin công việc');
+        toast.error('Task information not found');
         return;
       }
 
       // Ensure we have the current user ID to use as actorId (UpdateTaskRequest requires a string)
       if (!user || !user.userId) {
-        toast.error('Không tìm thấy thông tin người dùng');
+        toast.error('User information not found');
         return;
       }
 
@@ -184,17 +185,17 @@ const ProjectDetailPage = () => {
       const response = await taskService.updateTask(requestData);
       
       if (response.success) {
-        toast.success('Cập nhật công việc thành công!');
+        toast.success('Task updated successfully!');
         setIsEditTaskModalOpen(false);
         setTaskToEdit(null);
         // Trigger refresh
         setRefreshKey(prev => prev + 1);
       } else {
-        toast.error(`Lỗi: ${response.error || 'Không thể cập nhật công việc'}`);
+        toast.error(`Error: ${response.error || 'Unable to update task'}`);
       }
     } catch (error: any) {
       // console.error('Error updating task:', error);
-      toast.error('Có lỗi xảy ra khi cập nhật công việc. Vui lòng thử lại!');
+      toast.error('An error occurred while updating the task. Please try again!');
     }
   };
 
@@ -230,7 +231,7 @@ const ProjectDetailPage = () => {
       // No need for alert since user can see the new milestone in the list
     } catch (error) {
       // console.error('Error creating milestone:', error);
-      toast.error('Có lỗi xảy ra khi tạo cột mốc. Vui lòng thử lại!');
+      toast.error('An error occurred while creating the milestone. Please try again!');
     }
   };
 
@@ -250,7 +251,7 @@ const ProjectDetailPage = () => {
         // Validate projectId first
         if (!projectId || projectId === 'undefined' || projectId === 'null') {
           // console.error('Invalid projectId:', projectId);
-          setError('ID dự án không hợp lệ');
+          setError('Invalid project ID');
           setLoading(false);
           return;
         }
@@ -260,7 +261,7 @@ const ProjectDetailPage = () => {
         // Check if user is authenticated and has userId
         if (!user || !user.userId) {
           console.error('User not authenticated');
-          setError('Vui lòng đăng nhập để xem dự án');
+          setError('Please login to view the project');
           setLoading(false);
           return;
         }
@@ -326,12 +327,12 @@ const ProjectDetailPage = () => {
           
           setProject(projectWithMembers);
         } else {
-          setError(result.error || 'Không thể tải dự án');
+          setError(result.error || 'Unable to load project');
           setProject(null);
         }
       } catch (err) {
         console.error('Error fetching project:', err);
-        setError('Đã xảy ra lỗi khi tải dự án');
+        setError('An error occurred while loading the project');
         setProject(null);
       } finally {
         setLoading(false);
@@ -376,7 +377,7 @@ const ProjectDetailPage = () => {
     return (
       <div className="project-detail-loading">
         <div className="loading-spinner"></div>
-        <p>Đang tải dự án...</p>
+        <p>Loading project...</p>
       </div>
     );
   }
@@ -384,8 +385,8 @@ const ProjectDetailPage = () => {
   if (error || !project) {
     return (
       <div className="project-detail-error">
-        <h2>Không tìm thấy dự án</h2>
-        <p>{error || `Dự án với ID "${projectId}" không tồn tại.`}</p>
+        <h2>Project not found</h2>
+        <p>{error || `Project with ID "${projectId}" does not exist.`}</p>
       </div>
     );
   }
@@ -411,16 +412,16 @@ const ProjectDetailPage = () => {
             <div className="meta-item">
               <Calendar size={16} />
               <span>
-                {project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : 'N/A'} - {project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : 'N/A'}
+                {project.startDate ? formatDate(project.startDate) : 'N/A'} - {project.endDate ? formatDate(project.endDate) : 'N/A'}
               </span>
             </div>
             <div className="meta-item">
               <Users size={16} />
-              <span>{project.members?.length || 0} thành viên</span>
+              <span>{project.members?.length || 0} {(project.members?.length || 0) === 1 ? 'member' : 'members'}</span>
             </div>
             <div className="meta-item">
               <Target size={16} />
-              <span>Tiến độ: {projectProgress}%</span>
+              <span>Progress: {projectProgress}%</span>
             </div>
           </div>
         </div>
@@ -429,10 +430,10 @@ const ProjectDetailPage = () => {
             <button 
               className="create-milestone-btn"
               onClick={handleCreateMilestone}
-              title="Tạo cột mốc mới"
+              title="Create new milestone"
             >
               <Plus size={16} />
-              Tạo cột mốc
+              Create Milestone
             </button>
           )}
         </div>
