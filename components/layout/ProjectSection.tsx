@@ -8,6 +8,7 @@ import { projectService } from '@/services/projectService';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/lib/rbac';
 import { getProjectStatusColor, getProjectStatusLabel } from '@/constants/status';
+import '@/app/styles/project-section.scss';
 
 interface ProjectSectionProps {
   isExpanded: boolean;
@@ -144,7 +145,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
               <path d="M8 15H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <span>Dự án</span>
+          <span>Projects</span>
           <span className="project-count">{projects.length}</span>
         </div>
         <div className="section-actions">
@@ -156,7 +157,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
                 e.stopPropagation();
                 handleCreateProject();
               }}
-              title="Tạo dự án mới"
+              title="Create new project"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M12 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -166,7 +167,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
           )}
           <div 
             className={`expand-icon ${isExpanded ? 'expanded' : ''}`}
-            title={isExpanded ? 'Thu gọn' : 'Mở rộng'}
+            title={isExpanded ? 'Collapse' : 'Expand'}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -180,18 +181,18 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
           {loading ? (
             <div className="loading-state">
               <div className="loading-spinner"></div>
-              <span>Đang tải...</span>
+              <span>Loading...</span>
             </div>
           ) : projects.length === 0 ? (
             <div className="empty-state">
-              <p>Chưa có dự án</p>
-              {/* Chỉ hiện nút tạo dự án cho PM */}
+              <p>No projects yet</p>
+              {/* Only show create project button for PM */}
               {(user?.role === UserRole.PROJECT_MANAGER || user?.role === 'ProjectManager') && (
                 <button 
                   className="create-project-btn"
                   onClick={handleCreateProject}
                 >
-                  Tạo dự án
+                  Create Project
                 </button>
               )}
             </div>
@@ -238,320 +239,24 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
                         <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       )}
                     </svg>
-                    <span>{showAllProjects ? 'Ẩn bớt' : `Xem thêm (${sortedProjects.length - 3})`}</span>
+                    <span>{showAllProjects ? 'Show less' : `Show more (${sortedProjects.length - 3})`}</span>
                   </button>
                 )}
 
                 <button
                   className="view-all-btn open-projects-page"
                   onClick={handleViewAllProjects}
-                  title="Mở trang quản lý dự án"
+                  title="Open project management page"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  <span>Xem tất cả dự án</span>
+                  <span>View all projects</span>
                 </button>
               </div>
             </>
           )}
       </div>
-
-
-
-      <style jsx>{`
-        .project-section {
-          width: 100%;
-        }
-
-        .section-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 8px 12px;
-          cursor: pointer;
-          border-radius: 6px;
-          transition: all 0.2s ease;
-          margin-bottom: 4px;
-        }
-
-        .section-header:hover {
-          background: #f3f4f6;
-        }
-
-        .section-header.has-active {
-          background: #fdf0d2;
-          color: #ff5e13;
-        }
-
-        .section-title {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-weight: 600;
-          font-size: 14px;
-        }
-
-        .project-count {
-          margin-left: 8px;
-          background: #eef2ff;
-          color: #3730a3;
-          font-weight: 600;
-          padding: 2px 6px;
-          border-radius: 12px;
-          font-size: 11px;
-        }
-
-        .section-icon {
-          color: #6b7280;
-          transition: color 0.2s ease;
-        }
-
-        .section-header.has-active .section-icon {
-          color: #ff5e13;
-        }
-
-        .section-actions {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .add-project-btn {
-          width: 24px;
-          height: 24px;
-          border: none;
-          background: none;
-          color: #6b7280;
-          cursor: pointer;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s ease;
-        }
-
-        .add-project-btn:hover {
-          background: #e5e7eb;
-          color: #374151;
-        }
-
-        .expand-icon {
-          color: #6b7280;
-          transition: all 0.2s ease;
-        }
-
-        .expand-icon.expanded {
-          transform: rotate(90deg);
-        }
-
-        .projects-list {
-          margin-left: 20px;
-          border-left: 1px solid #e5e7eb;
-          padding-left: 12px;
-          /* animate open/close */
-          max-height: 0;
-          opacity: 0;
-          overflow: hidden;
-          transition: max-height 320ms cubic-bezier(.2,.9,.2,1), opacity 180ms ease;
-        }
-
-        .projects-list.open {
-          max-height: 1200px; /* large enough for most lists */
-          opacity: 1;
-        }
-
-        .project-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 10px;
-          margin-bottom: 3px;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.18s ease;
-          position: relative;
-          border: 1px solid transparent;
-          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-          opacity: 0;
-          transform: translateY(6px);
-        }
-
-        .project-item:hover {
-          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-          border-color: #e2e8f0;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        .project-item.active {
-          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-          border-color: #fbbf24;
-          color: #92400e;
-          box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
-        }
-
-        /* animated entrance when parent is open */
-        .projects-list.open .project-item {
-          opacity: 1;
-          transform: translateY(0);
-          transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 220ms ease;
-        }
-
-        /* keyframe fallback for staggered effect */
-        .project-item.animated {
-          animation: fadeInUp 300ms ease forwards;
-          animation-delay: var(--delay, 0ms);
-        }
-
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-
-        .project-content {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .project-name {
-          font-size: 13px;
-          font-weight: 600;
-          color: #1f2937;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          line-height: 1.2;
-        }
-
-        .project-item.active .project-name {
-          color: #92400e;
-          font-weight: 700;
-        }
-
-        .project-meta {
-          display: flex;
-          align-items: center;
-          font-size: 10px;
-          color: #6b7280;
-          margin-top: 2px;
-          gap: 4px;
-        }
-
-        .project-deadline {
-          font-size: 10px;
-          color: #9ca3af;
-          margin-left: 6px;
-        }
-
-        .status-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
-
-        .project-status {
-          font-weight: 500;
-          font-size: 10px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .active-indicator {
-          width: 3px;
-          height: 16px;
-          background: linear-gradient(180deg, #fbbf24, #f59e0b);
-          border-radius: 2px;
-          position: absolute;
-          right: 0;
-          top: 50%;
-          transform: translateY(-50%);
-          box-shadow: 0 1px 3px rgba(251, 191, 36, 0.3);
-        }
-
-        .loading-state {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px;
-          color: #6b7280;
-          font-size: 12px;
-        }
-
-        .loading-spinner {
-          width: 12px;
-          height: 12px;
-          border: 2px solid #e5e7eb;
-          border-top: 2px solid #ff5e13;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        .empty-state {
-          text-align: center;
-          padding: 16px 8px;
-          color: #6b7280;
-        }
-
-        .empty-state p {
-          font-size: 12px;
-          margin: 0 0 8px 0;
-        }
-
-        .create-project-btn {
-          background: #ff5e13;
-          color: white;
-          border: none;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          cursor: pointer;
-          transition: background-color 0.2s ease;
-        }
-
-        .create-project-btn:hover {
-          background: #e54e0a;
-        }
-
-        .view-all-section {
-          margin-top: 8px;
-          padding-top: 8px;
-          border-top: 1px solid #e5e7eb;
-        }
-
-        .view-all-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          width: 100%;
-          background: none;
-          border: none;
-          color: #6b7280;
-          font-size: 12px;
-          padding: 6px 8px;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .view-all-btn:hover {
-          background: #f3f4f6;
-          color: #374151;
-        }
-
-        .view-all-btn.open-projects-page {
-          margin-top: 6px;
-          border-top: 1px dashed #e5e7eb;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 };

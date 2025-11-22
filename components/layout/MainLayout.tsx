@@ -12,6 +12,7 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     // Simulate loading time for CSS and components
@@ -33,8 +34,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </div>
       
       <div className="layout-body">
-        <div className="layout-sidebar">
-          <Sidebar />
+        <div className={`layout-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+          <Sidebar onCollapsedChange={setIsSidebarCollapsed} />
         </div>
         
         <div className="layout-content">
@@ -74,6 +75,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           flex-shrink: 0;
           background: white;
           border-right: 1px solid #FFDBBD;
+          transition: width 0.3s ease;
+        }
+
+        .layout-sidebar.collapsed {
+          width: 70px;
         }
 
         .layout-content {
