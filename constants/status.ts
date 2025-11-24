@@ -1,6 +1,6 @@
 // Task Status Enum (synced with backend)
 export enum TaskStatus {
-  NotStarted = 'NotStarted',
+  Todo = 'Todo',
   InProgress = 'InProgress',
   ReadyToReview = 'ReadyToReview',
   ReOpened = 'ReOpened',
@@ -19,7 +19,7 @@ export enum ProjectStatus {
 
 // Task Status Labels (English)
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  [TaskStatus.NotStarted]: 'Not Started',
+  [TaskStatus.Todo]: 'Todo',
   [TaskStatus.InProgress]: 'In Progress',
   [TaskStatus.ReadyToReview]: 'Ready To Review',
   [TaskStatus.ReOpened]: 'Re-Opened',
@@ -38,7 +38,7 @@ export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
 
 // Reverse mapping: English Label to Enum
 export const TASK_STATUS_FROM_LABEL: Record<string, TaskStatus> = {
-  'Not Started': TaskStatus.NotStarted,
+  'Todo': TaskStatus.Todo,
   'In Progress': TaskStatus.InProgress,
   'Ready To Review': TaskStatus.ReadyToReview,
   'Re-Opened': TaskStatus.ReOpened,
@@ -70,7 +70,7 @@ export const getTaskStatusEnum = (status: string): TaskStatus => {
     return status as TaskStatus;
   }
   // If English label
-  return TASK_STATUS_FROM_LABEL[status] || TaskStatus.NotStarted;
+  return TASK_STATUS_FROM_LABEL[status] || TaskStatus.Todo;
 };
 
 export const getProjectStatusLabel = (status: string | ProjectStatus): string => {
@@ -96,7 +96,7 @@ export const getTaskStatusColor = (status: string | TaskStatus): string => {
   const enumStatus = typeof status === 'string' ? getTaskStatusEnum(status) : status;
   
   switch (enumStatus) {
-    case TaskStatus.NotStarted:
+    case TaskStatus.Todo:
       return '#6b7280'; // gray
     case TaskStatus.InProgress:
       return '#3b82f6'; // blue

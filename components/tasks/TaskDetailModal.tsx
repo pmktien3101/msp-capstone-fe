@@ -50,7 +50,7 @@ export const TaskDetailModal = ({
   const [editedTask, setEditedTask] = useState({
     title: task?.title || "",
     description: task?.description || "",
-    status: task?.status || "NotStarted",
+    status: task?.status || "Todo",
     userId: task?.userId || "",
     reviewerId: task?.reviewerId || "",
     startDate: task?.startDate || "",
@@ -199,7 +199,7 @@ export const TaskDetailModal = ({
       setEditedTask({
         title: task.title || "",
         description: task.description || "",
-        status: task.status || "NotStarted",
+        status: task.status || "Todo",
         userId: task.userId || "",
         reviewerId: task.reviewerId || "",
         startDate: task.startDate || "",
@@ -228,7 +228,7 @@ export const TaskDetailModal = ({
 
   // Statuses - filtered based on user role
   const ALL_TASK_STATUS_OPTIONS = [
-    { value: "NotStarted", label: "Not Started" },
+    { value: "Todo", label: "Todo" },
     { value: "InProgress", label: "In Progress" },
     { value: "ReadyToReview", label: "Ready To Review" },
     { value: "ReOpened", label: "Re-Opened" },
@@ -237,7 +237,7 @@ export const TaskDetailModal = ({
   ];
 
   const MEMBER_STATUS_OPTIONS = [
-    { value: "NotStarted", label: "Not Started" },
+    { value: "Todo", label: "Todo" },
     { value: "InProgress", label: "In Progress" },
     { value: "ReadyToReview", label: "Ready To Review" },
   ];

@@ -30,7 +30,7 @@ const ProjectDetailPage = () => {
   const projectId = params.projectId as string;
   const { role } = useUser();
   const { user } = useAuth();
-  const [project, setProject] = useState<any | null>(null); // Extended project with members
+  const [project, setProject] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -46,7 +46,7 @@ const ProjectDetailPage = () => {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [projectProgress, setProjectProgress] = useState(0);
 
-  // Mock data for available project managers (kept for compatibility)
+  // Available project managers (kept for compatibility)
   const availableProjectManagers = allUsers.filter(user => 
     user.role?.toLowerCase() === 'projectmanager' || user.role?.toLowerCase() === 'project manager'
   );
@@ -89,7 +89,7 @@ const ProjectDetailPage = () => {
         actorId: user.userId,
         title: taskData.title,
         description: taskData.description || '',
-        status: taskData.status || TaskStatus.NotStarted,
+        status: taskData.status || TaskStatus.Todo,
         startDate: taskData.startDate || undefined,
         endDate: taskData.endDate || undefined,
         milestoneIds: taskData.milestoneIds || []

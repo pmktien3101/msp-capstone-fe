@@ -109,7 +109,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
     // 1. Prioritize InProgress projects first
     const statusPriority = {
       'InProgress': 1,
-      'NotStarted': 2,
+      'Todo': 2,
       'OnHold': 3,
       'Completed': 4,
       'Cancelled': 5

@@ -164,10 +164,10 @@ export const TaskListHeader = ({
                 onChange={(e) => onStatusFilterChange?.(e.target.value)}
                 className="filter-select"
               >
-                <option value="all">All Status</option>
-                <option value="NotStarted">Not Started</option>
+                <option value="">All Statuses</option>
+                <option value="Todo">Todo</option>
                 <option value="InProgress">In Progress</option>
-                <option value="ReadyToReview">Ready To Review</option>
+                <option value="ReadyToReview">Ready to Review</option>
                 <option value="ReOpened">Re-Opened</option>
                 <option value="Done">Done</option>
                 <option value="Cancelled">Cancelled</option>
@@ -272,7 +272,7 @@ export const TaskListHeader = ({
                   Status {selectedStatuses.length > 0 && <span className="count-badge">({selectedStatuses.length})</span>}
                 </div>
                 <div className="filter-checkboxes">
-                  {['NotStarted', 'InProgress', 'ReadyToReview', 'ReOpened', 'Done', 'Cancelled'].map((status) => (
+                  {['Todo', 'InProgress', 'ReadyToReview', 'ReOpened', 'Done', 'Cancelled'].map((status) => (
                     <label key={status} className="filter-checkbox-label">
                       <input
                         type="checkbox"
