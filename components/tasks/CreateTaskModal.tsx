@@ -18,12 +18,12 @@ interface CreateTaskModalProps {
 }
 
 const MEMBER_CREATE_STATUS_OPTIONS = [
-  { value: 'NotStarted', label: 'Not Started' },
+  { value: 'Todo', label: 'Todo' },
   { value: 'InProgress', label: 'In Progress' },
 ];
 
 const ALL_STATUS_OPTIONS = [
-  { value: 'NotStarted', label: 'Not Started' },
+  { value: 'Todo', label: 'Todo' },
   { value: 'InProgress', label: 'In Progress' },
   { value: 'ReadyToReview', label: 'Ready to Review' },
   { value: 'Done', label: 'Done' },
@@ -42,7 +42,7 @@ export const CreateTaskModal = ({
   const [taskData, setTaskData] = useState({
     title: "",
     description: "",
-    status: "NotStarted",
+    status: "Todo",
     userId: "",
     reviewerId: "",
     startDate: "",
@@ -109,7 +109,7 @@ export const CreateTaskModal = ({
       setTaskData({
         title: "",
         description: "",
-        status: "NotStarted",
+        status: "Todo",
         userId: "",
         reviewerId: "",
         startDate: "",

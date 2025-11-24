@@ -82,7 +82,7 @@ export function ProjectSummary({ project }: ProjectSummaryProps) {
     total: projectTasks.length,
     completed: projectTasks.filter(task => task.status === TaskStatus.Done).length,
     inProgress: projectTasks.filter(task => task.status === TaskStatus.InProgress).length,
-    todo: projectTasks.filter(task => task.status === TaskStatus.NotStarted).length,
+    todo: projectTasks.filter(task => task.status === TaskStatus.Todo).length,
     onHold: projectTasks.filter(task => task.status === TaskStatus.ReadyToReview).length,
     readyToReview: projectTasks.filter(task => task.status === TaskStatus.ReadyToReview).length,
     reOpened: projectTasks.filter(task => task.status === TaskStatus.ReOpened).length,

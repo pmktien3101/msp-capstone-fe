@@ -53,17 +53,21 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
     refetch: refetchCalls,
   } = useProjectMeetings(project.id);
 
-  // Thay tabs bằng filter + search
+  // Filter and search state
   const [statusFilter, setStatusFilter] = useState<
     "all" | "Scheduled" | "Ongoing" | "Finished" | "Cancelled"
   >("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- new: custom dropdown state + ref ---
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Custom dropdown state and ref
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  // hover state for nicer hover effects
+  // Hover state for nicer hover effects
   const [hoveredOption, setHoveredOption] = useState<string | null>(null);
 
   useEffect(() => {
@@ -78,12 +82,11 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, []);
-  // --- end new ---
 
   const { role } = useUser();
   const isMember = role === "Member";
 
-  // Phân loại cuộc họp theo status (duy trì cho thống kê)
+  // Categorize meetings by status (for statistics)
   const scheduledMeetings = backendMeetings.filter(
     (m) => m.status === "Scheduled"
   );
@@ -96,8 +99,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   );
   const allMeetings = backendMeetings;
 
-  // Áp filter status và search vào danh sách hiển thị
-  const meetings = useMemo(() => {
+  // Apply status filter and search to display list
+  const filteredMeetings = useMemo(() => {
     let list = backendMeetings.slice();
 
     if (statusFilter !== "all") {
@@ -116,17 +119,28 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
     return list;
   }, [backendMeetings, statusFilter, searchTerm]);
 
-  // Sửa lại getStatusInfo cho đúng nhãn
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredMeetings.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const meetings = filteredMeetings.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchTerm]);
+
+  // Get status label and color
   const getStatusInfo = (meeting: MeetingItem) => {
     switch (meeting.status) {
       case "Finished":
-        return { label: "Kết thúc", color: "#A41F39" };
+        return { label: "Finished", color: "#A41F39" };
       case "Scheduled":
-        return { label: "Đã lên lịch", color: "#47D69D" };
+        return { label: "Scheduled", color: "#47D69D" };
       case "Ongoing":
-        return { label: "Đang diễn ra", color: "#FFA500" };
+        return { label: "Ongoing", color: "#FFA500" };
       case "Cancelled":
-        return { label: "Đã hủy", color: "#888" };
+        return { label: "Cancelled", color: "#888" };
       default:
         return { label: meeting.status, color: "#ccc" };
     }
@@ -152,20 +166,20 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
   };
 
   const handleCancel = async (meeting: MeetingItem) => {
-    if (!confirm("Bạn chắc chắn muốn hủy cuộc họp này?")) return;
+    if (!confirm("Are you sure you want to cancel this meeting?")) return;
 
     try {
       const res = await meetingService.cancelMeeting(meeting.id);
 
       if (res?.success) {
         await refetchCalls();
-        toast.success("Đã hủy cuộc họp thành công");
+        toast.success("Meeting cancelled successfully");
       } else {
-        toast.error(res?.error || res?.message || "Hủy cuộc họp thất bại");
+        toast.error(res?.error || res?.message || "Failed to cancel meeting");
       }
     } catch (e: any) {
       console.error("Cancel meeting failed", e);
-      toast.error(e?.message || "Hủy cuộc họp thất bại");
+      toast.error(e?.message || "Failed to cancel meeting");
     }
   };
 
@@ -177,19 +191,19 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
 
   // status options for custom dropdown
   const statusOptions = [
-    { value: "all", label: "Tất cả trạng thái" },
-    { value: "Scheduled", label: "Đã lên lịch" },
-    { value: "Ongoing", label: "Đang diễn ra" },
-    { value: "Finished", label: "Kết thúc" },
-    { value: "Cancelled", label: "Đã hủy" },
+    { value: "all", label: "All Statuses" },
+    { value: "Scheduled", label: "Scheduled" },
+    { value: "Ongoing", label: "Ongoing" },
+    { value: "Finished", label: "Finished" },
+    { value: "Cancelled", label: "Cancelled" },
   ];
 
   return (
     <div className="meeting-tab">
       <div className="meeting-header">
         <div className="meeting-title">
-          <h3>Cuộc họp dự án</h3>
-          <p>Quản lý các cuộc họp của dự án {project.name}</p>
+          <h3>Project Meetings</h3>
+          <p>Manage meetings for project {project.name}</p>
         </div>
         {!isMember && (
           <Button
@@ -221,7 +235,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
             }}
           >
             <Plus size={16} />
-            Tạo cuộc họp
+            Create Meeting
           </Button>
         )}
       </div>
@@ -229,27 +243,27 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
       <div className="meeting-stats">
         <div className="stat-card">
           <div className="stat-number">{allMeetingsCount}</div>
-          <div className="stat-label">Tổng cuộc họp</div>
+          <div className="stat-label">Total Meetings</div>
         </div>
         <div className="stat-card">
           <div className="stat-number">{scheduledMeetingsCount}</div>
-          <div className="stat-label">Đã lên lịch</div>
+          <div className="stat-label">Scheduled</div>
         </div>
         <div className="stat-card">
           <div className="stat-number">{ongoingMeetingsCount}</div>
-          <div className="stat-label">Đang diễn ra</div>
+          <div className="stat-label">Ongoing</div>
         </div>
         <div className="stat-card">
           <div className="stat-number">{finishedMeetingsCount}</div>
-          <div className="stat-label">Kết thúc</div>
+          <div className="stat-label">Finished</div>
         </div>
         <div className="stat-card">
           <div className="stat-number">{cancelMeetingsCount}</div>
-          <div className="stat-label">Đã hủy</div>
+          <div className="stat-label">Cancelled</div>
         </div>
       </div>
 
-      {/* Filter + Search thay cho các tab */}
+      {/* Filter + Search */}
       <div
         style={{
           display: "flex",
@@ -260,7 +274,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
       >
         <input
           type="text"
-          placeholder="Tìm kiếm theo tiêu đề hoặc mô tả..."
+          placeholder="Search by title or description..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
@@ -292,11 +306,11 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
               transition: "box-shadow 0.15s ease",
               boxShadow: dropdownOpen ? "0 4px 10px rgba(255,94,19,0.06)" : "",
             }}
-            title="Lọc trạng thái"
+            title="Filter by status"
           >
             <span style={{ flex: 1, textAlign: "left" }}>
               {statusOptions.find((o) => o.value === statusFilter)?.label ||
-                "Tất cả trạng thái"}
+                "All Statuses"}
             </span>
             <span
               style={{
@@ -392,12 +406,12 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
         {isLoadingCall ? (
           <div className="meeting-tab-loading">
             <div className="loading-spinner" />
-            <p>Đang tải cuộc họp...</p>
+            <p>Loading meetings...</p>
           </div>
         ) : meetings.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📅</div>
-            <h4>Chưa có cuộc họp nào</h4>
+            <h4>No meetings yet</h4>
           </div>
         ) : (
           <div className="meeting-table">
@@ -405,12 +419,12 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
               className="table-header"
               style={{ gridTemplateColumns: "80px 2fr 1.5fr 1fr 1fr 1.5fr" }}
             >
-              <div className="col-stt">STT</div>
-              <div className="col-title">Tiêu đề</div>
-              <div className="col-time">Thời gian</div>
-              <div className="col-room">Phòng họp</div>
-              <div className="col-status">Trạng thái</div>
-              <div className="col-actions">Thao tác</div>
+              <div className="col-stt">No.</div>
+              <div className="col-title">Title</div>
+              <div className="col-time">Time</div>
+              <div className="col-room">Meeting Room</div>
+              <div className="col-status">Status</div>
+              <div className="col-actions">Actions</div>
             </div>
             {meetings.map((meeting: MeetingItem, idx: number) => {
               const title = meeting.title;
@@ -428,7 +442,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                   style={{ gridTemplateColumns: "80px 2fr 1.5fr 1fr 1fr 1.5fr" }}
                 >
                   <div className="col-stt">
-                    <div className="stt-number">{idx + 1}</div>
+                    <div className="stt-number">{startIndex + idx + 1}</div>
                   </div>
                   <div className="col-title">
                     <div className="meeting-title-text">{title}</div>
@@ -454,14 +468,14 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     {meeting.status === "Finished" ||
                     meeting.status === "Cancelled" ? (
                       <span className="text-xs text-gray-400 italic">
-                        (Đã đóng)
+                        (Closed)
                       </span>
                     ) : (
                       <button
                         className="room-link cursor-pointer"
                         onClick={() => handleJoin(meeting)}
                       >
-                        Tham gia
+                        Join
                       </button>
                     )}
                   </div>
@@ -476,7 +490,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                   <div className="col-actions">
                     <button
                       className="action-btn view-btn"
-                      title="Xem chi tiết"
+                      title="View details"
                       onClick={() => handleView(meeting)}
                     >
                       <Eye size={14} />
@@ -486,7 +500,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       !isMember && (
                         <button
                           className="action-btn edit-btn"
-                          title="Cập nhật"
+                          title="Update"
                           onClick={() => handleEdit(meeting)}
                         >
                           <Pencil size={14} />
@@ -497,7 +511,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                       meeting.status !== "Finished" && (
                         <button
                           className="action-btn delete-btn"
-                          title="Hủy cuộc họp"
+                          title="Cancel meeting"
                           onClick={() => handleCancel(meeting)}
                         >
                           <X size={14} />
@@ -510,6 +524,29 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {!isLoadingCall && filteredMeetings.length > 0 && (
+        <div className="pagination">
+          <button
+            className="pagination-btn"
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </button>
+          <div className="pagination-info">
+            Page {currentPage} of {totalPages} ({filteredMeetings.length} total meetings)
+          </div>
+          <button
+            className="pagination-btn"
+            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
+      )}
 
       {showCreateModal && (
         <CreateMeetingModal

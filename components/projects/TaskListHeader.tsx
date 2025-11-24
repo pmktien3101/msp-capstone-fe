@@ -145,49 +145,8 @@ export const TaskListHeader = ({
           />
         </div>
         
-        {/* Show filters for members, advanced filters for PM/BO */}
-        {isMember ? (
-          <div className="member-filters">
-            <select 
-              value={filterType} 
-              onChange={(e) => onFilterTypeChange?.(e.target.value as any)}
-              className="filter-select"
-            >
-              <option value="my">My Tasks</option>
-              <option value="status">By Status</option>
-              <option value="dueDate">By Due Date</option>
-            </select>
-            
-            {filterType === "status" && (
-              <select 
-                value={statusFilter} 
-                onChange={(e) => onStatusFilterChange?.(e.target.value)}
-                className="filter-select"
-              >
-                <option value="all">All Status</option>
-                <option value="NotStarted">Not Started</option>
-                <option value="InProgress">In Progress</option>
-                <option value="ReadyToReview">Ready To Review</option>
-                <option value="ReOpened">Re-Opened</option>
-                <option value="Done">Done</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-            )}
-            
-            {filterType === "dueDate" && (
-              <select 
-                value={dueDateFilter} 
-                onChange={(e) => onDueDateFilterChange?.(e.target.value as any)}
-                className="filter-select"
-              >
-                <option value="all">All Dates</option>
-                <option value="overdue">Overdue</option>
-                <option value="today">Due Today</option>
-                <option value="week">Due This Week</option>
-              </select>
-            )}
-          </div>
-        ) : (
+        {/* Show grouping for non-members */}
+        {!isMember && (
           <div className="group-dropdown">
             <select 
               value={groupBy} 
@@ -204,18 +163,17 @@ export const TaskListHeader = ({
       </div>
 
       <div className="header-right">
-        {!isMemberRole && (
-          <details ref={dropdownRef} className="pm-filters-dropdown">
-            <summary className="filters-toggle-btn">
-              <Filter size={16} />
-              Filters 
-              {hasActiveFilters && <span className="filter-badge">{
-                (selectedMemberIds.length > 0 ? 1 : 0) +
-                (selectedStatuses.length > 0 ? 1 : 0) +
-                (dateRangeStart || dateRangeEnd ? 1 : 0) +
-                (quickFilter && quickFilter !== 'all' ? 1 : 0)
-              }</span>}
-            </summary>
+        <details ref={dropdownRef} className="pm-filters-dropdown">
+          <summary className="filters-toggle-btn">
+            <Filter size={16} />
+            Filters 
+            {hasActiveFilters && <span className="filter-badge">{
+              (selectedMemberIds.length > 0 ? 1 : 0) +
+              (selectedStatuses.length > 0 ? 1 : 0) +
+              (dateRangeStart || dateRangeEnd ? 1 : 0) +
+              (quickFilter && quickFilter !== 'all' ? 1 : 0)
+            }</span>}
+          </summary>
             
             <div className="pm-filters-panel">
               {/* Quick Preset Filters */}
@@ -235,36 +193,40 @@ export const TaskListHeader = ({
                     <AlertCircle size={14} />
                     Overdue
                   </button>
-                  <button
-                    className={`quick-filter-btn ${quickFilter === 'readyToReview' ? 'active' : ''}`}
-                    onClick={() => onQuickFilterChange?.('readyToReview')}
-                  >
-                    <CheckCircle2 size={14} />
-                    Ready to Review
-                  </button>
+                  {!isMemberRole && (
+                    <button
+                      className={`quick-filter-btn ${quickFilter === 'readyToReview' ? 'active' : ''}`}
+                      onClick={() => onQuickFilterChange?.('readyToReview')}
+                    >
+                      <CheckCircle2 size={14} />
+                      Ready to Review
+                    </button>
+                  )}
                 </div>
               </div>
 
-              {/* Members Multi-Select */}
-              <div className="filter-section">
-                <div className="filter-section-title">
-                  Members {selectedMemberIds.length > 0 && <span className="count-badge">({selectedMemberIds.length})</span>}
+              {/* Members Multi-Select - Only for PM/BO */}
+              {!isMemberRole && (
+                <div className="filter-section">
+                  <div className="filter-section-title">
+                    Members {selectedMemberIds.length > 0 && <span className="count-badge">({selectedMemberIds.length})</span>}
+                  </div>
+                  <div className="filter-checkboxes">
+                    {members
+                      .filter((member) => member.role === 'Member' || member.role === 'member')
+                      .map((member) => (
+                        <label key={member.id} className="filter-checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={selectedMemberIds.includes(member.id)}
+                            onChange={() => toggleMemberSelection(member.id)}
+                          />
+                          <span>{member.name}</span>
+                        </label>
+                      ))}
+                  </div>
                 </div>
-                <div className="filter-checkboxes">
-                  {members
-                    .filter((member) => member.role === 'Member' || member.role === 'member')
-                    .map((member) => (
-                      <label key={member.id} className="filter-checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={selectedMemberIds.includes(member.id)}
-                          onChange={() => toggleMemberSelection(member.id)}
-                        />
-                        <span>{member.name}</span>
-                      </label>
-                    ))}
-                </div>
-              </div>
+              )}
               
               {/* Status Multi-Select */}
               <div className="filter-section">
@@ -272,7 +234,7 @@ export const TaskListHeader = ({
                   Status {selectedStatuses.length > 0 && <span className="count-badge">({selectedStatuses.length})</span>}
                 </div>
                 <div className="filter-checkboxes">
-                  {['NotStarted', 'InProgress', 'ReadyToReview', 'ReOpened', 'Done', 'Cancelled'].map((status) => (
+                  {['Todo', 'InProgress', 'ReadyToReview', 'ReOpened', 'Done', 'Cancelled'].map((status) => (
                     <label key={status} className="filter-checkbox-label">
                       <input
                         type="checkbox"
@@ -321,7 +283,6 @@ export const TaskListHeader = ({
               )}
             </div>
           </details>
-        )}
       </div>
     </div>
   );

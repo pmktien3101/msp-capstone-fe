@@ -19,12 +19,12 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
 const formSchema = z.object({
-  title: z.string().min(1, "Vui lòng nhập tiêu đề"),
-  description: z.string().min(1, "Vui lòng nhập mô tả"),
-  datetime: z.date().min(new Date(), "Vui lòng chọn ngày giờ hợp lệ"),
+  title: z.string().min(1, "Please enter a title"),
+  description: z.string().min(1, "Please enter a description"),
+  datetime: z.date().min(new Date(), "Please select a valid date and time"),
   participants: z
     .array(z.string())
-    .min(1, "Vui lòng chọn ít nhất 1 người tham gia"),
+    .min(1, "Please select at least 1 participant"),
   milestoneId: z.string().optional(),
 });
 
@@ -112,7 +112,7 @@ export default function MeetingForm({
   useEffect(() => {
     const loadData = async () => {
       if (!projectId) {
-        toast.error("Không có projectId");
+        toast.error("No project ID");
         return;
       }
       setIsLoadingParticipants(true);
@@ -123,7 +123,7 @@ export default function MeetingForm({
           setParticipants(convertToParticipants(membersResult.data as any));
         } else setParticipants([]);
       } catch {
-        toast.error("Không thể tải danh sách thành viên dự án");
+        toast.error("Unable to load project members");
         setParticipants([]);
       } finally {
         setIsLoadingParticipants(false);
@@ -173,7 +173,7 @@ export default function MeetingForm({
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!client || !userId) {
-      toast.error("Stream client chưa được khởi tạo");
+      toast.error("Stream client not initialized");
       return;
     }
 
@@ -202,7 +202,7 @@ export default function MeetingForm({
       const dbResult = await meetingService.createMeeting(meetingData);
       if (!dbResult.success)
         throw new Error(
-          dbResult.error || "Không thể tạo meeting trong database"
+          dbResult.error || "Unable to create meeting in database"
         );
 
       const call = client.call("default", meetingId);
@@ -218,9 +218,9 @@ export default function MeetingForm({
 
       setCallDetails(call);
       onCreated?.(call);
-      toast.success("Tạo cuộc họp thành công!");
+      toast.success("Meeting created successfully!");
     } catch (error: any) {
-      toast.error(error.message || "Không thể tạo cuộc họp");
+      toast.error(error.message || "Unable to create meeting");
     } finally {
       setIsCreating(false);
     }
@@ -240,27 +240,27 @@ export default function MeetingForm({
           ✕
         </button>
         <div style={styles.header}>
-          <h3 style={styles.title}>Tạo cuộc họp mới</h3>
+          <h3 style={styles.title}>Create New Meeting</h3>
           <p style={styles.subtitle}>
-            Vui lòng điền thông tin để lên lịch cuộc họp cho dự án
+            Please fill in the information to schedule a meeting for the project
           </p>
         </div>
 
         {callDetails ? (
           <div style={styles.successContainer}>
-            <h2 style={styles.successTitle}>Đã tạo cuộc họp!</h2>
-            <p>Cuộc họp đã được lên lịch thành công.</p>
+            <h2 style={styles.successTitle}>Meeting Created!</h2>
+            <p>The meeting has been scheduled successfully.</p>
             <div style={styles.buttonGroup}>
               <Button
                 onClick={() => {
                   if (meetingLink) {
                     navigator.clipboard.writeText(meetingLink);
-                    toast.success("Đã sao chép link!");
+                    toast.success("Link copied!");
                   }
                 }}
                 style={styles.primaryButton}
               >
-                Sao chép link cuộc họp
+                Copy Meeting Link
               </Button>
               <Button
                 onClick={() =>
@@ -268,17 +268,17 @@ export default function MeetingForm({
                 }
                 style={styles.primaryButton}
               >
-                Vào phòng họp
+                Join Meeting Room
               </Button>
             </div>
           </div>
         ) : (
           <form onSubmit={form.handleSubmit(onSubmit)} style={styles.form}>
-            {/* Tiêu đề */}
+            {/* Title */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Tiêu đề cuộc họp</label>
+              <label style={styles.label}>Meeting Title</label>
               <Input
-                placeholder="Nhập tiêu đề cuộc họp"
+                placeholder="Enter meeting title"
                 {...form.register("title")}
               />
               {form.formState.errors.title && (
@@ -288,11 +288,11 @@ export default function MeetingForm({
               )}
             </div>
 
-            {/* Mô tả */}
+            {/* Description */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Mô tả</label>
+              <label style={styles.label}>Description</label>
               <Textarea
-                placeholder="Nhập mô tả nội dung cuộc họp"
+                placeholder="Enter meeting description"
                 {...form.register("description")}
               />
               {form.formState.errors.description && (
@@ -302,9 +302,9 @@ export default function MeetingForm({
               )}
             </div>
 
-            {/* Ngày giờ */}
+            {/* Date & Time */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Ngày & giờ họp</label>
+              <label style={styles.label}>Meeting Date & Time</label>
               <div style={styles.dateWrapper}>
                 <DatePicker
                   selected={form.watch("datetime")}
@@ -324,16 +324,16 @@ export default function MeetingForm({
               )}
             </div>
 
-            {/* Cột mốc */}
+            {/* Milestone */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Cột mốc (không bắt buộc)</label>
+              <label style={styles.label}>Milestone (optional)</label>
               {isLoadingMilestones ? (
                 <div style={styles.loadingText}>
-                  Đang tải danh sách cột mốc...
+                  Loading milestones...
                 </div>
               ) : (
                 <select {...form.register("milestoneId")} style={styles.select}>
-                  <option value="">-- Chọn cột mốc --</option>
+                  <option value="">-- Select milestone --</option>
                   {milestones.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
@@ -345,14 +345,14 @@ export default function MeetingForm({
 
             {/* Participants */}
             <div style={styles.formGroup}>
-              <label style={styles.label}>Người tham gia</label>
+              <label style={styles.label}>Participants</label>
               {isLoadingParticipants ? (
                 <div style={styles.loadingText}>
-                  Đang tải danh sách thành viên...
+                  Loading members...
                 </div>
               ) : participants.length === 0 ? (
                 <div style={styles.loadingText}>
-                  Không có thành viên nào trong dự án
+                  No members in the project
                 </div>
               ) : (
                 <div style={styles.participantList}>
@@ -389,7 +389,7 @@ export default function MeetingForm({
                   onClick={onClose}
                   style={styles.cancelButton}
                 >
-                  Hủy
+                  Cancel
                 </Button>
               )}
               <Button
@@ -397,7 +397,7 @@ export default function MeetingForm({
                 style={styles.primaryButton}
                 disabled={isCreating}
               >
-                {isCreating ? "Đang tạo..." : "Tạo cuộc họp"}
+                {isCreating ? "Creating..." : "Create Meeting"}
               </Button>
             </div>
           </form>

@@ -130,7 +130,7 @@ export const UpdateMeetingModal = ({
           setParticipants([]);
         }
       } catch (error: any) {
-        toast.error("Không thể tải danh sách thành viên dự án");
+        toast.error("Unable to load project members");
         setParticipants([]);
       } finally {
         setIsLoadingParticipants(false);
@@ -171,11 +171,11 @@ export const UpdateMeetingModal = ({
     setError(null);
 
     try {
-      if (!title.trim()) throw new Error("Tiêu đề không được để trống");
+      if (!title.trim()) throw new Error("Title cannot be empty");
       if (dateTime && dateTime.getTime() < Date.now() - 60_000)
-        throw new Error("Thời gian bắt đầu phải ở tương lai");
+        throw new Error("Start time must be in the future");
       if (selectedParticipants.length === 0)
-        throw new Error("Vui lòng chọn ít nhất 1 người tham gia");
+        throw new Error("Please select at least 1 participant");
 
       // Update meeting in database
       const meetingId = meeting.id;
@@ -193,7 +193,7 @@ export const UpdateMeetingModal = ({
 
       if (!dbResult.success) {
         throw new Error(
-          dbResult.error || "Cập nhật meeting thất bại ở database"
+          dbResult.error || "Failed to update meeting in database"
         );
       }
       // 2. Update meeting in Stream call
@@ -216,12 +216,12 @@ export const UpdateMeetingModal = ({
           role: "call_member",
         })),
       });
-      toast.success("Đã cập nhật cuộc họp");
+      toast.success("Meeting updated successfully");
       onUpdated?.();
       onClose();
     } catch (err: any) {
-      setError(err?.message || "Cập nhật thất bại");
-      toast.error(err?.message || "Cập nhật thất bại");
+      setError(err?.message || "Update failed");
+      toast.error(err?.message || "Update failed");
     } finally {
       setSaving(false);
     }
@@ -243,7 +243,7 @@ export const UpdateMeetingModal = ({
           className="space-y-4 max-h-[60vh] overflow-y-auto pr-2"
         >
           <div className="space-y-1">
-            <label className="block text-sm font-medium">Tiêu đề</label>
+            <label className="block text-sm font-medium">Title</label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -251,7 +251,7 @@ export const UpdateMeetingModal = ({
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-sm font-medium">Mô tả</label>
+            <label className="block text-sm font-medium">Description</label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -261,7 +261,7 @@ export const UpdateMeetingModal = ({
           </div>
           <div className="space-y-1">
             <label className="block text-sm font-medium">
-              Thời gian bắt đầu
+              Start Time
             </label>
             <DatePicker
               selected={dateTime}
@@ -276,7 +276,7 @@ export const UpdateMeetingModal = ({
           {requireProjectSelection && (
             <div className="space-y-2">
               <label className="block text-sm font-medium">
-                Dự án <span className="text-red-500">*</span>
+                Project <span className="text-red-500">*</span>
               </label>
               <select
                 value={selectedProjectId}
@@ -284,7 +284,7 @@ export const UpdateMeetingModal = ({
                 className="w-full rounded-md border border-gray-300 p-2"
                 required
               >
-                <option value="">-- Chọn dự án --</option>
+                <option value="">-- Select project --</option>
                 {projects.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
@@ -295,11 +295,11 @@ export const UpdateMeetingModal = ({
           )}
           <div className="space-y-2">
             <label className="block text-sm font-medium">
-              Milestone (không bắt buộc)
+              Milestone (optional)
             </label>
             {isLoadingMilestones ? (
               <div className="text-sm text-gray-500">
-                Đang tải danh sách milestones...
+                Loading milestones...
               </div>
             ) : (
               <select
@@ -308,7 +308,7 @@ export const UpdateMeetingModal = ({
                 className="w-full rounded-md border border-gray-300 p-2"
                 disabled={requireProjectSelection && !selectedProjectId}
               >
-                <option value="">-- Chọn milestone --</option>
+                <option value="">-- Select milestone --</option>
                 {milestones.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
@@ -318,14 +318,14 @@ export const UpdateMeetingModal = ({
             )}
           </div>
           <div className="space-y-2">
-            <label className="block text-sm font-medium">Người tham gia</label>
+            <label className="block text-sm font-medium">Participants</label>
             {isLoadingParticipants ? (
               <div className="text-sm text-gray-500">
-                Đang tải danh sách thành viên...
+                Loading members...
               </div>
             ) : participants.length === 0 ? (
               <div className="text-sm text-gray-500">
-                Không có thành viên nào trong dự án
+                No members in the project
               </div>
             ) : (
               <div className="max-h-40 overflow-y-auto border rounded-md p-2">
@@ -348,10 +348,10 @@ export const UpdateMeetingModal = ({
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>
-              Hủy
+              Cancel
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? "Đang lưu..." : "Lưu"}
+              {saving ? "Saving..." : "Save"}
             </Button>
           </div>
         </form>
