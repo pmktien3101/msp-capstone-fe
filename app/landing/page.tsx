@@ -4,11 +4,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
+import packageService from "@/services/packageService";
+import { Package } from "@/types/package";
 import "../styles/landing-page.scss";
 
 export default function LandingPage() {
   const [isYearlyBilling, setIsYearlyBilling] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [isLoadingPackages, setIsLoadingPackages] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -30,95 +34,128 @@ export default function LandingPage() {
     return () => clearTimeout(timer);
   }, [router]);
 
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        setIsLoadingPackages(true);
+        const response = await packageService.getPackages();
+        if (response.success && response.data) {
+          // Filter out deleted packages and sort by price
+          const activePackages = (response.data as Package[])
+            .filter((pkg) => !pkg.isDeleted)
+            .sort((a, b) => a.price - b.price);
+          setPackages(activePackages);
+        }
+      } catch (error) {
+        console.error("Error fetching packages:", error);
+      } finally {
+        setIsLoadingPackages(false);
+      }
+    };
+
+    fetchPackages();
+  }, []);
+
   const stats = [
-    { number: "10K+", label: "Doanh Nghiệp Sử Dụng" },
-    { number: "98%", label: "Tỷ Lệ Hài Lòng" },
-    { number: "24/7", label: "Hỗ Trợ Khách Hàng" },
-    { number: "50K+", label: "Cuộc Họp Mỗi Ngày" },
+    { number: "10K+", label: "Businesses Using" },
+    { number: "98%", label: "Satisfaction Rate" },
+    { number: "24/7", label: "Customer Support" },
+    { number: "50K+", label: "Meetings Per Day" },
   ];
 
   const features = [
     {
-      icon: "🎯",
-      title: "Lập Kế Hoạch Thông Minh",
+      icon: "🎥",
+      title: "Video Meetings",
       description:
-        "Tự động lên lịch và đề xuất thời gian họp phù hợp nhất cho mọi người.",
+        "Host seamless video conferences with your team. High-quality audio and video for productive discussions.",
     },
     {
-      icon: "⚡",
-      title: "Tối Ưu Hóa Hiệu Suất",
+      icon: "📝",
+      title: "AI Transcript",
       description:
-        "Công cụ phân tích giúp đo lường và cải thiện hiệu quả cuộc họp.",
+        "Automatically transcribe your meetings in real-time. Never miss important details with AI-powered transcription.",
     },
     {
-      icon: "🤝",
-      title: "Hợp Tác Thời Gian Thực",
-      description: "Tương tác trực tiếp với đồng đội trong và sau cuộc họp.",
-    },
-  ];
-
-  const pricingPlans = [
-    {
-      name: "Starter",
-      price: isYearlyBilling ? "29" : "39",
-      description: "Cho doanh nghiệp nhỏ mới bắt đầu",
-      features: [
-        "Tối đa 10 thành viên",
-        "Lịch họp không giới hạn",
-        "Tích hợp cơ bản",
-        "Email hỗ trợ",
-      ],
+      icon: "📁",
+      title: "Project Management",
+      description:
+        "Organize and track your projects with milestones, deadlines, and team collaboration tools.",
     },
     {
-      name: "Professional",
-      price: isYearlyBilling ? "99" : "119",
-      description: "Cho doanh nghiệp đang phát triển",
-      features: [
-        "Không giới hạn thành viên",
-        "Phân tích nâng cao",
-        "Tích hợp API đầy đủ",
-        "Hỗ trợ 24/7",
-      ],
-      featured: true,
+      icon: "📋",
+      title: "Task Management",
+      description:
+        "Create, assign, and track tasks with priorities, due dates, and progress monitoring.",
     },
     {
-      name: "Enterprise",
-      price: isYearlyBilling ? "299" : "349",
-      description: "Giải pháp tùy chỉnh cho doanh nghiệp lớn",
-      features: [
-        "Triển khai riêng",
-        "Quản lý chuyên dụng",
-        "SLA cam kết",
-        "Hỗ trợ ưu tiên 24/7",
-      ],
+      icon: "✅",
+      title: "Smart To-Do List",
+      description:
+        "Capture action items during meetings and organize them into structured to-do lists effortlessly.",
+    },
+    {
+      icon: "🔄",
+      title: "Auto Task Assignment",
+      description:
+        "Automatically convert meeting discussions into actionable tasks and assign them to team members.",
     },
   ];
 
   const testimonials = [
     {
       content:
-        "MSP đã thay đổi hoàn toàn cách chúng tôi quản lý cuộc họp. Hiệu quả tăng rõ rệt!",
-      name: "Nguyễn Văn A",
+        "MSP has completely transformed how we manage meetings. Efficiency has increased significantly!",
+      name: "John Smith",
       role: "CEO",
       company: "Tech Solutions",
       avatar: "👨‍💼",
     },
     {
       content:
-        "Giải pháp tuyệt vời cho việc theo dõi và quản lý cuộc họp một cách chuyên nghiệp.",
-      name: "Trần Thị B",
+        "An excellent solution for tracking and managing meetings professionally.",
+      name: "Sarah Johnson",
       role: "Project Manager",
       company: "Creative Agency",
       avatar: "👩‍💼",
     },
   ];
 
+  const formatPrice = (price: number, billingCycle: number) => {
+    if (isYearlyBilling && billingCycle === 1) {
+      // If monthly package but yearly billing selected, calculate yearly price with discount
+      return Math.round(price * 12 * 0.8); // 20% discount for yearly
+    }
+    return price;
+  };
+
+  const getBillingPeriod = (billingCycle: number) => {
+    if (isYearlyBilling) return "/year";
+    return billingCycle === 1
+      ? "/month"
+      : billingCycle === 12
+      ? "/year"
+      : `/${billingCycle} months`;
+  };
+
+  const getPackageFeatures = (pkg: Package): string[] => {
+    if (!pkg.limitations || pkg.limitations.length === 0) {
+      return ["Contact us for details"];
+    }
+    return pkg.limitations.map((limitation) => {
+      if (limitation.isUnlimited) {
+        return `Unlimited ${limitation.name}`;
+      }
+      return `${limitation.limitValue} ${limitation.name}`;
+    });
+  };
+
   // Show loading while checking auth
   if (isCheckingAuth) {
     return (
       <div className="auth-checking">
         <div className="loading-spinner"></div>
-        <p>Đang kiểm tra trạng thái đăng nhập...</p>
+        <p>Checking login status...</p>
         <style jsx>{`
           .auth-checking {
             display: flex;
@@ -180,19 +217,19 @@ export default function LandingPage() {
             </div>
 
             <div className="nav-menu">
-              <Link href="#features">Tính Năng</Link>
-              <Link href="#pricing">Giá Cả</Link>
-              <Link href="#about">Giới Thiệu</Link>
-              <Link href="#testimonials">Đánh Giá</Link>
-              <Link href="#contact">Liên Hệ</Link>
+              <Link href="#features">Features</Link>
+              <Link href="#pricing">Pricing</Link>
+              <Link href="#about">About</Link>
+              <Link href="#testimonials">Testimonials</Link>
+              <Link href="#contact">Contact</Link>
             </div>
 
             <div className="nav-actions">
               <Link href="/sign-in" className="btn btn-outline">
-                Đăng Nhập
+                Sign In
               </Link>
               <Link href="/sign-up" className="btn btn-primary">
-                Đăng Ký
+                Sign Up
               </Link>
             </div>
           </nav>
@@ -200,18 +237,18 @@ export default function LandingPage() {
           <div className="hero-content">
             <div className="hero-text">
               <h1 className="hero-title">
-                Biến Đổi
-                <span className="gradient-text">Cuộc Họp Kinh Doanh</span>
-                Thành Thành Công
+                Transform
+                <span className="gradient-text">Business Meetings</span>
+                Into Success
               </h1>
               <p className="hero-description">
-                Nền tảng hỗ trợ cuộc họp tối ưu được thiết kế cho chủ doanh
-                nghiệp và nhóm. Tối ưu hóa hợp tác, theo dõi tiến độ và đạt được
-                mục tiêu kinh doanh nhanh hơn bao giờ hết.
+                An optimized meeting support platform designed for business
+                owners and teams. Optimize collaboration, track progress and
+                achieve business goals faster than ever.
               </p>
               <div className="hero-actions">
                 <Link href="/sign-up" className="btn btn-primary btn-large">
-                  Đăng Ký Doanh Nghiệp
+                  Register Your Business
                   <svg
                     width="20"
                     height="20"
@@ -228,18 +265,6 @@ export default function LandingPage() {
                     />
                   </svg>
                 </Link>
-                <button className="btn btn-play">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M8 5V19L19 12L8 5Z" fill="#FF5E13" />
-                  </svg>
-                  Xem Demo
-                </button>
               </div>
             </div>
 
@@ -249,22 +274,22 @@ export default function LandingPage() {
                 <div className="floating-card card-1">
                   <div className="card-icon">📅</div>
                   <div className="card-content">
-                    <div className="card-title">Cuộc Họp Đã Lên Lịch</div>
-                    <div className="card-time">2:00 PM Hôm Nay</div>
+                    <div className="card-title">Meeting Scheduled</div>
+                    <div className="card-time">2:00 PM Today</div>
                   </div>
                 </div>
                 <div className="floating-card card-2">
                   <div className="card-icon">✅</div>
                   <div className="card-content">
-                    <div className="card-title">Công Việc Hoàn Thành</div>
-                    <div className="card-status">Đánh Giá Dự Án</div>
+                    <div className="card-title">Task Completed</div>
+                    <div className="card-status">Project Review</div>
                   </div>
                 </div>
                 <div className="floating-card card-3">
                   <div className="card-icon">📊</div>
                   <div className="card-content">
-                    <div className="card-title">Tiến Độ</div>
-                    <div className="card-progress">85% Hoàn Thành</div>
+                    <div className="card-title">Progress</div>
+                    <div className="card-progress">85% Complete</div>
                   </div>
                 </div>
               </div>
@@ -291,12 +316,10 @@ export default function LandingPage() {
       <section id="features" className="features-section">
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">
-              Tại Sao Chủ Doanh Nghiệp Chọn MSP?
-            </h2>
+            <h2 className="section-title">Why Business Owners Choose MSP?</h2>
             <p className="section-description">
-              Được xây dựng với công nghệ hiện đại và nhu cầu kinh doanh, MSP
-              cung cấp mọi thứ doanh nghiệp của bạn cần để thành công.
+              Built with modern technology and business needs, MSP provides
+              everything your business needs to succeed.
             </p>
           </div>
 
@@ -316,15 +339,15 @@ export default function LandingPage() {
       <section id="pricing" className="pricing-section">
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">Chọn Gói Của Bạn</h2>
+            <h2 className="section-title">Choose Your Plan</h2>
             <p className="section-description">
-              Tùy chọn giá cả linh hoạt được thiết kế cho doanh nghiệp mọi quy
-              mô. Bắt đầu với dùng thử miễn phí và nâng cấp khi bạn sẵn sàng.
+              Flexible pricing options designed for businesses of all sizes.
+              Start with a free trial and upgrade when you're ready.
             </p>
           </div>
 
           <div className="pricing-toggle">
-            <span>Theo Tháng</span>
+            <span>Monthly</span>
             <label className="switch">
               <input
                 type="checkbox"
@@ -335,64 +358,84 @@ export default function LandingPage() {
               <span className="slider"></span>
             </label>
             <span>
-              Theo Năm <span className="save-badge">Tiết Kiệm 20%</span>
+              Yearly <span className="save-badge">Save 20%</span>
             </span>
           </div>
 
           <div className="pricing-grid">
-            {pricingPlans.map((plan, index) => (
-              <div
-                key={index}
-                className={`pricing-card ${plan.featured ? "featured" : ""}`}
-              >
-                <div className="plan-header">
-                  <h3 className="plan-name">{plan.name}</h3>
-                  <div className="plan-price">
-                    <span className="currency">$</span>
-                    <span className="amount">{plan.price}</span>
-                    <span className="period">
-                      /{isYearlyBilling ? "năm" : "tháng"}
-                    </span>
-                  </div>
-                  <p className="plan-description">{plan.description}</p>
-                </div>
-
-                <div className="plan-features">
-                  {plan.features.map((feature, featureIndex) => (
-                    <div key={featureIndex} className="feature-item">
-                      <svg
-                        className="feature-check"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M20 6L9 17L4 12"
-                          stroke="#10B981"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="plan-actions">
-                  <Link
-                    href="/sign-up"
-                    className={`btn ${
-                      plan.featured ? "btn-primary" : "btn-outline"
-                    }`}
-                  >
-                    {plan.featured ? "Đăng Ký Ngay" : "Đăng Ký"}
-                  </Link>
-                </div>
+            {isLoadingPackages ? (
+              <div className="loading-packages">
+                <div className="loading-spinner"></div>
+                <p>Loading packages...</p>
               </div>
-            ))}
+            ) : packages.length === 0 ? (
+              <div className="no-packages">
+                <p>No packages available at the moment.</p>
+              </div>
+            ) : (
+              packages.map((pkg, index) => (
+                <div
+                  key={pkg.id}
+                  className={`pricing-card ${index === 1 ? "featured" : ""}`}
+                >
+                  <div className="plan-header">
+                    <h3 className="plan-name">{pkg.name}</h3>
+                    <div className="plan-price">
+                      <span className="currency">
+                        {pkg.currency === "VND" ? "₫" : "$"}
+                      </span>
+                      <span className="amount">
+                        {formatPrice(
+                          pkg.price,
+                          pkg.billingCycle
+                        ).toLocaleString()}
+                      </span>
+                      <span className="period">
+                        {getBillingPeriod(pkg.billingCycle)}
+                      </span>
+                    </div>
+                    <p className="plan-description">
+                      {pkg.description || "Perfect for your business needs"}
+                    </p>
+                  </div>
+
+                  <div className="plan-features">
+                    {getPackageFeatures(pkg).map((feature, featureIndex) => (
+                      <div key={featureIndex} className="feature-item">
+                        <svg
+                          className="feature-check"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M20 6L9 17L4 12"
+                            stroke="#10B981"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="plan-actions">
+                    <Link
+                      href="/sign-up"
+                      className={`btn ${
+                        index === 1 ? "btn-primary" : "btn-outline"
+                      }`}
+                    >
+                      {index === 1 ? "Get Started Now" : "Get Started"}
+                    </Link>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -401,10 +444,10 @@ export default function LandingPage() {
       <section id="testimonials" className="testimonials-section">
         <div className="container">
           <div className="section-header">
-            <h2 className="section-title">Người Dùng Nói Gì</h2>
+            <h2 className="section-title">What Users Say</h2>
             <p className="section-description">
-              Tham gia hàng nghìn nhóm hài lòng đã thay đổi trải nghiệm cuộc họp
-              của họ với MSP.
+              Join thousands of satisfied teams who have transformed their
+              meeting experience with MSP.
             </p>
           </div>
 
@@ -434,18 +477,18 @@ export default function LandingPage() {
         <div className="container">
           <div className="cta-content">
             <h2 className="cta-title">
-              Sẵn Sàng Biến Đổi Cuộc Họp Kinh Doanh Của Bạn?
+              Ready to Transform Your Business Meetings?
             </h2>
             <p className="cta-description">
-              Tham gia hàng nghìn chủ doanh nghiệp đã sử dụng MSP để tối ưu hóa
-              hoạt động và đạt được kết quả kinh doanh tốt hơn.
+              Join thousands of business owners who have used MSP to optimize
+              operations and achieve better business results.
             </p>
             <div className="cta-actions">
               <Link href="/sign-up" className="btn btn-primary btn-large">
-                Đăng Ký Doanh Nghiệp
+                Register Your Business
               </Link>
               <Link href="/sign-in" className="btn btn-outline btn-large">
-                Đăng Nhập
+                Sign In
               </Link>
             </div>
           </div>
@@ -462,29 +505,29 @@ export default function LandingPage() {
                 <span>MSP</span>
               </div>
               <p>
-                Biến đổi cuộc họp của bạn thành thành công với nền tảng thông
-                minh của chúng tôi.
+                Transform your meetings into success with our intelligent
+                platform.
               </p>
             </div>
 
             <div className="footer-links">
               <div className="footer-column">
-                <h4>Sản Phẩm</h4>
-                <Link href="#features">Tính Năng</Link>
-                <Link href="#pricing">Giá Cả</Link>
-                <Link href="#integrations">Tích Hợp</Link>
+                <h4>Product</h4>
+                <Link href="#features">Features</Link>
+                <Link href="#pricing">Pricing</Link>
+                <Link href="#integrations">Integrations</Link>
               </div>
               <div className="footer-column">
-                <h4>Công Ty</h4>
-                <Link href="#about">Giới Thiệu</Link>
-                <Link href="#careers">Tuyển Dụng</Link>
-                <Link href="#contact">Liên Hệ</Link>
+                <h4>Company</h4>
+                <Link href="#about">About</Link>
+                <Link href="#careers">Careers</Link>
+                <Link href="#contact">Contact</Link>
               </div>
               <div className="footer-column">
-                <h4>Hỗ Trợ</h4>
-                <Link href="#help">Trung Tâm Trợ Giúp</Link>
-                <Link href="#docs">Tài Liệu</Link>
-                <Link href="#status">Trạng Thái</Link>
+                <h4>Support</h4>
+                <Link href="#help">Help Center</Link>
+                <Link href="#docs">Documentation</Link>
+                <Link href="#status">Status</Link>
               </div>
             </div>
           </div>
@@ -494,8 +537,8 @@ export default function LandingPage() {
               © {new Date().getFullYear()} MSP. All rights reserved.
             </div>
             <div className="footer-legal">
-              <Link href="#privacy">Chính Sách Bảo Mật</Link>
-              <Link href="#terms">Điều Khoản Dịch Vụ</Link>
+              <Link href="#privacy">Privacy Policy</Link>
+              <Link href="#terms">Terms of Service</Link>
             </div>
           </div>
         </div>

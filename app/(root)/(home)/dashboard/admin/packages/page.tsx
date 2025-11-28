@@ -7,11 +7,16 @@ import packageService from "@/services/packageService";
 import { toast } from "react-toastify";
 import { useUser } from "@/hooks/useUser";
 import limitationService from "@/services/limitationService";
+import {
+  PricingCard,
+  PricingPlan,
+  PricingPlanFeature,
+} from "@/components/pricing";
+import "./packages.scss";
 
 const AdminPackages = () => {
   const [showAddPlanModal, setShowAddPlanModal] = useState(false);
   const [showEditPlanModal, setShowEditPlanModal] = useState(false);
-  const [showViewPlanModal, setShowViewPlanModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showFeatureSidebar, setShowFeatureSidebar] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
@@ -69,6 +74,7 @@ const AdminPackages = () => {
             activeSubscriptions: p.activeSubscriptions ?? 0,
             revenue: p.revenue ?? "",
             status: p.status ?? "active",
+            description: p.description ?? p.Description ?? "",
           }));
 
           setPlans(mapped);
@@ -138,10 +144,7 @@ const AdminPackages = () => {
           const res = await packageService.createPackage(payload);
           if (!res.success) {
             console.error("Server rejected create package:", res.error);
-            // show user the server error so it's easier to debug
-            try {
-              toast.error(`Create package failed: ${res.error}`);
-            } catch (e) {}
+            toast.error(`Failed to create package: ${res.error}`);
           }
           if (res.success && res.data) {
             const p = res.data;
@@ -149,7 +152,9 @@ const AdminPackages = () => {
               id: p.id ?? p.ID,
               name: p.name ?? p.title ?? newPlan.name,
               price: p.price ?? payload.Price,
+              currency: p.currency ?? p.Currency ?? newPlan.currency ?? "USD",
               period: p.period ?? newPlan.period,
+              description: p.description ?? newPlan.description,
               billingCycle:
                 p.billingCycle ??
                 p.BillingCycle ??
@@ -162,6 +167,7 @@ const AdminPackages = () => {
               status: p.status ?? "active",
             };
             setPlans((prev) => [...prev, mapped]);
+            toast.success("Package created successfully!");
           } else {
             const planToAdd = {
               id: plans.length + 1,
@@ -169,6 +175,7 @@ const AdminPackages = () => {
               price: parseInt(newPlan.price),
               currency: newPlan.currency || "USD",
               period: newPlan.period,
+              description: newPlan.description,
               billingCycle: (function () {
                 const map: Record<string, number> = {
                   month: 0,
@@ -281,17 +288,82 @@ const AdminPackages = () => {
     return period;
   };
 
-  const handleEditPlan = (plan: any) => {
+  const handleEditPlan = async (plan: any) => {
     setSelectedPlan(plan);
-    setNewPlan({
-      name: plan.name,
-      price: plan.price.toString(),
-      period: plan.period,
-      currency: plan.Currency ?? plan.currency ?? "USD",
-      description: plan.Description ?? plan.description ?? "",
-      features: plan.features || [],
-      limitations: plan.limitations ?? [],
-    });
+
+    // Lấy dữ liệu chi tiết từ API để có đầy đủ thông tin limitations
+    try {
+      const res = await packageService.getPackageById(String(plan.id));
+      if (res.success && res.data) {
+        const packageData = res.data;
+
+        // Map limitations từ API response
+        const limitationIds = (
+          packageData.limitations ||
+          packageData.Limitations ||
+          []
+        ).map((lim: any) => {
+          if (typeof lim === "object") return lim.id ?? lim.Id;
+          return lim;
+        });
+
+        const featureNames = (
+          packageData.limitations ||
+          packageData.Limitations ||
+          []
+        )
+          .map((lim: any) => {
+            if (typeof lim === "object") return lim.name ?? lim.Name;
+            return limitations.find((l: any) => l.id === lim)?.name || "";
+          })
+          .filter(Boolean);
+
+        setNewPlan({
+          name: packageData.name ?? packageData.Name ?? plan.name,
+          price: String(packageData.price ?? packageData.Price ?? plan.price),
+          period: packageData.period ?? plan.period ?? "month",
+          currency:
+            packageData.currency ??
+            packageData.Currency ??
+            plan.currency ??
+            "USD",
+          description:
+            packageData.description ??
+            packageData.Description ??
+            plan.description ??
+            "",
+          features: featureNames,
+          limitations: limitationIds,
+        });
+      } else {
+        // Fallback nếu API không trả về
+        setNewPlan({
+          name: plan.name,
+          price: plan.price.toString(),
+          period: plan.period,
+          currency: plan.Currency ?? plan.currency ?? "USD",
+          description: plan.Description ?? plan.description ?? "",
+          features: plan.features || [],
+          limitations: (plan.limitations || []).map((lim: any) =>
+            typeof lim === "object" ? lim.id ?? lim.Id : lim
+          ),
+        });
+      }
+    } catch (err) {
+      // Fallback nếu có lỗi
+      setNewPlan({
+        name: plan.name,
+        price: plan.price.toString(),
+        period: plan.period,
+        currency: plan.Currency ?? plan.currency ?? "USD",
+        description: plan.Description ?? plan.description ?? "",
+        features: plan.features || [],
+        limitations: (plan.limitations || []).map((lim: any) =>
+          typeof lim === "object" ? lim.id ?? lim.Id : lim
+        ),
+      });
+    }
+
     setShowEditPlanModal(true);
   };
 
@@ -307,26 +379,20 @@ const AdminPackages = () => {
       const res = await packageService.deletePackage(String(selectedPlan.id));
       if (res.success) {
         setPlans((prev) => prev.filter((plan) => plan.id !== selectedPlan.id));
-        try {
-          toast.success("Package deleted successfully");
-        } catch (e) {}
+        toast.success("Package deleted successfully!");
       } else {
-        try {
-          toast.error(
-            `Delete package failed: ${
-              res.error || res.message || "Server error"
-            }`
-          );
-        } catch (e) {}
-      }
-    } catch (err) {
-      try {
         toast.error(
-          `Delete package failed: ${
-            err instanceof Error ? err.message : String(err)
+          `Failed to delete package: ${
+            res.error || res.message || "Server error"
           }`
         );
-      } catch (e) {}
+      }
+    } catch (err) {
+      toast.error(
+        `Failed to delete package: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
@@ -360,51 +426,67 @@ const AdminPackages = () => {
             payload
           );
 
-          if (res.success && res.data) {
-            const p = res.data;
+          if (res.success) {
+            // Map features names từ limitations đã chọn
+            const selectedFeatureNames = newPlan.limitations
+              .map((limId: any) => {
+                const lim = limitations.find((l: any) => l.id === limId);
+                return lim?.name || "";
+              })
+              .filter(Boolean);
+
             const mapped = {
-              id: p.id ?? p.ID ?? selectedPlan.id,
-              name: p.name ?? payload.name,
-              price: p.price ?? payload.price,
+              id: res.data?.id ?? res.data?.ID ?? selectedPlan.id,
+              name: res.data?.name ?? newPlan.name,
+              price: res.data?.price ?? Number(newPlan.price),
               currency:
-                p.currency ??
-                p.Currency ??
-                payload.Currency ??
-                selectedPlan.currency ??
-                selectedPlan.Currency ??
+                res.data?.currency ??
+                res.data?.Currency ??
+                newPlan.currency ??
                 "USD",
-              period: p.period ?? payload.period,
+              period: res.data?.period ?? newPlan.period,
               billingCycle:
-                p.billingCycle ??
-                p.BillingCycle ??
-                payload.billingCycle ??
-                payload.BillingCycle,
-              features: p.features ?? payload.features,
-              limitations: p.limitations ?? payload.limitations ?? [],
+                res.data?.billingCycle ??
+                res.data?.BillingCycle ??
+                billingCycleMap[newPlan.period],
+              description: res.data?.description ?? newPlan.description,
+              features: selectedFeatureNames,
+              limitations: res.data?.limitations ?? newPlan.limitations,
               activeSubscriptions:
-                p.activeSubscriptions ?? selectedPlan.activeSubscriptions ?? 0,
-              revenue: p.revenue ?? selectedPlan.revenue ?? "",
-              status: p.status ?? selectedPlan.status,
+                res.data?.activeSubscriptions ??
+                selectedPlan.activeSubscriptions ??
+                0,
+              revenue: res.data?.revenue ?? selectedPlan.revenue ?? "",
+              status: res.data?.status ?? selectedPlan.status ?? "active",
             };
 
             setPlans((prev) =>
               prev.map((plan) => (plan.id === mapped.id ? mapped : plan))
             );
+
+            toast.success("Package updated successfully!");
           } else {
-            // fallback local update
+            toast.error(
+              `Failed to update package: ${res.error || "Server error"}`
+            );
+
+            // Fallback local update
+            const selectedFeatureNames = newPlan.limitations
+              .map((limId: any) => {
+                const lim = limitations.find((l: any) => l.id === limId);
+                return lim?.name || "";
+              })
+              .filter(Boolean);
+
             const updatedPlan = {
               ...selectedPlan,
               name: newPlan.name,
               price: parseInt(newPlan.price),
-              currency:
-                newPlan.currency ||
-                selectedPlan.currency ||
-                selectedPlan.Currency ||
-                "USD",
+              currency: newPlan.currency || selectedPlan.currency || "USD",
               period: newPlan.period,
-              features: newPlan.features,
-              limitations: newPlan.limitations ?? [],
-              status: selectedPlan.status,
+              description: newPlan.description,
+              features: selectedFeatureNames,
+              limitations: newPlan.limitations,
             };
             setPlans((prev) =>
               prev.map((plan) =>
@@ -413,14 +495,28 @@ const AdminPackages = () => {
             );
           }
         } catch (err) {
+          toast.error(
+            `Failed to update package: ${
+              err instanceof Error ? err.message : String(err)
+            }`
+          );
+
+          // Fallback local update
+          const selectedFeatureNames = newPlan.limitations
+            .map((limId: any) => {
+              const lim = limitations.find((l: any) => l.id === limId);
+              return lim?.name || "";
+            })
+            .filter(Boolean);
+
           const updatedPlan = {
             ...selectedPlan,
             name: newPlan.name,
             price: parseInt(newPlan.price),
             period: newPlan.period,
-            features: newPlan.features,
-            limitations: newPlan.limitations ?? [],
-            status: selectedPlan.status,
+            description: newPlan.description,
+            features: selectedFeatureNames,
+            limitations: newPlan.limitations,
           };
           setPlans((prev) =>
             prev.map((plan) =>
@@ -472,112 +568,82 @@ const AdminPackages = () => {
     return String(codeOrSymbol);
   };
 
-  // Resolve a limitation entry which may be either an id (string) or an object
   const getLimFromItem = (item: any) => {
     if (!item) return null;
     if (typeof item === "object") return item;
     return limitations.find((l: any) => l.id === item || l.Id === item) || null;
   };
 
+  // Convert plan to PricingPlan format for the component
+  const convertToPricingPlan = (plan: any): PricingPlan => {
+    const planLimitations: PricingPlanFeature[] = (plan.limitations || []).map(
+      (limItem: any) => {
+        const lim = getLimFromItem(limItem);
+        if (!lim) {
+          return {
+            name: String(limItem),
+          };
+        }
+        return {
+          name: lim.name ?? lim.Name,
+          isUnlimited: lim.isUnlimited || lim.IsUnlimited,
+          value:
+            lim.limitValue ?? lim.LimitValue
+              ? `${lim.limitValue ?? lim.LimitValue}${
+                  lim.limitUnit ?? lim.LimitUnit
+                    ? ` ${lim.limitUnit ?? lim.LimitUnit}`
+                    : ""
+                }`
+              : undefined,
+        };
+      }
+    );
+
+    return {
+      id: plan.id,
+      name: plan.name,
+      price: plan.price,
+      currency: plan.currency ?? plan.Currency,
+      period: plan.period,
+      billingCycle: plan.billingCycle,
+      description: plan.description ?? plan.Description,
+      limitations: planLimitations,
+      featured: (plan.activeSubscriptions ?? 0) > 5,
+      status: plan.status,
+    };
+  };
+
   return (
     <div className="admin-packages">
       <div className="page-header">
-        <h1>Package & Subscription Management</h1>
-        <p>Manage service plans and customer subscriptions</p>
+        <h1>Package Management</h1>
+        <p>Manage service packages and customer subscriptions</p>
       </div>
 
-      {/* Packages (single view) */}
-      <div className="plans-content">
-        <div className="plans-header">
-          <h2></h2>
+      <div className="packages-content">
+        <div className="packages-header">
+          <h2>Package List</h2>
           <button
-            className="add-plan-btn"
+            className="add-package-btn"
             onClick={() => setShowAddPlanModal(true)}
           >
-            + Add
+            + Add New Package
           </button>
         </div>
 
-        <div className="plans-grid">
+        <div className="pricing-grid">
           {plans.map((plan: any) => (
-            <div key={plan.id} className="plan-card modern pricing-card">
-              <div className="card-top pricing-top">
-                <div className="card-title">
-                  <h3>{plan.name}</h3>
-                  {plan.activeSubscriptions > 5 && (
-                    <span className="badge-popular">Popular</span>
-                  )}
-                </div>
-
-                <div className="card-price">
-                  <div className="price-wrap">
-                    <span className="currency">
-                      {currencySymbol(plan.currency ?? plan.Currency)}
-                    </span>
-                    <span className="price">{plan.price}</span>
-                    <span className="period">
-                      /{formatPeriodLabel(plan.period, plan.billingCycle)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="modern-features pricing-features">
-                <ul>
-                  {(plan.limitations || [])
-                    .slice(0, 6)
-                    .map((limItem: any, idx: number) => {
-                      const lim = getLimFromItem(limItem);
-                      if (!lim)
-                        return (
-                          <li
-                            key={String(limItem) + idx}
-                            className="feature-row"
-                          >
-                            <span className="feature-text">
-                              {String(limItem)}
-                            </span>
-                          </li>
-                        );
-                      return (
-                        <li key={lim.id ?? idx} className="feature-row">
-                          <span className="feature-text">
-                            {lim.name ?? lim.Name}
-                          </span>
-                          <span className="feature-meta">
-                            {lim.isUnlimited || lim.IsUnlimited
-                              ? "Unlimited"
-                              : lim.limitValue ?? lim.LimitValue
-                              ? `${lim.limitValue ?? lim.LimitValue}${
-                                  lim.limitUnit ?? lim.LimitUnit
-                                    ? ` ${lim.limitUnit ?? lim.LimitUnit}`
-                                    : ""
-                                }`
-                              : ""}
-                          </span>
-                        </li>
-                      );
-                    })}
-                </ul>
-              </div>
-
-              <div className="plan-footer pricing-footer">
-                <div className="plan-limits" />
-
-                <div className="plan-actions modern-actions pricing-actions">
-                  <div className="small-actions">
-                    {/* Edit button removed per request */}
-                    <button
-                      className="icon-btn danger"
-                      onClick={() => handleDeletePlan(plan)}
-                      title="Delete"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <PricingCard
+              key={plan.id}
+              plan={convertToPricingPlan(plan)}
+              showActions={true}
+              actionType="button"
+              featuredLabel="Popular"
+              showEdit={true}
+              showDelete={true}
+              onEdit={() => handleEditPlan(plan)}
+              onDelete={() => handleDeletePlan(plan)}
+            />
           ))}
         </div>
       </div>
@@ -590,7 +656,7 @@ const AdminPackages = () => {
         >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Add New</h3>
+              <h3>Add New Package</h3>
               <button
                 className="modal-close"
                 onClick={() => setShowAddPlanModal(false)}
@@ -600,12 +666,12 @@ const AdminPackages = () => {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Package name:</label>
+                <label>Package Name:</label>
                 <input
                   type="text"
                   value={newPlan.name}
                   onChange={(e) => handleNewPlanChange("name", e.target.value)}
-                  placeholder="Enter package name (e.g. Pro, Advanced...)"
+                  placeholder="Enter package name (e.g., Pro, Advanced...)"
                   className="form-input"
                 />
               </div>
@@ -619,12 +685,12 @@ const AdminPackages = () => {
                     onChange={(e) =>
                       handleNewPlanChange("price", e.target.value)
                     }
-                    placeholder="Enter price (e.g. 99)"
+                    placeholder="Enter price (e.g., 99)"
                     className="form-input"
                   />
                 </div>
                 <div className="form-group">
-                  <label>Period:</label>
+                  <label>Billing Cycle:</label>
                   <select
                     value={newPlan.period}
                     onChange={(e) =>
@@ -632,9 +698,9 @@ const AdminPackages = () => {
                     }
                     className="form-select"
                   >
-                    <option value="month">Month</option>
-                    <option value="year">Year</option>
-                    <option value="quarter">Quarter</option>
+                    <option value="month">Monthly</option>
+                    <option value="year">Yearly</option>
+                    <option value="quarter">Quarterly</option>
                   </select>
                 </div>
               </div>
@@ -670,11 +736,11 @@ const AdminPackages = () => {
               {/* status removed from create form per request */}
 
               <div className="form-group">
-                <label>Limits:</label>
+                <label>Limitations:</label>
                 <div className="feature-selector">
                   <div className="selected-features-preview">
                     <span className="selected-count">
-                      Selected: {newPlan.features.length} limits
+                      Selected: {newPlan.features.length} limitation(s)
                     </span>
                     {newPlan.features.length > 0 && (
                       <div className="selected-features-list">
@@ -697,8 +763,8 @@ const AdminPackages = () => {
                     onClick={() => setShowFeatureSidebar(true)}
                   >
                     {newPlan.features.length === 0
-                      ? "Select limits"
-                      : "Edit limits"}
+                      ? "Select Limitations"
+                      : "Edit Limitations"}
                   </button>
                 </div>
               </div>
@@ -723,118 +789,6 @@ const AdminPackages = () => {
         </div>
       )}
 
-      {/* View Package Modal */}
-      {showViewPlanModal && selectedPlan && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowViewPlanModal(false)}
-        >
-          <div
-            className="modal-content view-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h3>Package Details</h3>
-              <button
-                className="modal-close"
-                onClick={() => setShowViewPlanModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="view-plan-info">
-                <div className="view-plan-header">
-                  <h2>{selectedPlan.name}</h2>
-                  <div className="view-plan-price">
-                    <span className="price">
-                      {currencySymbol(
-                        selectedPlan.currency ?? selectedPlan.Currency
-                      )}
-                      {selectedPlan.price}
-                    </span>
-                    <span className="period">
-                      /
-                      {formatPeriodLabel(
-                        selectedPlan.period,
-                        selectedPlan.billingCycle
-                      )}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="view-plan-status">
-                  <span className="status-label">Status:</span>
-                  {getStatusBadge(selectedPlan.status)}
-                </div>
-
-                <div className="view-plan-features">
-                  <h4>Limits:</h4>
-                  <ul className="features-list">
-                    {(selectedPlan.limitations || []).length === 0 && (
-                      <li className="feature-item muted">No limits</li>
-                    )}
-                    {(selectedPlan.limitations || []).map(
-                      (limItem: any, i: number) => {
-                        const lim = getLimFromItem(limItem);
-                        if (!lim)
-                          return (
-                            <li
-                              key={String(limItem) + i}
-                              className="feature-item"
-                            >
-                              <span>{String(limItem)}</span>
-                            </li>
-                          );
-                        return (
-                          <li key={lim.id ?? i} className="feature-item">
-                            <span className="feature-icon">✓</span>
-                            <span>
-                              {lim.name ?? lim.Name}
-                              {lim.isUnlimited || lim.IsUnlimited
-                                ? " (Unlimited)"
-                                : lim.limitValue ?? lim.LimitValue
-                                ? `: ${lim.limitValue ?? lim.LimitValue}${
-                                    lim.limitUnit ?? lim.LimitUnit
-                                      ? ` ${lim.limitUnit ?? lim.LimitUnit}`
-                                      : ""
-                                  }`
-                                : ""}
-                            </span>
-                          </li>
-                        );
-                      }
-                    )}
-                  </ul>
-                </div>
-
-                <div className="view-plan-stats">
-                  <div className="stat-item">
-                    <span className="stat-label">Active subscriptions:</span>
-                    <span className="stat-value">
-                      {selectedPlan.activeSubscriptions}
-                    </span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Monthly revenue:</span>
-                    <span className="stat-value">{selectedPlan.revenue}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                className="btn-cancel"
-                onClick={() => setShowViewPlanModal(false)}
-              >
-                Close
-              </button>
-              {/* Edit action removed from view modal per request */}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Edit Plan Modal */}
       {showEditPlanModal && selectedPlan && (
         <div
@@ -853,12 +807,12 @@ const AdminPackages = () => {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Package name:</label>
+                <label>Package Name:</label>
                 <input
                   type="text"
                   value={newPlan.name}
                   onChange={(e) => handleNewPlanChange("name", e.target.value)}
-                  placeholder="Enter package name (e.g. Pro, Advanced...)"
+                  placeholder="Enter package name (e.g., Pro, Advanced...)"
                   className="form-input"
                 />
               </div>
@@ -872,12 +826,12 @@ const AdminPackages = () => {
                     onChange={(e) =>
                       handleNewPlanChange("price", e.target.value)
                     }
-                    placeholder="Enter price (e.g. 99)"
+                    placeholder="Enter price (e.g., 99)"
                     className="form-input"
                   />
                 </div>
                 <div className="form-group">
-                  <label>Period:</label>
+                  <label>Billing Cycle:</label>
                   <select
                     value={newPlan.period}
                     onChange={(e) =>
@@ -885,9 +839,9 @@ const AdminPackages = () => {
                     }
                     className="form-select"
                   >
-                    <option value="month">Month</option>
-                    <option value="year">Year</option>
-                    <option value="quarter">Quarter</option>
+                    <option value="month">Monthly</option>
+                    <option value="year">Yearly</option>
+                    <option value="quarter">Quarterly</option>
                   </select>
                 </div>
               </div>
@@ -923,11 +877,11 @@ const AdminPackages = () => {
               {/* status removed from edit form per request */}
 
               <div className="form-group">
-                <label>Limits:</label>
+                <label>Limitations:</label>
                 <div className="feature-selector">
                   <div className="selected-features-preview">
                     <span className="selected-count">
-                      Selected: {newPlan.limitations.length} limits
+                      Selected: {newPlan.limitations.length} limitation(s)
                     </span>
                     {newPlan.features.length > 0 && (
                       <div className="selected-features-list">
@@ -950,8 +904,8 @@ const AdminPackages = () => {
                     onClick={() => setShowFeatureSidebar(true)}
                   >
                     {newPlan.features.length === 0
-                      ? "Select limits"
-                      : "Edit limits"}
+                      ? "Select Limitations"
+                      : "Edit Limitations"}
                   </button>
                 </div>
               </div>
@@ -997,10 +951,7 @@ const AdminPackages = () => {
             <div className="modal-body">
               <div className="delete-confirmation">
                 <div className="warning-icon">⚠️</div>
-                <h4>
-                  Are you sure you want to delete the package "
-                  {selectedPlan.name}"?
-                </h4>
+                <h4>Are you sure you want to delete "{selectedPlan.name}"?</h4>
                 <p>
                   This action cannot be undone. All data related to this package
                   will be permanently deleted.
@@ -1008,7 +959,7 @@ const AdminPackages = () => {
 
                 <div className="plan-summary">
                   <div className="summary-item">
-                    <span className="label">Package name:</span>
+                    <span className="label">Package Name:</span>
                     <span className="value">{selectedPlan.name}</span>
                   </div>
                   <div className="summary-item">
@@ -1025,7 +976,7 @@ const AdminPackages = () => {
                     </span>
                   </div>
                   <div className="summary-item">
-                    <span className="label">Active subscriptions:</span>
+                    <span className="label">Active Subscriptions:</span>
                     <span className="value">
                       {selectedPlan.activeSubscriptions}
                     </span>
@@ -1046,7 +997,7 @@ const AdminPackages = () => {
                 onClick={confirmDeletePlan}
                 disabled={isDeleting}
               >
-                {isDeleting ? "Deleting..." : "Delete Plan"}
+                {isDeleting ? "Deleting..." : "Delete Package"}
               </button>
             </div>
           </div>
@@ -1061,7 +1012,7 @@ const AdminPackages = () => {
         >
           <div className="feature-sidebar" onClick={(e) => e.stopPropagation()}>
             <div className="sidebar-header">
-              <h3>Select Limits</h3>
+              <h3>Select Limitations</h3>
               <button
                 className="sidebar-close"
                 onClick={() => setShowFeatureSidebar(false)}
@@ -1075,13 +1026,13 @@ const AdminPackages = () => {
                 className="action-btn select-all"
                 onClick={handleSelectAllFeatures}
               >
-                Select all
+                Select All
               </button>
               <button
                 className="action-btn clear-all"
                 onClick={handleClearAllFeatures}
               >
-                Clear all
+                Clear All
               </button>
             </div>
 
@@ -1090,10 +1041,9 @@ const AdminPackages = () => {
                 <div className="feature-group">
                   <div className="group-header">
                     <div className="group-icon" style={{ color: "#ff5e13" }}>
-                      {/* icon placeholder */}
                       <Users size={20} />
                     </div>
-                    <h4 className="group-title">Limits</h4>
+                    <h4 className="group-title">Limitations</h4>
                   </div>
                   <div className="features-grid">
                     {limitations.map((lim: any) => (
@@ -1142,14 +1092,14 @@ const AdminPackages = () => {
                 </div>
               ) : (
                 <div className="no-limitations" style={{ padding: 16 }}>
-                  <p>No limits to display</p>
+                  <p>No limitations to display</p>
                 </div>
               )}
             </div>
 
             <div className="sidebar-footer">
               <div className="selected-summary">
-                <span>Selected: {newPlan.features.length} limits</span>
+                <span>Selected: {newPlan.features.length} limitation(s)</span>
               </div>
               <button
                 className="confirm-btn"
@@ -1161,1690 +1111,6 @@ const AdminPackages = () => {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .admin-plans {
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: 24px;
-        }
-
-        .page-header {
-          margin-bottom: 32px;
-        }
-
-        .page-header h1 {
-          font-size: 32px;
-          font-weight: 700;
-          color: #0d062d;
-          margin: 0 0 8px 0;
-        }
-
-        .page-header p {
-          font-size: 16px;
-          color: #787486;
-          margin: 0;
-        }
-
-        .tabs-section {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 32px;
-          border-bottom: 2px solid #f3f4f6;
-        }
-
-        .tab-btn {
-          padding: 12px 24px;
-          border: none;
-          background: none;
-          font-size: 16px;
-          font-weight: 500;
-          color: #787486;
-          cursor: pointer;
-          border-bottom: 3px solid transparent;
-          transition: all 0.3s ease;
-        }
-
-        .tab-btn:hover {
-          color: #ff5e13;
-        }
-
-        .tab-btn.active {
-          color: #ff5e13;
-          border-bottom-color: #ff5e13;
-        }
-
-        .plans-content,
-        .subscriptions-content {
-          animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .plans-header,
-        .subscriptions-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-
-        .plans-header h2,
-        .subscriptions-header h2 {
-          font-size: 24px;
-          font-weight: 600;
-          color: #0d062d;
-          margin: 0;
-        }
-
-        .add-plan-btn {
-          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
-          color: white;
-          border: none;
-          padding: 12px 24px;
-          border-radius: 10px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: transform 0.3s ease;
-        }
-
-        .add-plan-btn:hover {
-          transform: translateY(-2px);
-        }
-
-        .plans-grid {
-          display: grid;
-          grid-template-columns: 1fr; /* fallback: single column on very small screens */
-          gap: 24px;
-          justify-content: center;
-          width: 100%;
-        }
-
-        /* Responsive: 2 columns on medium, 3 columns on large screens */
-        @media (min-width: 768px) {
-          .plans-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-        }
-
-        @media (min-width: 1100px) {
-          .plans-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-        }
-
-        .plan-card {
-          background: white;
-          border-radius: 16px;
-          padding: 24px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          transition: transform 0.3s ease;
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-        }
-
-        .plan-card:hover {
-          transform: translateY(-4px);
-        }
-
-        /* Modern card styles */
-        .plan-card.modern {
-          padding: 0;
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          border-radius: 14px;
-          border: 1px solid #f3f4f6;
-          width: 100%;
-          min-width: 0;
-          max-width: 360px; /* keep cards a sensible max width */
-          height: 480px;
-          background: white;
-        }
-
-        .card-top {
-          background: linear-gradient(180deg, #ff5e13 0%, #ff8a3d 100%);
-          padding: 12px 18px;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .card-title h3 {
-          margin: 0;
-          font-size: 14px;
-          font-weight: 800;
-          color: #ffffff;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-        }
-
-        .badge-popular {
-          display: inline-block;
-          margin-left: 8px;
-          background: linear-gradient(90deg, #ffb88c, #ff5e13);
-          color: white;
-          padding: 6px 10px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 700;
-        }
-
-        .card-price {
-          text-align: right;
-        }
-
-        .price-wrap {
-          display: flex;
-          align-items: baseline;
-          gap: 6px;
-          justify-content: center;
-        }
-        .price-wrap .currency {
-          font-size: 18px;
-          color: rgba(255, 255, 255, 0.9);
-        }
-        .price-wrap .price {
-          font-size: 34px;
-          font-weight: 900;
-          color: #ffffff;
-          line-height: 1;
-        }
-        .price-wrap .period {
-          font-size: 14px;
-          color: rgba(255, 255, 255, 0.9);
-        }
-
-        /* pricing-specific */
-        .pricing-card {
-          display: flex;
-          flex-direction: column;
-          /* ensure footer sticks to bottom and features scroll */
-          justify-content: space-between;
-        }
-
-        .pricing-top {
-          padding-top: 18px;
-          padding-bottom: 18px;
-        }
-
-        .modern-features {
-          padding: 0;
-          background: white;
-        }
-        .pricing-features ul {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-        }
-        .pricing-features {
-          /* take remaining space and allow scrolling if content overflows */
-          flex: 1 1 auto;
-          overflow: auto;
-        }
-        .pricing-features .feature-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 18px;
-          border-top: 1px solid #f3f4f6;
-          font-size: 14px;
-          color: #0d062d;
-        }
-        .pricing-features .feature-row:first-child {
-          border-top: none;
-        }
-        .feature-meta {
-          color: #6b7280;
-          font-weight: 600;
-          font-size: 13px;
-        }
-        .modern-features ul {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .modern-features .feature-line {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #0d062d;
-          font-size: 14px;
-        }
-        .modern-features .feature-line svg {
-          flex: 0 0 18px;
-        }
-
-        .plan-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 12px;
-          padding: 16px 18px;
-          background: #ffffff;
-          border-top: 1px solid #f3f4f6;
-        }
-
-        .plan-limits {
-          flex: 1 1 auto;
-          min-width: 0;
-        }
-
-        .plan-limits ul {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .plan-limits .more-limits {
-          margin-top: 6px;
-          color: #6b7280;
-          font-size: 13px;
-          font-weight: 600;
-        }
-
-        .limit-item {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          padding: 6px 8px;
-          border-radius: 8px;
-          background: #fff;
-        }
-
-        .limit-name {
-          font-weight: 600;
-          color: #0d062d;
-          font-size: 13px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .limit-meta {
-          color: #6b7280;
-          font-size: 13px;
-          margin-left: 8px;
-          white-space: nowrap;
-        }
-
-        .btn-delete:disabled,
-        .btn-cancel:disabled {
-          opacity: 0.65;
-          cursor: not-allowed;
-          transform: none;
-          box-shadow: none;
-        }
-
-        .modern-actions {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-        .select-btn {
-          background: linear-gradient(90deg, #ff8a3d, #ff5e13);
-          color: white;
-          border: none;
-          padding: 10px 16px;
-          border-radius: 10px;
-          font-weight: 700;
-          cursor: pointer;
-        }
-        .select-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 20px rgba(255, 94, 19, 0.18);
-        }
-
-        .small-actions {
-          display: flex;
-          gap: 8px;
-        }
-        .icon-btn {
-          width: 38px;
-          height: 38px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-          background: white;
-          cursor: pointer;
-        }
-        .icon-btn.danger {
-          background: linear-gradient(90deg, #ff7b7b, #e02424);
-          color: white;
-          border: transparent;
-        }
-
-        .signup-btn {
-          background: #f3f4f6;
-          color: #6b7280;
-          border: none;
-          padding: 10px 22px;
-          border-radius: 24px;
-          font-weight: 800;
-          letter-spacing: 0.04em;
-          cursor: pointer;
-          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-        }
-        .signup-btn:hover {
-          transform: translateY(-2px);
-        }
-
-        .plan-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-        }
-
-        .plan-header h3 {
-          font-size: 20px;
-          font-weight: 600;
-          color: #0d062d;
-          margin: 0;
-        }
-
-        .plan-price {
-          text-align: right;
-        }
-
-        .price {
-          font-size: 24px;
-          font-weight: 700;
-          color: #ff5e13;
-        }
-
-        .period {
-          font-size: 14px;
-          color: #787486;
-        }
-
-        .plan-features {
-          margin-bottom: 20px;
-        }
-
-        .feature-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-          font-size: 14px;
-          color: #0d062d;
-        }
-
-        .feature-icon {
-          color: #10b981;
-          font-weight: bold;
-        }
-
-        .plan-stats {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-          margin-bottom: 20px;
-          padding: 16px;
-          background: #f9f4ee;
-          border-radius: 10px;
-          flex-grow: 1;
-        }
-
-        .stat {
-          text-align: center;
-        }
-
-        .stat-label {
-          display: block;
-          font-size: 12px;
-          color: #787486;
-          margin-bottom: 4px;
-        }
-
-        .stat-value {
-          font-size: 16px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .plan-actions {
-          display: flex;
-          gap: 8px;
-          margin-top: auto;
-          padding-top: 20px;
-          border-top: 1px solid #f3f4f6;
-        }
-
-        .action-btn {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          padding: 14px 10px;
-          border: 1px solid #e5e7eb;
-          background: white;
-          border-radius: 12px;
-          font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-          min-width: 0;
-          white-space: nowrap;
-        }
-
-        .action-btn::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.2),
-            transparent
-          );
-          transition: left 0.5s;
-        }
-
-        .action-btn:hover::before {
-          left: 100%;
-        }
-
-        .action-btn.edit {
-          color: #ff5e13;
-          border-color: #ff5e13;
-          background: linear-gradient(135deg, #fff5f0 0%, #ffe4d6 100%);
-        }
-
-        .action-btn.edit:hover {
-          background: linear-gradient(135deg, #ff5e13 0%, #e04a0c 100%);
-          color: white;
-          transform: translateY(-3px);
-          box-shadow: 0 10px 30px rgba(255, 94, 19, 0.4);
-          border-color: #e04a0c;
-        }
-
-        .action-btn.view {
-          color: #3b82f6;
-          border-color: #3b82f6;
-          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-        }
-
-        .action-btn.view:hover {
-          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-          color: white;
-          transform: translateY(-3px);
-          box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
-          border-color: #1d4ed8;
-        }
-
-        .action-btn.delete {
-          color: #dc2626;
-          border-color: #dc2626;
-          background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-        }
-
-        .action-btn.delete:hover {
-          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-          color: white;
-          transform: translateY(-3px);
-          box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);
-          border-color: #b91c1c;
-        }
-
-        .action-btn:active {
-          transform: translateY(0);
-          transition: transform 0.1s;
-        }
-
-        .action-btn span {
-          font-size: 12px;
-          font-weight: 600;
-          letter-spacing: 0.025em;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .subscriptions-filters {
-          display: flex;
-          gap: 12px;
-        }
-
-        .filter-select {
-          padding: 8px 12px;
-          border: 2px solid #e5e7eb;
-          border-radius: 8px;
-          background: white;
-          font-size: 14px;
-          cursor: pointer;
-        }
-
-        .subscriptions-table {
-          background: white;
-          border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-
-        .table-header {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-          background: #f9f4ee;
-          padding: 16px 20px;
-          font-weight: 600;
-          color: #0d062d;
-          font-size: 14px;
-        }
-
-        .table-row {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-          padding: 16px 20px;
-          border-bottom: 1px solid #f3f4f6;
-          align-items: center;
-          transition: background 0.3s ease;
-        }
-
-        .table-row:hover {
-          background: #f9f4ee;
-        }
-
-        .table-cell {
-          font-size: 14px;
-          color: #0d062d;
-        }
-
-        .company-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .company-avatar {
-          width: 32px;
-          height: 32px;
-          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: 600;
-          font-size: 14px;
-        }
-
-        .plan-badge {
-          padding: 4px 8px;
-          background: #dbeafe;
-          color: #1e40af;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-        }
-
-        .status-badge {
-          padding: 4px 8px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-        }
-
-        .action-buttons {
-          display: flex;
-          gap: 8px;
-        }
-
-        .action-btn {
-          width: 32px;
-          height: 32px;
-          border: none;
-          background: #f3f4f6;
-          border-radius: 6px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.3s ease;
-        }
-
-        .action-btn:hover {
-          background: #e5e7eb;
-          transform: scale(1.1);
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal-content {
-          background: white;
-          border-radius: 16px;
-          width: 90%;
-          max-width: 600px;
-          max-height: 90vh;
-          overflow-y: auto;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-          scrollbar-width: none; /* Firefox */
-          -ms-overflow-style: none; /* Internet Explorer 10+ */
-        }
-
-        .modal-content::-webkit-scrollbar {
-          display: none; /* WebKit */
-        }
-
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 24px 24px 0 24px;
-          border-bottom: 1px solid #e5e7eb;
-          margin-bottom: 24px;
-        }
-
-        .modal-header h3 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .modal-close {
-          background: none;
-          border: none;
-          font-size: 28px;
-          color: #6b7280;
-          cursor: pointer;
-          padding: 0;
-          width: 36px;
-          height: 36px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          transition: background 0.2s ease;
-        }
-
-        .modal-close:hover {
-          background: #f3f4f6;
-        }
-
-        .modal-body {
-          padding: 0 24px;
-        }
-
-        .form-group {
-          margin-bottom: 20px;
-        }
-
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-
-        .form-group label {
-          display: block;
-          margin-bottom: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .form-input,
-        .form-select {
-          width: 100%;
-          padding: 12px 16px;
-          border: 2px solid #e5e7eb;
-          border-radius: 8px;
-          font-size: 14px;
-          color: #0d062d;
-          background: white;
-          transition: border-color 0.2s ease;
-        }
-
-        .form-input:focus,
-        .form-select:focus {
-          outline: none;
-          border-color: #ff5e13;
-          box-shadow: 0 0 0 3px rgba(255, 94, 19, 0.1);
-        }
-
-        .feature-input-group {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 8px;
-          align-items: center;
-        }
-
-        .feature-input-group .form-input {
-          flex: 1;
-        }
-
-        .remove-feature-btn {
-          width: 32px;
-          height: 32px;
-          border: none;
-          background: #fee2e2;
-          color: #dc2626;
-          border-radius: 6px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 18px;
-          font-weight: bold;
-          transition: background 0.2s ease;
-        }
-
-        .remove-feature-btn:hover {
-          background: #fecaca;
-        }
-
-        .add-feature-btn {
-          padding: 8px 16px;
-          border: 2px dashed #ff5e13;
-          background: white;
-          color: #ff5e13;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .add-feature-btn:hover {
-          background: #fff5f0;
-          border-style: solid;
-        }
-
-        /* Feature Selection Styles */
-        .feature-selection-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-          padding: 12px;
-          background: #f9f4ee;
-          border-radius: 8px;
-        }
-
-        .selected-count {
-          font-size: 14px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .feature-actions {
-          display: flex;
-          gap: 8px;
-        }
-
-        .select-all-btn,
-        .clear-all-btn {
-          padding: 6px 12px;
-          border: 1px solid #e5e7eb;
-          background: white;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .select-all-btn {
-          color: #059669;
-          border-color: #059669;
-        }
-
-        .select-all-btn:hover {
-          background: #ecfdf5;
-        }
-
-        .clear-all-btn {
-          color: #dc2626;
-          border-color: #dc2626;
-        }
-
-        .clear-all-btn:hover {
-          background: #fef2f2;
-        }
-
-        .feature-selection-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-          gap: 8px;
-          max-height: 300px;
-          overflow-y: auto;
-          padding: 8px;
-          border: 2px solid #e5e7eb;
-          border-radius: 8px;
-          background: #fafafa;
-        }
-
-        .feature-option {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .feature-option:hover {
-          border-color: #ff5e13;
-          background: #fff5f0;
-        }
-
-        .feature-option.selected {
-          border-color: #ff5e13;
-          background: #fff5f0;
-        }
-
-        .feature-checkbox {
-          margin: 0;
-          cursor: pointer;
-        }
-
-        .feature-text {
-          font-size: 13px;
-          color: #0d062d;
-          flex: 1;
-        }
-
-        /* Feature Selector Styles */
-        .feature-selector {
-          border: 2px solid #e5e7eb;
-          border-radius: 8px;
-          padding: 16px;
-          background: #fafafa;
-        }
-        .limitations-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          padding: 8px 6px;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          background: #fff;
-          max-height: 220px;
-          overflow: auto;
-        }
-
-        .limit-item {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          padding: 6px 8px;
-          border-radius: 6px;
-          cursor: pointer;
-        }
-
-        .limit-item input {
-          margin-right: 8px;
-        }
-
-        .limit-name {
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .limit-desc {
-          color: #6b7280;
-          font-size: 12px;
-        }
-
-        .selected-features-preview {
-          margin-bottom: 12px;
-        }
-
-        .selected-count {
-          display: block;
-          font-size: 14px;
-          font-weight: 600;
-          color: #0d062d;
-          margin-bottom: 8px;
-        }
-
-        .selected-features-list {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-        }
-
-        .feature-tag {
-          background: #ff5e13;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 500;
-        }
-
-        .more-features {
-          background: #6b7280;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 500;
-        }
-
-        .select-features-btn {
-          width: 100%;
-          padding: 12px 16px;
-          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .select-features-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.3);
-        }
-
-        /* Sidebar Styles */
-        .sidebar-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: 2000;
-          display: flex;
-          justify-content: flex-end;
-          animation: fadeIn 0.3s ease;
-        }
-
-        .feature-sidebar {
-          width: 500px;
-          height: 100vh;
-          background: white;
-          display: flex;
-          flex-direction: column;
-          animation: slideInRight 0.3s ease;
-          box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px 24px;
-          border-bottom: 1px solid #e5e7eb;
-          background: #f9f4ee;
-        }
-
-        .sidebar-header h3 {
-          margin: 0;
-          font-size: 18px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .sidebar-close {
-          background: none;
-          border: none;
-          font-size: 24px;
-          color: #6b7280;
-          cursor: pointer;
-          padding: 4px;
-          border-radius: 4px;
-          transition: background 0.2s ease;
-        }
-
-        .sidebar-close:hover {
-          background: #f3f4f6;
-        }
-
-        .sidebar-actions {
-          display: flex;
-          gap: 12px;
-          padding: 16px 24px;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .sidebar-actions .action-btn {
-          flex: 1;
-          padding: 8px 16px;
-          border: 1px solid #e5e7eb;
-          background: white;
-          border-radius: 6px;
-          font-size: 13px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .sidebar-actions .action-btn.select-all {
-          color: #059669;
-          border-color: #059669;
-        }
-
-        .sidebar-actions .action-btn.select-all:hover {
-          background: #ecfdf5;
-        }
-
-        .sidebar-actions .action-btn.clear-all {
-          color: #dc2626;
-          border-color: #dc2626;
-        }
-
-        .sidebar-actions .action-btn.clear-all:hover {
-          background: #fef2f2;
-        }
-
-        .sidebar-content {
-          flex: 1;
-          overflow-y: auto;
-          padding: 16px 24px;
-          scrollbar-width: none; /* Firefox */
-          -ms-overflow-style: none; /* Internet Explorer 10+ */
-        }
-
-        .sidebar-content::-webkit-scrollbar {
-          display: none; /* WebKit */
-        }
-
-        /* Feature Groups */
-        .feature-group {
-          margin-bottom: 24px;
-        }
-
-        .group-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 16px;
-          padding: 12px 16px;
-          background: #f9f4ee;
-          border-radius: 8px;
-          border-left: 4px solid #ff5e13;
-        }
-
-        .group-icon {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: white;
-          border-radius: 6px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .group-title {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .features-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
-        }
-
-        .feature-card {
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 16px;
-          background: white;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          position: relative;
-        }
-
-        .feature-card:hover {
-          border-color: #ff5e13;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.1);
-        }
-
-        .feature-card.selected {
-          border-color: #ff5e13;
-          background: #fff5f0;
-        }
-
-        .feature-card.selected::before {
-          content: "";
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          width: 8px;
-          height: 8px;
-          background: #ff5e13;
-          border-radius: 50%;
-        }
-
-        .feature-card-header {
-          display: flex;
-          justify-content: center;
-          margin-bottom: 12px;
-        }
-
-        .feature-radio {
-          width: 18px;
-          height: 18px;
-          cursor: pointer;
-          accent-color: #ff5e13;
-          position: relative;
-          z-index: 10;
-        }
-
-        .feature-card-body {
-          text-align: center;
-        }
-
-        .feature-title-row {
-          display: flex;
-          align-items: baseline;
-          justify-content: center;
-          gap: 8px;
-        }
-
-        .feature-meta {
-          font-size: 12px;
-          color: #6b7280;
-          font-weight: 600;
-        }
-
-        .feature-title {
-          margin: 0 0 8px 0;
-          font-size: 13px;
-          font-weight: 600;
-          color: #0d062d;
-          line-height: 1.3;
-        }
-
-        .feature-description {
-          margin: 0;
-          font-size: 11px;
-          color: #6b7280;
-          line-height: 1.4;
-        }
-
-        .sidebar-footer {
-          padding: 20px 24px;
-          border-top: 1px solid #e5e7eb;
-          background: #f9f4ee;
-        }
-
-        .selected-summary {
-          margin-bottom: 12px;
-          text-align: center;
-        }
-
-        .selected-summary span {
-          font-size: 14px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .confirm-btn {
-          width: 100%;
-          padding: 12px 16px;
-          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .confirm-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.3);
-        }
-
-        @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
-          }
-          to {
-            transform: translateX(0);
-          }
-        }
-
-        /* Responsive Grid */
-        @media (max-width: 1200px) {
-          .features-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-
-        @media (max-width: 768px) {
-          .feature-sidebar {
-            width: 100%;
-          }
-
-          .features-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .group-header {
-            padding: 10px 12px;
-          }
-
-          .group-title {
-            font-size: 14px;
-          }
-
-          .feature-card {
-            padding: 12px;
-          }
-
-          .feature-title {
-            font-size: 12px;
-          }
-
-          .feature-description {
-            font-size: 10px;
-          }
-        }
-
-        /* Responsive: make pricing cards full-width on small screens */
-        @media (max-width: 768px) {
-          .plans-grid {
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-          .plan-card.modern {
-            width: 100%;
-            min-width: 0;
-            max-width: 100%;
-            height: auto;
-          }
-          .pricing-features {
-            max-height: none;
-            overflow: visible;
-          }
-        }
-
-        .modal-footer {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          padding: 24px;
-          border-top: 1px solid #e5e7eb;
-          margin-top: 24px;
-        }
-
-        .btn-cancel,
-        .btn-save {
-          padding: 12px 24px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .btn-cancel {
-          background: white;
-          color: #6b7280;
-          border: 2px solid #e5e7eb;
-        }
-
-        .btn-cancel:hover {
-          background: #f9fafb;
-          border-color: #d1d5db;
-        }
-
-        .btn-save {
-          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
-          color: white;
-          border: 2px solid transparent;
-        }
-
-        .btn-save:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.3);
-        }
-
-        .btn-save:disabled {
-          background: #d1d5db;
-          color: #9ca3af;
-          cursor: not-allowed;
-          transform: none;
-          box-shadow: none;
-        }
-
-        .btn-edit {
-          background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-          color: white;
-          border: 2px solid transparent;
-        }
-
-        .btn-edit:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-delete {
-          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-          color: white;
-          border: 2px solid transparent;
-        }
-
-        .btn-delete:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-        }
-
-        .btn-edit,
-        .btn-delete {
-          padding: 12px 24px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        /* View Modal Styles */
-        .view-modal {
-          max-width: 500px;
-        }
-
-        .view-plan-info {
-          padding: 0;
-        }
-
-        .view-plan-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-          padding-bottom: 16px;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .view-plan-header h2 {
-          margin: 0;
-          font-size: 24px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .view-plan-price {
-          text-align: right;
-        }
-
-        .view-plan-price .price {
-          font-size: 28px;
-          font-weight: 700;
-          color: #ff5e13;
-        }
-
-        .view-plan-price .period {
-          font-size: 16px;
-          color: #787486;
-        }
-
-        .view-plan-status {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 20px;
-        }
-
-        .status-label {
-          font-size: 14px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .view-plan-features {
-          margin-bottom: 20px;
-        }
-
-        .view-plan-features h4 {
-          margin: 0 0 12px 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .features-list {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-        }
-
-        .features-list .feature-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-          font-size: 14px;
-          color: #0d062d;
-        }
-
-        .features-list .feature-icon {
-          color: #10b981;
-          font-weight: bold;
-        }
-
-        .view-plan-stats {
-          background: #f9f4ee;
-          border-radius: 10px;
-          padding: 16px;
-        }
-
-        .stat-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-        }
-
-        .stat-item:last-child {
-          margin-bottom: 0;
-        }
-
-        .stat-item .stat-label {
-          font-size: 14px;
-          color: #787486;
-        }
-
-        .stat-item .stat-value {
-          font-size: 16px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        /* Delete Modal Styles */
-        .delete-modal {
-          max-width: 450px;
-        }
-
-        .delete-confirmation {
-          text-align: center;
-          padding: 20px 0;
-        }
-
-        .warning-icon {
-          font-size: 48px;
-          margin-bottom: 16px;
-        }
-
-        .delete-confirmation h4 {
-          margin: 0 0 12px 0;
-          font-size: 18px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .delete-confirmation p {
-          margin: 0 0 24px 0;
-          font-size: 14px;
-          color: #787486;
-          line-height: 1.5;
-        }
-
-        .plan-summary {
-          background: #f9f4ee;
-          border-radius: 10px;
-          padding: 16px;
-          text-align: left;
-        }
-
-        .summary-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-        }
-
-        .summary-item:last-child {
-          margin-bottom: 0;
-        }
-
-        .summary-item .label {
-          font-size: 14px;
-          color: #787486;
-        }
-
-        .summary-item .value {
-          font-size: 14px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        @media (max-width: 768px) {
-          .admin-plans {
-            padding: 16px;
-          }
-
-          .plans-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .plans-header,
-          .subscriptions-header {
-            flex-direction: column;
-            gap: 16px;
-            align-items: stretch;
-          }
-
-          .table-header,
-          .table-row {
-            grid-template-columns: 1fr;
-            gap: 8px;
-          }
-
-          .form-row {
-            grid-template-columns: 1fr;
-          }
-
-          .modal-content {
-            width: 95%;
-            margin: 20px;
-          }
-
-          .modal-header {
-            padding: 20px 20px 0 20px;
-          }
-
-          .modal-body {
-            padding: 0 20px;
-          }
-
-          .modal-footer {
-            padding: 20px;
-          }
-
-          /* Mobile button improvements */
-          .plan-actions {
-            flex-direction: column;
-            gap: 10px;
-            padding-top: 16px;
-          }
-
-          .action-btn {
-            padding: 16px 12px;
-            font-size: 13px;
-            white-space: nowrap;
-            border-radius: 10px;
-          }
-
-          .action-btn span {
-            font-size: 13px;
-            white-space: nowrap;
-          }
-
-          .action-btn:hover {
-            transform: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          }
-        }
-
-        @media (max-width: 480px) {
-          .plan-actions {
-            gap: 8px;
-            padding-top: 14px;
-          }
-
-          .action-btn {
-            padding: 14px 10px;
-            font-size: 12px;
-            white-space: nowrap;
-            border-radius: 8px;
-          }
-
-          .action-btn span {
-            font-size: 12px;
-            white-space: nowrap;
-          }
-        }
-      `}</style>
     </div>
   );
 };

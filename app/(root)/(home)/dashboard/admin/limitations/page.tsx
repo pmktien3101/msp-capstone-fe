@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Plus, Search, X, Trash2, Eye } from "lucide-react";
+import { Plus, Search, X, Trash2, Eye, Pencil } from "lucide-react";
+import { toast } from "react-toastify";
 import limitationService from "@/services/limitationService";
 
 const AdminLimitations: React.FC = () => {
@@ -136,11 +137,12 @@ const AdminLimitations: React.FC = () => {
         });
         setItems((s) => [...s, normalize(created) as any]);
         setShowAdd(false);
+        toast.success("Limitation created successfully!");
       } else {
-        alert(res.error || "Failed to create limitation");
+        toast.error(res.error || "Failed to create limitation");
       }
     } catch (err: any) {
-      alert(err?.message || String(err));
+      toast.error(err?.message || String(err));
     } finally {
       setLoading(false);
     }
@@ -195,11 +197,12 @@ const AdminLimitations: React.FC = () => {
         );
         setShowEdit(false);
         setActive(null);
+        toast.success("Limitation updated successfully!");
       } else {
-        alert(res.error || "Failed to update");
+        toast.error(res.error || "Failed to update");
       }
     } catch (err: any) {
-      alert(err?.message || String(err));
+      toast.error(err?.message || String(err));
     } finally {
       setLoading(false);
     }
@@ -212,11 +215,12 @@ const AdminLimitations: React.FC = () => {
       const res = await limitationService.deleteLimitation(item.id);
       if (res.success) {
         setItems((s) => s.filter((it) => it.id !== item.id));
+        toast.success("Limitation deleted successfully!");
       } else {
-        alert(res.error || res.message || "Failed to delete");
+        toast.error(res.error || res.message || "Failed to delete");
       }
     } catch (err: any) {
-      alert(err?.message || String(err));
+      toast.error(err?.message || String(err));
     } finally {
       setLoading(false);
     }
@@ -277,7 +281,13 @@ const AdminLimitations: React.FC = () => {
               >
                 <Eye size={14} />
               </button>
-              {/* Edit button removed per request */}
+              <button
+                className="icon edit"
+                onClick={() => openEdit(it)}
+                title="Edit"
+              >
+                <Pencil size={14} />
+              </button>
               <button
                 className="icon danger"
                 onClick={() => doDelete(it)}
@@ -416,20 +426,30 @@ const AdminLimitations: React.FC = () => {
 
       {/* Edit Modal */}
       {showEdit && (
-        <div className="modal">
+        <div
+          className="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="editLimTitle"
+        >
           <div className="card">
             <div className="card-head">
-              <h3>Edit Limitation</h3>
-              <button className="close" onClick={() => setShowEdit(false)}>
+              <h3 id="editLimTitle">Edit Limitation</h3>
+              <button
+                className="close"
+                onClick={() => setShowEdit(false)}
+                aria-label="Close"
+              >
                 <X />
               </button>
             </div>
             <div className="card-body">
               <div className="form-grid vertical">
                 <div className="field">
-                  <label htmlFor="lim-type">Limitation type *</label>
+                  <label htmlFor="edit-lim-type">Limitation type *</label>
                   <select
-                    id="lim-type"
+                    id="edit-lim-type"
+                    className="text-input"
                     value={form.limitationType}
                     onChange={(e) =>
                       setForm({ ...form, limitationType: e.target.value })
@@ -444,58 +464,85 @@ const AdminLimitations: React.FC = () => {
                   </select>
                 </div>
 
-                <label>Name</label>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
-                <label>Description</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
-                />
-                <label>
+                <div className="field">
+                  <label htmlFor="edit-lim-name">Name</label>
                   <input
-                    type="checkbox"
-                    checked={form.isUnlimited}
-                    onChange={(e) =>
-                      setForm({ ...form, isUnlimited: e.target.checked })
-                    }
-                  />{" "}
-                  Unlimited
-                </label>
+                    id="edit-lim-name"
+                    className="text-input"
+                    autoFocus
+                    placeholder="E.g.: Max number of projects"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  />
+                </div>
 
-                {!form.isUnlimited && (
-                  <>
-                    <label>Value</label>
+                <div className="field">
+                  <label htmlFor="edit-lim-desc">Description</label>
+                  <textarea
+                    id="edit-lim-desc"
+                    className="text-input"
+                    placeholder="Short description of the limitation"
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm({ ...form, description: e.target.value })
+                    }
+                  />
+                </div>
+
+                <div className="field checkbox-row">
+                  <label className="checkbox-label">
                     <input
-                      type="number"
-                      value={form.limitValue}
+                      type="checkbox"
+                      checked={form.isUnlimited}
                       onChange={(e) =>
-                        setForm({ ...form, limitValue: e.target.value })
+                        setForm({ ...form, isUnlimited: e.target.checked })
                       }
                     />
-                  </>
-                )}
+                    <span>Unlimited</span>
+                  </label>
+                </div>
 
-                <label>Unit</label>
-                <input
-                  value={form.limitUnit}
-                  onChange={(e) =>
-                    setForm({ ...form, limitUnit: e.target.value })
-                  }
-                />
+                <>
+                  {!form.isUnlimited && (
+                    <div className="field">
+                      <label htmlFor="edit-lim-value">Value</label>
+                      <input
+                        id="edit-lim-value"
+                        type="number"
+                        className="text-input"
+                        value={form.limitValue}
+                        onChange={(e) =>
+                          setForm({ ...form, limitValue: e.target.value })
+                        }
+                      />
+                    </div>
+                  )}
+
+                  <div className="field">
+                    <label htmlFor="edit-lim-unit">Unit</label>
+                    <input
+                      id="edit-lim-unit"
+                      className="text-input"
+                      value={form.limitUnit}
+                      onChange={(e) =>
+                        setForm({ ...form, limitUnit: e.target.value })
+                      }
+                    />
+                  </div>
+                </>
               </div>
-              <div className="card-foot">
-                <button className="btn" onClick={() => setShowEdit(false)}>
-                  Cancel
-                </button>
-                <button className="btn primary" onClick={saveEdit}>
-                  Save
-                </button>
-              </div>
+            </div>
+            <div className="card-foot">
+              <button className="btn" onClick={() => setShowEdit(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn primary"
+                onClick={saveEdit}
+                disabled={loading}
+              >
+                {loading ? "Saving..." : "Save"}
+              </button>
             </div>
           </div>
         </div>
@@ -639,6 +686,12 @@ const AdminLimitations: React.FC = () => {
         }
         .icon.danger {
           color: #ef4444;
+        }
+        .icon.edit {
+          color: #3b82f6;
+        }
+        .icon.edit:hover {
+          background: rgba(59, 130, 246, 0.1);
         }
 
         .modal {
