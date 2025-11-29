@@ -8,7 +8,7 @@ import { useUser } from "@/hooks/useUser";
 import { UserRole } from "@/lib/rbac";
 import { useAuth } from "@/hooks/useAuth";
 import { NotificationBell } from "@/components/layout/NotificationBell";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, ChevronDown, Settings } from "lucide-react";
 import "@/app/styles/header.scss";
 
 const Header = () => {
@@ -75,72 +75,111 @@ const Header = () => {
   };
 
   return (
-    <div className="header-container">
-      <div className="header-background" />
-
+    <header className="header-container">
       {/* Logo and Brand */}
-      <div className="header-brand">
+      <div className="header-brand" onClick={() => router.push("/")}>
         <div className="brand-logo">
-          <Image src="/logo.png" alt="MSP Logo" width={50} height={45} />
+          <Image src="/logo.png" alt="MSP Logo" width={42} height={38} />
         </div>
-        <div className="brand-name">MSP</div>
+        <div className="brand-text">
+          <span className="brand-name">MSP</span>
+          <span className="brand-tagline">Project Hub</span>
+        </div>
       </div>
 
       {/* Right Side - Notify, User */}
       <div className="header-right">
         {/* Notification Bell - Real-time */}
-        <NotificationBell />
-
-        {/* User Info */}
-        <div className="user-info">
-          <div className="user-name">{getUserDisplayName()}</div>
-          <div className="user-location">{getRoleDisplayName()}</div>
+        <div className="header-actions">
+          <NotificationBell />
         </div>
 
-        {/* User Avatar with Dropdown */}
-        <div className="user-avatar-container" ref={dropdownRef}>
+        {/* Divider */}
+        <div className="header-divider" />
+
+        {/* User Profile Section */}
+        <div className="user-profile-section" ref={dropdownRef}>
           <div
-            className="user-avatar"
+            className={`user-profile-trigger ${showUserMenu ? "active" : ""}`}
             onClick={() => setShowUserMenu(!showUserMenu)}
           >
-            <Avatar>
+            <Avatar className="user-avatar">
               <AvatarImage
                 src="/default-avatar.png"
                 alt={getUserDisplayName()}
               />
-              <AvatarFallback className="bg-orange-100 text-orange-700 font-bold">
+              <AvatarFallback className="avatar-fallback">
                 {getInitial()}
               </AvatarFallback>
             </Avatar>
+            <div className="user-info">
+              <span className="user-name">{getUserDisplayName()}</span>
+              <span className="user-role">{getRoleDisplayName()}</span>
+            </div>
+            <ChevronDown
+              className={`chevron-icon ${showUserMenu ? "rotated" : ""}`}
+              size={16}
+            />
           </div>
 
           {/* User Dropdown Menu */}
           {showUserMenu && (
             <div className="user-dropdown">
-              <div
-                className="dropdown-item"
-                onClick={() => {
-                  setShowUserMenu(false);
-                  router.push("/profile");
-                }}
-              >
-                <div className="dropdown-icon">
-                  <User size={16} />
+              <div className="dropdown-header">
+                <Avatar className="dropdown-avatar">
+                  <AvatarImage
+                    src="/default-avatar.png"
+                    alt={getUserDisplayName()}
+                  />
+                  <AvatarFallback className="avatar-fallback">
+                    {getInitial()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="dropdown-user-info">
+                  <span className="dropdown-user-name">
+                    {getUserDisplayName()}
+                  </span>
+                  <span className="dropdown-user-email">{email}</span>
                 </div>
-                <span>Profile</span>
               </div>
-              <div className="dropdown-divider"></div>
-              <div className="dropdown-item logout-item" onClick={handleLogout}>
-                <div className="dropdown-icon">
-                  <LogOut size={16} />
+              <div className="dropdown-divider" />
+              <div className="dropdown-menu">
+                <div
+                  className="dropdown-item"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    router.push("/profile");
+                  }}
+                >
+                  <User size={18} />
+                  <span>My Profile</span>
                 </div>
-                <span>Logout</span>
+                <div
+                  className="dropdown-item"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    router.push("/settings");
+                  }}
+                >
+                  <Settings size={18} />
+                  <span>Settings</span>
+                </div>
+              </div>
+              <div className="dropdown-divider" />
+              <div className="dropdown-footer">
+                <div
+                  className="dropdown-item logout-item"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={18} />
+                  <span>Logout</span>
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </header>
   );
 };
 
