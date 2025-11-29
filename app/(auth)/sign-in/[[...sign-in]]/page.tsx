@@ -6,7 +6,17 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import { isAuthenticated } from "@/lib/auth";
-import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  FolderKanban,
+  ListTodo,
+  Video,
+  Sparkles,
+} from "lucide-react";
 import "../../../styles/auth.scss";
 
 export default function SignInPage() {
@@ -53,7 +63,7 @@ export default function SignInPage() {
       [name]: type === "checkbox" ? checked : value,
     }));
   };
-  
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log("Form submitted with email:", formData.email);
@@ -62,14 +72,14 @@ export default function SignInPage() {
     try {
       const result = await login({
         email: formData.email,
-        password: formData.password
+        password: formData.password,
       });
 
       console.log("Login result:", result);
 
       if (result.success) {
         console.log("Login successful!");
-        
+
         if (formData.rememberMe) {
           localStorage.setItem("rememberedEmail", formData.email);
         }
@@ -77,8 +87,11 @@ export default function SignInPage() {
         // Get redirect URL from query params, default to /dashboard
         const redirectUrl = searchParams.get("redirect") || "/dashboard";
         console.log("Login successful, redirecting to:", redirectUrl);
-        console.log("Current localStorage accessToken:", localStorage.getItem("accessToken")?.substring(0, 20) + "...");
-        
+        console.log(
+          "Current localStorage accessToken:",
+          localStorage.getItem("accessToken")?.substring(0, 20) + "..."
+        );
+
         // Use setTimeout to ensure state updates are processed
         setTimeout(() => {
           console.log("Pushing to:", redirectUrl);
@@ -86,11 +99,15 @@ export default function SignInPage() {
         }, 200);
       } else {
         console.log("Login failed:", result.error);
-        setError(result.error || "Login failed. Please check your credentials.");
+        setError(
+          result.error || "Login failed. Please check your credentials."
+        );
       }
     } catch (error: any) {
       console.error("Login error:", error);
-      setError(error.message || "An unexpected error occurred. Please try again.");
+      setError(
+        error.message || "An unexpected error occurred. Please try again."
+      );
     }
   };
 
@@ -99,7 +116,7 @@ export default function SignInPage() {
     return (
       <div className="auth-checking">
         <div className="loading-spinner"></div>
-        <p>Đang kiểm tra trạng thái đăng nhập...</p>
+        <p>Checking authentication status...</p>
         <style jsx>{`
           .auth-checking {
             display: flex;
@@ -109,20 +126,21 @@ export default function SignInPage() {
             height: 100vh;
             background: linear-gradient(
               135deg,
-              #f9f4ee 0%,
-              #fdf0d2 50%,
-              #ffdbbd 100%
+              #faf8f5 0%,
+              #ffffff 50%,
+              #f5f3f0 100%
             );
           }
 
           .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #e5e7eb;
-            border-top: 4px solid #ff5e13;
+            width: 44px;
+            height: 44px;
+            border: 4px solid #e8e5e0;
+            border-top: 4px solid #ff6b2c;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 16px;
+            box-shadow: 0 0 20px rgba(255, 107, 44, 0.15);
           }
 
           @keyframes spin {
@@ -135,9 +153,10 @@ export default function SignInPage() {
           }
 
           p {
-            color: #6b7280;
+            color: #666666;
             font-size: 14px;
             margin: 0;
+            font-weight: 500;
           }
         `}</style>
       </div>
@@ -149,30 +168,53 @@ export default function SignInPage() {
       <div className="login-content">
         {/* Left Side - Visual */}
         <div className="login-visual">
+          {/* Animated Network Nodes */}
+          <div className="network-nodes">
+            <div className="node"></div>
+            <div className="node"></div>
+            <div className="node"></div>
+            <div className="node"></div>
+            <div className="node"></div>
+            <div className="node"></div>
+          </div>
           <div className="visual-content">
             <div className="logo-container">
               <div className="logo-icon">
                 <Image src="/logo.png" alt="MSP Logo" width={60} height={60} />
               </div>
-              <h1 className="visual-title">Chào Mừng Trở Lại</h1>
+              <h1 className="visual-title">Welcome Back</h1>
               <p className="visual-subtitle">
-                Đăng nhập để tiếp tục quản lý cuộc họp kinh doanh của bạn
+                Sign in to continue managing your business meetings
               </p>
             </div>
 
-            <div className="visual-illustration">
-              <div className="floating-elements">
-                <div className="floating-card">
-                  <div className="card-icon">📅</div>
-                  <div className="card-text">Lập Lịch Thông Minh</div>
+            {/* Feature Cards */}
+            <div className="feature-cards">
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <FolderKanban size={24} color="#ff6b2c" />
                 </div>
-                <div className="floating-card">
-                  <div className="card-icon">🤝</div>
-                  <div className="card-text">Hợp Tác Nhóm</div>
+                <div className="feature-text">
+                  <h4>Project & Task Management</h4>
+                  <p>Organize and track your projects efficiently</p>
                 </div>
-                <div className="floating-card">
-                  <div className="card-icon">📊</div>
-                  <div className="card-text">Phân Tích Dữ Liệu</div>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <Video size={24} color="#ff6b2c" />
+                </div>
+                <div className="feature-text">
+                  <h4>Smart Meeting with Recording</h4>
+                  <p>Record meetings & auto-generate summaries</p>
+                </div>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <ListTodo size={24} color="#ff6b2c" />
+                </div>
+                <div className="feature-text">
+                  <h4>Auto To-Do & Task Conversion</h4>
+                  <p>Convert summaries to to-dos, then to tasks</p>
                 </div>
               </div>
             </div>
@@ -183,8 +225,8 @@ export default function SignInPage() {
         <div className="login-form-container">
           <div className="login-form-card">
             <div className="form-header">
-              <h2>Đăng Nhập</h2>
-              <p>Vui lòng đăng nhập để tiếp tục</p>
+              <h2>Sign In</h2>
+              <p>Please sign in to continue</p>
             </div>
 
             <form className="login-form" onSubmit={handleSubmit}>
@@ -198,30 +240,40 @@ export default function SignInPage() {
               <div className="form-group">
                 <label htmlFor="email">Email</label>
                 <div className="input-wrapper">
-                  <Mail className="input-icon" size={20} color="#FFA463" strokeWidth={2} />
+                  <Mail
+                    className="input-icon"
+                    size={20}
+                    color="#ff6b2c"
+                    strokeWidth={2}
+                  />
                   <input
                     type="email"
                     id="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    placeholder="Nhập email của bạn"
+                    placeholder="Enter your email"
                     required
                   />
                 </div>
               </div>
 
               <div className="form-group">
-                <label htmlFor="password">Mật Khẩu</label>
+                <label htmlFor="password">Password</label>
                 <div className="input-wrapper">
-                  <Lock className="input-icon" size={20} color="#FFA463" strokeWidth={2} />
+                  <Lock
+                    className="input-icon"
+                    size={20}
+                    color="#ff6b2c"
+                    strokeWidth={2}
+                  />
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    placeholder="Nhập mật khẩu của bạn"
+                    placeholder="Enter your password"
                     required
                   />
                   <button
@@ -231,9 +283,9 @@ export default function SignInPage() {
                     aria-label="Toggle password visibility"
                   >
                     {showPassword ? (
-                      <EyeOff size={20} color="#FFA463" strokeWidth={2} />
+                      <EyeOff size={20} color="#ff6b2c" strokeWidth={2} />
                     ) : (
-                      <Eye size={20} color="#FFA463" strokeWidth={2} />
+                      <Eye size={20} color="#ff6b2c" strokeWidth={2} />
                     )}
                   </button>
                 </div>
@@ -248,19 +300,23 @@ export default function SignInPage() {
                     onChange={handleInputChange}
                   />
                   <span className="checkmark"></span>
-                  Ghi nhớ đăng nhập
+                  Remember me
                 </label>
                 <Link href="/forgot-password" className="forgot-password">
-                  Quên mật khẩu?
+                  Forgot password?
                 </Link>
               </div>
 
-              <button type="submit" className="login-btn" disabled={authLoading}>
-                {authLoading ? <div className="loading-spinner" /> : "Đăng Nhập"}
+              <button
+                type="submit"
+                className="login-btn"
+                disabled={authLoading}
+              >
+                {authLoading ? <div className="loading-spinner" /> : "Sign In"}
               </button>
 
               <div className="divider">
-                <span>hoặc</span>
+                <span>or</span>
               </div>
 
               <div className="social-login">
@@ -283,13 +339,17 @@ export default function SignInPage() {
                       fill="#EA4335"
                     />
                   </svg>
-                  Tiếp tục với Google
+                  Continue with Google
                 </button>
               </div>
 
               <div className="register-section">
                 <p className="register-description">
-                  Chưa có tài khoản? <Link href="/sign-up" className="register-link">Đăng ký tài khoản doanh nghiệp</Link> để bắt đầu quản lý dự án và nhân sự của bạn.
+                  Don&apos;t have an account?{" "}
+                  <Link href="/sign-up" className="register-link">
+                    Sign up for a business account
+                  </Link>{" "}
+                  to start managing your projects and personnel.
                 </p>
               </div>
             </form>
