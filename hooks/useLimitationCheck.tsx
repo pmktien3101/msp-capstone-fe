@@ -39,7 +39,7 @@ export const useLimitationCheck = () => {
             </div>,
             {
               autoClose: 5000,
-              position: "top-center",
+              // position: "top-center",
             }
          );  
 
@@ -104,7 +104,7 @@ export const useMemberCountLimitationCheck = () => {
             </div>,
             {
               autoClose: 5000,
-              position: "top-center",
+              // position: "top-center",
             }
           );
           return false; // Exceeded limit
