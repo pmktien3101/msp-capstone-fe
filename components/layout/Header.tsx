@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/Avatar";
 import { useUser } from "@/hooks/useUser";
 import { UserRole } from "@/lib/rbac";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserDetail } from "@/contexts/UserContext";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { User, LogOut } from "lucide-react";
 import "@/app/styles/header.scss";
@@ -17,6 +18,7 @@ const Header = () => {
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const { userDetail } = useUserDetail();
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -105,7 +107,7 @@ const Header = () => {
           >
             <Avatar>
               <AvatarImage
-                src="/default-avatar.png"
+                src={userDetail?.avatarUrl || user?.avatarUrl}
                 alt={getUserDisplayName()}
               />
               <AvatarFallback className="bg-orange-100 text-orange-700 font-bold">

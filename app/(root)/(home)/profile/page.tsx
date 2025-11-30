@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { useState, useEffect } from "react";
-import { User, Building2, Camera, Save } from "lucide-react";
+import { User, Building2, Camera, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/Avatar";
 import { useUser } from "@/hooks/useUser";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserDetail } from "@/contexts/UserContext";
+import { uploadFileToCloudinary } from "@/services/uploadFileService";
+import { userService } from "@/services/userService";
+import { toast } from "react-toastify";
 
 type UserRole = "member" | "admin" | "business_owner" | "project_manager";
 
@@ -24,8 +28,8 @@ interface UserProfile {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  avatar?: string;
+  phoneNumber: string;
+  avatarUrl?: string;
   bio: string;
   role: UserRole | string;
   businessName?: string;
@@ -42,21 +46,25 @@ export default function ProfilePage() {
     role = "",
     avatarUrl = "",
     fullName = "",
+    phoneNumber = ""
   } = useUser();
   const { user } = useAuth();
+  const { userDetail, refreshUserDetail } = useUserDetail();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | undefined>(
     avatarUrl
   );
+  const [isSaving, setIsSaving] = useState(false);
+  const [originalProfile, setOriginalProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     setProfile({
       id: userId,
       name: fullName,
       email: email,
-      phone: user?.phoneNumber || "",
-      avatar: avatarUrl,
+      phoneNumber: userDetail?.phoneNumber || phoneNumber || "",
+      avatarUrl: avatarUrl,
       bio: "",
       role: role,
       businessName: "",
@@ -66,23 +74,81 @@ export default function ProfilePage() {
       projectCount: undefined,
     });
     setAvatarPreview(avatarUrl);
-  }, [userId, email, role, avatarUrl, fullName]);
+  }, [userId, email, role, avatarUrl, fullName, userDetail?.phoneNumber, phoneNumber]);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        setIsSaving(true);
+        // Upload to Cloudinary
+        const uploadedUrl = await uploadFileToCloudinary(file);
+        setAvatarPreview(uploadedUrl);
+        toast.success("Avatar uploaded successfully");
+      } catch (error) {
+        console.error("Error uploading avatar:", error);
+        toast.error("Failed to upload avatar");
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
-  const handleSave = () => {
-    if (profile) {
-      setProfile({ ...profile, avatar: avatarPreview });
-      setIsEditing(false);
+  const handleEditClick = () => {
+    if (isEditing) {
+      // Save mode
+      handleSave();
+    } else {
+      // Edit mode
+      setOriginalProfile(profile);
+      setIsEditing(true);
+    }
+  };
+
+  const handleCancel = () => {
+    setProfile(originalProfile);
+    setAvatarPreview(originalProfile?.avatarUrl);
+    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    if (!profile || !userId) return;
+
+    try {
+      setIsSaving(true);
+      
+      // Call API to update profile
+      const result = await userService.updateUserProfile(userId, {
+        fullName: profile.name,
+        phoneNumber: profile.phoneNumber,
+        avatarUrl: avatarPreview,
+      });
+
+      if (result.success) {
+        toast.success(result.message || "Profile updated successfully");
+        setIsEditing(false);
+        
+        // Update user store immediately with new data
+        const { setUserData } = useUser.getState();
+        setUserData({
+          userId,
+          email,
+          fullName: profile.name,
+          role,
+          avatarUrl: avatarPreview || avatarUrl,
+          phoneNumber: profile.phoneNumber,
+        });
+        
+        // Refresh user detail from API
+        await refreshUserDetail();
+      } else {
+        toast.error(result.error || "Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast.error("An error occurred while saving profile");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -191,23 +257,35 @@ export default function ProfilePage() {
                     )}
                   </div>
 
-                  <Button
-                    onClick={() =>
-                      isEditing ? handleSave() : setIsEditing(true)
-                    }
-                    className={`profile-action-button ${
-                      isEditing ? "editing" : ""
-                    }`}
-                  >
-                    {isEditing ? (
-                      <>
-                        <Save className="icon save-icon" />
-                        Save Changes
-                      </>
-                    ) : (
-                      "Edit Profile"
+                  <div className="profile-action-buttons">
+                    {isEditing && (
+                      <Button
+                        onClick={handleCancel}
+                        variant="outline"
+                        className="profile-cancel-button"
+                        disabled={isSaving}
+                      >
+                        <X className="icon cancel-icon" />
+                        Cancel
+                      </Button>
                     )}
-                  </Button>
+                    <Button
+                      onClick={handleEditClick}
+                      className={`profile-action-button ${
+                        isEditing ? "editing" : ""
+                      }`}
+                      disabled={isSaving}
+                    >
+                      {isEditing ? (
+                        <>
+                          <Save className="icon save-icon" />
+                          {isSaving ? "Saving..." : "Save Changes"}
+                        </>
+                      ) : (
+                        "Edit Profile"
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -259,9 +337,9 @@ export default function ProfilePage() {
                     <Input
                       id="phone"
                       type="tel"
-                      value={profile.phone}
+                      value={profile.phoneNumber}
                       onChange={(e) =>
-                        setProfile({ ...profile, phone: e.target.value })
+                        setProfile({ ...profile, phoneNumber: e.target.value })
                       }
                       disabled={!isEditing}
                       className="profile-input"
@@ -270,7 +348,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <div className="field-group">
+                {/* <div className="field-group">
                   <Label htmlFor="bio" className="profile-label">
                     Bio
                   </Label>
@@ -285,7 +363,7 @@ export default function ProfilePage() {
                     placeholder="Write a few lines about yourself..."
                     className="profile-textarea"
                   />
-                </div>
+                </div> */}
               </CardContent>
             </Card>
           </div>
@@ -516,6 +594,13 @@ export default function ProfilePage() {
           margin-top: 0.5rem;
         }
 
+        /* Action buttons container */
+        .profile-action-buttons {
+          display: flex;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+
         /* Action button */
         .profile-action-button {
           display: inline-flex;
@@ -530,12 +615,40 @@ export default function ProfilePage() {
           transition: transform 0.12s ease, box-shadow 0.12s ease;
           box-shadow: 0 8px 18px rgba(249, 115, 22, 0.18);
         }
-        .profile-action-button:hover {
+        .profile-action-button:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 12px 28px rgba(249, 115, 22, 0.18);
         }
+        .profile-action-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
         .profile-action-button.editing {
           background: linear-gradient(180deg, #f97316, #ea580c);
+        }
+
+        /* Cancel button */
+        .profile-cancel-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.6rem;
+          padding: 0.5rem 0.9rem;
+          border-radius: 0.55rem;
+          background: #fff;
+          color: #7c2d12;
+          border: 1px solid rgba(249, 115, 22, 0.3);
+          cursor: pointer;
+          transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+        }
+        .profile-cancel-button:hover:not(:disabled) {
+          background: #fff7ed;
+          border-color: rgba(249, 115, 22, 0.5);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 18px rgba(249, 115, 22, 0.1);
+        }
+        .profile-cancel-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         /* Form grid */
