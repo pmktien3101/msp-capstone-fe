@@ -269,6 +269,34 @@ export const userService = {
         } catch (error: any) {
             return { success: false, error: error.response?.data?.message || error.message || "Không thể xóa thành viên" };
         }
+    },
+
+    async updateUserProfile(userId: string, request: {
+        fullName?: string;
+        phoneNumber?: string;
+        avatarUrl?: string;
+    }): Promise<{ success: boolean; message?: string; error?: string }> {
+        try {
+            const response = await api.put(`/users/update-profile/${userId}`, request);
+            
+            if (response.data.success) {
+                return {
+                    success: true,
+                    message: response.data.message || 'Profile updated successfully'
+                };
+            } else {
+                return {
+                    success: false,
+                    error: response.data.message || 'Failed to update profile'
+                };
+            }
+        } catch (error: any) {
+            console.error('Update profile error:', error);
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Failed to update profile'
+            };
+        }
     }
 
 };

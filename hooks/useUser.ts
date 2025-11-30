@@ -13,6 +13,7 @@ interface UserState {
   fullName: string;
   role: string;
   avatarUrl: string;
+  phoneNumber: string;
   
   // Auth state
   isLoading: boolean;
@@ -24,6 +25,7 @@ interface UserState {
     fullName?: string;
     role: string;
     avatarUrl: string;
+    phoneNumber?: string;
   }) => void;
   clearUser: () => void;
   
@@ -46,6 +48,7 @@ export const useUser = create<UserState>()(
       fullName: "",
       role: "",
       avatarUrl: "",
+      phoneNumber: "",
       isLoading: false,
       
       setUserData: (data) => {
@@ -60,6 +63,7 @@ export const useUser = create<UserState>()(
           fullName: data.fullName || "",
           role: normalizedRole,
           avatarUrl: data.avatarUrl,
+          phoneNumber: data.phoneNumber || "",
         }));
       },
       
@@ -74,6 +78,7 @@ export const useUser = create<UserState>()(
           fullName: user.fullName,
           role: normalizedRole,
           avatarUrl: user.avatarUrl || "",
+          phoneNumber: (user as any).phoneNumber || "",
         }));
       },
       
@@ -86,6 +91,7 @@ export const useUser = create<UserState>()(
           fullName: "",
           role: "",
           avatarUrl: "",
+          phoneNumber: "",
           isLoading: false,
         }));
       },
@@ -117,6 +123,7 @@ export const useUser = create<UserState>()(
                 fullName: newUser.fullName,
                 role: newUser.role,
                 avatarUrl: newUser.avatarUrl,
+                phoneNumber: (newUser as any).phoneNumber || "",
               }));
               
               return {
@@ -174,6 +181,7 @@ export const useUser = create<UserState>()(
             fullName: "",
             role: "",
             avatarUrl: "",
+            phoneNumber: "",
             isLoading: false,
           }));
         } catch (error) {
@@ -186,6 +194,7 @@ export const useUser = create<UserState>()(
             fullName: "",
             role: "",
             avatarUrl: "",
+            phoneNumber: "",
             isLoading: false,
           }));
         }
@@ -208,7 +217,8 @@ export const useUser = create<UserState>()(
               email: result.user!.email,
               fullName: result.user!.fullName,
               role: normalizedRole,
-                  avatarUrl: result.user!.avatarUrl || "",
+              avatarUrl: result.user!.avatarUrl || "",
+              phoneNumber: (result.user as any)?.phoneNumber || "",
             }));
           } else {
             // If we can't get user data, clear the state
