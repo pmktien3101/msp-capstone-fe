@@ -99,7 +99,7 @@ export default function SignInPage() {
     return (
       <div className="auth-checking">
         <div className="loading-spinner"></div>
-        <p>Đang kiểm tra trạng thái đăng nhập...</p>
+        <p>Checking sign in status...</p>
         <style jsx>{`
           .auth-checking {
             display: flex;
@@ -154,9 +154,9 @@ export default function SignInPage() {
               <div className="logo-icon">
                 <Image src="/logo.png" alt="MSP Logo" width={60} height={60} />
               </div>
-              <h1 className="visual-title">Chào Mừng Trở Lại</h1>
+              <h1 className="visual-title">Welcome Back</h1>
               <p className="visual-subtitle">
-                Đăng nhập để tiếp tục quản lý cuộc họp kinh doanh của bạn
+                Sign in to continue managing your business meetings and projects.
               </p>
             </div>
 
@@ -183,8 +183,8 @@ export default function SignInPage() {
         <div className="login-form-container">
           <div className="login-form-card">
             <div className="form-header">
-              <h2>Đăng Nhập</h2>
-              <p>Vui lòng đăng nhập để tiếp tục</p>
+              <h2>Sign In</h2>
+              <p>Please sign in to continue</p>
             </div>
 
             <form className="login-form" onSubmit={handleSubmit}>
@@ -205,14 +205,14 @@ export default function SignInPage() {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    placeholder="Nhập email của bạn"
+                    placeholder="Enter your email"
                     required
                   />
                 </div>
               </div>
 
               <div className="form-group">
-                <label htmlFor="password">Mật Khẩu</label>
+                <label htmlFor="password">Password</label>
                 <div className="input-wrapper">
                   <Lock className="input-icon" size={20} color="#FFA463" strokeWidth={2} />
                   <input
@@ -221,7 +221,7 @@ export default function SignInPage() {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    placeholder="Nhập mật khẩu của bạn"
+                    placeholder="Enter your password"
                     required
                   />
                   <button
@@ -247,20 +247,20 @@ export default function SignInPage() {
                     checked={formData.rememberMe}
                     onChange={handleInputChange}
                   />
-                  <span className="checkmark"></span>
-                  Ghi nhớ đăng nhập
+                  {/* <span className="checkmark"></span>
+                  Ghi nhớ đăng nhập */}
                 </label>
                 <Link href="/forgot-password" className="forgot-password">
-                  Quên mật khẩu?
+                  Forgot password?
                 </Link>
               </div>
 
               <button type="submit" className="login-btn" disabled={authLoading}>
-                {authLoading ? <div className="loading-spinner" /> : "Đăng Nhập"}
+                {authLoading ? <div className="loading-spinner" /> : "Sign In"}
               </button>
 
               <div className="divider">
-                <span>hoặc</span>
+                <span>Or</span>
               </div>
 
               <div className="social-login">
@@ -283,13 +283,13 @@ export default function SignInPage() {
                       fill="#EA4335"
                     />
                   </svg>
-                  Tiếp tục với Google
+                  Continue with Google
                 </button>
               </div>
 
               <div className="register-section">
                 <p className="register-description">
-                  Chưa có tài khoản? <Link href="/sign-up" className="register-link">Đăng ký tài khoản doanh nghiệp</Link> để bắt đầu quản lý dự án và nhân sự của bạn.
+                  Don’t have an account? <Link href="/sign-up" className="register-link">Sign up for a business account</Link> to start managing your projects and team members.
                 </p>
               </div>
             </form>
