@@ -32,9 +32,10 @@ interface MilestoneListViewProps {
   project: Project;
   refreshKey?: number;
   onCreateMilestone?: () => void;
+  readOnly?: boolean;
 }
 
-export const MilestoneListView = ({ project, refreshKey, onCreateMilestone }: MilestoneListViewProps) => {
+export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, readOnly = false }: MilestoneListViewProps) => {
   const { hasRole } = useAuth();
   const [milestones, setMilestones] = useState<MilestoneBackend[]>([]);
   const [tasks, setTasks] = useState<GetTaskResponse[]>([]);
@@ -49,7 +50,7 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone }: Mi
 
   // Check if user is Member (read-only mode)
   const isMemberRole = hasRole(UserRole.MEMBER);
-  const canEdit = hasRole(UserRole.PROJECT_MANAGER) || hasRole(UserRole.ADMIN);
+  const canEdit = !readOnly && (hasRole(UserRole.PROJECT_MANAGER) || hasRole(UserRole.ADMIN));
 
   // Pagination
   const {

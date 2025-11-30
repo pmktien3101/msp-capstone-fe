@@ -28,9 +28,10 @@ import {
 
 interface ProjectDocumentsProps {
   project: Project;
+  readOnly?: boolean;
 }
 
-export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
+export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocumentsProps) => {
   const userState = useUser();
   const currentUser = {
     id: userState.userId,
@@ -299,34 +300,36 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
             Manage and share project-related documents
           </p>
         </div>
-        <Button
-          onClick={() => setShowUploadModal(true)}
-          style={{
-            background: 'transparent',
-            color: '#FF5E13',
-            border: '1px solid #FF5E13',
-            borderRadius: '8px',
-            padding: '10px 20px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#FF5E13';
-            e.currentTarget.style.color = 'white';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = '#FF5E13';
-          }}
-        >
-          <Upload size={16} />
-          Upload Document
-        </Button>
+        {!readOnly && (
+          <Button
+            onClick={() => setShowUploadModal(true)}
+            style={{
+              background: 'transparent',
+              color: '#FF5E13',
+              border: '1px solid #FF5E13',
+              borderRadius: '8px',
+              padding: '10px 20px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#FF5E13';
+              e.currentTarget.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = '#FF5E13';
+            }}
+          >
+            <Upload size={16} />
+            Upload Document
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -515,47 +518,53 @@ export const ProjectDocuments = ({ project }: ProjectDocumentsProps) => {
                   <Download size={14} />
                   Download
                 </Button>
-                <Button
-                  onClick={() => handleDelete(document)}
-                  style={{
-                    background: '#fef2f2',
-                    color: '#dc2626',
-                    border: '1px solid #fecaca',
-                    borderRadius: '6px',
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <Trash2 size={14} />
-                  Delete
-                </Button>
-                <Button
-                  onClick={() => {
-                    setEditingDocument(document);
-                    setEditName(document.name);
-                    setEditDescription(document.description || '');
-                    setShowEditModal(true);
-                  }}
-                  style={{
-                    background: '#f3f4f6',
-                    color: '#374151',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <FileText size={14} />
-                  Edit
-                </Button>
+                
+                {/* Only show Delete and Edit buttons if current user is the owner */}
+                {currentUser.id === document.ownerId && !readOnly && (
+                  <>
+                    <Button
+                      onClick={() => handleDelete(document)}
+                      style={{
+                        background: '#fef2f2',
+                        color: '#dc2626',
+                        border: '1px solid #fecaca',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setEditingDocument(document);
+                        setEditName(document.name);
+                        setEditDescription(document.description || '');
+                        setShowEditModal(true);
+                      }}
+                      style={{
+                        background: '#f3f4f6',
+                        color: '#374151',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <FileText size={14} />
+                      Edit
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           ))

@@ -154,7 +154,8 @@ export function AddMemberModal({
           name: selectedUser.fullName,
           email: selectedUser.email,
           role: selectedUser.role || selectedUser.roleName || 'Member',
-          avatar: selectedUser.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+          avatar: selectedUser.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase(),
+          avatarUrl: selectedUser.avatarUrl || null
         };
         
         onAddMember(newMember);
@@ -251,7 +252,11 @@ export function AddMemberModal({
                 {existingMembers.map((member, index) => (
                   <div key={member.id || (member as any).userId || `existing-${index}`} className="member-item">
                     <div className="member-avatar existing">
-                      {member.avatar}
+                      {(member as any).avatarUrl ? (
+                        <img src={(member as any).avatarUrl} alt={member.name} />
+                      ) : (
+                        member.avatar
+                      )}
                     </div>
                     <div className="member-info">
                       <div className="member-name">{member.name}</div>
@@ -286,7 +291,11 @@ export function AddMemberModal({
                       onClick={() => !adding && handleAddMember(availableUser)}
                     >
                       <div className="member-avatar available">
-                        {availableUser.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                        {availableUser.avatarUrl ? (
+                          <img src={availableUser.avatarUrl} alt={availableUser.fullName} />
+                        ) : (
+                          availableUser.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+                        )}
                       </div>
                       <div className="member-info">
                         <div className="member-name">{availableUser.fullName}</div>

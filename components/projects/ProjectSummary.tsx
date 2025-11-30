@@ -18,9 +18,10 @@ import '@/app/styles/project-summary.scss';
 
 interface ProjectSummaryProps {
   project: Project;
+  readOnly?: boolean;
 }
 
-export function ProjectSummary({ project }: ProjectSummaryProps) {
+export function ProjectSummary({ project, readOnly = false }: ProjectSummaryProps) {
   const [projectMilestones, setProjectMilestones] = useState<MilestoneBackend[]>([]);
   const [projectTasks, setProjectTasks] = useState<GetTaskResponse[]>([]);
   const [projectMembers, setProjectMembers] = useState<any[]>([]);

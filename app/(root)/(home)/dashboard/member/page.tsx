@@ -81,7 +81,16 @@ export default function MemberDashboardPage() {
         // Map MeetingItem -> UI shape used by this page
         const now = new Date();
         const upcoming = allMeetings
-          .filter((m) => m && m.startTime)
+          .filter((m) => {
+            // Only show scheduled/ongoing meetings with valid startTime
+            if (!m || !m.startTime) return false;
+            const status = m.status?.toLowerCase();
+            if (status === 'finished' || status === 'cancel') return false;
+            
+            // Filter meetings where current user is an attendee
+            const isAttendee = m.attendees?.some((a: any) => a.id === userId || a.email === email);
+            return isAttendee;
+          })
           .map((m) => {
             const start = new Date(m.startTime);
             const end = m.endTime ? new Date(m.endTime) : undefined;
@@ -91,7 +100,7 @@ export default function MemberDashboardPage() {
               date: start.toISOString(),
               time: end
                 ? `${start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}`
-                : `${start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}`,
+                : start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
               location: m.recordUrl || m.projectName || "Online",
               attendees: (m.attendees || []).map((a: any) => a.fullName || a.email || a.id),
             };

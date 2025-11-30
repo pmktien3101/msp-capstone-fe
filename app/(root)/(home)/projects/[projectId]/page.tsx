@@ -425,18 +425,6 @@ const ProjectDetailPage = () => {
             </div>
           </div>
         </div>
-        <div className="project-actions">
-          {activeTab === "board" && canCreateMilestone && (
-            <button 
-              className="create-milestone-btn"
-              onClick={handleCreateMilestone}
-              title="Create new milestone"
-            >
-              <Plus size={16} />
-              Create Milestone
-            </button>
-          )}
-        </div>
       </div>
 
       <ProjectTabs 

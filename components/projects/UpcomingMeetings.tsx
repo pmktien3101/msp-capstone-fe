@@ -1,13 +1,46 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
-import { mockMeetings, mockMembers } from '@/constants/mockData';
+import { meetingService } from '@/services/meetingService';
+import { MeetingItem } from '@/types/meeting';
 
 interface UpcomingMeetingsProps {
   project: Project;
 }
 
 export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
+  const [meetings, setMeetings] = useState<MeetingItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch meetings from API
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      if (!project?.id) return;
+      
+      try {
+        setLoading(true);
+        const response = await meetingService.getMeetingsByProjectId(project.id);
+        
+        if (response.success && response.data) {
+          // Filter only scheduled meetings and sort by start time
+          const scheduledMeetings = response.data
+            .filter((meeting: MeetingItem) => meeting.status === 'Scheduled' && meeting.startTime)
+            .sort((a: MeetingItem, b: MeetingItem) => 
+              new Date(a.startTime!).getTime() - new Date(b.startTime!).getTime()
+            );
+          setMeetings(scheduledMeetings);
+        }
+      } catch (error) {
+        console.error('Error fetching meetings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMeetings();
+  }, [project?.id]);
+
   // Check if project exists
   if (!project) {
     return (
@@ -25,21 +58,6 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
     );
   }
 
-  // Lấy thông tin member
-  const getMemberInfo = (memberId: string) => {
-    return mockMembers.find(member => member.id === memberId);
-  };
-
-  // Lọc các cuộc họp sắp tới (Scheduled) cho dự án cụ thể
-  const upcomingMeetings = mockMeetings.filter(meeting => 
-    meeting.status === 'Scheduled' && meeting.projectId === project.id
-  );
-
-  // Sắp xếp theo thời gian bắt đầu
-  const sortedMeetings = upcomingMeetings.sort((a, b) => 
-    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-  );
-
   const formatDateTime = (dateTime: string) => {
     const date = new Date(dateTime);
     return {
@@ -52,13 +70,6 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
     };
   };
 
-  const getParticipantNames = (participantIds: string[]) => {
-    return participantIds.map(id => {
-      const member = getMemberInfo(id);
-      return member ? member.name : 'Unknown';
-    });
-  };
-
   return (
     <div className="upcoming-meetings">
       <div className="section-header">
@@ -69,11 +80,16 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
       </div>
 
       <div className="meetings-content">
-        {sortedMeetings.length > 0 ? (
+        {loading ? (
+          <div className="loading-state">
+            <p>Loading meetings...</p>
+          </div>
+        ) : meetings.length > 0 ? (
           <div className="meetings-list">
-            {sortedMeetings.map((meeting) => {
+            {meetings.map((meeting) => {
+              if (!meeting.startTime) return null;
               const { date, time } = formatDateTime(meeting.startTime);
-              const participants = getParticipantNames(meeting.participants || []);
+              const participantCount = meeting.attendees?.length || 0;
               
               return (
                 <div key={meeting.id} className="meeting-item">
@@ -105,22 +121,23 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
                     
                     <div className="meeting-participants">
                       <div className="participants-avatars">
-                        {participants.slice(0, 4).map((name, index) => {
-                          const member = mockMembers.find(m => m.name === name);
-                          return (
-                            <div key={index} className="participant-avatar" title={name}>
-                              {member ? member.avatar : name.charAt(0)}
-                            </div>
-                          );
-                        })}
-                        {participants.length > 4 && (
-                          <div className="participant-more" title={`+${participants.length - 4} more`}>
-                            +{participants.length - 4}
+                        {meeting.attendees?.slice(0, 4).map((attendee, index) => (
+                          <div key={index} className="participant-avatar" title={attendee.fullName}>
+                            {attendee.avatarUrl ? (
+                              <img src={attendee.avatarUrl} alt={attendee.fullName} />
+                            ) : (
+                              attendee.fullName?.charAt(0) || '?'
+                            )}
+                          </div>
+                        ))}
+                        {participantCount > 4 && (
+                          <div className="participant-more" title={`+${participantCount - 4} more`}>
+                            +{participantCount - 4}
                           </div>
                         )}
                       </div>
                       <div className="participants-count">
-                        {participants.length} {participants.length === 1 ? 'participant' : 'participants'}
+                        {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
                       </div>
                     </div>
                   </div>
@@ -357,6 +374,13 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
           border: 1px solid white;
           margin-left: -3px;
           box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+          overflow: hidden;
+        }
+
+        .participant-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
 
         .participant-avatar:first-child {
@@ -410,6 +434,19 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
           background: linear-gradient(135deg, #fbbf24, #f59e0b);
           box-shadow: 0 2px 8px rgba(251, 146, 60, 0.4);
           transform: translateY(-1px);
+        }
+
+        .loading-state {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 20px;
+          text-align: center;
+        }
+
+        .loading-state p {
+          color: #6b7280;
+          font-size: 14px;
         }
 
         .no-meetings {

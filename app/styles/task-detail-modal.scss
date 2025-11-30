@@ -251,17 +251,18 @@
     }
 
     .comment-avatar {
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: linear-gradient(135deg, #ff5e13, #ff8c42);
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 600;
       flex-shrink: 0;
+      overflow: hidden;
     }
 
     .comment-content {
@@ -358,13 +359,15 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
+      background: linear-gradient(135deg, #ff5e13, #ff8c42);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 14px;
-      font-weight: bold;
+      font-weight: 600;
       flex-shrink: 0;
       color: white;
+      overflow: hidden;
     }
 
     .history-content {

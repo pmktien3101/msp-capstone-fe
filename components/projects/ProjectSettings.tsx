@@ -136,7 +136,8 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
               name: pm.member.fullName || 'Unknown',
               email: pm.member.email || '',
               role: pm.member.role || 'Member',
-              avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase()
+              avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase(),
+              avatarUrl: pm.member.avatarUrl || null
             }));
           
           setMembers(transformedMembers);
@@ -192,7 +193,8 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             name: pm.member.fullName || 'Unknown',
             email: pm.member.email || '',
             role: pm.member.role || 'Member',
-            avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase()
+            avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase(),
+            avatarUrl: pm.member.avatarUrl || null
           }));
         setMembers(transformedMembers);
       }
@@ -359,7 +361,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             <div className="form-group">
               <label className="form-label">
                 <User size={14} />
-                Project Owner
+                Business Owner
               </label>
               <input
                 type="text"
@@ -428,7 +430,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
           )}
         </div>
 
-        <div className="settings-section">
+        {/* <div className="settings-section">
           <div className="section-header">
             <div className="section-icon">
               <Bell size={16} color="white" />
@@ -488,7 +490,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             </label>
             </div>
           </div>
-        </div>
+        </div> */}
 
         <div className="settings-section">
           <div className="section-header">
@@ -547,7 +549,13 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                   })
                   .map((member) => (
                     <div key={member.id} className="member-card">
-                      <div className="member-avatar">{member.avatar}</div>
+                      <div className="member-avatar">
+                        {(member as any).avatarUrl ? (
+                          <img src={(member as any).avatarUrl} alt={member.name} />
+                        ) : (
+                          member.avatar
+                        )}
+                      </div>
                       <div className="member-info">
                         <div className="member-name">{member.name}</div>
                         <div className="member-role">{member.role}</div>

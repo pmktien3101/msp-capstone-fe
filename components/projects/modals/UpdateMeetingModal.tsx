@@ -106,6 +106,30 @@ export const UpdateMeetingModal = ({
     }));
   };
 
+  // Load projects if requireProjectSelection is true
+  useEffect(() => {
+    const loadProjects = async () => {
+      if (!requireProjectSelection) return;
+
+      try {
+        const projectsResult = await projectService.getAllProjects();
+        if (projectsResult.success && projectsResult.data) {
+          setProjects(
+            projectsResult.data.items?.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+            })) || []
+          );
+        }
+      } catch (error: any) {
+        toast.error("Unable to load projects");
+        setProjects([]);
+      }
+    };
+
+    loadProjects();
+  }, [requireProjectSelection]);
+
   useEffect(() => {
     const loadParticipantsAndMilestones = async () => {
       if (!selectedProjectId) {

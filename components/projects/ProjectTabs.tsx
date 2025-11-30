@@ -22,6 +22,7 @@ import { MeetingTab } from "./MeetingTab";
 import { ProjectDocuments } from "./ProjectDocuments";
 import { BiTask } from "react-icons/bi";
 import { useSearchParams } from "next/navigation";
+import { useUser } from "@/hooks/useUser";
 
 interface ProjectTabsProps {
   project: Project;
@@ -51,6 +52,10 @@ export const ProjectTabs = ({
   onCreateMilestone,
 }: ProjectTabsProps) => {
   const [activeTab, setActiveTab] = useState(initialActiveTab);
+  const { role } = useUser();
+  
+  // Check if user is Business (read-only for all tabs except settings)
+  const isBusiness = role?.toLowerCase() === 'business' || role?.toLowerCase() === 'businessowner';
 
   // Get initial tab from URL query parameter
   const searchParams = useSearchParams();
@@ -120,24 +125,25 @@ export const ProjectTabs = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case "summary":
-        return <ProjectSummary project={project} />;
+        return <ProjectSummary project={project} readOnly={isBusiness} />;
       case "board":
         return (
           <ProjectTaskTable
             project={project}
             onTaskClick={onTaskClick}
-            onCreateTask={onCreateTask}
-            onDeleteTask={onDeleteTask}
-            onEditTask={onEditTask}
+            onCreateTask={isBusiness ? undefined : onCreateTask}
+            onDeleteTask={isBusiness ? undefined : onDeleteTask}
+            onEditTask={isBusiness ? undefined : onEditTask}
             refreshKey={refreshKey}
+            readOnly={isBusiness}
           />
         );
       case "list":
-        return <ProjectList project={project} refreshKey={refreshKey} onCreateMilestone={onCreateMilestone} />;
+        return <ProjectList project={project} refreshKey={refreshKey} onCreateMilestone={isBusiness ? undefined : onCreateMilestone} readOnly={isBusiness} />;
       case "documents":
-        return <ProjectDocuments project={project} />;
+        return <ProjectDocuments project={project} readOnly={isBusiness} />;
       case "meetings":
-        return <MeetingTab project={project} />;
+        return <MeetingTab project={project} readOnly={isBusiness} />;
       // case "reports":
       //   return <ProjectReports project={project} />;
       case "settings":

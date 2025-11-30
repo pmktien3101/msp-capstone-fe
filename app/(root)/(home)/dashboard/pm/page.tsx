@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Project } from '@/types/project';
 import { ProjectPortfolioOverview } from '@/components/dashboard/ProjectPortfolioOverview';
 import { ProjectHighlights } from '@/components/dashboard/ProjectHighlights';
-import { ProjectVisualization } from '@/components/dashboard/ProjectVisualization';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { projectService } from '@/services/projectService';
 import { taskService } from '@/services/taskService';
@@ -127,7 +126,7 @@ export default function DashboardPage() {
           <ProjectPortfolioOverview projects={projects} tasks={allTasks} />
         </div>
 
-        {/* Middle Section - Highlights and Visualization */}
+        {/* Middle Section - Highlights and Quick Actions */}
         <div className="dashboard-section">
           <div className="dashboard-grid">
             <div className="grid-item">
@@ -138,19 +137,9 @@ export default function DashboardPage() {
               />
             </div>
             <div className="grid-item">
-              <ProjectVisualization 
-                projects={projects} 
-                tasks={allTasks} 
-                milestones={allMilestones} 
-              />
+              <QuickActions projects={projects} />
             </div>
           </div>
-        </div>
-
-
-        {/* Quick Actions */}
-        <div className="dashboard-section">
-          <QuickActions projects={projects} />
         </div>
       </div>
     </>

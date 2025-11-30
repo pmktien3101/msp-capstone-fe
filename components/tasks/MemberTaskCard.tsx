@@ -63,7 +63,7 @@ export function MemberTaskCard({ task, index = 0 }: MemberTaskCardProps) {
                 <FolderOpen size={14} />
               </div>
               <div className="info-content">
-                <span className="info-label">Dự án</span>
+                <span className="info-label">Project</span>
                 <span className="info-value">{task.project || 'N/A'}</span>
               </div>
             </div>
@@ -74,7 +74,7 @@ export function MemberTaskCard({ task, index = 0 }: MemberTaskCardProps) {
                   <CalendarDays size={14} />
                 </div>
                 <div className="info-content">
-                  <span className="info-label">Hạn chót</span>
+                  <span className="info-label">Deadline</span>
                   <span className="info-value">{new Date(task.dueDate).toLocaleDateString('vi-VN')}</span>
                 </div>
               </div>

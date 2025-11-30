@@ -43,9 +43,11 @@ export const TaskDetailModal = ({
   
   // Check if member can edit this task
   const isMember = user?.role === 'Member';
+  const isBusiness = user?.role?.toLowerCase() === 'business' || user?.role?.toLowerCase() === 'businessowner';
   const isTaskAssignedToUser = task?.userId === user?.userId;
   const isTaskLocked = task?.status === 'ReadyToReview' || task?.status === 'Done' || task?.status === 'Cancelled';
   const canMemberEdit = isMember ? (isTaskAssignedToUser && !isTaskLocked) : true;
+  const canEdit = !isBusiness && canMemberEdit;
   
   const [editedTask, setEditedTask] = useState({
     title: task?.title || "",
@@ -425,7 +427,7 @@ export const TaskDetailModal = ({
             {/* Title */}
             <div className="field-group">
               <label className="field-label">Title</label>
-              {mode === "edit" && canMemberEdit ? (
+              {mode === "edit" && canEdit ? (
                 <input
                   type="text"
                   className="field-input"
@@ -441,7 +443,7 @@ export const TaskDetailModal = ({
             {/* Description */}
             <div className="field-group">
               <label className="field-label">Description</label>
-              {mode === "edit" && canMemberEdit ? (
+              {mode === "edit" && canEdit ? (
                 <textarea
                   className="field-textarea"
                   value={editedTask.description}
@@ -497,24 +499,26 @@ export const TaskDetailModal = ({
                           const author = comment.user?.fullName || comment.user?.email || 'Unknown';
                           const initials = getUserInitials(author);
                           const avatarColor = getAvatarColor(author);
+                          const avatarUrl = comment.user?.avatarUrl;
                           const canEdit = user?.userId === comment.userId;
                           const isEditing = editingCommentId === comment.id;
 
                           return (
                             <div key={comment.id} className="comment-item">
-                              <div 
-                                className="comment-avatar" 
-                                style={{
-                                  backgroundColor: avatarColor,
-                                  color: 'white',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontWeight: 'bold',
-                                  fontSize: '14px'
-                                }}
-                              >
-                                {initials}
+                              <div className="comment-avatar">
+                                {avatarUrl ? (
+                                  <img 
+                                    src={avatarUrl} 
+                                    alt={author}
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover'
+                                    }}
+                                  />
+                                ) : (
+                                  initials
+                                )}
                               </div>
                               <div className="comment-content" style={{ flex: 1 }}>
                                 <div className="comment-header">
@@ -643,12 +647,14 @@ export const TaskDetailModal = ({
                           const userName = item.changedBy?.fullName || 'Unknown';
                           const initials = getUserInitials(userName);
                           const avatarColor = getAvatarColor(userName);
+                          const avatarUrl = item.changedBy?.avatarUrl;
                           const actionText = getHistoryActionText(item);
                           
                           // Render different content based on action type
                           let detailContent = null;
 
                           if (item.action === 'Assigned' || item.action === 'Reassigned') {
+                            const toUserAvatarUrl = item.toUser?.avatarUrl;
                             detailContent = (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                                 <span>{item.fromUser?.fullName || 'Unassigned'}</span>
@@ -659,15 +665,28 @@ export const TaskDetailModal = ({
                                       width: '24px',
                                       height: '24px',
                                       borderRadius: '50%',
-                                      backgroundColor: getAvatarColor(item.toUser.fullName),
+                                      background: 'linear-gradient(135deg, #ff5e13, #ff8c42)',
                                       color: 'white',
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
                                       fontSize: '10px',
-                                      fontWeight: 'bold'
+                                      fontWeight: '600',
+                                      overflow: 'hidden'
                                     }}>
-                                      {getUserInitials(item.toUser.fullName)}
+                                      {toUserAvatarUrl ? (
+                                        <img 
+                                          src={toUserAvatarUrl} 
+                                          alt={item.toUser.fullName}
+                                          style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover'
+                                          }}
+                                        />
+                                      ) : (
+                                        getUserInitials(item.toUser.fullName)
+                                      )}
                                     </div>
                                     <span>{item.toUser.fullName}</span>
                                   </div>
@@ -719,20 +738,20 @@ export const TaskDetailModal = ({
 
                           return (
                             <div key={item.id} className="history-item">
-                              <div className="history-avatar" style={{
-                                width: '40px',
-                                height: '40px',
-                                borderRadius: '50%',
-                                backgroundColor: avatarColor,
-                                color: 'white',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '14px',
-                                fontWeight: 'bold',
-                                flexShrink: 0
-                              }}>
-                                {initials}
+                              <div className="history-avatar">
+                                {avatarUrl ? (
+                                  <img 
+                                    src={avatarUrl} 
+                                    alt={userName}
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'cover'
+                                    }}
+                                  />
+                                ) : (
+                                  initials
+                                )}
                               </div>
                               <div className="history-content">
                                 <div style={{ marginBottom: '4px' }}>
@@ -766,7 +785,7 @@ export const TaskDetailModal = ({
                 className="info-select"
                 value={editedTask.status}
                 onChange={(e) => handleUpdateField("status", e.target.value)}
-                disabled={mode === "view" || !canMemberEdit}
+                disabled={mode === "view" || !canEdit}
               >
                 {/* If current status is ReOpened and user is member, show it as disabled option */}
                 {isMember && editedTask.status === "ReOpened" && (
@@ -790,7 +809,7 @@ export const TaskDetailModal = ({
                 className="info-select"
                 value={editedTask.userId}
                 onChange={(e) => handleUpdateField("userId", e.target.value)}
-                disabled={isLoadingData || mode === "view" || !canMemberEdit}
+                disabled={isLoadingData || mode === "view" || !canEdit}
               >
                 <option value="">Unassigned</option>
                 {members.map((member) => (
@@ -811,7 +830,7 @@ export const TaskDetailModal = ({
                 className="info-select"
                 value={editedTask.reviewerId}
                 onChange={(e) => handleUpdateField("reviewerId", e.target.value)}
-                disabled={isLoadingData || mode === "view" || !canMemberEdit}
+                disabled={isLoadingData || mode === "view" || !canEdit}
               >
                 <option value="">No reviewer</option>
                 {reviewers.map((reviewer) => (
@@ -841,7 +860,7 @@ export const TaskDetailModal = ({
                       handleUpdateField("startDate", "");
                     }
                   }}
-                  disabled={mode === "view" || !canMemberEdit}
+                  disabled={mode === "view" || !canEdit}
                   style={{ colorScheme: 'light' }}
                 />
               </div>
@@ -866,7 +885,7 @@ export const TaskDetailModal = ({
                       handleUpdateField("endDate", "");
                     }
                   }}
-                  disabled={mode === "view" || !canMemberEdit}
+                  disabled={mode === "view" || !canEdit}
                   style={{ colorScheme: 'light' }}
                 />
               </div>
@@ -899,7 +918,7 @@ export const TaskDetailModal = ({
                             : editedTask.milestoneIds.filter((id: string) => id !== milestone.id);
                           handleUpdateField("milestoneIds", newMilestoneIds);
                         }}
-                        disabled={mode === "view" || !canMemberEdit}
+                        disabled={mode === "view" || !canEdit}
                       />
                       <span>{milestone.name}</span>
                     </label>
@@ -915,7 +934,7 @@ export const TaskDetailModal = ({
           <button className="cancel-btn" onClick={onClose}>
             Cancel
           </button>
-          {mode === "edit" && canMemberEdit && (
+          {mode === "edit" && canEdit && (
             <button className="save-btn" onClick={handleSaveTask}>
               Save Changes
             </button>

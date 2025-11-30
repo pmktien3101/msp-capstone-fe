@@ -16,6 +16,7 @@ import { useStreamVideoClient } from "@stream-io/video-react-sdk";
 
 interface MeetingTabProps {
   project: Project;
+  readOnly?: boolean;
 }
 
 function useProjectMeetings(projectId: string) {
@@ -37,7 +38,7 @@ function useProjectMeetings(projectId: string) {
   return { meetings, isLoading, refetch: fetchMeetings };
 }
 
-export const MeetingTab = ({ project }: MeetingTabProps) => {
+export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingItem | null>(
@@ -205,7 +206,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
           <h3>Project Meetings</h3>
           <p>Manage meetings for project {project.name}</p>
         </div>
-        {!isMember && (
+        {!isMember && !readOnly && (
           <Button
             onClick={() => {
               if (checkMeetingLimitation()) {
@@ -497,7 +498,8 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                     </button>
                     {meeting.status !== "Finished" &&
                       meeting.status !== "Cancelled" &&
-                      !isMember && (
+                      !isMember && 
+                      !readOnly && (
                         <button
                           className="action-btn edit-btn"
                           title="Update"
@@ -507,6 +509,7 @@ export const MeetingTab = ({ project }: MeetingTabProps) => {
                         </button>
                       )}
                     {!isMember &&
+                      !readOnly &&
                       meeting.status !== "Cancelled" &&
                       meeting.status !== "Finished" && (
                         <button

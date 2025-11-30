@@ -22,6 +22,7 @@ interface ProjectTaskTableProps {
   onDeleteTask?: (taskId: string, taskTitle: string) => void;
   onEditTask?: (task: any) => void;
   refreshKey?: number;
+  readOnly?: boolean;
 }
 
 // Calculate overdue days
@@ -48,6 +49,7 @@ export const ProjectTaskTable = ({
   onDeleteTask,
   onEditTask,
   refreshKey = 0,
+  readOnly = false,
 }: ProjectTaskTableProps) => {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
@@ -453,7 +455,7 @@ export const ProjectTaskTable = ({
         quickFilter={quickFilter}
         onQuickFilterChange={setQuickFilter}
       />
-      {isProjectManager && (
+      {isProjectManager && !readOnly && (
         <div className="create-task-container">
           <button onClick={handleCreateTask}>Create New Task</button>
         </div>
@@ -469,7 +471,7 @@ export const ProjectTaskTable = ({
         ) : tasks.length === 0 ? (
           <div className="empty-state">
             <p>No tasks in this project yet</p>
-          {isProjectManager && (
+          {isProjectManager && !readOnly && (
             <div className="create-task-container">
               <button onClick={handleCreateTask}>Create New Task</button>
             </div>
@@ -550,8 +552,8 @@ export const ProjectTaskTable = ({
                           </td>
                           <td className="actions-cell">
                             <div className="action-buttons">
-                            {/* Member sees View icon, PM/BO sees Delete icon */}
-                            {isMember ? (
+                            {/* Member or readOnly sees View icon, PM/BO sees Delete icon */}
+                            {isMember || readOnly ? (
                               <button
                                 className="action-btn view-btn"
                                 onClick={(e) => {

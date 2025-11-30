@@ -31,7 +31,8 @@ const formSchema = z.object({
 interface MeetingFormProps {
   onClose?: () => void;
   onCreated?: (call: Call | any) => void;
-  projectId: string;
+  projectId?: string;
+  requireProjectSelection?: boolean;
 }
 
 interface ProjectMemberResponse {
@@ -61,7 +62,8 @@ interface Milestone {
 export default function MeetingForm({
   onClose,
   onCreated,
-  projectId,
+  projectId: initialProjectId,
+  requireProjectSelection = false,
 }: MeetingFormProps) {
   const { userId } = useUser();
   const client = useStreamVideoClient();
@@ -75,6 +77,9 @@ export default function MeetingForm({
   const [isCreating, setIsCreating] = useState(false);
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
   const [isLoadingMilestones, setIsLoadingMilestones] = useState(false);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId || "");
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -109,16 +114,38 @@ export default function MeetingForm({
     }));
   };
 
+  // Fetch projects list if requireProjectSelection is true
+  useEffect(() => {
+    async function fetchProjects() {
+      if (!requireProjectSelection) return;
+
+      setIsLoadingProjects(true);
+      try {
+        const projectsResult = await projectService.getAllProjects();
+        if (projectsResult.success && projectsResult.data) {
+          setProjects(projectsResult.data.items || []);
+        }
+      } catch (error) {
+        console.error("Error loading projects:", error);
+      } finally {
+        setIsLoadingProjects(false);
+      }
+    }
+    fetchProjects();
+  }, [requireProjectSelection]);
+
+  // Fetch project members and milestones when project is selected
   useEffect(() => {
     const loadData = async () => {
-      if (!projectId) {
-        toast.error("No project ID");
+      if (!selectedProjectId) {
+        setParticipants([]);
+        setMilestones([]);
         return;
       }
       setIsLoadingParticipants(true);
       setIsLoadingMilestones(true);
       try {
-        const membersResult = await projectService.getProjectMembers(projectId);
+        const membersResult = await projectService.getProjectMembers(selectedProjectId);
         if (membersResult.success && membersResult.data) {
           setParticipants(convertToParticipants(membersResult.data as any));
         } else setParticipants([]);
@@ -131,7 +158,7 @@ export default function MeetingForm({
 
       try {
         const milestonesResult =
-          await milestoneService.getMilestonesByProjectId(projectId);
+          await milestoneService.getMilestonesByProjectId(selectedProjectId);
         if (milestonesResult.success && milestonesResult.data) {
           setMilestones(convertToMilestones(milestonesResult.data));
         } else setMilestones([]);
@@ -142,7 +169,7 @@ export default function MeetingForm({
       }
     };
     loadData();
-  }, [projectId]);
+  }, [selectedProjectId]);
 
   const handleParticipantChange = (participantId: string) => {
     // Check if adding or removing
@@ -188,15 +215,20 @@ export default function MeetingForm({
       const meetingId = crypto.randomUUID();
       const allParticipants = [...new Set([userId, ...selectedParticipants])];
 
+      if (!selectedProjectId) {
+        toast.error("Please select a project");
+        return;
+      }
+
       const meetingData = {
         meetingId,
         createdById: userId,
-        projectId,
+        projectId: selectedProjectId,
         milestoneId: values.milestoneId || null,
         title: values.title,
         description: values.description,
         startTime: values.datetime.toISOString(),
-        attendeeIds: allParticipants,
+        attendeeIds: values.participants,
       };
 
       const dbResult = await meetingService.createMeeting(meetingData);
@@ -274,6 +306,35 @@ export default function MeetingForm({
           </div>
         ) : (
           <form onSubmit={form.handleSubmit(onSubmit)} style={styles.form}>
+            {/* Project Selection (only if requireProjectSelection is true) */}
+            {requireProjectSelection && (
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Project *</label>
+                {isLoadingProjects ? (
+                  <div style={styles.loadingText}>Loading projects...</div>
+                ) : (
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => {
+                      setSelectedProjectId(e.target.value);
+                      setSelectedParticipants([]);
+                      form.setValue("participants", []);
+                      form.setValue("milestoneId", "");
+                    }}
+                    style={styles.select}
+                    required
+                  >
+                    <option value="">-- Select a project --</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
             {/* Title */}
             <div style={styles.formGroup}>
               <label style={styles.label}>Meeting Title</label>

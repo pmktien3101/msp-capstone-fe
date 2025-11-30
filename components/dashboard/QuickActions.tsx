@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 import { Project } from '@/types/project';
-import { ProjectStatus, getProjectStatusLabel, getProjectStatusColor } from '@/constants/status';
 import { 
   Plus, 
   FileText,
   Settings,
-  ArrowRight
+  ArrowRight,
+  Video
 } from 'lucide-react';
 import { CreateProjectModal } from '@/components/projects/modals/CreateProjectModal';
+import { CreateMeetingModal } from '@/components/projects/modals/CreateMeetingModal';
 import '@/app/styles/quick-actions.scss';
 
 interface QuickActionsProps {
@@ -17,12 +18,8 @@ interface QuickActionsProps {
 }
 
 export const QuickActions = ({ projects }: QuickActionsProps) => {
-  const [recentProjects] = useState(() => {
-    // Mock: Get 3 most recent projects that PM is viewing
-    return projects.slice(0, 3);
-  });
-  
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+  const [isCreateMeetingModalOpen, setIsCreateMeetingModalOpen] = useState(false);
 
   const quickActions = [
     {
@@ -33,6 +30,16 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
       color: '#3b82f6',
       action: () => {
         setIsCreateProjectModalOpen(true);
+      }
+    },
+    {
+      id: 'create-meeting',
+      title: 'Create New Meeting',
+      description: 'Schedule a meeting',
+      icon: <Video size={24} />,
+      color: '#10b981',
+      action: () => {
+        setIsCreateMeetingModalOpen(true);
       }
     }
   ];
@@ -46,18 +53,18 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
       path: '/dashboard/pm'
     },
     {
+      id: 'meetings',
+      title: 'Meetings',
+      description: 'View meetings',
+      icon: <Video size={20} />,
+      path: '/meetings'
+    },
+    {
       id: 'projects',
       title: 'Projects',
       description: 'Manage projects',
       icon: <FileText size={20} />,
       path: '/projects'
-    },
-    {
-      id: 'settings',
-      title: 'Settings',
-      description: 'System settings',
-      icon: <Settings size={20} />,
-      path: '/settings'
     }
   ];
 
@@ -117,53 +124,19 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
             ))}
           </div>
         </div>
-
-        {/* Recent Projects */}
-        <div className="recent-projects-section">
-          <h3>Recent Projects</h3>
-          <div className="recent-projects-list">
-            {recentProjects.length === 0 ? (
-              <div className="empty-state">
-                <FileText size={24} />
-                <p>No projects yet</p>
-              </div>
-            ) : (
-              recentProjects.map(project => (
-                <a
-                  key={project.id}
-                  href={`/projects/${project.id}`}
-                  className="recent-project-item"
-                >
-                  <div className="project-avatar">
-                    {project.name.charAt(0)}
-                  </div>
-                  <div className="project-info">
-                    <h4>{project.name}</h4>
-                    <div className="project-meta">
-                      {/* <span className="progress">0%</span>
-                      <span className="members">0 thành viên</span> */}
-                      <span className="status-text">{getProjectStatusLabel(project.status)}</span>
-                    </div>
-                  </div>
-                  <div className="project-status">
-                    <div 
-                      className="status-dot"
-                      style={{ 
-                        backgroundColor: getProjectStatusColor(project.status)
-                      }}
-                    />
-                  </div>
-                </a>
-              ))
-            )}
-          </div>
-        </div>
       </div>
 
       <CreateProjectModal
         isOpen={isCreateProjectModalOpen}
         onClose={() => setIsCreateProjectModalOpen(false)}
       />
+
+      {isCreateMeetingModalOpen && (
+        <CreateMeetingModal
+          onClose={() => setIsCreateMeetingModalOpen(false)}
+          requireProjectSelection={true}
+        />
+      )}
     </div>
   );
 };

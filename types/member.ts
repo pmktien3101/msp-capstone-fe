@@ -5,6 +5,7 @@ export interface Member {
   role: string;
   avatar: string;
   email: string;
+  avatarUrl?: string | null;
 }
 export interface Participant {
   id: string;

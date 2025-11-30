@@ -91,9 +91,9 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
             className="status-filter"
           >
             <option value="all">All Projects</option>
+            <option value={ProjectStatus.NotStarted}>Not Started</option>
             <option value={ProjectStatus.InProgress}>In Progress</option>
             <option value={ProjectStatus.Completed}>Completed</option>
-            <option value={ProjectStatus.NotStarted}>Not Started</option>
             <option value={ProjectStatus.OnHold}>On Hold</option>
             <option value={ProjectStatus.Cancelled}>Cancelled</option>
           </select>

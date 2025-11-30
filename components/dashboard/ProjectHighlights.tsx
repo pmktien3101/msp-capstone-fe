@@ -27,7 +27,7 @@ interface ProjectHighlightsProps {
 
 export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighlightsProps) => {
   const router = useRouter();
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['priority', 'milestones', 'onHold', 'inProgress']));
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set([]));
 
   const handleProjectClick = (projectId: string) => {
     router.push(`/projects/${projectId}`);
