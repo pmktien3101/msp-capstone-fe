@@ -54,7 +54,7 @@ const SubscriptionBillingPage = () => {
               date: s.paidAt ?? s.startDate ?? new Date().toISOString().slice(0, 10),
               amount: s.totalPrice ?? (s.package?.price ?? 0),
               status: s.status ?? "paid",
-              description: s.package?.name + "-" + s.package?.billingCycle + " tháng",
+              description: s.package?.name + "-" + s.package?.billingCycle + " months",
               currency: s.package?.currency ?? "VNĐ",
             }));
             setBillingHistory(history);
@@ -111,11 +111,11 @@ const SubscriptionBillingPage = () => {
         // Reload data to reflect new subscription
         window.location.href = result.data.paymentUrl;
       } else {
-        alert(`Nâng cấp thất bại: ${result.error || "Vui lòng thử lại"}`);
+        alert(`Upgrade failed: ${result.error || "Please try again"}`);
       }
     } catch (error) {
       console.error("Upgrade error:", error);
-      alert("Có lỗi xảy ra khi nâng cấp gói. Vui lòng thử lại.");
+      alert("An error occurred while upgrading the package. Please try again.");
     } finally {
       setUpgrading(false);
       setShowUpgradeModal(false);
@@ -130,10 +130,10 @@ const SubscriptionBillingPage = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      paid: { text: "Đã thanh toán", className: "status-badge paid" },
-      pending: { text: "Chờ thanh toán", className: "status-badge pending" },
-      failed: { text: "Thất bại", className: "status-badge failed" },
-      active: { text: "Đang hoạt động", className: "status-badge paid" },
+      paid: { text: "Paid", className: "status-badge paid" },
+      pending: { text: "Pending", className: "status-badge pending" },
+      failed: { text: "Failed", className: "status-badge failed" },
+      active: { text: "Active", className: "status-badge paid" },
     };
     const config = statusConfig[status.toLowerCase() as keyof typeof statusConfig] ?? statusConfig.paid;
     return <span className={config.className}>{config.text}</span>;
@@ -162,15 +162,15 @@ const SubscriptionBillingPage = () => {
     <div className="subscription-billing-page">
       <div className="page-header">
         <div className="header-content">
-          <h1>Gói và thanh toán</h1>
-          <p>Quản lý gói đăng ký và thanh toán</p>
+          <h1>Package and Billing</h1>
+          <p>Manage your subscription and billing</p>
         </div>
       </div>
 
       {/* Current Subscription */}
       <div className="current-plan-section">
         <div className="section-header">
-          <h2>Gói Hiện Tại</h2>
+          <h2>Current Plan</h2>
         </div>
         {currentSubscription && currentPackage ? (
           <div className="current-plan-card">
@@ -180,19 +180,19 @@ const SubscriptionBillingPage = () => {
                 <div className="plan-price">
                   <span className="price">{currentSubscription.totalPrice ?? currentPackage.price}{" " + currentPackage.currency}</span>
                   {/* <span className="period">/{formatBillingCycle(currentPackage.billingCycle)}</span> */}
-                  <span className="period">/{currentPackage.billingCycle} tháng</span>
+                  <span className="period">/{currentPackage.billingCycle} months</span>
 
                 </div>
               </div>
               <div className="plan-status">
-                <span className="status-active">{currentSubscription.isActive ? "Đang hoạt động" : "Không hoạt động"}</span>
+                <span className="status-active">{currentSubscription.isActive ? "Active" : "Inactive"}</span>
                   {currentSubscription.endDate && (
-                    <span className="next-billing">Hết hạn: {formatDateVN(currentSubscription.endDate)}</span>
+                    <span className="next-billing">End date: {formatDateVN(currentSubscription.endDate)}</span>
                 )}
               </div>
             </div>
             <div className="plan-features">
-              <h4>Giới hạn bao gồm:</h4>
+              <h4>Limitations included:</h4>
               <ul>
                 {currentPackage.limitations && currentPackage.limitations.length > 0 ? (
                   currentPackage.limitations.map((limitation, index) => (
@@ -208,7 +208,7 @@ const SubscriptionBillingPage = () => {
                   ))
                 ) : (
                   <li>
-                    <span>Không có giới hạn</span>
+                    <span>No limitations</span>
                   </li>
                 )}
               </ul>
@@ -216,7 +216,7 @@ const SubscriptionBillingPage = () => {
           </div>
         ) : (
           <div className="no-subscription">
-            <p>Bạn chưa có gói đăng ký nào. Vui lòng chọn gói bên dưới.</p>
+            <p>You don't have any subscription. Please select a package below.</p>
           </div>
         )}
       </div>
@@ -240,12 +240,12 @@ const SubscriptionBillingPage = () => {
               const isCurrent = pkg.id === currentSubscription?.packageId;
               return (
                 <div key={pkg.id} className={`plan-card ${pkg.isPopular ? "popular" : ""} ${isCurrent ? "current" : ""}`}>
-                  {pkg.isPopular && <div className="popular-badge">Phổ biến nhất</div>}
+                  {pkg.isPopular && <div className="popular-badge">Popular</div>}
                   <div className="plan-header">
                     <h3>{pkg.name}</h3>
                     <div className="plan-price">
                       <span className="price">{pkg.price} {" " + pkg.currency}</span>
-                      <span className="period">/{pkg.billingCycle} tháng</span>
+                      <span className="period">/{pkg.billingCycle} months</span>
                     </div>
                   </div>
                   {pkg.description && (
@@ -269,17 +269,17 @@ const SubscriptionBillingPage = () => {
                         ))
                       ) : (
                         <li>
-                          <span>Không có giới hạn</span>
+                          <span>No limitations</span>
                         </li>
                       )}
                     </ul>
                   </div>
                   <div className="plan-actions">
                     {isCurrent ? (
-                      <button className="current-btn" disabled>Gói hiện tại</button>
+                      <button className="current-btn" disabled>Current plan</button>
                     ) : (
                       <button className="upgrade-btn" onClick={() => handleUpgrade(pkg)}>
-                        {currentSubscription ? "Nâng cấp" : "Chọn gói"}
+                        {currentSubscription ? "Upgrade" : "Select plan"}
                       </button>
                     )}
                   </div>
@@ -288,7 +288,7 @@ const SubscriptionBillingPage = () => {
             })
           ) : (
             <div className="no-packages">
-              <p>Không có gói nào khả dụng.</p>
+              <p>No packages available.</p>
             </div>
           )}
         </div>
@@ -296,13 +296,13 @@ const SubscriptionBillingPage = () => {
 
       {/* Billing History */}
       <div className="billing-history-section">
-        <h2>Lịch Sử Thanh Toán</h2>
+        <h2>Billing History</h2>
         <div className="billing-table">
           <div className="table-header">
-            <div className="col-date">Ngày</div>
-            <div className="col-description">Mô tả</div>
-            <div className="col-amount">Số tiền</div>
-            <div className="col-status">Trạng thái</div>
+            <div className="col-date">Date</div>
+            <div className="col-description">Description</div>
+            <div className="col-amount">Amount</div>
+            <div className="col-status">Status</div>
             {/* <div className="col-action">Thao tác</div> */}
           </div>
           {displayBillingHistory.map((bill) => (
@@ -310,7 +310,7 @@ const SubscriptionBillingPage = () => {
               <div className="col-date"><span className="date">{formatDateVN(bill.date)}</span></div>
               <div className="col-description"><span className="description">{bill.description}</span></div>
               <div className="col-amount"><span className="amount">{bill.amount} {" " + bill.currency}</span></div>
-              <div className="col-status">{getStatusBadge(bill.status)}</div>
+              <div className="col-status">{bill.status}</div>
               {/* <div className="col-action">
                 <button className="download-btn">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -331,42 +331,42 @@ const SubscriptionBillingPage = () => {
         <div className="modal-overlay" onClick={cancelUpgrade}>
           <div className="modal-content upgrade-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Xác nhận nâng cấp gói</h3>
+              <h3>Confirm Plan Upgrade</h3>
               <button className="modal-close" onClick={cancelUpgrade}>×</button>
             </div>
             <div className="modal-body">
               <div className="upgrade-confirmation">
-                <h4>Bạn có chắc chắn muốn chuyển sang gói "{selectedPackage.name}"?</h4>
+                <h4>Are you sure you want to switch plans?</h4>
                 <p className="warning-text">
-                  Gói hiện tại của bạn sẽ bị hủy ngay lập tức và bạn không thể hoàn tác thao tác này.
+                  Your current plan will be immediately canceled and you will not be able to undo this action.
                 </p>
                 {currentPackage && (
                   <div className="upgrade-summary">
                     <div className="summary-row">
-                      <span className="label">Gói hiện tại:</span>
+                      <span className="label">Current Plan:</span>
                       <span className="value current">{currentPackage.name}</span>
                     </div>
                     <div className="summary-arrow">→</div>
                     <div className="summary-row">
-                      <span className="label">Gói mới:</span>
+                      <span className="label">New Plan:</span>
                       <span className="value new">{selectedPackage.name}</span>
                     </div>
                   </div>
                 )}
                 <div className="price-info">
                   <div className="price-row">
-                    <span>Giá gói mới:</span>
-                    <strong>{selectedPackage.price} {" " + selectedPackage.currency} / {selectedPackage.billingCycle} tháng</strong>
+                    <span>Price new plan:</span>
+                    <strong>{selectedPackage.price} {" " + selectedPackage.currency} / {selectedPackage.billingCycle} months</strong>
                   </div>
                 </div>
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn-cancel" onClick={cancelUpgrade} disabled={upgrading}>
-                Hủy
+                Cancel
               </button>
               <button className="btn-confirm" onClick={confirmUpgrade} disabled={upgrading}>
-                {upgrading ? "Đang xử lý..." : "Xác nhận nâng cấp"}
+                {upgrading ? "Processing..." : "Confirm Upgrade"}
               </button>
             </div>
           </div>
