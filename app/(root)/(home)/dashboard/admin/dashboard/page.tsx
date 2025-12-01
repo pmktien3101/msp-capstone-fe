@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-// Note: removed Chart.js / Doughnut import — meeting chart removed
 
 const AdminDashboard = () => {
-  // --- LOGIC GIỮ NGUYÊN ---
   const [activeTab, setActiveTab] = useState("Revenue");
   const [hoveredBar, setHoveredBar] = useState<string | null>(null);
   const [hoveredProgress, setHoveredProgress] = useState<string | null>(null);
