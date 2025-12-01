@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { LoginCredentials, RegisterData, LoginResponse, ApiResponse, User, AuthTokens, ResendConfirmationEmailRequest } from '@/types/auth';
+import type { LoginCredentials, RegisterData, LoginResponse, ApiResponse, User, AuthTokens, ResendConfirmationEmailRequest, GoogleLoginRequest } from '@/types/auth';
 import { clearAllAuthData, setTokens, getCurrentUser } from '@/lib/auth';
 import { extractUserFromToken } from '@/lib/jwt';
 import { normalizeRole } from '@/lib/rbac';
@@ -286,6 +286,94 @@ export const authService = {
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || "Có lỗi xảy ra khi gửi lại email",
+            };
+        }
+    },
+
+    async googleLogin(idToken: string, rememberMe: boolean = false): Promise<{ success: boolean; data?: LoginResponse; message?: string; error?: string }> {
+        try {
+            // TEMPORARY WORKAROUND for backend Email validation issue
+            // Backend requires Email field to pass validation even though it's not used
+            // Proper fix: Update backend to remove validation or simplify model
+            // See: docs/BACKEND_FIX_EMAIL_VALIDATION.md
+            const googleLoginRequest = {
+                IdToken: idToken,
+                Email: "temp@placeholder.com",  // Dummy email to pass backend validation
+                GoogleId: "",
+                FirstName: "",
+                LastName: ""
+            };
+
+            console.log('📤 Sending Google login request (with workaround)');
+            console.log('🔑 Token length:', idToken.length);
+            console.log('📦 Request body:', JSON.stringify({ 
+                IdToken: idToken.substring(0, 50) + '...',
+                Email: "temp@placeholder.com (dummy)"
+            }, null, 2));
+            
+            const response = await api.post('/auth/google-login', googleLoginRequest);
+            console.log('✅ Google login response:', response.data);
+            
+            if (response.data.success && response.data.data) {
+                const loginData = response.data.data as LoginResponse;
+                
+                // Process login response using helper function
+                processLoginResponse(loginData, rememberMe);
+                
+                return {
+                    success: true,
+                    data: loginData,
+                    message: response.data.message || 'Google login successful'
+                };
+            } else {
+                return {
+                    success: false,
+                    error: response.data.message || 'Google login failed'
+                };
+            }
+        } catch (error: any) {
+            console.error('❌ Google login error:', error.name, error.message);
+            console.error('📋 Error response:', error.response?.data);
+            console.error('🔢 Status code:', error.response?.status);
+            
+            // Extract error message with proper handling
+            let errorMessage = 'Google login failed';
+            
+            if (error.response?.data) {
+                const data = error.response.data;
+                
+                // Try different error formats
+                if (data.message) {
+                    errorMessage = data.message;
+                } else if (data.errors) {
+                    // Handle errors as array
+                    if (Array.isArray(data.errors)) {
+                        errorMessage = data.errors.join(', ');
+                    }
+                    // Handle errors as object (validation errors from .NET)
+                    else if (typeof data.errors === 'object') {
+                        const errorMessages = Object.entries(data.errors)
+                            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                            .join('; ');
+                        errorMessage = errorMessages || 'Validation error';
+                    }
+                    // Handle errors as string
+                    else if (typeof data.errors === 'string') {
+                        errorMessage = data.errors;
+                    }
+                } else if (data.title) {
+                    // .NET problem details format
+                    errorMessage = data.title;
+                }
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            console.error('💬 Final error message:', errorMessage);
+            
+            return {
+                success: false,
+                error: errorMessage
             };
         }
     },

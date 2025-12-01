@@ -97,3 +97,17 @@ export interface BusinessOwnersResponse {
 export interface ResendConfirmationEmailRequest {
     email: string;
 }
+
+export interface GoogleLoginRequest {
+    IdToken: string; // PascalCase to match C# backend convention
+    GoogleId?: string;
+    Email?: string;
+    FirstName?: string;
+    LastName?: string;
+    AvatarUrl?: string;
+}
+
+export interface GoogleLoginResponse {
+    accessToken: string;
+    refreshToken: string;
+}

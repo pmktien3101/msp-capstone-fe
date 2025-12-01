@@ -31,6 +31,7 @@ interface UserState {
   
   // Auth actions
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; message?: string; error?: string }>;
+  googleLogin: (idToken: string, rememberMe?: boolean) => Promise<{ success: boolean; message?: string; error?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; message?: string; error?: string }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -147,6 +148,66 @@ export const useUser = create<UserState>()(
           return {
             success: false,
             error: error.message || 'An unexpected error occurred'
+          };
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      
+      googleLogin: async (idToken: string, rememberMe: boolean = false) => {
+        set({ isLoading: true });
+        try {
+          console.log('🔐 Starting Google login in useUser hook');
+          const result = await authService.googleLogin(idToken, rememberMe);
+          
+          if (result.success && result.data) {
+            // Extract user info from token
+            const userInfo = extractUserFromToken(result.data.accessToken);
+            if (userInfo) {
+              // Normalize role
+              const normalizedRole = normalizeRole(userInfo.role);
+              
+              const newUser: User = {
+                userId: userInfo.userId,
+                email: userInfo.email,
+                fullName: userInfo.fullName,
+                role: normalizedRole,
+                avatarUrl: userInfo.avatarUrl || `https://getstream.io/random_svg/?id=${userInfo.userId}&name=${userInfo.fullName}`
+              };
+              
+              console.log('✅ Setting Google user data:', newUser);
+              
+              set((state) => ({
+                ...state,
+                userId: newUser.userId,
+                email: newUser.email,
+                fullName: newUser.fullName,
+                role: newUser.role,
+                avatarUrl: newUser.avatarUrl,
+                phoneNumber: (newUser as any).phoneNumber || "",
+              }));
+              
+              return {
+                success: true,
+                message: result.message || 'Google login successful'
+              };
+            } else {
+              return {
+                success: false,
+                error: 'Invalid token format received from server'
+              };
+            }
+          } else {
+            return {
+              success: false,
+              error: result.error || 'Google login failed'
+            };
+          }
+        } catch (error: any) {
+          console.error('❌ Google login error in useUser:', error);
+          return {
+            success: false,
+            error: error.message || 'An unexpected error occurred during Google login'
           };
         } finally {
           set({ isLoading: false });
