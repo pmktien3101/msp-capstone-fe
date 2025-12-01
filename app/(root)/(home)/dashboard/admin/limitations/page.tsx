@@ -1,9 +1,33 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Plus, Search, X, Trash2, Eye, Pencil } from "lucide-react";
+import {
+  Plus,
+  Search,
+  X,
+  Trash2,
+  Eye,
+  Pencil,
+  Gauge,
+  LayoutGrid,
+  List,
+  AlertTriangle,
+  Infinity,
+  Hash,
+  FolderKanban,
+  Calendar,
+  Building2,
+  Users,
+  Video,
+  ClipboardList,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import limitationService from "@/services/limitationService";
+import "../../../../../styles/limitations.scss";
 
 const AdminLimitations: React.FC = () => {
   const [items, setItems] = useState<any[]>([]);
@@ -14,7 +38,11 @@ const AdminLimitations: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showView, setShowView] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [active, setActive] = useState<any | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -24,17 +52,56 @@ const AdminLimitations: React.FC = () => {
     limitUnit: "",
     isDeleted: false,
   });
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    description?: string;
+    limitationType?: string;
+    limitValue?: string;
+    limitUnit?: string;
+  }>({});
+
+  // Validation constants
+  const VALIDATION = {
+    NAME_MIN: 3,
+    NAME_MAX: 100,
+    DESCRIPTION_MAX: 500,
+    UNIT_MAX: 20,
+    VALUE_MIN: 0,
+    VALUE_MAX: 999999999,
+  };
 
   const limitationTypeOptions = [
-    { value: "NumberProject", label: "Number of projects" },
-    { value: "NumberMeeting", label: "Number of meetings" },
-    { value: "NumberMemberInOrganization", label: "Members in organization" },
-    { value: "NumberMemberInProject", label: "Members in project" },
-    { value: "NumberMemberInMeeting", label: "Members in meeting" },
+    { value: "NumberProject", label: "Number of projects", icon: FolderKanban },
+    { value: "NumberMeeting", label: "Number of meetings", icon: Calendar },
+    {
+      value: "NumberMemberInOrganization",
+      label: "Members in organization",
+      icon: Building2,
+    },
+    {
+      value: "NumberMemberInProject",
+      label: "Members in project",
+      icon: Users,
+    },
+    {
+      value: "NumberMemberInMeeting",
+      label: "Members in meeting",
+      icon: Video,
+    },
   ];
 
+  const getLimitationTypeLabel = (type: string) => {
+    const found = limitationTypeOptions.find((opt) => opt.value === type);
+    return found ? found.label : type;
+  };
+
+  const getLimitationTypeIcon = (type: string) => {
+    const found = limitationTypeOptions.find((opt) => opt.value === type);
+    const IconComponent = found ? found.icon : ClipboardList;
+    return <IconComponent size={18} />;
+  };
+
   const filtered = items.filter((it) => {
-    // hide deleted items
     if (it.isDeleted) return false;
     if (!query) return true;
     return (
@@ -42,6 +109,17 @@ const AdminLimitations: React.FC = () => {
       (it.description || "").toLowerCase().includes(query.toLowerCase())
     );
   });
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedItems = filtered.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query]);
 
   useEffect(() => {
     fetchLimitations();
@@ -55,7 +133,6 @@ const AdminLimitations: React.FC = () => {
       if (res.success) {
         const data = res.data;
         const normalize = (it: any) => ({
-          // map PascalCase -> camelCase if necessary
           id: it.Id ?? it.id,
           name: it.Name ?? it.name,
           description: it.Description ?? it.description,
@@ -64,7 +141,6 @@ const AdminLimitations: React.FC = () => {
           limitValue: it.LimitValue ?? it.limitValue ?? null,
           limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
           isDeleted: it.IsDeleted ?? it.isDeleted ?? false,
-          // keep other props
           ...it,
         });
 
@@ -92,22 +168,78 @@ const AdminLimitations: React.FC = () => {
       limitUnit: "",
       isDeleted: false,
     });
+    setFormErrors({});
     setShowAdd(true);
   }
 
-  // close add modal on Escape
+  // Validate form fields
+  function validateForm(): boolean {
+    const errors: typeof formErrors = {};
+
+    // Name validation
+    const trimmedName = form.name.trim();
+    if (!trimmedName) {
+      errors.name = "Name is required";
+    } else if (trimmedName.length < VALIDATION.NAME_MIN) {
+      errors.name = `Name must be at least ${VALIDATION.NAME_MIN} characters`;
+    } else if (trimmedName.length > VALIDATION.NAME_MAX) {
+      errors.name = `Name must not exceed ${VALIDATION.NAME_MAX} characters`;
+    }
+
+    // Limitation type validation
+    if (!form.limitationType) {
+      errors.limitationType = "Limitation type is required";
+    }
+
+    // Description validation (optional but with max length)
+    if (
+      form.description &&
+      form.description.length > VALIDATION.DESCRIPTION_MAX
+    ) {
+      errors.description = `Description must not exceed ${VALIDATION.DESCRIPTION_MAX} characters`;
+    }
+
+    // Value validation (only if not unlimited)
+    if (!form.isUnlimited) {
+      const value = Number(form.limitValue);
+      if (form.limitValue === "" || isNaN(value)) {
+        errors.limitValue = "Value is required when not unlimited";
+      } else if (value < VALIDATION.VALUE_MIN) {
+        errors.limitValue = "Value cannot be negative";
+      } else if (value > VALIDATION.VALUE_MAX) {
+        errors.limitValue = `Value must not exceed ${VALIDATION.VALUE_MAX.toLocaleString()}`;
+      } else if (!Number.isInteger(value)) {
+        errors.limitValue = "Value must be a whole number";
+      }
+    }
+
+    // Unit validation (optional but with max length)
+    if (form.limitUnit && form.limitUnit.length > VALIDATION.UNIT_MAX) {
+      errors.limitUnit = `Unit must not exceed ${VALIDATION.UNIT_MAX} characters`;
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
   useEffect(() => {
-    if (!showAdd) return;
+    if (!showAdd && !showEdit && !showView && !showDeleteConfirm) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setShowAdd(false);
+      if (e.key === "Escape") {
+        setShowAdd(false);
+        setShowEdit(false);
+        setShowView(false);
+        setShowDeleteConfirm(false);
+      }
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [showAdd]);
+  }, [showAdd, showEdit, showView, showDeleteConfirm]);
 
   async function saveAdd() {
-    if (!form.name) return alert("Name is required");
-    if (!form.limitationType) return alert("Limitation type is required");
+    if (!validateForm()) {
+      return;
+    }
     setLoading(true);
     try {
       const payload: any = {
@@ -159,11 +291,15 @@ const AdminLimitations: React.FC = () => {
       limitUnit: item.limitUnit ?? "",
       isDeleted: !!item.isDeleted,
     });
+    setFormErrors({});
     setShowEdit(true);
   }
 
   async function saveEdit() {
     if (!active) return;
+    if (!validateForm()) {
+      return;
+    }
     setLoading(true);
     try {
       const payload: any = {
@@ -208,14 +344,21 @@ const AdminLimitations: React.FC = () => {
     }
   }
 
-  async function doDelete(item: any) {
-    if (!confirm(`Delete limitation "${item.name}"?`)) return;
+  function openDeleteConfirm(item: any) {
+    setActive(item);
+    setShowDeleteConfirm(true);
+  }
+
+  async function confirmDelete() {
+    if (!active) return;
     setLoading(true);
     try {
-      const res = await limitationService.deleteLimitation(item.id);
+      const res = await limitationService.deleteLimitation(active.id);
       if (res.success) {
-        setItems((s) => s.filter((it) => it.id !== item.id));
+        setItems((s) => s.filter((it) => it.id !== active.id));
         toast.success("Limitation deleted successfully!");
+        setShowDeleteConfirm(false);
+        setActive(null);
       } else {
         toast.error(res.error || res.message || "Failed to delete");
       }
@@ -227,109 +370,271 @@ const AdminLimitations: React.FC = () => {
   }
 
   return (
-    <div className="lim-page">
-      <div className="lim-header">
-        <div>
-          <h1>Manage Limitations</h1>
-          <p className="muted">Manage package limitations</p>
-        </div>
-        <div className="lim-actions">
-          <div className="search">
-            <Search size={14} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search..."
-            />
+    <div className="admin-limitations">
+      {/* Hero Header */}
+      <div className="limitations-hero">
+        <div className="hero-content">
+          <div className="hero-icon">
+            <Gauge size={32} />
           </div>
-          <button className="btn add primary-cta" onClick={openAdd}>
-            <Plus size={16} />
-            <span className="add-label">Add</span>
-          </button>
+          <div className="hero-text">
+            <h1>Limitation Management</h1>
+            <p>Create and manage feature limitations for your packages</p>
+          </div>
+        </div>
+        <button className="add-limitation-btn" onClick={openAdd}>
+          <Plus size={20} />
+          <span>Create Limitation</span>
+        </button>
+      </div>
+
+      {/* Toolbar */}
+      <div className="limitations-toolbar">
+        <div className="search-box">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Search limitations..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <div className="toolbar-actions">
+          <div className="view-toggle">
+            <button
+              className={`toggle-btn ${viewMode === "grid" ? "active" : ""}`}
+              onClick={() => setViewMode("grid")}
+            >
+              <LayoutGrid size={18} />
+            </button>
+            <button
+              className={`toggle-btn ${viewMode === "list" ? "active" : ""}`}
+              onClick={() => setViewMode("list")}
+            >
+              <List size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="lim-table">
-        <div className="row header">
-          <div>Name</div>
-          <div>Limited</div>
-          <div>Actions</div>
-        </div>
-        {filtered.map((it) => (
-          <div className="row" key={it.id}>
-            <div className="title">
-              <div className="name">
-                {it.name}
-                {!it.isUnlimited && (it.limitValue || it.limitValue === 0) ? (
-                  <span>
-                    : {it.limitValue}
-                    {it.limitUnit ? ` ${it.limitUnit}` : ""}
-                  </span>
-                ) : null}
-              </div>
-              <div className="desc">{it.description}</div>
-            </div>
-            <div>{!it.isUnlimited ? "Yes" : "No"}</div>
-            <div className="actions">
-              <button
-                className="icon"
-                onClick={() => {
-                  setActive(it);
-                  setShowView(true);
-                }}
-                title="View"
-              >
-                <Eye size={14} />
-              </button>
-              <button
-                className="icon edit"
-                onClick={() => openEdit(it)}
-                title="Edit"
-              >
-                <Pencil size={14} />
-              </button>
-              <button
-                className="icon danger"
-                onClick={() => doDelete(it)}
-                title="Delete"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
+      {/* Content */}
+      <div className="limitations-content">
+        {loading && items.length === 0 ? (
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>Loading limitations...</p>
           </div>
-        ))}
+        ) : filtered.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <Gauge size={48} />
+            </div>
+            <h3>No limitations found</h3>
+            <p>
+              {query
+                ? "Try adjusting your search query"
+                : "Create your first limitation to get started"}
+            </p>
+            {!query && (
+              <button
+                className="add-limitation-btn secondary"
+                onClick={openAdd}
+              >
+                <Plus size={18} />
+                <span>Create Limitation</span>
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div
+              className={`limitations-grid ${
+                viewMode === "list" ? "list-view" : ""
+              }`}
+            >
+              {paginatedItems.map((it) => (
+                <div className="limitation-card" key={it.id}>
+                  <div className="card-header">
+                    <div className="type-badge">
+                      <span className="type-icon">
+                        {getLimitationTypeIcon(it.limitationType)}
+                      </span>
+                      <span className="type-label">
+                        {getLimitationTypeLabel(it.limitationType)}
+                      </span>
+                    </div>
+                    <div className="card-actions">
+                      <button
+                        className="action-btn view"
+                        onClick={() => {
+                          setActive(it);
+                          setShowView(true);
+                        }}
+                        title="View"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        className="action-btn edit"
+                        onClick={() => openEdit(it)}
+                        title="Edit"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        className="action-btn delete"
+                        onClick={() => openDeleteConfirm(it)}
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="card-body">
+                    <h3 className="card-title">{it.name}</h3>
+                    <p className="card-description">
+                      {it.description || "No description provided"}
+                    </p>
+                  </div>
+                  <div className="card-footer">
+                    <div
+                      className={`limit-badge ${
+                        it.isUnlimited ? "unlimited" : "limited"
+                      }`}
+                    >
+                      {it.isUnlimited ? (
+                        <>
+                          <Infinity size={16} />
+                          <span>Unlimited</span>
+                        </>
+                      ) : (
+                        <>
+                          <Hash size={16} />
+                          <span>
+                            {it.limitValue}
+                            {it.limitUnit ? ` ${it.limitUnit}` : ""}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <div className="pagination-info">
+                  Showing {startIndex + 1} -{" "}
+                  {Math.min(endIndex, filtered.length)} of {filtered.length}{" "}
+                  limitations
+                </div>
+                <div className="pagination-controls">
+                  <button
+                    className="pagination-btn"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    title="First page"
+                  >
+                    <ChevronsLeft size={18} />
+                  </button>
+                  <button
+                    className="pagination-btn"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    title="Previous page"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <div className="pagination-pages">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((page) => {
+                        if (totalPages <= 5) return true;
+                        if (page === 1 || page === totalPages) return true;
+                        if (Math.abs(page - currentPage) <= 1) return true;
+                        return false;
+                      })
+                      .map((page, index, arr) => (
+                        <React.Fragment key={page}>
+                          {index > 0 && arr[index - 1] !== page - 1 && (
+                            <span className="pagination-ellipsis">...</span>
+                          )}
+                          <button
+                            className={`pagination-page ${
+                              currentPage === page ? "active" : ""
+                            }`}
+                            onClick={() => setCurrentPage(page)}
+                          >
+                            {page}
+                          </button>
+                        </React.Fragment>
+                      ))}
+                  </div>
+                  <button
+                    className="pagination-btn"
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                    title="Next page"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                  <button
+                    className="pagination-btn"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    title="Last page"
+                  >
+                    <ChevronsRight size={18} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Add Modal */}
       {showAdd && (
-        <div
-          className="modal"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="addLimTitle"
-        >
-          <div className="card">
-            <div className="card-head">
-              <h3 id="addLimTitle">Add Limitation</h3>
-              <button
-                className="close"
-                onClick={() => setShowAdd(false)}
-                aria-label="Close"
-              >
-                <X />
+        <div className="modal-overlay" onClick={() => setShowAdd(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title-group">
+                <div className="modal-icon add">
+                  <Plus size={20} />
+                </div>
+                <div>
+                  <h3>Create New Limitation</h3>
+                  <p>Add a new feature limitation for your packages</p>
+                </div>
+              </div>
+              <button className="modal-close" onClick={() => setShowAdd(false)}>
+                <X size={20} />
               </button>
             </div>
-            <div className="card-body">
-              <div className="form-grid vertical">
-                <div className="field">
-                  <label htmlFor="lim-type">Limitation type *</label>
+            <div className="modal-body">
+              <div className="form-section">
+                <h4 className="section-title">Basic Information</h4>
+                <div className="form-group">
+                  <label>
+                    Limitation Type <span className="required">*</span>
+                  </label>
                   <select
-                    id="lim-type"
-                    className="text-input"
+                    className={`form-select ${
+                      formErrors.limitationType ? "input-error" : ""
+                    }`}
                     value={form.limitationType}
-                    onChange={(e) =>
-                      setForm({ ...form, limitationType: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, limitationType: e.target.value });
+                      if (formErrors.limitationType) {
+                        setFormErrors({
+                          ...formErrors,
+                          limitationType: undefined,
+                        });
+                      }
+                    }}
                   >
                     <option value="">-- Select limitation type --</option>
                     {limitationTypeOptions.map((opt) => (
@@ -338,86 +643,176 @@ const AdminLimitations: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                  {formErrors.limitationType && (
+                    <span className="error-text">
+                      {formErrors.limitationType}
+                    </span>
+                  )}
                 </div>
 
-                <div className="field">
-                  <label htmlFor="lim-name">Name</label>
+                <div className="form-group">
+                  <label>
+                    Name <span className="required">*</span>
+                    <span className="char-count">
+                      {form.name.length}/{VALIDATION.NAME_MAX}
+                    </span>
+                  </label>
                   <input
-                    id="lim-name"
-                    className="text-input"
+                    className={`form-input ${
+                      formErrors.name ? "input-error" : ""
+                    }`}
                     autoFocus
                     placeholder="E.g.: Max number of projects"
                     value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    maxLength={VALIDATION.NAME_MAX}
+                    onChange={(e) => {
+                      setForm({ ...form, name: e.target.value });
+                      if (formErrors.name) {
+                        setFormErrors({ ...formErrors, name: undefined });
+                      }
+                    }}
                   />
+                  {formErrors.name && (
+                    <span className="error-text">{formErrors.name}</span>
+                  )}
                 </div>
 
-                <div className="field">
-                  <label htmlFor="lim-desc">Description</label>
+                <div className="form-group">
+                  <label>
+                    Description
+                    <span className="char-count">
+                      {form.description.length}/{VALIDATION.DESCRIPTION_MAX}
+                    </span>
+                  </label>
                   <textarea
-                    id="lim-desc"
-                    className="text-input"
+                    className={`form-input ${
+                      formErrors.description ? "input-error" : ""
+                    }`}
                     placeholder="Short description of the limitation"
                     value={form.description}
-                    onChange={(e) =>
-                      setForm({ ...form, description: e.target.value })
-                    }
+                    rows={3}
+                    maxLength={VALIDATION.DESCRIPTION_MAX}
+                    onChange={(e) => {
+                      setForm({ ...form, description: e.target.value });
+                      if (formErrors.description) {
+                        setFormErrors({
+                          ...formErrors,
+                          description: undefined,
+                        });
+                      }
+                    }}
                   />
+                  {formErrors.description && (
+                    <span className="error-text">{formErrors.description}</span>
+                  )}
                 </div>
+              </div>
 
-                <div className="field checkbox-row">
+              <div className="form-section">
+                <h4 className="section-title">Limit Configuration</h4>
+                <div className="form-group">
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
                       checked={form.isUnlimited}
-                      onChange={(e) =>
-                        setForm({ ...form, isUnlimited: e.target.checked })
-                      }
+                      onChange={(e) => {
+                        setForm({ ...form, isUnlimited: e.target.checked });
+                        if (e.target.checked && formErrors.limitValue) {
+                          setFormErrors({
+                            ...formErrors,
+                            limitValue: undefined,
+                          });
+                        }
+                      }}
                     />
-                    <span>Unlimited</span>
+                    <span className="checkbox-text">
+                      <Infinity size={16} />
+                      Unlimited
+                    </span>
                   </label>
                 </div>
 
-                <>
-                  {!form.isUnlimited && (
-                    <div className="field">
-                      <label htmlFor="lim-value">Value</label>
+                {!form.isUnlimited && (
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>
+                        Value <span className="required">*</span>
+                      </label>
                       <input
-                        id="lim-value"
                         type="number"
-                        className="text-input"
+                        className={`form-input ${
+                          formErrors.limitValue ? "input-error" : ""
+                        }`}
                         value={form.limitValue}
-                        onChange={(e) =>
-                          setForm({ ...form, limitValue: e.target.value })
-                        }
+                        placeholder="Enter limit value"
+                        min={VALIDATION.VALUE_MIN}
+                        max={VALIDATION.VALUE_MAX}
+                        onChange={(e) => {
+                          setForm({ ...form, limitValue: e.target.value });
+                          if (formErrors.limitValue) {
+                            setFormErrors({
+                              ...formErrors,
+                              limitValue: undefined,
+                            });
+                          }
+                        }}
                       />
+                      {formErrors.limitValue && (
+                        <span className="error-text">
+                          {formErrors.limitValue}
+                        </span>
+                      )}
                     </div>
-                  )}
-
-                  <div className="field">
-                    <label htmlFor="lim-unit">Unit</label>
-                    <input
-                      id="lim-unit"
-                      className="text-input"
-                      value={form.limitUnit}
-                      onChange={(e) =>
-                        setForm({ ...form, limitUnit: e.target.value })
-                      }
-                    />
+                    <div className="form-group">
+                      <label>
+                        Unit (optional)
+                        <span className="char-count">
+                          {form.limitUnit.length}/{VALIDATION.UNIT_MAX}
+                        </span>
+                      </label>
+                      <input
+                        className={`form-input ${
+                          formErrors.limitUnit ? "input-error" : ""
+                        }`}
+                        value={form.limitUnit}
+                        placeholder="e.g.: users, GB, etc."
+                        maxLength={VALIDATION.UNIT_MAX}
+                        onChange={(e) => {
+                          setForm({ ...form, limitUnit: e.target.value });
+                          if (formErrors.limitUnit) {
+                            setFormErrors({
+                              ...formErrors,
+                              limitUnit: undefined,
+                            });
+                          }
+                        }}
+                      />
+                      {formErrors.limitUnit && (
+                        <span className="error-text">
+                          {formErrors.limitUnit}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </>
+                )}
               </div>
             </div>
-            <div className="card-foot">
-              <button className="btn" onClick={() => setShowAdd(false)}>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setShowAdd(false)}>
                 Cancel
               </button>
-              <button
-                className="btn primary"
-                onClick={saveAdd}
-                disabled={loading}
-              >
-                {loading ? "Saving..." : "Save"}
+              <button className="btn-save" onClick={saveAdd} disabled={loading}>
+                {loading ? (
+                  <>
+                    <span className="btn-spinner"></span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} />
+                    Create Limitation
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -425,35 +820,47 @@ const AdminLimitations: React.FC = () => {
       )}
 
       {/* Edit Modal */}
-      {showEdit && (
-        <div
-          className="modal"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="editLimTitle"
-        >
-          <div className="card">
-            <div className="card-head">
-              <h3 id="editLimTitle">Edit Limitation</h3>
+      {showEdit && active && (
+        <div className="modal-overlay" onClick={() => setShowEdit(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title-group">
+                <div className="modal-icon edit">
+                  <Pencil size={20} />
+                </div>
+                <div>
+                  <h3>Edit Limitation</h3>
+                  <p>Update the details of "{active.name}"</p>
+                </div>
+              </div>
               <button
-                className="close"
+                className="modal-close"
                 onClick={() => setShowEdit(false)}
-                aria-label="Close"
               >
-                <X />
+                <X size={20} />
               </button>
             </div>
-            <div className="card-body">
-              <div className="form-grid vertical">
-                <div className="field">
-                  <label htmlFor="edit-lim-type">Limitation type *</label>
+            <div className="modal-body">
+              <div className="form-section">
+                <h4 className="section-title">Basic Information</h4>
+                <div className="form-group">
+                  <label>
+                    Limitation Type <span className="required">*</span>
+                  </label>
                   <select
-                    id="edit-lim-type"
-                    className="text-input"
+                    className={`form-select ${
+                      formErrors.limitationType ? "input-error" : ""
+                    }`}
                     value={form.limitationType}
-                    onChange={(e) =>
-                      setForm({ ...form, limitationType: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, limitationType: e.target.value });
+                      if (formErrors.limitationType) {
+                        setFormErrors({
+                          ...formErrors,
+                          limitationType: undefined,
+                        });
+                      }
+                    }}
                   >
                     <option value="">-- Select limitation type --</option>
                     {limitationTypeOptions.map((opt) => (
@@ -462,86 +869,180 @@ const AdminLimitations: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                  {formErrors.limitationType && (
+                    <span className="error-text">
+                      {formErrors.limitationType}
+                    </span>
+                  )}
                 </div>
 
-                <div className="field">
-                  <label htmlFor="edit-lim-name">Name</label>
+                <div className="form-group">
+                  <label>
+                    Name <span className="required">*</span>
+                    <span className="char-count">
+                      {form.name.length}/{VALIDATION.NAME_MAX}
+                    </span>
+                  </label>
                   <input
-                    id="edit-lim-name"
-                    className="text-input"
+                    className={`form-input ${
+                      formErrors.name ? "input-error" : ""
+                    }`}
                     autoFocus
                     placeholder="E.g.: Max number of projects"
                     value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    maxLength={VALIDATION.NAME_MAX}
+                    onChange={(e) => {
+                      setForm({ ...form, name: e.target.value });
+                      if (formErrors.name) {
+                        setFormErrors({ ...formErrors, name: undefined });
+                      }
+                    }}
                   />
+                  {formErrors.name && (
+                    <span className="error-text">{formErrors.name}</span>
+                  )}
                 </div>
 
-                <div className="field">
-                  <label htmlFor="edit-lim-desc">Description</label>
+                <div className="form-group">
+                  <label>
+                    Description
+                    <span className="char-count">
+                      {form.description.length}/{VALIDATION.DESCRIPTION_MAX}
+                    </span>
+                  </label>
                   <textarea
-                    id="edit-lim-desc"
-                    className="text-input"
+                    className={`form-input ${
+                      formErrors.description ? "input-error" : ""
+                    }`}
                     placeholder="Short description of the limitation"
                     value={form.description}
-                    onChange={(e) =>
-                      setForm({ ...form, description: e.target.value })
-                    }
+                    rows={3}
+                    maxLength={VALIDATION.DESCRIPTION_MAX}
+                    onChange={(e) => {
+                      setForm({ ...form, description: e.target.value });
+                      if (formErrors.description) {
+                        setFormErrors({
+                          ...formErrors,
+                          description: undefined,
+                        });
+                      }
+                    }}
                   />
+                  {formErrors.description && (
+                    <span className="error-text">{formErrors.description}</span>
+                  )}
                 </div>
+              </div>
 
-                <div className="field checkbox-row">
+              <div className="form-section">
+                <h4 className="section-title">Limit Configuration</h4>
+                <div className="form-group">
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
                       checked={form.isUnlimited}
-                      onChange={(e) =>
-                        setForm({ ...form, isUnlimited: e.target.checked })
-                      }
+                      onChange={(e) => {
+                        setForm({ ...form, isUnlimited: e.target.checked });
+                        if (e.target.checked && formErrors.limitValue) {
+                          setFormErrors({
+                            ...formErrors,
+                            limitValue: undefined,
+                          });
+                        }
+                      }}
                     />
-                    <span>Unlimited</span>
+                    <span className="checkbox-text">
+                      <Infinity size={16} />
+                      Unlimited
+                    </span>
                   </label>
                 </div>
 
-                <>
-                  {!form.isUnlimited && (
-                    <div className="field">
-                      <label htmlFor="edit-lim-value">Value</label>
+                {!form.isUnlimited && (
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>
+                        Value <span className="required">*</span>
+                      </label>
                       <input
-                        id="edit-lim-value"
                         type="number"
-                        className="text-input"
+                        className={`form-input ${
+                          formErrors.limitValue ? "input-error" : ""
+                        }`}
                         value={form.limitValue}
-                        onChange={(e) =>
-                          setForm({ ...form, limitValue: e.target.value })
-                        }
+                        placeholder="Enter limit value"
+                        min={VALIDATION.VALUE_MIN}
+                        max={VALIDATION.VALUE_MAX}
+                        onChange={(e) => {
+                          setForm({ ...form, limitValue: e.target.value });
+                          if (formErrors.limitValue) {
+                            setFormErrors({
+                              ...formErrors,
+                              limitValue: undefined,
+                            });
+                          }
+                        }}
                       />
+                      {formErrors.limitValue && (
+                        <span className="error-text">
+                          {formErrors.limitValue}
+                        </span>
+                      )}
                     </div>
-                  )}
-
-                  <div className="field">
-                    <label htmlFor="edit-lim-unit">Unit</label>
-                    <input
-                      id="edit-lim-unit"
-                      className="text-input"
-                      value={form.limitUnit}
-                      onChange={(e) =>
-                        setForm({ ...form, limitUnit: e.target.value })
-                      }
-                    />
+                    <div className="form-group">
+                      <label>
+                        Unit (optional)
+                        <span className="char-count">
+                          {form.limitUnit.length}/{VALIDATION.UNIT_MAX}
+                        </span>
+                      </label>
+                      <input
+                        className={`form-input ${
+                          formErrors.limitUnit ? "input-error" : ""
+                        }`}
+                        value={form.limitUnit}
+                        placeholder="e.g.: users, GB, etc."
+                        maxLength={VALIDATION.UNIT_MAX}
+                        onChange={(e) => {
+                          setForm({ ...form, limitUnit: e.target.value });
+                          if (formErrors.limitUnit) {
+                            setFormErrors({
+                              ...formErrors,
+                              limitUnit: undefined,
+                            });
+                          }
+                        }}
+                      />
+                      {formErrors.limitUnit && (
+                        <span className="error-text">
+                          {formErrors.limitUnit}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </>
+                )}
               </div>
             </div>
-            <div className="card-foot">
-              <button className="btn" onClick={() => setShowEdit(false)}>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setShowEdit(false)}>
                 Cancel
               </button>
               <button
-                className="btn primary"
+                className="btn-save"
                 onClick={saveEdit}
                 disabled={loading}
               >
-                {loading ? "Saving..." : "Save"}
+                {loading ? (
+                  <>
+                    <span className="btn-spinner"></span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Pencil size={16} />
+                    Save Changes
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -550,331 +1051,183 @@ const AdminLimitations: React.FC = () => {
 
       {/* View Modal */}
       {showView && active && (
-        <div className="modal">
-          <div className="card small">
-            <div className="card-head">
-              <h3>Details</h3>
-              <button className="close" onClick={() => setShowView(false)}>
-                <X />
+        <div className="modal-overlay" onClick={() => setShowView(false)}>
+          <div
+            className="modal-content view-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <div className="modal-title-group">
+                <div className="modal-icon view">
+                  <Eye size={20} />
+                </div>
+                <div>
+                  <h3>Limitation Details</h3>
+                  <p>View complete limitation information</p>
+                </div>
+              </div>
+              <button
+                className="modal-close"
+                onClick={() => setShowView(false)}
+              >
+                <X size={20} />
               </button>
             </div>
-            <div className="card-body">
-              <p>
-                <strong>{active.name}</strong>
-              </p>
-              <p>{active.description}</p>
-              <p>
-                {active.isUnlimited
-                  ? "Unlimited"
-                  : `${active.limitValue} ${active.limitUnit || ""}`}
-              </p>
+            <div className="modal-body">
+              <div className="detail-card">
+                <div className="detail-header">
+                  <span className="detail-type-icon">
+                    {getLimitationTypeIcon(active.limitationType)}
+                  </span>
+                  <span className="detail-type-label">
+                    {getLimitationTypeLabel(active.limitationType)}
+                  </span>
+                </div>
+                <h2 className="detail-title">{active.name}</h2>
+                <p className="detail-description">
+                  {active.description || "No description provided"}
+                </p>
+                <div
+                  className={`detail-limit ${
+                    active.isUnlimited ? "unlimited" : "limited"
+                  }`}
+                >
+                  {active.isUnlimited ? (
+                    <>
+                      <Infinity size={20} />
+                      <span>Unlimited</span>
+                    </>
+                  ) : (
+                    <>
+                      <Hash size={20} />
+                      <span>
+                        Limit: {active.limitValue}
+                        {active.limitUnit ? ` ${active.limitUnit}` : ""}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="card-foot">
-              <button className="btn" onClick={() => setShowView(false)}>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setShowView(false)}>
                 Close
+              </button>
+              <button
+                className="btn-edit"
+                onClick={() => {
+                  setShowView(false);
+                  openEdit(active);
+                }}
+              >
+                <Pencil size={16} />
+                Edit Limitation
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <style jsx>{`
-        .lim-page {
-          padding: 20px;
-        }
-        .lim-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 16px;
-          margin-bottom: 16px;
-        }
-        .lim-header h1 {
-          margin: 0;
-          font-size: 28px;
-          font-weight: 700;
-        }
-        .muted {
-          color: #6b7280;
-          margin: 0;
-        }
-        .lim-actions {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-        .search {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          background: #fff;
-          padding: 6px 8px;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-        }
-        .search input {
-          border: 0;
-          outline: none;
-        }
-        .btn {
-          padding: 8px 12px;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-          background: white;
-          cursor: pointer;
-        }
-
-        /* primary CTA variant for Add */
-        .primary-cta {
-          background: linear-gradient(90deg, #ff5e13 0%, #ff7a3a 100%);
-          color: #fff;
-          border: none;
-          box-shadow: 0 6px 18px rgba(255, 94, 19, 0.18);
-          transform: translateY(0);
-          transition: transform 0.12s ease, box-shadow 0.12s ease;
-        }
-        .primary-cta:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 30px rgba(255, 94, 19, 0.18);
-        }
-        .primary-cta .add-label {
-          margin-left: 6px;
-          font-size: 15px;
-        }
-        .btn.primary {
-          background: #ff5e13;
-          color: white;
-          border-color: #ff5e13;
-        }
-
-        .lim-table {
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          overflow: hidden;
-        }
-        .row {
-          display: grid;
-          /* Title (name + description) wider, then hasLimit, actions */
-          grid-template-columns: 2fr 0.8fr 110px;
-          gap: 12px;
-          padding: 12px 16px;
-          align-items: center;
-        }
-        .row.header {
-          background: #faf7f4;
-          font-weight: 600;
-        }
-        .title .name {
-          font-weight: 500;
-          font-size: 18px;
-        }
-        .title .desc {
-          color: #6b7280;
-          font-size: 13px;
-        }
-        .actions {
-          display: flex;
-          gap: 8px;
-        }
-        .icon {
-          border: 0;
-          background: #fff;
-          padding: 6px;
-          border-radius: 6px;
-          cursor: pointer;
-        }
-        .icon.danger {
-          color: #ef4444;
-        }
-        .icon.edit {
-          color: #3b82f6;
-        }
-        .icon.edit:hover {
-          background: rgba(59, 130, 246, 0.1);
-        }
-
-        .modal {
-          position: fixed;
-          inset: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(
-            180deg,
-            rgba(0, 0, 0, 0.35),
-            rgba(0, 0, 0, 0.45)
-          );
-          /* Raised above header dropdowns and other UI (header dropdown z-index:1000) */
-          z-index: 2000;
-          padding: 20px;
-        }
-        .card {
-          background: white;
-          border-radius: 12px;
-          width: 640px;
-          max-width: 100%;
-          box-shadow: 0 18px 40px rgba(2, 6, 23, 0.24);
-          overflow: hidden;
-        }
-        .card.small {
-          width: 420px;
-        }
-        .card-head {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 20px;
-          border-bottom: 1px solid #f3f4f6;
-          background: linear-gradient(
-            90deg,
-            rgba(255, 126, 85, 0.06),
-            rgba(255, 94, 19, 0.02)
-          );
-        }
-        .card-head h3 {
-          margin: 0;
-          font-size: 20px; /* larger title */
-          font-weight: 700;
-          color: #111827;
-        }
-        .card-body {
-          padding: 18px 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        .card-foot {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          padding: 14px 20px;
-          border-top: 1px solid #f3f4f6;
-        }
-        textarea {
-          min-height: 100px;
-        }
-        /* Make sure any inputs/textareas in modal use readable text color
-           and have visible borders (covers inputs that don't have the text-input class) */
-        .card-body input,
-        .card-body textarea {
-          color: var(--color-foreground, #111827);
-          padding: 10px 12px;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          outline: none;
-          font-size: 14px;
-          background: #fff;
-        }
-        .card-body input:focus,
-        .card-body textarea:focus {
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08);
-          border-color: #6366f1;
-        }
-        /* form/grid for modal */
-        .form-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px 16px;
-        }
-        /* vertical modifier used for the Add modal to stack fields */
-        .form-grid.vertical {
-          grid-template-columns: 1fr;
-        }
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .field label {
-          font-weight: 600;
-          font-size: 13px;
-          color: #111827;
-        }
-        .text-input {
-          padding: 10px 12px;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          outline: none;
-          font-size: 14px;
-          background: #fff;
-        }
-        .text-input:focus {
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08);
-          border-color: #6366f1;
-        }
-        /* Special styling for limitation type field */
-        #lim-type {
-          padding: 10px 12px;
-          border-radius: 8px;
-          outline: none;
-          font-size: 14px;
-          background: linear-gradient(
-            135deg,
-            rgba(255, 94, 19, 0.04) 0%,
-            rgba(255, 122, 58, 0.02) 100%
-          );
-          color: #111827;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-        #lim-type option {
-          background: white;
-          color: #111827;
-          padding: 8px;
-        }
-        .checkbox-row {
-          grid-column: 1 / -1;
-          display: flex;
-        }
-        .checkbox-label {
-          display: inline-flex;
-          gap: 8px;
-          cursor: pointer;
-          user-select: none;
-        }
-        .checkbox-label input {
-          width: auto;
-          height: auto;
-          margin: 0;
-          accent-color: #ff5e13;
-        }
-
-        /* primary button disabled state */
-        .btn.primary[disabled] {
-          opacity: 0.6;
-          cursor: not-allowed;
-          box-shadow: none;
-          transform: none;
-        }
-        .btn.primary {
-          background: linear-gradient(90deg, #ff5e13 0%, #ff7a3a 100%);
-          color: #fff;
-          border: none;
-          padding: 10px 14px;
-          border-radius: 8px;
-          box-shadow: 0 8px 24px rgba(255, 94, 19, 0.12);
-        }
-        .close {
-          background: transparent;
-          border: none;
-          padding: 6px;
-          border-radius: 6px;
-          cursor: pointer;
-        }
-        .close:hover {
-          background: rgba(0, 0, 0, 0.04);
-        }
-        @media (max-width: 560px) {
-          .form-grid {
-            grid-template-columns: 1fr;
-          }
-          .card {
-            width: 100%;
-          }
-        }
-      `}</style>
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && active && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            className="modal-content delete-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header delete-header">
+              <div className="modal-title-group">
+                <div className="modal-icon delete">
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h3>Delete Limitation</h3>
+                  <p>This action cannot be undone</p>
+                </div>
+              </div>
+              <button
+                className="modal-close"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="delete-confirmation">
+                <div className="delete-message">
+                  <p>
+                    Are you sure you want to delete{" "}
+                    <strong>"{active.name}"</strong>?
+                  </p>
+                  <span className="warning-text">
+                    All packages using this limitation will be affected.
+                  </span>
+                </div>
+                <div className="delete-summary">
+                  <div className="summary-item">
+                    <Gauge size={16} />
+                    <span className="label">Limitation</span>
+                    <span className="value">{active.name}</span>
+                  </div>
+                  <div className="summary-item">
+                    <span className="type-icon-wrapper">
+                      {getLimitationTypeIcon(active.limitationType)}
+                    </span>
+                    <span className="label">Type</span>
+                    <span className="value">
+                      {getLimitationTypeLabel(active.limitationType)}
+                    </span>
+                  </div>
+                  <div className="summary-item">
+                    {active.isUnlimited ? (
+                      <Infinity size={16} />
+                    ) : (
+                      <Hash size={16} />
+                    )}
+                    <span className="label">Value</span>
+                    <span className="value">
+                      {active.isUnlimited
+                        ? "Unlimited"
+                        : `${active.limitValue}${
+                            active.limitUnit ? ` ${active.limitUnit}` : ""
+                          }`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn-cancel"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-delete"
+                onClick={confirmDelete}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <span className="btn-spinner"></span>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    Delete Limitation
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
