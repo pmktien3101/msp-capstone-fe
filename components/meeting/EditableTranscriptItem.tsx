@@ -48,7 +48,7 @@ const EditableTranscriptItem: React.FC<EditableTranscriptItemProps> = ({
                         <Button
                             className='bg-orange-500 text-white'
                             onClick={() => { onSave(editedText, editedSpeakerId); setIsEditing(false); }}>
-                            Lưu
+                            Save
                         </Button>
                         <Button
                             variant="outline"
@@ -57,7 +57,7 @@ const EditableTranscriptItem: React.FC<EditableTranscriptItemProps> = ({
                                 setEditedText(text);
                                 setEditedSpeakerId(speakerId);
                             }}>
-                            Hủy
+                            Cancel
                         </Button>
                     </div>
                 </>
@@ -75,7 +75,7 @@ const EditableTranscriptItem: React.FC<EditableTranscriptItemProps> = ({
                             onClick={() => setIsEditing(true)}
                             style={{ marginLeft: 8 }}
                         >
-                            Chỉnh sửa
+                            Edit
                         </Button>
                     }
                 </>

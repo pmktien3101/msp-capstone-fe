@@ -9,20 +9,15 @@ import {
   ArrowLeft,
   Video,
   FileText,
-  Paperclip,
   Play,
   Download,
   Sparkles,
   Loader2,
-  Edit,
-  X,
-  Calendar,
-  User,
   Trash2,
-  Check,
   Edit3,
   Target,
   VoteIcon,
+  CheckCircle,
 } from "lucide-react";
 import "@/app/styles/meeting-detail.scss";
 import { useGetCallById } from "@/hooks/useGetCallById";
@@ -105,6 +100,13 @@ export default function MeetingDetailPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentReferenceIds, setCurrentReferenceIds] = useState<string[]>([]);
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
+
+  // Floating Action Bar position state
+  const [fabPosition, setFabPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const fabInitializedRef = useRef(false);
+  const lastMousePosRef = useRef({ x: 0, y: 0 });
 
   const fetchProjectTasks = async (
     projectId: string,
@@ -1007,6 +1009,132 @@ export default function MeetingDetailPage() {
     fetchTodos();
   }, [params.id]);
 
+  // Add new handler for deleting multiple tasks
+  const handleDeleteMultipleTasks = async () => {
+    if (selectedTasks.length === 0) return;
+
+    try {
+      // Delete all selected tasks
+      const deletePromises = selectedTasks.map(taskId =>
+        todoService.deleteTodo(taskId)
+      );
+
+      const results = await Promise.all(deletePromises);
+      const successCount = results.filter(r => r.success).length;
+
+      if (successCount > 0) {
+        setTodoList((prev) =>
+          prev.filter((task) => !selectedTasks.includes(task.id))
+        );
+        setTodosFromDB((prev) =>
+          prev.filter((task) => !selectedTasks.includes(task.id))
+        );
+
+        toast.success(`Successfully deleted ${successCount} task${successCount > 1 ? 's' : ''}`);
+      }
+
+      if (successCount < selectedTasks.length) {
+        toast.warning(`Failed to delete ${selectedTasks.length - successCount} task${selectedTasks.length - successCount > 1 ? 's' : ''}`);
+      }
+
+      setSelectedTasks([]);
+      setDeleteConfirmModal({ isOpen: false, taskId: null });
+    } catch (error) {
+      toast.error("Error deleting tasks");
+      setDeleteConfirmModal({ isOpen: false, taskId: null });
+    }
+  };
+
+  // Track mouse position to position FAB near cursor when first appearing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // Only track before FAB is initialized
+      if (!fabInitializedRef.current && selectedTasks.length > 0 && !fabPosition) {
+        // Position FAB slightly above and to the right of cursor
+        const x = Math.min(e.clientX + 20, window.innerWidth - 600); // offset right + check bounds
+        const y = Math.max(e.clientY - 100, 20); // offset up + check bounds
+
+        setFabPosition({ x, y });
+        fabInitializedRef.current = true;
+      }
+    };
+
+    if (selectedTasks.length > 0 && !fabPosition) {
+      document.addEventListener('mousemove', handleMouseMove);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [selectedTasks.length, fabPosition]);
+
+  // Set FAB position immediately when first task is selected
+  useEffect(() => {
+    if (selectedTasks.length > 0 && !fabInitializedRef.current && !fabPosition) {
+      const { x: mouseX, y: mouseY } = lastMousePosRef.current;
+
+      // Position FAB slightly above and to the right of last known cursor position
+      const x = Math.min(mouseX + 600, window.innerWidth - 600);
+      const y = mouseY + 200;
+
+      setFabPosition({ x, y });
+      fabInitializedRef.current = true;
+    }
+  }, [selectedTasks.length, fabPosition]);
+
+  // Reset FAB position when all tasks are deselected
+  useEffect(() => {
+    if (selectedTasks.length === 0) {
+      fabInitializedRef.current = false;
+      setFabPosition(null);
+    }
+  }, [selectedTasks.length]);
+
+  // Handle FAB drag start
+  const handleFabMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.fab-btn')) return; // Don't drag when clicking buttons
+
+    setIsDragging(true);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+  };
+
+  // Handle FAB drag
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+
+      const newX = e.clientX - dragOffset.x;
+      const newY = e.clientY - dragOffset.y;
+
+      // Keep within viewport bounds
+      const maxX = window.innerWidth - 500; // FAB width
+      const maxY = window.innerHeight - 100; // FAB height
+
+      setFabPosition({
+        x: Math.max(20, Math.min(newX, maxX)),
+        y: Math.max(20, Math.min(newY, maxY))
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
+
   if (isLoadingCall || isLoadingMeeting) {
     return (
       <div className="meeting-detail-loading">
@@ -1511,19 +1639,6 @@ export default function MeetingDetailPage() {
                           </p>
                         </div>
                       </div>
-                      {todoList.length > 0 && (
-                        <label className="select-all-section">
-                          <Checkbox
-                            checked={selectedTasks.length === todoList.length}
-                            onCheckedChange={handleSelectAllTasks}
-                            className="select-all-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
-                          />
-                          <span className="select-all-label">
-                            Select all ({selectedTasks.length} /{" "}
-                            {todoList.length})
-                          </span>
-                        </label>
-                      )}
                     </div>
 
                     {isProcessingMeetingAI && (
@@ -1534,31 +1649,79 @@ export default function MeetingDetailPage() {
                     )}
 
                     <div className="task-list">{memoizedTodoList}</div>
-
-                    <div className="ai-tasks-actions">
-                      <Button
-                        onClick={handleOpenConvertModal}
-                        className="convert-all-btn"
-                        variant="default"
-                        disabled={selectedTasks.length === 0}
-                      >
-                        <Target size={16} />
-                        Convert to Official Tasks
-                      </Button>
-                    </div>
                   </div>
                 )}
             </div>
           </div>
         )}
       </div>
-      <RelatedTasksSidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        referenceTaskIds={currentReferenceIds}
-        todoId={selectedTodoId ?? ""}
-      />
-      {/* Delete Confirmation Modal */}
+
+      {/* Floating Action Bar - appears near cursor when first shown */}
+      {selectedTasks.length > 0 && fabPosition && (
+        <div
+          className={`floating-action-bar ${isDragging ? 'dragging' : ''}`}
+          style={{
+            left: `${fabPosition.x}px`,
+            top: `${fabPosition.y}px`,
+            bottom: 'auto',
+            right: 'auto'
+          }}
+          onMouseDown={handleFabMouseDown}
+        >
+          <div className="fab-content">
+            <div className="fab-info">
+              <span className="fab-count">
+                {selectedTasks.length} {selectedTasks.length === 1 ? 'task' : 'tasks'} selected
+              </span>
+            </div>
+            <div className="fab-actions">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSelectAllTasks}
+                className="fab-btn fab-btn-select"
+                title={selectedTasks.length === todoList.filter(t => isValidTodo(t) && t.status !== 2 && t.status !== 3).length ? "Deselect all" : "Select all"}
+              >
+                <CheckCircle size={16} />
+                <span className="fab-btn-text">
+                  {selectedTasks.length === todoList.filter(t => isValidTodo(t) && t.status !== 2 && t.status !== 3).length ? "Deselect all" : "Select all"}
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (selectedTasks.length === 1) {
+                    handleOpenDeleteModal(selectedTasks[0]);
+                  } else {
+                    setDeleteConfirmModal({
+                      isOpen: true,
+                      taskId: 'multiple'
+                    });
+                  }
+                }}
+                className="fab-btn fab-btn-delete"
+                title="Delete selected"
+              >
+                <Trash2 size={16} />
+                <span className="fab-btn-text">Delete ({selectedTasks.length})</span>
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleOpenConvertModal}
+                className="fab-btn fab-btn-convert"
+                title="Convert to official tasks"
+              >
+                <Target size={16} />
+                <span className="fab-btn-text">Convert ({selectedTasks.length})</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal - Updated to handle multiple tasks */}
       {deleteConfirmModal.isOpen && (
         <div className="delete-modal-overlay">
           <div className="delete-modal">
@@ -1566,10 +1729,18 @@ export default function MeetingDetailPage() {
               <div className="delete-icon">
                 <Trash2 size={24} />
               </div>
-              <h3>Confirm Delete Task</h3>
+              <h3>
+                {deleteConfirmModal.taskId === 'multiple'
+                  ? `Confirm Delete ${selectedTasks.length} Tasks`
+                  : 'Confirm Delete Task'}
+              </h3>
             </div>
             <div className="delete-modal-content">
-              <p>Are you sure you want to delete this to-do?</p>
+              <p>
+                {deleteConfirmModal.taskId === 'multiple'
+                  ? `Are you sure you want to delete ${selectedTasks.length} selected to-dos?`
+                  : 'Are you sure you want to delete this to-do?'}
+              </p>
               <p className="delete-warning">
                 This action cannot be undone.
               </p>
@@ -1582,14 +1753,30 @@ export default function MeetingDetailPage() {
               >
                 Cancel
               </Button>
-              <Button onClick={handleDeleteTask} className="confirm-delete-btn">
+              <Button
+                onClick={() => {
+                  if (deleteConfirmModal.taskId === 'multiple') {
+                    handleDeleteMultipleTasks();
+                  } else {
+                    handleDeleteTask();
+                  }
+                }}
+                className="confirm-delete-btn"
+              >
                 <Trash2 size={16} />
-                Delete Task
+                Delete {deleteConfirmModal.taskId === 'multiple' ? 'Tasks' : 'Task'}
               </Button>
             </div>
           </div>
         </div>
       )}
+
+      <RelatedTasksSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        referenceTaskIds={currentReferenceIds}
+        todoId={selectedTodoId ?? ""}
+      />
 
       {/* Convert Confirmation Modal */}
       {convertConfirmModal.isOpen && (
@@ -1632,3 +1819,39 @@ export default function MeetingDetailPage() {
     </div>
   );
 }
+
+// Add new handler for deleting multiple tasks
+// const handleDeleteMultipleTasks = async () => {
+//   if (selectedTasks.length === 0) return;
+
+//   try {
+//     // Delete all selected tasks
+//     const deletePromises = selectedTasks.map(taskId =>
+//       todoService.deleteTodo(taskId)
+//     );
+
+//     const results = await Promise.all(deletePromises);
+//     const successCount = results.filter(r => r.success).length;
+
+//     if (successCount > 0) {
+//       setTodoList((prev) =>
+//         prev.filter((task) => !selectedTasks.includes(task.id))
+//       );
+//       setTodosFromDB((prev) =>
+//         prev.filter((task) => !selectedTasks.includes(task.id))
+//       );
+
+//       toast.success(`Successfully deleted ${successCount} task${successCount > 1 ? 's' : ''}`);
+//     }
+
+//     if (successCount < selectedTasks.length) {
+//       toast.warning(`Failed to delete ${selectedTasks.length - successCount} task${selectedTasks.length - successCount > 1 ? 's' : ''}`);
+//     }
+
+//     setSelectedTasks([]);
+//     setDeleteConfirmModal({ isOpen: false, taskId: null });
+//   } catch (error) {
+//     toast.error("Error deleting tasks");
+//     setDeleteConfirmModal({ isOpen: false, taskId: null });
+//   }
+// };
