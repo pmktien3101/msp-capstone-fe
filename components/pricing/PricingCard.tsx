@@ -54,18 +54,13 @@ const formatPeriodLabel = (period?: string, billingCycle?: number): string => {
 };
 
 const getCurrencySymbol = (currency?: string): string => {
-  if (!currency) return "$";
-  const code = currency.toUpperCase();
-  switch (code) {
-    case "USD":
-      return "$";
-    case "VND":
-      return "₫";
-    case "EUR":
-      return "€";
-    default:
-      return currency;
-  }
+  return "₫"; // VND only
+};
+
+const formatPrice = (price: number | string): string => {
+  const numPrice = typeof price === "string" ? parseFloat(price) : price;
+  if (isNaN(numPrice)) return "0";
+  return numPrice.toLocaleString("de-DE");
 };
 
 const PricingCard: React.FC<PricingCardProps> = ({
@@ -104,26 +99,32 @@ const PricingCard: React.FC<PricingCardProps> = ({
     if (plan.limitations && plan.limitations.length > 0) {
       return plan.limitations.map((lim, index) => (
         <div key={index} className="feature-item">
-          <svg
-            className="feature-check"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M20 6L9 17L4 12"
-              stroke="#10B981"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <div className="feature-check-wrapper">
+            <svg
+              className="feature-check"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M20 6L9 17L4 12"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
           <span>
             {lim.name}
-            {lim.isUnlimited && " (Unlimited)"}
-            {!lim.isUnlimited && lim.value && `: ${lim.value}`}
+            {lim.isUnlimited && (
+              <span className="feature-unlimited">Unlimited</span>
+            )}
+            {!lim.isUnlimited && lim.value && (
+              <span className="feature-value">: {lim.value}</span>
+            )}
           </span>
         </div>
       ));
@@ -132,22 +133,24 @@ const PricingCard: React.FC<PricingCardProps> = ({
     if (plan.features && plan.features.length > 0) {
       return plan.features.map((feature, index) => (
         <div key={index} className="feature-item">
-          <svg
-            className="feature-check"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M20 6L9 17L4 12"
-              stroke="#10B981"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <div className="feature-check-wrapper">
+            <svg
+              className="feature-check"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M20 6L9 17L4 12"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
           <span>{feature}</span>
         </div>
       ));
@@ -165,8 +168,8 @@ const PricingCard: React.FC<PricingCardProps> = ({
       <div className="plan-header">
         <h3 className="plan-name">{plan.name}</h3>
         <div className="plan-price">
+          <span className="amount">{formatPrice(plan.price)}</span>
           <span className="currency">{currencySymbol}</span>
-          <span className="amount">{plan.price}</span>
           <span className="period">/{periodLabel}</span>
         </div>
         {plan.description && (
