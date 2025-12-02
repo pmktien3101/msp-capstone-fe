@@ -141,7 +141,7 @@ export default function MeetingDetailPage() {
         setRecordings(res.recordings || []);
       } catch (e: any) {
         // console.error("Failed to fetch call recordings", e);
-        setRecordingsError("Không tải được bản ghi cuộc họp");
+        setRecordingsError("Cannot load meeting recordings");
       } finally {
         setIsLoadingRecordings(false);
       }
@@ -243,7 +243,7 @@ export default function MeetingDetailPage() {
       // propagate meaningful error
       console.error("uploadRecordingUrlToCloud - error:", err);
       throw new Error(
-        err?.message || "Không thể tải lên cloud. Vui lòng thử lại."
+        err?.message || "Unable to upload to cloud. Please try again."
       );
     }
   };
@@ -260,7 +260,7 @@ export default function MeetingDetailPage() {
       let cloudRecordingUrl = meetingInfo?.recordUrl || null;
       if (!cloudRecordingUrl) {
         if (!recording?.url)
-          throw new Error("Không tìm thấy URL bản ghi để upload");
+          throw new Error("Recording URL not found for upload");
         try {
           cloudRecordingUrl = await uploadRecordingUrlToCloud(recording.url);
           // cập nhật local ngay để tránh upload lại
@@ -271,7 +271,7 @@ export default function MeetingDetailPage() {
         } catch (uploadErr: any) {
           // Nếu upload thất bại thì dừng và báo lỗi
           throw new Error(
-            uploadErr?.message || "Tải lên bản ghi lên cloud thất bại"
+            uploadErr?.message || "Failed to upload recording to cloud"
           );
         }
       }
@@ -378,9 +378,8 @@ export default function MeetingDetailPage() {
 
             if (createTodosResult.success) {
               toast.success(
-                `${
-                  createTodosResult.data?.length || 0
-                } công việc đã được tạo từ AI`
+                `${createTodosResult.data?.length || 0
+                } tasks created from AI`
               );
               const refreshResult = await todoService.getTodosByMeetingId(
                 params.id as string
@@ -391,11 +390,11 @@ export default function MeetingDetailPage() {
               }
             } else {
               toast.warning(
-                "Tạo công việc từ AI thất bại: " + createTodosResult.error
+                "Failed to create tasks from AI: " + createTodosResult.error
               );
             }
           } catch (todoError) {
-            toast.error("Lỗi khi tạo công việc từ AI");
+            toast.error("Error creating tasks from AI");
           }
         }
       } else {
@@ -553,22 +552,18 @@ export default function MeetingDetailPage() {
     return attendee?.fullName || attendee?.email || assigneeId;
   };
 
-  // Helper function to get assignee name from todo (handles both AI and DB formats)
+  // Helper function to get assignee name from todo
   const getTodoAssigneeName = (todo: any): string => {
-    // If todo has assignee object (from DB)
     if (todo.assignee?.fullName) {
       return todo.assignee.fullName;
     }
     if (todo.assignee?.email) {
       return todo.assignee.email;
     }
-
-    // If todo has assigneeId (from AI or manual assignment)
     if (todo.assigneeId) {
       return mapAssigneeIdToName(todo.assigneeId);
     }
-
-    return "Chưa được giao";
+    return "Not assigned";
   };
 
   // Helper function to get assigneeId from todo (handles both AI and DB formats)
@@ -648,13 +643,11 @@ export default function MeetingDetailPage() {
     if (!deleteConfirmModal.taskId) return;
 
     try {
-      // Gọi API delete todo
       const deleteResult = await todoService.deleteTodo(
         deleteConfirmModal.taskId
       );
 
       if (deleteResult.success) {
-        // Cập nhật local state
         setTodoList((prev) =>
           prev.filter((task) => task.id !== deleteConfirmModal.taskId)
         );
@@ -662,14 +655,13 @@ export default function MeetingDetailPage() {
           prev.filter((task) => task.id !== deleteConfirmModal.taskId)
         );
 
-        toast.success("Xóa công việc thành công");
+        toast.success("Task deleted successfully");
         setDeleteConfirmModal({ isOpen: false, taskId: null });
       } else {
-        toast.error("Xóa công việc thất bại: " + deleteResult.error);
+        toast.error("Failed to delete task: " + deleteResult.error);
       }
     } catch (error) {
-      // console.error("Error deleting todo:", error);
-      toast.error("Lỗi khi xóa công việc");
+      toast.error("Error deleting task");
     }
   };
 
@@ -686,7 +678,7 @@ export default function MeetingDetailPage() {
       todo.status === 2 || // ConvertedToTask
       todo.status === 3 // Deleted
     ) {
-      toast.warning("To-do đã được chuyển đổi hoặc thiếu thông tin cần thiết");
+      toast.warning("To-do has been converted or missing required information");
       return;
     }
     setSelectedTasks((prev) =>
@@ -718,47 +710,34 @@ export default function MeetingDetailPage() {
   // Xử lý confirm convert
   const handleConfirmConvert = async () => {
     if (selectedTasks.length === 0) {
-      toast.warning("Bạn phải chọn ít nhất một To-do để chuyển!");
+      toast.warning("You must select at least one to-do to convert!");
       return;
     }
 
-    // Có thể hiển thị loading ở đây nếu muốn
     try {
       const result = await todoService.convertTodosToTasks(selectedTasks);
 
       if (result.success) {
         toast.success(
-          `Chuyển thành công ${result.data?.length} công việc cho dự án!`
+          `Successfully converted ${result.data?.length} tasks to project!`
         );
-        // Xoá selection và đóng modal
         setSelectedTasks([]);
         setConvertConfirmModal({ isOpen: false, taskCount: 0 });
 
-        // Refresh lại danh sách todo (nếu còn trong DB thì lọc IsDeleted)
-        // const refreshedTodos = await todoService.getTodosByMeetingId(meetingInfo.id);
-        // if (refreshedTodos.success) {
-        //   setTodosFromDB(refreshedTodos.data ?? []);
-        //   setTodoList(refreshedTodos.data ?? []);
-        // }
-
         if (meetingInfo?.projectId) {
-          // Chuyển về trang chi tiết project
           setTimeout(() => {
             router.push(`/projects/${meetingInfo.projectId}?tab=board`);
           }, 600);
         }
-
-        // Nếu có list task trả về, có thể push vào ProjectTask trong frontend/project context nếu cần
       } else {
-        toast.error(result.error || "Không thể chuyển đổi các To-do đã chọn!");
+        toast.error(result.error || "Unable to convert selected to-dos!");
         setConvertConfirmModal({ isOpen: false, taskCount: 0 });
       }
     } catch (error) {
-      toast.error("Có lỗi kết nối khi chuyển đổi công việc!");
+      toast.error("Connection error while converting tasks!");
       setConvertConfirmModal({ isOpen: false, taskCount: 0 });
     }
 
-    // Close modal and clear selection
     setConvertConfirmModal({ isOpen: false, taskCount: 0 });
     setSelectedTasks([]);
   };
@@ -803,13 +782,13 @@ export default function MeetingDetailPage() {
   const getTodoStatusLabel = (statusDisplay: string) => {
     switch (statusDisplay) {
       case "Generated":
-        return "Mới tạo";
+        return "New";
       case "UnderReview":
-        return "Đã chỉnh sửa";
+        return "Edited";
       case "ConvertedToTask":
-        return "Đã chuyển đổi thành công việc";
+        return "Converted to task";
       case "Deleted":
-        return "Đã xóa";
+        return "Deleted";
       default:
         return statusDisplay;
     }
@@ -862,10 +841,10 @@ export default function MeetingDetailPage() {
                   assigneeId: newAssigneeId,
                   assignee: newAssignee
                     ? {
-                        id: newAssignee.id,
-                        fullName: newAssignee.fullName,
-                        email: newAssignee.email,
-                      }
+                      id: newAssignee.id,
+                      fullName: newAssignee.fullName,
+                      email: newAssignee.email,
+                    }
                     : null,
                   status: updateResult?.data?.status,
                   statusDisplay: updateResult?.data?.statusDisplay,
@@ -878,7 +857,7 @@ export default function MeetingDetailPage() {
                   prev.map((t) => (t.id === todo.id ? updatedTodo : t))
                 );
 
-                toast.success("Cập nhật công việc thành công");
+                toast.success("Task updated successfully");
 
                 setOriginalTodoCache((prev) => {
                   const copy = { ...prev };
@@ -889,11 +868,11 @@ export default function MeetingDetailPage() {
                 setEditMode((prev) => ({ ...prev, [todo.id]: false }));
               } else {
                 toast.error(
-                  "Cập nhật công việc thất bại: " + updateResult.error
+                  "Failed to update task: " + updateResult.error
                 );
               }
             } catch (error) {
-              toast.error("Lỗi khi cập nhật công việc");
+              toast.error("Error updating task");
             }
           }}
           onEditCancel={(todoId) => {
@@ -947,8 +926,8 @@ export default function MeetingDetailPage() {
       const extensionFromType = contentType.includes("mp4")
         ? "mp4"
         : contentType.includes("webm")
-        ? "webm"
-        : "mp4";
+          ? "webm"
+          : "mp4";
       const baseName =
         rec.filename
           ?.replace(/\s+/g, "-")
@@ -966,8 +945,7 @@ export default function MeetingDetailPage() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      // console.error("Download recording error", err);
-      toast.error("Tải xuống thất bại. Vui lòng thử lại.");
+      toast.error("Download failed. Please try again.");
     } finally {
       setDownloadingId(null);
     }
@@ -1033,7 +1011,7 @@ export default function MeetingDetailPage() {
     return (
       <div className="meeting-detail-loading">
         <div className="loading-spinner"></div>
-        <p>Đang tải thông tin cuộc họp...</p>
+        <p>Loading meeting information...</p>
       </div>
     );
   }
@@ -1041,15 +1019,15 @@ export default function MeetingDetailPage() {
   if (!call || !meetingInfo) {
     return (
       <div className="meeting-detail-error">
-        <h3>Không tìm thấy cuộc họp</h3>
-        <p>Cuộc họp này không tồn tại hoặc bạn không có quyền truy cập.</p>
-        <Button onClick={() => router.back()}>Quay lại</Button>
+        <h3>Meeting Not Found</h3>
+        <p>This meeting does not exist or you do not have permission to access it.</p>
+        <Button onClick={() => router.back()}>Go Back</Button>
       </div>
     );
   }
   const getMilestoneName = (milestoneId: string) => {
     const milestone = mockMilestones.find((m) => m.id === milestoneId);
-    return milestone ? milestone.name : "Chưa gán milestone";
+    return milestone ? milestone.name : "No milestone assigned";
   };
   const getParticipantEmail = (participantId: string) => {
     const participant = mockParticipants.find((p) => p.id === participantId);
@@ -1096,7 +1074,7 @@ export default function MeetingDetailPage() {
             className="back-btn"
           >
             <ArrowLeft size={16} />
-            Quay lại
+            Back
           </Button>
           <div className="meeting-title">
             <h1>
@@ -1104,7 +1082,7 @@ export default function MeetingDetailPage() {
             </h1>
             <div className="meeting-meta">
               <span className="project-name">
-                {meetingInfo?.projectName || "Cuộc họp"}
+                {meetingInfo?.projectName || "Meeting"}
               </span>
             </div>
           </div>
@@ -1126,22 +1104,15 @@ export default function MeetingDetailPage() {
           onClick={() => handleChangeTab("overview")}
         >
           <FileText size={16} />
-          Tổng quan
+          Overview
         </button>
         <button
           className={`tab ${activeTab === "recording" ? "active" : ""}`}
           onClick={() => handleChangeTab("recording")}
         >
           <Video size={16} />
-          Bản ghi cuộc họp
+          Recording
         </button>
-        {/* <button
-          className={`tab ${activeTab === "attachments" ? "active" : ""}`}
-          onClick={() => handleChangeTab("attachments")}
-        >
-          <Paperclip size={16} />
-          Tài liệu
-        </button> */}
       </div>
 
       {/* Content */}
@@ -1150,37 +1121,37 @@ export default function MeetingDetailPage() {
           <div className="overview-section">
             <div className="meeting-info">
               <div className="flex justify-between">
-                <h3>Thông tin cuộc họp</h3>
+                <h3>Meeting Information</h3>
                 {(meetingInfo?.endTime
                   ? new Date(meetingInfo.endTime) > new Date()
                   : endsAt
-                  ? endsAt > new Date()
-                  : false) && (
-                  <Button
-                    variant="default"
-                    className="join-now-btn bg-orange-600 hover:bg-orange-700 cursor-pointer"
-                    style={{ marginTop: 12 }}
-                    onClick={() => handleClickJoinMeeting()}
-                  >
-                    <Video size={16} style={{ marginRight: 6 }} />
-                    Tham gia ngay
-                  </Button>
-                )}
+                    ? endsAt > new Date()
+                    : false) && (
+                    <Button
+                      variant="default"
+                      className="join-now-btn bg-orange-600 hover:bg-orange-700 cursor-pointer"
+                      style={{ marginTop: 12 }}
+                      onClick={() => handleClickJoinMeeting()}
+                    >
+                      <Video size={16} style={{ marginRight: 6 }} />
+                      Join Now
+                    </Button>
+                  )}
               </div>
 
               <div className="info-grid">
                 <div className="info-item">
-                  <label>Tiêu đề:</label>
+                  <label>Title:</label>
                   <p>
                     {meetingInfo?.title || call.state?.custom?.title || call.id}
                   </p>
                 </div>
                 <div className="info-item">
-                  <label>Mô tả:</label>
+                  <label>Description:</label>
                   <p>{meetingInfo?.description || description}</p>
                 </div>
                 <div className="info-item">
-                  <label>Thời gian bắt đầu:</label>
+                  <label>Start Time:</label>
                   <p>
                     {meetingInfo?.startTime
                       ? new Date(meetingInfo.startTime).toLocaleString("vi-VN")
@@ -1188,7 +1159,7 @@ export default function MeetingDetailPage() {
                   </p>
                 </div>
                 <div className="info-item">
-                  <label>Thời gian kết thúc:</label>
+                  <label>End Time:</label>
                   <p>
                     {meetingInfo?.endTime
                       ? new Date(meetingInfo.endTime).toLocaleString("vi-VN")
@@ -1196,7 +1167,7 @@ export default function MeetingDetailPage() {
                   </p>
                 </div>
                 <div className="info-item">
-                  <label>Trạng thái:</label>
+                  <label>Status:</label>
                   <span
                     className="px-8 py-2 rounded-full text-white text-sm font-medium"
                     style={{
@@ -1210,11 +1181,11 @@ export default function MeetingDetailPage() {
                 </div>
 
                 <div className="info-item">
-                  <label>Người tạo:</label>
+                  <label>Created By:</label>
                   <p>{meetingInfo?.createdByEmail || createdBy}</p>
                 </div>
                 <div className="info-item">
-                  <label>Ngày tạo:</label>
+                  <label>Created At:</label>
                   <p>
                     {meetingInfo?.createdAt
                       ? new Date(meetingInfo.createdAt).toLocaleString("vi-VN")
@@ -1224,22 +1195,22 @@ export default function MeetingDetailPage() {
               </div>
             </div>
 
-            {/* Thông tin dự án và milestone */}
+            {/* Project and milestone info */}
             <div className="project-info">
-              <h3>Thông tin dự án</h3>
+              <h3>Project Information</h3>
               <div className="info-grid">
                 <div className="info-item">
-                  <label>Dự án:</label>
+                  <label>Project:</label>
                   <p>
-                    {meetingInfo?.projectName || "Hệ thống quản lý dự án MSP"}
+                    {meetingInfo?.projectName || "MSP Project Management System"}
                   </p>
                 </div>
                 <div className="info-item">
-                  <label>Milestone liên quan:</label>
+                  <label>Related Milestone:</label>
                   <p>{meetingInfo?.milestoneName || milestoneName}</p>
                 </div>
                 <div className="info-item">
-                  <label>Thành viên tham gia:</label>
+                  <label>Participants:</label>
                   <div className="participants">
                     {meetingInfo?.attendees?.length > 0 ? (
                       <ul>
@@ -1250,7 +1221,7 @@ export default function MeetingDetailPage() {
                         ))}
                       </ul>
                     ) : (
-                      <p>Chưa có người tham gia</p>
+                      <p>No participants yet</p>
                     )}
                   </div>
                 </div>
@@ -1259,17 +1230,15 @@ export default function MeetingDetailPage() {
           </div>
         )}
 
-        {/* Đã bỏ flow MeetingSetup/MeetingRoom khi join trực tiếp */}
-
         {activeTab === "recording" && (
           <div className="recording-section">
-            <h3>Bản ghi cuộc họp & Lời thoại</h3>
+            <h3>Recording & Transcript</h3>
             <div className="recording-content">
               <div className="recordings">
-                <h4>Bản ghi cuộc họp</h4>
+                <h4>Meeting Recording</h4>
                 <div className="recording-list">
                   {isLoadingRecordings && (
-                    <div className="recording-loading">Đang tải bản ghi...</div>
+                    <div className="recording-loading">Loading recordings...</div>
                   )}
                   {recordingsError && !isLoadingRecordings && (
                     <div className="recording-error">{recordingsError}</div>
@@ -1277,19 +1246,18 @@ export default function MeetingDetailPage() {
                   {!isLoadingRecordings &&
                     !recordingsError &&
                     (() => {
-                      // Ưu tiên hiển thị recordUrl từ DB trước
                       if (meetingInfo?.recordUrl) {
                         return (
                           <div className="recording-item" key="db-recording">
                             <div className="recording-info">
                               <Video size={20} />
                               <div>
-                                <h5>Bản ghi cuộc họp</h5>
+                                <h5>Meeting Recording</h5>
                                 <p>
                                   {meetingInfo.updatedAt
                                     ? new Date(
-                                        meetingInfo.updatedAt
-                                      ).toLocaleString("vi-VN")
+                                      meetingInfo.updatedAt
+                                    ).toLocaleString("vi-VN")
                                     : "-"}
                                 </p>
                               </div>
@@ -1303,7 +1271,7 @@ export default function MeetingDetailPage() {
                                 }
                               >
                                 <Play size={16} />
-                                Xem
+                                Watch
                               </Button>
                               <Button
                                 variant="outline"
@@ -1312,7 +1280,6 @@ export default function MeetingDetailPage() {
                                   downloadingId === meetingInfo.recordUrl
                                 }
                                 onClick={() => {
-                                  // Tạo fake recording object để sử dụng handleDownload
                                   const fakeRec = {
                                     url: meetingInfo.recordUrl,
                                     filename: "recording-from-db.mp4",
@@ -1329,19 +1296,18 @@ export default function MeetingDetailPage() {
                               >
                                 <Download size={16} />
                                 {downloadingId === meetingInfo.recordUrl
-                                  ? "Đang tải..."
-                                  : "Tải xuống"}
+                                  ? "Downloading..."
+                                  : "Download"}
                               </Button>
                             </div>
                           </div>
                         );
                       }
 
-                      // Fallback sang Stream recordings nếu không có trong DB
                       if (recordings.length === 0) {
                         return (
                           <div className="recording-empty">
-                            <p>Chưa có bản ghi cuộc họp</p>
+                            <p>No recordings available yet</p>
                           </div>
                         );
                       }
@@ -1355,9 +1321,9 @@ export default function MeetingDetailPage() {
                         const duration =
                           rec.start_time && rec.end_time
                             ? formatDuration(
-                                new Date(rec.end_time).getTime() -
-                                  new Date(rec.start_time).getTime()
-                              )
+                              new Date(rec.end_time).getTime() -
+                              new Date(rec.start_time).getTime()
+                            )
                             : null;
                         return (
                           <div className="recording-item" key={rec.url || idx}>
@@ -1370,7 +1336,7 @@ export default function MeetingDetailPage() {
                                   {duration && (
                                     <span className="recording-duration">
                                       {" "}
-                                      · Thời lượng: {duration}
+                                      · Duration: {duration}
                                     </span>
                                   )}
                                 </p>
@@ -1386,7 +1352,7 @@ export default function MeetingDetailPage() {
                                   }
                                 >
                                   <Play size={16} />
-                                  Xem
+                                  Watch
                                 </Button>
                               )}
                               {rec.url && (
@@ -1400,8 +1366,8 @@ export default function MeetingDetailPage() {
                                 >
                                   <Download size={16} />
                                   {downloadingId === (rec.url || String(idx))
-                                    ? "Đang tải..."
-                                    : "Tải xuống"}
+                                    ? "Downloading..."
+                                    : "Download"}
                                 </Button>
                               )}
                             </div>
@@ -1413,17 +1379,17 @@ export default function MeetingDetailPage() {
               </div>
 
               <div className="transcript">
-                <h4>Lời thoại</h4>
+                <h4>Transcript</h4>
                 {isLoadingTranscriptions && (
                   <div className="transcript-loading">
-                    Đang tải lời thoại...
+                    Loading transcript...
                   </div>
                 )}
                 {!isLoadingTranscriptions &&
                   originalTranscriptions.length === 0 &&
                   improvedTranscript.length === 0 && (
                     <div className="transcript-empty">
-                      Chưa có transcript cho cuộc họp này
+                      No transcript available for this meeting
                     </div>
                   )}
                 {isProcessingMeetingAI && (
@@ -1440,22 +1406,21 @@ export default function MeetingDetailPage() {
                     }}
                   >
                     <Loader2 size={50} className="animate-spin" />
-                    <span>Đang tạo transcript của cuộc họp...</span>
+                    <span>Generating meeting transcript...</span>
                   </div>
                 )}
                 {!isProcessingMeetingAI && improvedTranscript.length > 0 && (
                   <>
                     <div
-                      className={`transcript-content ${
-                        isTranscriptExpanded ? "expanded" : ""
-                      } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
+                      className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
+                        } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
                       style={{
                         maxHeight:
                           improvedTranscript.length <= 4
                             ? "none"
                             : isTranscriptExpanded
-                            ? "none"
-                            : "200px",
+                              ? "none"
+                              : "200px",
                       }}
                     >
                       <TranscriptPanel
@@ -1477,7 +1442,7 @@ export default function MeetingDetailPage() {
                       >
                         {isTranscriptExpanded ? (
                           <>
-                            <span>Thu gọn lời thoại</span>
+                            <span>Collapse transcript</span>
                             <ArrowLeft
                               size={16}
                               style={{ transform: "rotate(90deg)" }}
@@ -1486,8 +1451,8 @@ export default function MeetingDetailPage() {
                         ) : (
                           <>
                             <span>
-                              Xem toàn bộ lời thoại ({improvedTranscript.length}{" "}
-                              đoạn)
+                              View full transcript ({improvedTranscript.length}{" "}
+                              segments)
                             </span>
                             <ArrowLeft
                               size={16}
@@ -1508,7 +1473,7 @@ export default function MeetingDetailPage() {
                       <Sparkles size={24} />
                     </div>
                     <div className="summary-title-text">
-                      <h4>Tóm tắt cuộc họp bằng AI</h4>
+                      <h4>AI Meeting Summary</h4>
                       <div className="ai-badge">
                         <Sparkles size={10} />
                         <span>Powered by Gemini AI</span>
@@ -1520,7 +1485,7 @@ export default function MeetingDetailPage() {
                   {isProcessingMeetingAI && (
                     <div className="summary-loading">
                       <Loader2 size={16} className="animate-spin" />
-                      <span>Đang tạo tóm tắt...</span>
+                      <span>Generating summary...</span>
                     </div>
                   )}
                   {!isProcessingMeetingAI && summary && (
@@ -1539,10 +1504,10 @@ export default function MeetingDetailPage() {
                           <Sparkles size={18} />
                         </div>
                         <div className="title-content">
-                          <h4>Danh sách To-do từ AI</h4>
+                          <h4>AI-Generated To-do List</h4>
                           <p className="draft-notice">
                             <Edit3 size={12} />
-                            <span>Bản nháp - Cần xem xét và chỉnh sửa</span>
+                            <span>Draft - Needs review and editing</span>
                           </p>
                         </div>
                       </div>
@@ -1554,7 +1519,7 @@ export default function MeetingDetailPage() {
                             className="select-all-checkbox data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
                           />
                           <span className="select-all-label">
-                            Chọn tất cả({selectedTasks.length} /{" "}
+                            Select all ({selectedTasks.length} /{" "}
                             {todoList.length})
                           </span>
                         </label>
@@ -1564,13 +1529,12 @@ export default function MeetingDetailPage() {
                     {isProcessingMeetingAI && (
                       <div className="tasks-loading">
                         <Loader2 size={16} className="animate-spin" />
-                        <span>Đang tạo danh sách To-do...</span>
+                        <span>Generating to-do list...</span>
                       </div>
                     )}
 
                     <div className="task-list">{memoizedTodoList}</div>
 
-                    {/* Action buttons for the entire AI task list */}
                     <div className="ai-tasks-actions">
                       <Button
                         onClick={handleOpenConvertModal}
@@ -1579,7 +1543,7 @@ export default function MeetingDetailPage() {
                         disabled={selectedTasks.length === 0}
                       >
                         <Target size={16} />
-                        Chuyển đổi thành công việc chính thức
+                        Convert to Official Tasks
                       </Button>
                     </div>
                   </div>
@@ -1602,12 +1566,12 @@ export default function MeetingDetailPage() {
               <div className="delete-icon">
                 <Trash2 size={24} />
               </div>
-              <h3>Xác nhận xóa task</h3>
+              <h3>Confirm Delete Task</h3>
             </div>
             <div className="delete-modal-content">
-              <p>Bạn có chắc chắn muốn xóa To-do này không?</p>
+              <p>Are you sure you want to delete this to-do?</p>
               <p className="delete-warning">
-                Hành động này không thể hoàn tác.
+                This action cannot be undone.
               </p>
             </div>
             <div className="delete-modal-actions">
@@ -1616,11 +1580,11 @@ export default function MeetingDetailPage() {
                 onClick={handleCancelDelete}
                 className="cancel-btn"
               >
-                Hủy
+                Cancel
               </Button>
               <Button onClick={handleDeleteTask} className="confirm-delete-btn">
                 <Trash2 size={16} />
-                Xóa task
+                Delete Task
               </Button>
             </div>
           </div>
@@ -1631,42 +1595,35 @@ export default function MeetingDetailPage() {
       {convertConfirmModal.isOpen && (
         <div className="delete-modal-overlay">
           <div className="delete-modal flex flex-col items-center text-center">
-            {/* Icon */}
             <div className="mb-3 flex items-center justify-center">
               <VoteIcon color="#10b981" size={60} />
             </div>
 
-            {/* Title */}
             <h3 className="text-lg font-semibold mb-2">
-              Chuyển đổi thành Công việc Chính thức?
+              Convert to Official Tasks?
             </h3>
 
-            {/* Content */}
             <div className="delete-modal-content mb-4">
               <p>
-                Bạn sắp chuyển đổi{" "}
-                <strong>{convertConfirmModal.taskCount} to-do</strong> do AI tạo
-                thành "công việc chính thức". Những việc này sẽ được thêm vào
-                trong dự án của bạn và các thành viên liên quan trong nhóm sẽ
-                nhận được thông báo.
+                You are about to convert{" "}
+                <strong>{convertConfirmModal.taskCount} AI-generated to-dos</strong> into official tasks. These will be added to your project and related team members will be notified.
               </p>
             </div>
 
-            {/* Actions */}
             <div className="delete-modal-actions flex gap-2">
               <Button
                 variant="outline"
                 onClick={handleCancelConvert}
                 className="cancel-btn"
               >
-                Hủy
+                Cancel
               </Button>
               <Button
                 onClick={handleConfirmConvert}
                 className="confirm-delete-btn"
                 style={{ background: "#FF5E13" }}
               >
-                Xác nhận
+                Confirm
               </Button>
             </div>
           </div>
