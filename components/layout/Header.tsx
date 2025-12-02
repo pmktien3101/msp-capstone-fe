@@ -114,14 +114,6 @@ const Header = () => {
                 {getInitial()}
               </AvatarFallback>
             </Avatar>
-            <div className="user-info">
-              <span className="user-name">{getUserDisplayName()}</span>
-              <span className="user-role">{getRoleDisplayName()}</span>
-            </div>
-            <ChevronDown
-              className={`chevron-icon ${showUserMenu ? "rotated" : ""}`}
-              size={16}
-            />
           </div>
 
           {/* User Dropdown Menu */}
@@ -130,7 +122,7 @@ const Header = () => {
               <div className="dropdown-header">
                 <Avatar className="dropdown-avatar">
                   <AvatarImage
-                    src="/default-avatar.png"
+                    src={userDetail?.avatarUrl || user?.avatarUrl}
                     alt={getUserDisplayName()}
                   />
                   <AvatarFallback className="avatar-fallback">

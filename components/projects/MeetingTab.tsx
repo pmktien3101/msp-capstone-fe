@@ -9,7 +9,20 @@ import { meetingService } from "@/services/meetingService";
 import { MeetingItem } from "@/types/meeting";
 import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 import { toast } from "react-toastify";
-import { Eye, Pencil, Plus, X } from "lucide-react";
+import {
+  Eye,
+  Pencil,
+  Plus,
+  X,
+  Video,
+  Calendar,
+  Clock,
+  XCircle,
+  Search,
+  Filter,
+  RotateCcw,
+  ExternalLink,
+} from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 import { useMeetingLimitationCheck } from "@/hooks/useLimitationCheck";
 import { useStreamVideoClient } from "@stream-io/video-react-sdk";
@@ -67,9 +80,6 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
   // Custom dropdown state and ref
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-
-  // Hover state for nicer hover effects
-  const [hoveredOption, setHoveredOption] = useState<string | null>(null);
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
@@ -203,8 +213,16 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
     <div className="meeting-tab">
       <div className="meeting-header">
         <div className="meeting-title">
-          <h3>Project Meetings</h3>
-          <p>Manage meetings for project {project.name}</p>
+          <div className="title-icon">
+            <Video size={28} />
+          </div>
+          <div className="title-text">
+            <h3>Project Meetings</h3>
+            <p>
+              Manage and schedule meetings for{" "}
+              <span className="project-name">{project.name}</span>
+            </p>
+          </div>
         </div>
         {!isMember && !readOnly && (
           <Button
@@ -213,30 +231,10 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
                 setShowCreateModal(true);
               }
             }}
-            style={{
-              background: "transparent",
-              color: "#FF5E13",
-              border: "none",
-              padding: "10px 20px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: 500,
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#FF5E13";
-              e.currentTarget.style.color = "white";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#FF5E13";
-            }}
+            className="create-meeting-btn"
           >
-            <Plus size={16} />
-            Create Meeting
+            <Plus size={18} />
+            New Meeting
           </Button>
         )}
       </div>
@@ -265,84 +263,34 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
       </div>
 
       {/* Filter + Search */}
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          marginBottom: 16,
-          alignItems: "center",
-        }}
-      >
-        <input
-          type="text"
-          placeholder="Search by title or description..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            padding: "8px 12px",
-            borderRadius: 8,
-            border: "1px solid #E5E7EB",
-            width: 360,
-          }}
-        />
+      <div className="filter-section">
+        <div className="search-box">
+          <Search size={18} className="search-icon" />
+          <input
+            type="text"
+            placeholder="Search meetings by title or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
 
         {/* custom dropdown */}
-        <div
-          ref={dropdownRef}
-          style={{ position: "relative", display: "inline-block" }}
-        >
+        <div ref={dropdownRef} className="filter-dropdown">
           <button
             onClick={() => setDropdownOpen((s) => !s)}
             aria-expanded={dropdownOpen}
-            style={{
-              padding: "8px 12px",
-              borderRadius: 8,
-              border: "1px solid #E5E7EB",
-              background: "white",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              minWidth: 180,
-              transition: "box-shadow 0.15s ease",
-              boxShadow: dropdownOpen ? "0 4px 10px rgba(255,94,19,0.06)" : "",
-            }}
-            title="Filter by status"
+            className={`dropdown-trigger ${dropdownOpen ? "active" : ""}`}
           >
-            <span style={{ flex: 1, textAlign: "left" }}>
+            <Filter size={16} />
+            <span>
               {statusOptions.find((o) => o.value === statusFilter)?.label ||
                 "All Statuses"}
             </span>
-            <span
-              style={{
-                display: "inline-block",
-                width: 0,
-                height: 0,
-                borderLeft: "6px solid transparent",
-                borderRight: "6px solid transparent",
-                borderTop: `6px solid ${dropdownOpen ? "#FF5E13" : "#666"}`,
-                transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.18s ease, border-top-color 0.18s ease",
-              }}
-            />
+            <span className={`dropdown-arrow ${dropdownOpen ? "open" : ""}`} />
           </button>
 
           {dropdownOpen && (
-            <div
-              role="menu"
-              style={{
-                position: "absolute",
-                top: "calc(100% + 8px)",
-                left: 0,
-                background: "white",
-                border: "1px solid #E5E7EB",
-                borderRadius: 8,
-                boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-                zIndex: 40,
-                minWidth: 200,
-                overflow: "hidden",
-              }}
-            >
+            <div className="dropdown-menu" role="menu">
               {statusOptions.map((opt) => (
                 <div
                   key={opt.value}
@@ -351,29 +299,9 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
                     setStatusFilter(opt.value as any);
                     setDropdownOpen(false);
                   }}
-                  onMouseEnter={() => setHoveredOption(opt.value)}
-                  onMouseLeave={() => setHoveredOption(null)}
-                  style={{
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    background:
-                      statusFilter === opt.value
-                        ? "rgba(255,94,19,0.06)"
-                        : hoveredOption === opt.value
-                        ? "rgba(255,94,19,0.08)"
-                        : "transparent",
-                    color:
-                      statusFilter === opt.value || hoveredOption === opt.value
-                        ? "#FF5E13"
-                        : "#111827",
-                    borderBottom: "1px solid #F3F4F6",
-                    transition:
-                      "background 0.12s ease, color 0.12s ease, transform 0.12s ease",
-                    transform:
-                      hoveredOption === opt.value
-                        ? "translateX(4px)"
-                        : "translateX(0)",
-                  }}
+                  className={`dropdown-item ${
+                    statusFilter === opt.value ? "selected" : ""
+                  }`}
                 >
                   {opt.label}
                 </div>
@@ -388,17 +316,9 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
             setSearchTerm("");
             setDropdownOpen(false);
           }}
-          style={{
-            background: "transparent",
-            color: "#FF5E13",
-            border: "1px solid #FF5E13",
-            borderRadius: "8px",
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: 500,
-          }}
+          className="reset-btn"
         >
+          <RotateCcw size={14} />
           Reset
         </Button>
       </div>
@@ -411,143 +331,212 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
           </div>
         ) : meetings.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📅</div>
-            <h4>No meetings yet</h4>
+            <div className="empty-icon">
+              <Calendar size={48} />
+            </div>
+            <h4>No meetings found</h4>
+            <p>Create your first meeting to get started</p>
           </div>
         ) : (
           <div className="meeting-table">
-            <div
-              className="table-header"
-              style={{ gridTemplateColumns: "80px 2fr 1.5fr 1fr 1fr 1.5fr" }}
-            >
-              <div className="col-stt">No.</div>
-              <div className="col-title">Title</div>
-              <div className="col-time">Time</div>
-              <div className="col-room">Meeting Room</div>
+            <div className="table-header">
+              <div className="col-stt">#</div>
+              <div className="col-title">Meeting Details</div>
+              <div className="col-time">Schedule</div>
+              <div className="col-room">Room</div>
               <div className="col-status">Status</div>
               <div className="col-actions">Actions</div>
             </div>
-            {meetings.map((meeting: MeetingItem, idx: number) => {
-              const title = meeting.title;
-              const description = meeting.description?.substring(0, 120);
-              const startsAt = meeting.startTime
-                ? new Date(meeting.startTime)
-                : null;
-              const endsAt = meeting.endTime ? new Date(meeting.endTime) : null;
-              const statusInfo = getStatusInfo(meeting);
+            <div className="table-body">
+              {meetings.map((meeting: MeetingItem, idx: number) => {
+                const title = meeting.title;
+                const description = meeting.description?.substring(0, 80);
+                const startsAt = meeting.startTime
+                  ? new Date(meeting.startTime)
+                  : null;
+                const endsAt = meeting.endTime
+                  ? new Date(meeting.endTime)
+                  : null;
+                const statusInfo = getStatusInfo(meeting);
 
-              return (
-                <div
-                  key={meeting.id || idx}
-                  className="table-row"
-                  style={{ gridTemplateColumns: "80px 2fr 1.5fr 1fr 1fr 1.5fr" }}
-                >
-                  <div className="col-stt">
-                    <div className="stt-number">{startIndex + idx + 1}</div>
-                  </div>
-                  <div className="col-title">
-                    <div className="meeting-title-text">{title}</div>
-                    {description && (
-                      <div className="meeting-description">{description}</div>
-                    )}
-                  </div>
-                  <div className="col-time">
-                    <div className="time-info">
-                      {startsAt && (
-                        <div className="start-time">
-                          {startsAt.toLocaleString("vi-VN")}
+                return (
+                  <div key={meeting.id || idx} className="table-row">
+                    <div className="col-stt">
+                      <div className="stt-number">{startIndex + idx + 1}</div>
+                    </div>
+                    <div className="col-title">
+                      <div className="meeting-info">
+                        <div className="meeting-details">
+                          <div className="meeting-title-text">{title}</div>
+                          {description && (
+                            <div className="meeting-description">
+                              {description}...
+                            </div>
+                          )}
                         </div>
-                      )}
-                      {endsAt && (
-                        <div className="end-time">
-                          {endsAt.toLocaleString("vi-VN")}
-                        </div>
+                      </div>
+                    </div>
+                    <div className="col-time">
+                      <div className="time-info">
+                        {startsAt && (
+                          <div className="start-time">
+                            <Calendar size={12} />
+                            <span>{startsAt.toLocaleDateString("vi-VN")}</span>
+                          </div>
+                        )}
+                        {startsAt && (
+                          <div className="end-time">
+                            <Clock size={12} />
+                            <span>
+                              {startsAt.toLocaleTimeString("vi-VN", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                            {endsAt && (
+                              <span>
+                                {" "}
+                                -{" "}
+                                {endsAt.toLocaleTimeString("vi-VN", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-room">
+                      {meeting.status === "Finished" ||
+                      meeting.status === "Cancelled" ? (
+                        <span className="room-closed">
+                          <XCircle size={14} />
+                          Closed
+                        </span>
+                      ) : (
+                        <button
+                          className="join-btn"
+                          onClick={() => handleJoin(meeting)}
+                        >
+                          Join Now
+                        </button>
                       )}
                     </div>
-                  </div>
-                  <div className="col-room">
-                    {meeting.status === "Finished" ||
-                    meeting.status === "Cancelled" ? (
-                      <span className="text-xs text-gray-400 italic">
-                        (Closed)
-                      </span>
-                    ) : (
-                      <button
-                        className="room-link cursor-pointer"
-                        onClick={() => handleJoin(meeting)}
+                    <div className="col-status">
+                      <span
+                        className={`status-badge status-${meeting.status?.toLowerCase()}`}
                       >
-                        Join
+                        {statusInfo.label}
+                      </span>
+                    </div>
+                    <div className="col-actions">
+                      <button
+                        className="action-btn view-btn"
+                        title="View details"
+                        onClick={() => handleView(meeting)}
+                      >
+                        <Eye size={16} />
                       </button>
-                    )}
+                      {meeting.status !== "Finished" &&
+                        meeting.status !== "Cancelled" &&
+                        !isMember &&
+                        !readOnly && (
+                          <button
+                            className="action-btn edit-btn"
+                            title="Update"
+                            onClick={() => handleEdit(meeting)}
+                          >
+                            <Pencil size={16} />
+                          </button>
+                        )}
+                      {!isMember &&
+                        !readOnly &&
+                        meeting.status !== "Cancelled" &&
+                        meeting.status !== "Finished" && (
+                          <button
+                            className="action-btn delete-btn"
+                            title="Cancel meeting"
+                            onClick={() => handleCancel(meeting)}
+                          >
+                            <X size={16} />
+                          </button>
+                        )}
+                    </div>
                   </div>
-                  <div className="col-status">
-                    <span
-                      className="status-badge"
-                      style={{ backgroundColor: statusInfo.color }}
-                    >
-                      {statusInfo.label}
-                    </span>
-                  </div>
-                  <div className="col-actions">
-                    <button
-                      className="action-btn view-btn"
-                      title="View details"
-                      onClick={() => handleView(meeting)}
-                    >
-                      <Eye size={14} />
-                    </button>
-                    {meeting.status !== "Finished" &&
-                      meeting.status !== "Cancelled" &&
-                      !isMember && 
-                      !readOnly && (
-                        <button
-                          className="action-btn edit-btn"
-                          title="Update"
-                          onClick={() => handleEdit(meeting)}
-                        >
-                          <Pencil size={14} />
-                        </button>
-                      )}
-                    {!isMember &&
-                      !readOnly &&
-                      meeting.status !== "Cancelled" &&
-                      meeting.status !== "Finished" && (
-                        <button
-                          className="action-btn delete-btn"
-                          title="Cancel meeting"
-                          onClick={() => handleCancel(meeting)}
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
 
       {/* Pagination */}
       {!isLoadingCall && filteredMeetings.length > 0 && (
-        <div className="pagination">
-          <button
-            className="pagination-btn"
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </button>
-          <div className="pagination-info">
-            Page {currentPage} of {totalPages} ({filteredMeetings.length} total meetings)
+        <div className="table-footer">
+          <div className="footer-info">
+            Showing {startIndex + 1} to{" "}
+            {Math.min(endIndex, filteredMeetings.length)} of{" "}
+            {filteredMeetings.length} meetings
           </div>
-          <button
-            className="pagination-btn"
-            onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </button>
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+              <div className="pagination-pages">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => {
+                    // Show first, last, current and neighbors
+                    const showPage =
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1);
+                    const showEllipsis =
+                      page === currentPage - 2 || page === currentPage + 2;
+
+                    if (showPage) {
+                      return (
+                        <button
+                          key={page}
+                          className={`page-number ${
+                            currentPage === page ? "active" : ""
+                          }`}
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (
+                      showEllipsis &&
+                      page !== 1 &&
+                      page !== totalPages
+                    ) {
+                      return (
+                        <span key={page} className="ellipsis">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  }
+                )}
+              </div>
+              <button
+                className="pagination-btn"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       )}
 
