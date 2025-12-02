@@ -6,9 +6,13 @@ import { projectService } from "@/services/projectService";
 import { milestoneService } from "@/services/milestoneService";
 import { taskService } from "@/services/taskService";
 import { MilestoneBackend } from "@/types/milestone";
+import { Project } from "@/types/project";
 import { toast } from "react-toastify";
 import { useAuth } from "@/hooks/useAuth";
+import { validateTaskDates } from "@/utils/taskValidation";
 import "@/app/styles/create-task-modal.scss";
+import { format } from "path";
+import { formatDate } from "@/lib/formatDate";
 
 interface CreateTaskModalProps {
   projectId: string;
@@ -53,6 +57,7 @@ export const CreateTaskModal = ({
   const [members, setMembers] = useState<any[]>([]);
   const [reviewers, setReviewers] = useState<any[]>([]);
   const [milestones, setMilestones] = useState<MilestoneBackend[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -62,6 +67,12 @@ export const CreateTaskModal = ({
 
       setIsLoadingData(true);
       try {
+        // Fetch project details for date validation
+        const projectResponse = await projectService.getProjectById(projectId);
+        if (projectResponse.success && projectResponse.data) {
+          setProject(projectResponse.data);
+        }
+
         const membersResponse = await projectService.getProjectMembersByRole(projectId, 'Member');
         if (membersResponse.success && membersResponse.data) {
           const membersList = membersResponse.data
@@ -139,10 +150,16 @@ export const CreateTaskModal = ({
       return;
     }
 
-    const start = new Date(taskData.startDate);
-    const end = new Date(taskData.endDate);
-    if (end < start) {
-      toast.error('End date must be after start date');
+    // Validate dates against project dates and business rules
+    const dateValidation = validateTaskDates(
+      taskData.startDate,
+      taskData.endDate,
+      project?.startDate,
+      project?.endDate
+    );
+
+    if (!dateValidation.valid) {
+      toast.error(dateValidation.message || 'Invalid dates');
       return;
     }
 
@@ -321,8 +338,15 @@ export const CreateTaskModal = ({
                     className="form-input"
                     value={taskData.startDate}
                     onChange={(e) => setTaskData({ ...taskData, startDate: e.target.value })}
+                    min={project?.startDate ? new Date(project.startDate).toISOString().split('T')[0] : undefined}
+                    max={new Date().toISOString().split('T')[0]}
                     disabled={isSaving}
                   />
+                  {project?.startDate && (
+                    <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', display: 'block' }}>
+                      Project start: {formatDate(project.startDate)}
+                    </span>
+                  )}
                 </div>
 
                 <div className="form-group">
@@ -336,8 +360,15 @@ export const CreateTaskModal = ({
                     className="form-input"
                     value={taskData.endDate}
                     onChange={(e) => setTaskData({ ...taskData, endDate: e.target.value })}
+                    min={taskData.startDate || undefined}
+                    max={project?.endDate ? new Date(project.endDate).toISOString().split('T')[0] : undefined}
                     disabled={isSaving}
                   />
+                  {project?.endDate && (
+                    <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', display: 'block' }}>
+                      Project end: {formatDate(project.endDate)}
+                    </span>
+                  )}
                 </div>
 
                 

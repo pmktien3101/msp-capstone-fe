@@ -129,7 +129,7 @@ export const ProjectHighlights = ({ projects, tasks, milestones }: ProjectHighli
   return (
     <div className="project-highlights">
       {/* Header */}
-      <div className="section-header">
+      <div className="pm-highlights-section-header">
         <h2>Projects Being Tracked</h2>
         <p>Priority projects and important milestones</p>
       </div>

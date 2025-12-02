@@ -78,8 +78,8 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
   return (
     <div className="project-portfolio-overview">
       {/* Header */}
-      <div className="section-header">
-        <div className="section-title">
+      <div className="pm-overview-section-header">
+        <div className="pm-overview-section-title">
           <h2>Project Portfolio Overview</h2>
           <p>Manage and track all your projects</p>
         </div>

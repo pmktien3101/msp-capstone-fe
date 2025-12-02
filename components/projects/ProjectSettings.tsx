@@ -45,15 +45,39 @@ interface ProjectSettingsProps {
 export const ProjectSettings = ({ project, availableProjectManagers = [], onProjectUpdate }: ProjectSettingsProps) => {
   const { checkMemberInProjectLimit } = useMemberInProjectLimitationCheck();
 
-  // Helper function to format ISO date to YYYY-MM-DD
+  // Helper function to format ISO date to YYYY-MM-DD for date input
   const formatDateForInput = (dateString?: string) => {
     if (!dateString) return '';
     try {
       const date = new Date(dateString);
-      return date.toISOString().split('T')[0];
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     } catch {
       return '';
     }
+  };
+
+  // Helper function to format date for display (dd/MM/yyyy)
+  const formatDateForDisplay = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch {
+      return '';
+    }
+  };
+
+  // Helper function to convert dd/MM/yyyy back to yyyy-MM-dd for date input
+  const convertDisplayToInput = (displayDate: string) => {
+    if (!displayDate) return '';
+    const [day, month, year] = displayDate.split('/');
+    if (day && month && year) {
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return '';
   };
 
   type Settings = {
@@ -80,8 +104,8 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
     name: project.name,
     description: project.description,
     status: project.status,
-    startDate: formatDateForInput(project.startDate),
-    endDate: formatDateForInput(project.endDate),
+    startDate: formatDateForDisplay(project.startDate),
+    endDate: formatDateForDisplay(project.endDate),
     manager: project.owner?.fullName || project.createdBy?.fullName || '',
     notifications: {
       email: true,
@@ -250,15 +274,24 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
     }
 
     try {
-      console.log('[ProjectSettings] Saving basic info:', tempSettings);
+      // Convert date from display format (dd/MM/yyyy) to ISO format
+      const convertToISO = (dateStr: string) => {
+        if (!dateStr) return undefined;
+        try {
+          const [day, month, year] = dateStr.split('/');
+          return new Date(Number(year), Number(month) - 1, Number(day)).toISOString();
+        } catch {
+          return undefined;
+        }
+      };
       
       const updateData = {
         id: project.id,
         name: tempSettings.name,
         description: tempSettings.description,
         status: tempSettings.status,
-        startDate: tempSettings.startDate || undefined,
-        endDate: tempSettings.endDate || undefined
+        startDate: convertToISO(tempSettings.startDate),
+        endDate: convertToISO(tempSettings.endDate)
       };
 
       const result = await projectService.updateProject(updateData);
@@ -292,7 +325,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
     <div className="project-settings">
       <div className="settings-content">
         <div className="settings-section">
-          <div className="section-header">
+          <div className="settings-section-header">
             <div className="section-icon">
               <Settings size={16} color="white" />
             </div>
@@ -378,13 +411,21 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                 <Calendar size={14} />
                 Start Date
               </label>
-              <input
-                type="date"
-                value={isEditingBasicInfo ? tempSettings.startDate : settings.startDate}
-                onChange={(e) => handleTempInputChange("startDate", e.target.value)}
-                className="form-input"
-                disabled={!isEditingBasicInfo}
-              />
+              {isEditingBasicInfo ? (
+                <input
+                  type="date"
+                  value={convertDisplayToInput(tempSettings.startDate)}
+                  onChange={(e) => handleTempInputChange("startDate", formatDateForDisplay(e.target.value))}
+                  className="form-input"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={settings.startDate}
+                  className="form-input"
+                  disabled
+                />
+              )}
             </div>
 
             <div className="form-group">
@@ -392,13 +433,21 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                 <Calendar size={14} />
                 End Date
               </label>
-              <input
-                type="date"
-                value={isEditingBasicInfo ? tempSettings.endDate : settings.endDate}
-                onChange={(e) => handleTempInputChange("endDate", e.target.value)}
-                className="form-input"
-                disabled={!isEditingBasicInfo}
-              />
+              {isEditingBasicInfo ? (
+                <input
+                  type="date"
+                  value={convertDisplayToInput(tempSettings.endDate)}
+                  onChange={(e) => handleTempInputChange("endDate", formatDateForDisplay(e.target.value))}
+                  className="form-input"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={settings.endDate}
+                  className="form-input"
+                  disabled
+                />
+              )}
             </div>
           </div>
 
@@ -431,7 +480,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
         </div>
 
         {/* <div className="settings-section">
-          <div className="section-header">
+          <div className="settings-section-header">
             <div className="section-icon">
               <Bell size={16} color="white" />
             </div>
@@ -493,7 +542,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
         </div> */}
 
         <div className="settings-section">
-          <div className="section-header">
+          <div className="settings-section-header">
             <div className="section-icon">
               <Users size={16} color="white" />
             </div>
@@ -508,7 +557,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
               </button>
             )}
           </div>
-          <div className="members-list">
+          <div className="members-list-settings">
             {isLoadingMembers ? (
               <div className="empty-state">
                 <div className="empty-icon">
@@ -534,7 +583,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                 )}
               </div>
             ) : (
-              <div className="members-grid">
+              <div className="members-grid-settings">
                 {members
                   .sort((a, b) => {
                     // Sort by role: ProjectManager first, then Member

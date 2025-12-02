@@ -9,6 +9,7 @@ import { taskHistoryService } from "@/services/taskHistoryService";
 import { commentService } from "@/services/commentService";
 import { GetTaskResponse } from "@/types/task";
 import { MilestoneBackend } from "@/types/milestone";
+import { Project } from "@/types/project";
 import { TaskHistory } from "@/types/taskHistory";
 import { GetCommentResponse } from "@/types/comment";
 import { toast } from "react-toastify";
@@ -21,7 +22,9 @@ import {
   formatHistoryDate 
 } from "@/utils/taskHistoryHelpers";
 import { getTaskStatusColor, getTaskStatusLabel } from "@/constants/status";
+import { validateTaskDates, isValidStatusTransition } from "@/utils/taskValidation";
 import "@/app/styles/task-detail-modal.scss";
+import { formatDate } from "@/lib/formatDate";
 
 interface TaskDetailModalProps {
   task: GetTaskResponse;
@@ -70,6 +73,7 @@ export const TaskDetailModal = ({
   const [members, setMembers] = useState<any[]>([]);
   const [reviewers, setReviewers] = useState<any[]>([]);
   const [milestones, setMilestones] = useState<MilestoneBackend[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
   const [taskHistories, setTaskHistories] = useState<TaskHistory[]>([]);
   const [comments, setComments] = useState<GetCommentResponse[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -84,6 +88,12 @@ export const TaskDetailModal = ({
 
       setIsLoadingData(true);
       try {
+        // Fetch project details for date validation
+        const projectResponse = await projectService.getProjectById(task.projectId);
+        if (projectResponse.success && projectResponse.data) {
+          setProject(projectResponse.data);
+        }
+
         // Fetch members (for assignee)
         const membersResponse = await projectService.getProjectMembersByRole(task.projectId, 'Member');
         if (membersResponse.success && membersResponse.data) {
@@ -347,6 +357,15 @@ export const TaskDetailModal = ({
   };
 
   const handleUpdateField = (field: string, value: any) => {
+    // Validate status change when field is status
+    if (field === "status" && value !== editedTask.status) {
+      const statusValidation = isValidStatusTransition(task.status, value);
+      if (!statusValidation.valid) {
+        toast.warning(statusValidation.message || "This status change is not allowed");
+        return; // Don't update if invalid
+      }
+    }
+    
     setEditedTask({ ...editedTask, [field]: value });
   };
 
@@ -369,6 +388,36 @@ export const TaskDetailModal = ({
     if (!user?.userId) {
       toast.error("User not authenticated");
       return;
+    }
+
+    // Validation 1: Member cannot change assignee
+    if (isMember && editedTask.userId !== task.userId) {
+      toast.error("Members are not allowed to change task assignee");
+      return;
+    }
+
+    // Validation 2: Validate status transition
+    if (editedTask.status !== task.status) {
+      const statusValidation = isValidStatusTransition(task.status, editedTask.status);
+      if (!statusValidation.valid) {
+        toast.error(statusValidation.message || "Invalid status change");
+        return;
+      }
+    }
+
+    // Validation 3: Validate dates
+    if (editedTask.startDate && editedTask.endDate) {
+      const dateValidation = validateTaskDates(
+        editedTask.startDate,
+        editedTask.endDate,
+        project?.startDate,
+        project?.endDate
+      );
+
+      if (!dateValidation.valid) {
+        toast.error(dateValidation.message || "Invalid dates");
+        return;
+      }
     }
 
     try {
@@ -809,7 +858,7 @@ export const TaskDetailModal = ({
                 className="info-select"
                 value={editedTask.userId}
                 onChange={(e) => handleUpdateField("userId", e.target.value)}
-                disabled={isLoadingData || mode === "view" || !canEdit}
+                disabled={isLoadingData || mode === "view" || !canEdit || isMember}
               >
                 <option value="">Unassigned</option>
                 {members.map((member) => (
@@ -818,6 +867,11 @@ export const TaskDetailModal = ({
                   </option>
                 ))}
               </select>
+              {isMember && mode === "edit" && (
+                <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+                  Members cannot change assignee
+                </span>
+              )}
             </div>
 
             {/* Reviewer */}
@@ -860,10 +914,17 @@ export const TaskDetailModal = ({
                       handleUpdateField("startDate", "");
                     }
                   }}
+                  min={project?.startDate ? formatDate(project.startDate) : undefined}
+                  max={formatDate(new Date().toISOString())}
                   disabled={mode === "view" || !canEdit}
                   style={{ colorScheme: 'light' }}
                 />
               </div>
+              {project?.startDate && mode === "edit" && (
+                <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+                  Project: {formatDate(project.startDate)} - {project.endDate ? formatDate(project.endDate) : 'No end'}
+                </span>
+              )}
             </div>
 
             {/* End Date */}
@@ -885,6 +946,8 @@ export const TaskDetailModal = ({
                       handleUpdateField("endDate", "");
                     }
                   }}
+                  min={editedTask.startDate ? formatDateForInput(editedTask.startDate) : undefined}
+                  max={project?.endDate ? formatDateForInput(project.endDate) : undefined}
                   disabled={mode === "view" || !canEdit}
                   style={{ colorScheme: 'light' }}
                 />

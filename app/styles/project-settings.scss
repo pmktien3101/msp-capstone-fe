@@ -23,7 +23,7 @@
     }
   }
 
-  .section-header {
+  .settings-section-header {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -191,7 +191,7 @@
     }
   }
 
-  .members-list {
+  .members-list-settings {
     margin-top: 12px;
   }
 
@@ -221,7 +221,7 @@
     color: #9CA3AF;
   }
 
-  .members-grid {
+  .members-grid-settings {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 12px;
