@@ -55,6 +55,9 @@ export default function BusinessDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<BusinessResponse[]>([]);
   const [allBusinesses, setAllBusinesses] = useState<BusinessResponse[]>([]);
+  const [activeTab, setActiveTab] = useState<
+    "my-business" | "invitations" | "send-join-request"
+  >("my-business");
 
   // Loading states
   const [isLoadingBusiness, setIsLoadingBusiness] = useState(true);
@@ -83,38 +86,13 @@ export default function BusinessDashboard() {
   const [requestStatusFilter, setRequestStatusFilter] =
     useState<string>("Pending");
 
-  // Status options (use semantic class names instead of Tailwind utility tokens)
+  // Simplified status options - plain text only
   const statusOptions = [
-    {
-      value: "All",
-      label: "Tất cả",
-      icon: <MinusCircle className="icon-xs icon-gray mr-1" />,
-      colorClass: "status-all",
-    },
-    {
-      value: "Pending",
-      label: "Đang chờ duyệt",
-      icon: <Hourglass className="icon-xs icon-yellow mr-1" />,
-      colorClass: "status-pending",
-    },
-    {
-      value: "Accepted",
-      label: "Đã chấp nhận",
-      icon: <BadgeCheck className="icon-xs icon-green mr-1" />,
-      colorClass: "status-accepted",
-    },
-    {
-      value: "Rejected",
-      label: "Đã từ chối",
-      icon: <XCircle className="icon-xs icon-red mr-1" />,
-      colorClass: "status-rejected",
-    },
-    {
-      value: "Canceled",
-      label: "Đã hủy",
-      icon: <MinusCircle className="icon-xs icon-gray mr-1" />,
-      colorClass: "status-canceled",
-    },
+    { value: "All", label: "All" },
+    { value: "Pending", label: "Pending" },
+    { value: "Accepted", label: "Accepted" },
+    { value: "Rejected", label: "Rejected" },
+    { value: "Canceled", label: "Canceled" },
   ];
 
   // Filtered requests based on status
@@ -132,10 +110,10 @@ export default function BusinessDashboard() {
       if (result.success && result.data) {
         setCurrentBusiness(result.data);
       } else {
-        toast.error(result.error || "Không thể tải thông tin doanh nghiệp");
+        toast.error(result.error || "Unable to load business information");
       }
     } catch (err) {
-      toast.error("Có lỗi xảy ra khi tải thông tin doanh nghiệp");
+      toast.error("An error occurred while loading business information");
     }
     setIsLoadingBusiness(false);
   };
@@ -148,10 +126,10 @@ export default function BusinessDashboard() {
       if (result.success && result.data) {
         setAllBusinesses(result.data);
       } else {
-        toast.error(result.error || "Không thể tải danh sách doanh nghiệp");
+        toast.error(result.error || "Unable to load business list");
       }
     } catch (err) {
-      toast.error("Có lỗi xảy ra khi tải danh sách doanh nghiệp");
+      toast.error("An error occurred while loading business list");
     }
     setIsLoadingBusiness(false);
   };
@@ -182,11 +160,11 @@ export default function BusinessDashboard() {
       if (res.success) {
         setInvitations(res.data ?? []);
       } else {
-        toast.error(res.error || "Không thể tải lời mời");
+        toast.error(res.error || "Unable to load invitations");
         setInvitations([]);
       }
     } catch {
-      toast.error("Không thể tải lời mời");
+      toast.error("Unable to load invitations");
       setInvitations([]);
     }
     setIsLoadingInvitations(false);
@@ -201,11 +179,11 @@ export default function BusinessDashboard() {
       if (res.success) {
         setSentJoinRequests(res.data ?? []);
       } else {
-        toast.error(res.error || "Không thể tải yêu cầu đã gửi");
+        toast.error(res.error || "Unable to load sent requests");
         setSentJoinRequests([]);
       }
     } catch {
-      toast.error("Không thể tải yêu cầu đã gửi");
+      toast.error("Unable to load sent requests");
       setSentJoinRequests([]);
     }
     setIsLoadingRequests(false);
@@ -241,7 +219,7 @@ export default function BusinessDashboard() {
     setSearchResults(filtered);
 
     if (filtered.length === 0) {
-      toast.info("Không tìm thấy kết quả phù hợp");
+      toast.info("No matching results found");
     }
 
     setIsSearching(false);
@@ -266,7 +244,7 @@ export default function BusinessDashboard() {
   const handleAcceptInvitation = async (invitationId: string) => {
     const res = await organizeInvitationService.acceptInvitation(invitationId);
     if (res.success) {
-      toast.success("Chúc mừng! Bạn đã gia nhập tổ chức 🎉");
+      toast.success("Congratulations! You have joined the organization 🎉");
       // reload đúng tab: invitations và userDetail (để cập nhật trạng thái đã join org)
       if (userDetail?.id) {
         fetchReceivedInvitations(userDetail.id);
@@ -274,7 +252,7 @@ export default function BusinessDashboard() {
         await refreshUserDetail();
       }
     } else {
-      toast.error(res.error || "Không thể chấp nhận lời mời");
+      toast.error(res.error || "Unable to accept invitation");
     }
   };
 
@@ -286,10 +264,10 @@ export default function BusinessDashboard() {
     setShowRejectModal(false);
     setRejectingId(null);
     if (res.success) {
-      toast.success("Đã từ chối lời mời!");
+      toast.success("Invitation rejected!");
       if (userDetail?.id) fetchReceivedInvitations(userDetail.id);
     } else {
-      toast.error(res.error || "Không thể từ chối lời mời");
+      toast.error(res.error || "Unable to reject invitation");
     }
   };
 
@@ -302,11 +280,11 @@ export default function BusinessDashboard() {
       business.id
     );
     if (result.success) {
-      toast.success("Đã gửi yêu cầu tham gia!");
+      toast.success("Join request sent!");
       // Lấy lại danh sách request mới cho tab update luôn trạng thái
       fetchSentRequests(userDetail.id);
     } else {
-      toast.error(result.error || "Không gửi được yêu cầu tham gia");
+      toast.error(result.error || "Unable to send join request");
     }
   };
 
@@ -316,11 +294,11 @@ export default function BusinessDashboard() {
     setLeavingLoading(false);
     setShowLeaveModal(false);
     if (res.success) {
-      toast.success("Đã rời doanh nghiệp!");
+      toast.success("Left business!");
       setCurrentBusiness(null);
       await refreshUserDetail();
     } else {
-      toast.error(res.error || "Không thể rời doanh nghiệp");
+      toast.error(res.error || "Unable to leave business");
     }
   };
 
@@ -332,7 +310,7 @@ export default function BusinessDashboard() {
           business.businessName &&
           business.id == i.businessOwnerId &&
           i.organizationName.trim().toLowerCase() ===
-            business.businessName.trim().toLowerCase() &&
+          business.businessName.trim().toLowerCase() &&
           i.statusDisplay === "Pending"
       ) ||
       sentJoinRequests.some(
@@ -341,7 +319,7 @@ export default function BusinessDashboard() {
           business.businessName &&
           business.id == r.businessOwnerId &&
           r.organizationName.trim().toLowerCase() ===
-            business.businessName.trim().toLowerCase() &&
+          business.businessName.trim().toLowerCase() &&
           r.statusDisplay === "Pending"
       )
     );
@@ -352,7 +330,7 @@ export default function BusinessDashboard() {
       <div className="loading-state">
         <div className="text-center">
           <Loader2 className="loader-large spinner centered mb-4" />
-          <p className="muted-foreground">Đang tải thông tin...</p>
+          <p className="muted-foreground">Loading information...</p>
         </div>
       </div>
     );
@@ -369,36 +347,51 @@ export default function BusinessDashboard() {
             </div>
             <div>
               <h1 className="business-title">
-                {userDetail?.organization || "Tìm Kiếm Doanh Nghiệp"}
+                {userDetail?.organization || "Search Business"}
               </h1>
               <p className="business-subtitle">
                 {currentBusiness
-                  ? "Thông tin doanh nghiệp"
-                  : "Khám phá và tham gia doanh nghiệp"}
+                  ? "Business information"
+                  : "Discover and join businesses"}
               </p>
             </div>
           </div>
         </div>
 
-        <Tabs defaultValue="my-business" className="tabs-root">
-          <div className="tabs-header">
-            <TabsList className="tabs-list">
-              <TabsTrigger value="my-business" className="tabs-trigger">
-                <Building2 className="icon-xs" />
-                {currentBusiness ? "Doanh Nghiệp" : "Tìm Kiếm"}
-              </TabsTrigger>
-              <TabsTrigger value="invitations" className="tabs-trigger">
-                <Mail className="icon-xs" />
-                Lời Mời ({invitations.length})
-              </TabsTrigger>
-              <TabsTrigger value="send-join-request" className="tabs-trigger">
-                <Send className="icon-xs" />
-                Yêu Cầu Đã Gửi ({sentJoinRequests.length})
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        {/* Tabs */}
+        <div className="tabs">
+          <button
+            className={
+              activeTab === "my-business" ? "tab active" : "tab"
+            }
+            onClick={() => setActiveTab("my-business")}
+          >
+            {/* <Building2 className="icon-xs" /> */}
+            {currentBusiness ? "Business" : "Search"}
+          </button>
+          <button
+            className={
+              activeTab === "invitations" ? "tab active" : "tab"
+            }
+            onClick={() => setActiveTab("invitations")}
+          >
+            {/* <Mail className="icon-xs" /> */}
+            Invitations ({invitations.length})
+          </button>
+          <button
+            className={
+              activeTab === "send-join-request" ? "tab active" : "tab"
+            }
+            onClick={() => setActiveTab("send-join-request")}
+          >
+            {/* <Send className="icon-xs" /> */}
+            Sent Requests ({sentJoinRequests.length})
+          </button>
+        </div>
 
-          <TabsContent value="my-business" className="tabs-section stack-lg">
+        {/* My Business Tab */}
+        {activeTab === "my-business" && (
+          <div className="tabs-section stack-lg">
             {currentBusiness ? (
               // User has organization -> Show business detail
               <>
@@ -416,12 +409,12 @@ export default function BusinessDashboard() {
                           </CardTitle>
                           <p className="info-row">
                             <Users className="icon-xs" />
-                            Chủ doanh nghiệp:{" "}
+                            Business Owner:{" "}
                             <strong>{currentBusiness.businessOwnerName}</strong>
                           </p>
                           <p className="small-info">
                             <Calendar className="icon-xs" />
-                            Tạo ngày:{" "}
+                            Created on:{" "}
                             {new Date(
                               currentBusiness.createdAt
                             ).toLocaleDateString("vi-VN")}
@@ -432,12 +425,12 @@ export default function BusinessDashboard() {
                         <Badge className="badge badge-role">
                           <div className="status-dot mr-1" />
                           {userDetail?.roleName === "Member"
-                            ? "Thành Viên"
+                            ? "Member"
                             : userDetail?.roleName === "ProjectManager"
-                            ? "Quản Lý Dự Án"
-                            : userDetail?.roleName === "BusinessOwner"
-                            ? "Chủ Doanh Nghiệp"
-                            : userDetail?.roleName}
+                              ? "Project Manager"
+                              : userDetail?.roleName === "BusinessOwner"
+                                ? "Business Owner"
+                                : userDetail?.roleName}
                         </Badge>
                         {userDetail?.roleName !== "BusinessOwner" && (
                           <Button
@@ -447,7 +440,7 @@ export default function BusinessDashboard() {
                             onClick={() => setShowLeaveModal(true)}
                           >
                             <X className="icon-xs mr-1" />
-                            Rời Doanh Nghiệp
+                            Leave Business
                           </Button>
                         )}
                       </div>
@@ -464,7 +457,7 @@ export default function BusinessDashboard() {
                         <div className="icon-wrap icon-wrap--blue">
                           <Users className="icon-sm icon-blue" />
                         </div>
-                        Tổng Thành Viên
+                        Total Members
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -472,8 +465,7 @@ export default function BusinessDashboard() {
                         {currentBusiness.memberCount}
                       </div>
                       <p className="small-info muted-foreground">
-                        <TrendingUp className="icon-xs icon-green" /> Đang hoạt
-                        động
+                        <TrendingUp className="icon-xs icon-green" /> Active
                       </p>
                     </CardContent>
                   </Card>
@@ -485,7 +477,7 @@ export default function BusinessDashboard() {
                         <div className="icon-wrap icon-wrap--orange">
                           <FolderKanban className="icon-sm icon-orange" />
                         </div>
-                        Dự Án
+                        Projects
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -493,7 +485,7 @@ export default function BusinessDashboard() {
                         {currentBusiness.projectCount}
                       </div>
                       <p className="small-info muted-foreground">
-                        Đang triển khai
+                        In progress
                       </p>
                     </CardContent>
                   </Card>
@@ -505,12 +497,10 @@ export default function BusinessDashboard() {
                 <Card className="card">
                   <CardHeader>
                     <CardTitle className="section-title">
-                      <Search className="icon-sm icon-orange" /> Tìm Kiếm Doanh
-                      Nghiệp
+                      <Search className="icon-sm icon-orange" /> Search Business
                     </CardTitle>
                     <CardDescription className="text-base">
-                      Bạn chưa tham gia doanh nghiệp nào. Tìm kiếm và gửi yêu
-                      cầu tham gia.
+                      You haven't joined any business yet. Search and send join requests.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -518,7 +508,7 @@ export default function BusinessDashboard() {
                       <div className="search-input-wrap">
                         <Search className="search-icon" />
                         <Input
-                          placeholder="Nhập tên business để tìm kiếm..."
+                          placeholder="Enter business name to search..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -534,12 +524,12 @@ export default function BusinessDashboard() {
                         {isSearching ? (
                           <>
                             <Loader2 className="spinner icon-sm mr-1" />
-                            Đang tìm...
+                            Searching...
                           </>
                         ) : (
                           <>
                             <Search className="icon-sm mr-1" />
-                            Tìm Kiếm
+                            Search
                           </>
                         )}
                       </Button>
@@ -552,8 +542,8 @@ export default function BusinessDashboard() {
                   <h3 className="section-title">
                     <Building2 className="icon-sm icon-orange" />
                     {(searchQuery
-                      ? "Kết Quả Tìm Kiếm"
-                      : "Tất Cả Doanh Nghiệp") +
+                      ? "Search Results"
+                      : "All Businesses") +
                       " (" +
                       (searchQuery
                         ? searchResults.length
@@ -577,16 +567,16 @@ export default function BusinessDashboard() {
                                   {business.businessName}
                                 </h4>
                                 <p className="muted-foreground">
-                                  Chủ doanh nghiệp: {business.businessOwnerName}
+                                  Business Owner: {business.businessOwnerName}
                                 </p>
                                 <div className="list-stats muted-foreground">
                                   <span className="stat-item">
                                     <Users className="icon-sm" />
-                                    {business.memberCount} thành viên
+                                    {business.memberCount} members
                                   </span>
                                   <span className="stat-item">
                                     <FolderKanban className="icon-sm" />
-                                    {business.projectCount} dự án
+                                    {business.projectCount} projects
                                   </span>
                                 </div>
                                 <Button
@@ -604,8 +594,8 @@ export default function BusinessDashboard() {
                                 >
                                   <Send className="icon-sm mr-1" />
                                   {isPendingRequestOrInvite(business)
-                                    ? "Không thể gửi yêu cầu"
-                                    : "Gửi Yêu Cầu Tham Gia"}
+                                    ? "Cannot send request"
+                                    : "Send Join Request"}
                                 </Button>
                               </div>
                             </div>
@@ -617,20 +607,23 @@ export default function BusinessDashboard() {
                 </div>
               </>
             )}
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="invitations" className="stack-md mt-lg">
+        {/* Invitations Tab */}
+        {activeTab === "invitations" && (
+          <div className="stack-md mt-lg">
             {isLoadingInvitations ? (
               <div className="text-center padded-xxl">
                 <Loader2 className="loader-medium spinner centered mb-4" />
-                <p className="muted-foreground">Đang tải lời mời...</p>
+                <p className="muted-foreground">Loading invitations...</p>
               </div>
             ) : invitations.length === 0 ? (
               <Card className="card card--dashed">
                 <CardContent className="padded-xxl text-center">
                   <Mail className="icon-xl muted-foreground centered mb-4 opacity-50" />
                   <p className="text-lg muted-foreground">
-                    Bạn chưa có lời mời nào
+                    You have no invitations yet
                   </p>
                 </CardContent>
               </Card>
@@ -656,7 +649,7 @@ export default function BusinessDashboard() {
                           {invitation.organizationName}
                         </h4>
                         <div className="meta-row">
-                          Mời bởi chủ DN:{" "}
+                          Invited by Business Owner:{" "}
                           <span className="font-semibold ml-1">
                             {invitation.businessOwnerName}
                           </span>
@@ -669,14 +662,14 @@ export default function BusinessDashboard() {
                     {/* Thông tin chi tiết và trạng thái */}
                     <div className="invite-body">
                       <div className="meta-row small-info">
-                        <span className="muted-foreground mr-3">Gửi tới: </span>
+                        <span className="muted-foreground mr-3">Sent to: </span>
                         <span className="font-semibold">
                           {invitation.memberEmail}
                         </span>
                       </div>
                       <div className="meta-row muted-foreground small-info">
                         <span>
-                          Ngày mời:{" "}
+                          Invitation date:{" "}
                           {new Date(invitation.createdAt).toLocaleDateString(
                             "vi-VN"
                           )}
@@ -684,7 +677,7 @@ export default function BusinessDashboard() {
                         {invitation.statusDisplay === "Accepted" &&
                           invitation.respondedAt && (
                             <span>
-                              - Đã duyệt ngày:{" "}
+                              - Accepted on:{" "}
                               {new Date(
                                 invitation.respondedAt
                               ).toLocaleDateString("vi-VN")}
@@ -699,17 +692,17 @@ export default function BusinessDashboard() {
                           invitation.statusDisplay === "Pending"
                             ? "badge badge-pending"
                             : invitation.statusDisplay === "Accepted"
-                            ? "badge badge-accepted"
-                            : "badge badge-rejected"
+                              ? "badge badge-accepted"
+                              : "badge badge-rejected"
                         }
                       >
                         {invitation.statusDisplay === "Pending"
-                          ? "Đang chờ phản hồi"
+                          ? "Awaiting response"
                           : invitation.statusDisplay === "Accepted"
-                          ? "Đã chấp nhận"
-                          : invitation.statusDisplay === "Rejected"
-                          ? "Đã từ chối"
-                          : "Đã được hủy tự động"}
+                            ? "Accepted"
+                            : invitation.statusDisplay === "Rejected"
+                              ? "Rejected"
+                              : "Auto-canceled"}
                       </Badge>
                       {/* Chỉ show button khi đang chờ, có thể tuỳ chỉnh logic */}
                       {invitation.statusDisplay === "Pending" && (
@@ -721,7 +714,7 @@ export default function BusinessDashboard() {
                             className="btn btn-accept btn-sm"
                             size="sm"
                           >
-                            <Check className="icon-sm mr-1" /> Chấp Nhận
+                            <Check className="icon-sm mr-1" /> Accept
                           </Button>
                           <Button
                             variant="outline"
@@ -732,7 +725,7 @@ export default function BusinessDashboard() {
                             size="sm"
                             className="btn btn-outline-danger btn-sm"
                           >
-                            <X className="icon-sm mr-1" /> Từ Chối
+                            <X className="icon-sm mr-1" /> Reject
                           </Button>
                         </div>
                       )}
@@ -741,38 +734,24 @@ export default function BusinessDashboard() {
                 </Card>
               ))
             )}
-          </TabsContent>
+          </div>
+        )}
 
-          <TabsContent value="send-join-request" className="stack-md mt-lg">
+        {/* Sent Requests Tab */}
+        {activeTab === "send-join-request" && (
+          <div className="stack-md mt-lg">
             {/* Filter Section */}
             <div className="filter-row">
-              <h3 className="text-lg font-semibold">Yêu cầu đã gửi</h3>
+              <h3 className="text-lg font-semibold"></h3>
               <div className="filter-controls">
-                <span className="text-sm text-muted-foreground">Lọc theo:</span>
+                <span className="text-sm text-muted-foreground">Filter by:</span>
                 <Select
                   value={requestStatusFilter}
                   onValueChange={setRequestStatusFilter}
                 >
-                  <SelectTrigger
-                    className={`select-trigger ${
-                      statusOptions.find((o) => o.value === requestStatusFilter)
-                        ?.colorClass || ""
-                    }`}
-                  >
-                    <SelectValue
-                      placeholder="Chọn trạng thái"
-                      className="select-value"
-                    >
-                      {
-                        statusOptions.find(
-                          (o) => o.value === requestStatusFilter
-                        )?.icon
-                      }
-                      {
-                        statusOptions.find(
-                          (o) => o.value === requestStatusFilter
-                        )?.label
-                      }
+                  <SelectTrigger className="select-trigger">
+                    <SelectValue placeholder="Select status">
+                      {statusOptions.find((o) => o.value === requestStatusFilter)?.label}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -780,17 +759,9 @@ export default function BusinessDashboard() {
                       <SelectItem
                         key={option.value}
                         value={option.value}
-                        className={`select-item ${option.colorClass} ${
-                          requestStatusFilter === option.value
-                            ? "select-item-selected"
-                            : ""
-                        }`}
+                        className="select-item"
                       >
-                        {option.icon}
-                        <span>{option.label}</span>
-                        {requestStatusFilter === option.value && (
-                          <CheckCircle className="check-icon" />
-                        )}
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -801,7 +772,7 @@ export default function BusinessDashboard() {
             {isLoadingRequests ? (
               <div className="text-center padded-xxl">
                 <Loader2 className="loader-medium spinner centered mb-4" />
-                <p className="muted-foreground">Đang tải yêu cầu...</p>
+                <p className="muted-foreground">Loading requests...</p>
               </div>
             ) : filteredSentRequests.length === 0 ? (
               <Card className="card card--dashed">
@@ -809,12 +780,11 @@ export default function BusinessDashboard() {
                   <Send className="icon-xl muted-foreground centered mb-4 opacity-50" />
                   <p className="text-lg muted-foreground">
                     {requestStatusFilter === "All"
-                      ? "Bạn chưa gửi yêu cầu nào"
-                      : `Không có yêu cầu nào với trạng thái "${
-                          statusOptions.find(
-                            (o) => o.value === requestStatusFilter
-                          )?.label || requestStatusFilter
-                        }"`}
+                      ? "You haven't sent any requests yet"
+                      : `No requests with status "${statusOptions.find(
+                        (o) => o.value === requestStatusFilter
+                      )?.label || requestStatusFilter
+                      }"`}
                   </p>
                 </CardContent>
               </Card>
@@ -840,7 +810,7 @@ export default function BusinessDashboard() {
                           {request.organizationName}
                         </h4>
                         <div className="meta-row">
-                          Chủ DN:{" "}
+                          Business Owner:{" "}
                           <span className="font-semibold ml-1">
                             {request.businessOwnerName}
                           </span>
@@ -853,26 +823,26 @@ export default function BusinessDashboard() {
                     {/* trạng thái */}
                     <div className="list-body-compact">
                       <div className="meta-row muted-foreground">
-                        Gửi ngày:{" "}
+                        Sent on:{" "}
                         {new Date(request.createdAt).toLocaleDateString(
                           "vi-VN"
                         )}
                       </div>
                       {request.statusDisplay === "Accepted" && (
                         <div className="text-xs text-success">
-                          Đã được duyệt:{" "}
+                          Approved on:{" "}
                           {request.respondedAt
                             ? new Date(request.respondedAt).toLocaleDateString(
-                                "vi-VN"
-                              )
+                              "vi-VN"
+                            )
                             : null}
                         </div>
                       )}
                       {request.statusDisplay === "Rejected" && (
-                        <div className="text-xs text-error">Bị từ chối</div>
+                        <div className="text-xs text-error">Rejected</div>
                       )}
                       {request.statusDisplay === "Canceled" && (
-                        <div className="text-xs text-muted">Đã hủy</div>
+                        <div className="text-xs text-muted">Canceled</div>
                       )}
                     </div>
                     <Badge
@@ -880,54 +850,54 @@ export default function BusinessDashboard() {
                         request.statusDisplay === "Pending"
                           ? "badge badge-pending"
                           : request.statusDisplay === "Accepted"
-                          ? "badge badge-accepted"
-                          : request.statusDisplay === "Rejected"
-                          ? "badge badge-rejected"
-                          : "badge badge-canceled"
+                            ? "badge badge-accepted"
+                            : request.statusDisplay === "Rejected"
+                              ? "badge badge-rejected"
+                              : "badge badge-canceled"
                       }
                     >
                       {request.statusDisplay === "Pending"
-                        ? "Đang chờ duyệt"
+                        ? "Pending approval"
                         : request.statusDisplay === "Accepted"
-                        ? "Đã chấp nhận"
-                        : request.statusDisplay === "Rejected"
-                        ? "Đã từ chối"
-                        : request.statusDisplay === "Canceled"
-                        ? "Đã được hủy tự động"
-                        : request.statusDisplay}
+                          ? "Accepted"
+                          : request.statusDisplay === "Rejected"
+                            ? "Rejected"
+                            : request.statusDisplay === "Canceled"
+                              ? "Auto-canceled"
+                              : request.statusDisplay}
                     </Badge>
                   </CardContent>
                 </Card>
               ))
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
 
       <ConfirmModal
         open={showLeaveModal}
-        title="Bạn có chắc muốn rời doanh nghiệp?"
-        content="Sau khi rời khỏi, bạn sẽ mất quyền truy cập các tài nguyên, dự án của doanh nghiệp."
+        title="Are you sure you want to leave the business?"
+        content="After leaving, you will lose access to the business's resources and projects."
         loading={leavingLoading}
         onCancel={() => setShowLeaveModal(false)}
         onConfirm={handleLeaveBusiness}
-        confirmText="Rời Doanh Nghiệp"
-        cancelText="Hủy"
+        confirmText="Leave Business"
+        cancelText="Cancel"
         destructive
       />
 
       <ConfirmModal
         open={showRejectModal}
-        title="Bạn chắc chắn muốn từ chối lời mời?"
-        content="Sau khi từ chối bạn sẽ không thể tham gia doanh nghiệp này nếu không được mời lại."
+        title="Are you sure you want to reject this invitation?"
+        content="After rejecting, you won't be able to join this business unless invited again."
         loading={loadingReject}
         onCancel={() => {
           setShowRejectModal(false);
           setRejectingId(null);
         }}
         onConfirm={handleRejectInvitation}
-        confirmText="Từ Chối"
-        cancelText="Hủy"
+        confirmText="Reject"
+        cancelText="Cancel"
         destructive
       />
     </div>

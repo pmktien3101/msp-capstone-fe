@@ -159,9 +159,9 @@ $radius-xl: 16px;
 // ============================================
 .filters-section {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-  animation: slideUp 0.5s ease-out;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .search-box {
@@ -1300,4 +1300,37 @@ $radius-xl: 16px;
       font-weight: 500;
     }
   }
+}
+
+/* Cards general */
+.card {
+  border: 2px solid var(--card-border, #e5e7eb);
+  overflow: hidden;
+  position: relative;
+  border-radius: 8px;
+  background: #fff;
+  padding: 1rem;
+}
+
+.card--dashed {
+  border-style: dashed;
+}
+
+.padded-xxl {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.centered {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.icon-xl {
+  width: 4rem;
+  height: 4rem;
 }
