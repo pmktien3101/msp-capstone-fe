@@ -31,12 +31,10 @@ export class NotificationHub {
 
     const configValidation = validateSignalRConfig();
     if (!configValidation.valid) {
-      console.error(' [SignalR] Configuration errors:', configValidation.errors);
+      console.error('🚨 [SignalR] Configuration errors:', configValidation.errors);
     }
 
     const hubUrl = getSignalRHubUrl();
-    console.log(' [SignalR] Initializing Hub URL:', hubUrl);
-    console.log(' [SignalR] User ID:', this.userId);
 
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {
@@ -67,22 +65,20 @@ export class NotificationHub {
   private setupEventHandlers() {
     this.connection.onreconnecting((error) => {
       this.isConnected = false;
-      console.warn(' [SignalR] Reconnecting...', error?.message || 'Connection lost');
+      console.warn('🔄 [SignalR] Reconnecting...', error?.message);
     });
 
     this.connection.onreconnected(async (connectionId) => {
       this.isConnected = true;
       this.reconnectAttempts = 0;
-      console.log(` [SignalR] Reconnected successfully! ConnectionId: ${connectionId}`);
+      console.log(`✅ [SignalR] Reconnected! ID: ${connectionId}`);
       
       if (this.joinedGroups.size > 0) {
-        console.log(' [SignalR] Rejoining groups:', Array.from(this.joinedGroups));
         for (const groupName of Array.from(this.joinedGroups)) {
           try {
             await this.connection.invoke(signalRConfig.events.joinGroup, groupName);
-            console.log(` [SignalR] Rejoined group: ${groupName}`);
           } catch (err) {
-            console.error(` [SignalR] Failed to rejoin group ${groupName}:`, err);
+            console.error(`❌ [SignalR] Failed to rejoin group ${groupName}:`, err);
           }
         }
       }
@@ -91,15 +87,13 @@ export class NotificationHub {
     this.connection.onclose((error) => {
       this.isConnected = false;
       if (error) {
-        console.error(' [SignalR] Connection closed with error:', error.message);
-        
         if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-          console.error(' [SignalR] Authorization failed - token may be invalid or expired');
+          console.error('🔒 [SignalR] Authorization failed - token expired');
         } else if (error.message?.includes('404')) {
-          console.error(' [SignalR] Hub endpoint not found - check backend configuration');
+          console.error('🔍 [SignalR] Hub endpoint not found');
+        } else {
+          console.error('❌ [SignalR] Connection closed:', error.message);
         }
-      } else {
-        console.log(' [SignalR] Connection closed gracefully');
       }
       
       if (globalHub === this) {
@@ -111,64 +105,54 @@ export class NotificationHub {
   async start() {
     // Check if already connected or connecting
     if (this.connection.state === signalR.HubConnectionState.Connected) {
-      console.log('ℹ [SignalR] Already connected');
       this.isConnected = true;
       return;
     }
 
     if (this.connection.state === signalR.HubConnectionState.Connecting || 
         this.connection.state === signalR.HubConnectionState.Reconnecting) {
-      console.log('ℹ [SignalR] Connection already in progress');
       return;
     }
 
     try {
-      console.log(' [SignalR] Starting connection...');
       await this.connection.start();
       this.isConnected = true;
       this.retryCount = 0;
-      console.log(' [SignalR] Connected successfully! ConnectionId:', this.connection.connectionId);
+      console.log('🚀 [SignalR] Connected:', this.connection.connectionId);
     } catch (err: any) {
-      console.error(' [SignalR] Connection failed:', err);
-
       if (err?.message?.includes('404') || err?.statusCode === 404) {
-        console.error(' [SignalR] Endpoint not found (404).');
+        console.error('🔍 [SignalR] Endpoint not found (404)');
         return;
       }
 
       if (err?.message?.includes('401') || err?.statusCode === 401) {
-        console.error(' [SignalR] Unauthorized (401).');
+        console.error('🔒 [SignalR] Unauthorized (401)');
         return;
       }
 
       if (err?.message?.includes('403') || err?.statusCode === 403) {
-        console.error(' [SignalR] Forbidden (403).');
+        console.error('🔒 [SignalR] Forbidden (403)');
         return;
       }
 
       if (this.retryCount < this.maxRetries) {
         this.retryCount++;
         const delay = signalRConfig.retry.delayMs * Math.pow(signalRConfig.retry.backoffMultiplier, this.retryCount - 1);
-        console.log(` [SignalR] Retry ${this.retryCount}/${this.maxRetries} in ${delay}ms...`);
+        console.log(`🔄 [SignalR] Retry ${this.retryCount}/${this.maxRetries} in ${delay}ms...`);
         setTimeout(() => this.start(), delay);
       } else {
-        console.error(' [SignalR] Max retry attempts reached.');
+        console.error('❌ [SignalR] Max retries reached');
       }
     }
   }
 
   async stop() {
     try {
-      // Only stop if not already disconnected
       if (this.connection.state !== signalR.HubConnectionState.Disconnected) {
-        console.log(` [SignalR] Stopping connection (current state: ${this.connection.state})...`);
         await this.connection.stop();
-        console.log(' [SignalR] Connection stopped');
-      } else {
-        console.log(' [SignalR] Connection already disconnected');
       }
     } catch (err) {
-      console.error(' [SignalR] Error stopping connection:', err);
+      console.error('❌ [SignalR] Stop error:', err);
     } finally {
       this.isConnected = false;
       this.joinedGroups.clear();
@@ -191,7 +175,7 @@ export class NotificationHub {
 
   onNotificationReceived(callback: (notification: NotificationResponse) => void) {
     this.connection.on(signalRConfig.events.receiveNotification, (notification) => {
-      console.log(' [SignalR] Received notification:', notification);
+      console.log('📬 [SignalR] New notification:', notification.title);
       callback(notification);
     });
     return () => {
@@ -201,7 +185,6 @@ export class NotificationHub {
 
   onUnreadCountUpdated(callback: (count: number) => void) {
     this.connection.on(signalRConfig.events.updateUnreadCount, (count) => {
-      console.log(' [SignalR] Unread count updated:', count);
       callback(count);
     });
     return () => {
@@ -211,7 +194,6 @@ export class NotificationHub {
 
   onNotificationRead(callback: (notificationId: string) => void) {
     this.connection.on(signalRConfig.events.notificationRead, (notificationId) => {
-      console.log(' [SignalR] Notification marked as read:', notificationId);
       callback(notificationId);
     });
     return () => {
@@ -222,14 +204,13 @@ export class NotificationHub {
   async joinGroup(groupName: string) {
     try {
       if (this.connection.state !== signalR.HubConnectionState.Connected) {
-        throw new Error(`Cannot join group: SignalR is not connected (state: ${this.connection.state})`);
+        throw new Error(`Cannot join group: not connected`);
       }
       
       await this.connection.invoke(signalRConfig.events.joinGroup, groupName);
       this.joinedGroups.add(groupName);
-      console.log(` [SignalR] Joined group: ${groupName}`);
     } catch (err) {
-      console.error(` [SignalR] Failed to join group ${groupName}:`, err);
+      console.error(`❌ [SignalR] Join group failed:`, err);
       throw err;
     }
   }
@@ -237,16 +218,14 @@ export class NotificationHub {
   async leaveGroup(groupName: string) {
     try {
       if (!this.isConnected) {
-        console.warn(' [SignalR] Not connected, cannot leave group');
         this.joinedGroups.delete(groupName);
         return;
       }
       
       await this.connection.invoke(signalRConfig.events.leaveGroup, groupName);
       this.joinedGroups.delete(groupName);
-      console.log(` [SignalR] Left group: ${groupName}`);
     } catch (err) {
-      console.error(` [SignalR] Failed to leave group ${groupName}:`, err);
+      console.error(`❌ [SignalR] Leave group failed:`, err);
       throw err;
     }
   }
@@ -254,13 +233,12 @@ export class NotificationHub {
   async markNotificationAsRead(notificationId: string) {
     try {
       if (!this.isConnected) {
-        throw new Error('Cannot mark notification: SignalR is not connected');
+        throw new Error('Cannot mark notification: not connected');
       }
       
       await this.connection.invoke(signalRConfig.events.markNotificationAsRead, notificationId);
-      console.log(` [SignalR] Marked notification as read: ${notificationId}`);
     } catch (err) {
-      console.error(` [SignalR] Failed to mark notification ${notificationId} as read:`, err);
+      console.error(`❌ [SignalR] Mark read failed:`, err);
       throw err;
     }
   }
@@ -277,7 +255,6 @@ export class NotificationHub {
     if (globalHub) {
       globalHub.stop().catch(() => {});
       globalHub = null;
-      console.log(' [SignalR] Global instance destroyed');
     }
   }
 }
