@@ -27,15 +27,15 @@ const BusinessDashboard = () => {
 
   // Project data for Recharts
   const projectData = [
-    { month: "T1", projects: 8 },
-    { month: "T2", projects: 12 },
-    { month: "T3", projects: 10 },
-    { month: "T4", projects: 15 },
-    { month: "T5", projects: 13 },
-    { month: "T6", projects: 18 },
-    { month: "T7", projects: 20 },
-    { month: "T8", projects: 17 },
-    { month: "T9", projects: 22 },
+    { month: "Jan", projects: 8 },
+    { month: "Feb", projects: 12 },
+    { month: "Mar", projects: 10 },
+    { month: "Apr", projects: 15 },
+    { month: "May", projects: 13 },
+    { month: "Jun", projects: 18 },
+    { month: "Jul", projects: 20 },
+    { month: "Aug", projects: 17 },
+    { month: "Sep", projects: 22 },
   ];
 
   useEffect(() => {
@@ -53,7 +53,7 @@ const BusinessDashboard = () => {
         chartInstance.current = new Chart(ctx, {
           type: "doughnut",
           data: {
-            labels: ["Hoàn thành", "Đang thực hiện", "Chờ xử lý"],
+            labels: ["Completed", "In Progress", "Pending"],
             datasets: [
               {
                 data: [18, 6, 3],
@@ -108,7 +108,7 @@ const BusinessDashboard = () => {
                       0
                     );
                     const percentage = ((value / total) * 100).toFixed(1);
-                    return `${label}: ${value} dự án (${percentage}%)`;
+                    return `${label}: ${value} projects (${percentage}%)`;
                   },
                 },
               },
@@ -141,10 +141,10 @@ const BusinessDashboard = () => {
         meetingChartInstance.current = new Chart(ctx, {
           type: "bar",
           data: {
-            labels: ["9:00-12:00", "13:00-17:00", "18:00-20:00", "Khác"],
+            labels: ["9:00-12:00", "13:00-17:00", "18:00-20:00", "Other"],
             datasets: [
               {
-                label: "Số cuộc họp",
+                label: "Number of meetings",
                 data: [55, 44, 34, 23],
                 backgroundColor: ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"],
                 borderColor: ["#FF5252", "#26A69A", "#2196F3", "#66BB6A"],
@@ -179,7 +179,7 @@ const BusinessDashboard = () => {
                 displayColors: true,
                 callbacks: {
                   label: function (context) {
-                    return `${context.label}: ${context.parsed.y} cuộc họp`;
+                    return `${context.label}: ${context.parsed.y} meetings`;
                   },
                 },
               },
@@ -224,7 +224,7 @@ const BusinessDashboard = () => {
   const stats = [
     {
       id: "revenue",
-      title: "Tổng Số Dự Án",
+      title: "Total Projects",
       value: "27",
       change: "+3",
       changeType: "positive",
@@ -243,7 +243,7 @@ const BusinessDashboard = () => {
     },
     {
       id: "projects",
-      title: "Dự Án Hoạt Động",
+      title: "Active Projects",
       value: "8",
       change: "+2",
       changeType: "positive",
@@ -262,7 +262,7 @@ const BusinessDashboard = () => {
     },
     {
       id: "members",
-      title: "Nhân Viên",
+      title: "Employees",
       value: "45",
       change: "+5",
       changeType: "positive",
@@ -290,7 +290,7 @@ const BusinessDashboard = () => {
     },
     {
       id: "meetings",
-      title: "Cuộc Họp Tháng",
+      title: "Monthly Meetings",
       value: "156",
       change: "+23",
       changeType: "positive",
@@ -333,60 +333,60 @@ const BusinessDashboard = () => {
   const upcomingMeetings = [
     {
       id: 1,
-      title: "Họp Đánh Giá Tháng",
+      title: "Monthly Review Meeting",
       time: "14:00 - 15:30",
-      date: "Hôm nay",
+      date: "Today",
       participants: 8,
     },
     {
       id: 2,
-      title: "Review Dự Án Website",
+      title: "Website Project Review",
       time: "10:00 - 11:00",
-      date: "Ngày mai",
+      date: "Tomorrow",
       participants: 5,
     },
     {
       id: 3,
-      title: "Họp Kế Hoạch Q3",
+      title: "Q3 Planning Meeting",
       time: "09:00 - 10:30",
-      date: "Thứ 6",
+      date: "Friday",
       participants: 12,
     },
     {
       id: 4,
-      title: "Họp Báo Cáo Tài Chính",
+      title: "Financial Report Meeting",
       time: "15:00 - 16:00",
-      date: "Thứ 2",
+      date: "Monday",
       participants: 6,
     },
     {
       id: 5,
-      title: "Họp Đánh Giá Nhân Viên",
+      title: "Employee Evaluation Meeting",
       time: "11:00 - 12:00",
-      date: "Thứ 3",
+      date: "Tuesday",
       participants: 4,
     },
     {
       id: 6,
-      title: "Họp Chiến Lược Marketing",
+      title: "Marketing Strategy Meeting",
       time: "13:30 - 14:30",
-      date: "Thứ 4",
+      date: "Wednesday",
       participants: 7,
     },
     {
       id: 7,
-      title: "Họp Đánh Giá Dự Án",
+      title: "Project Evaluation Meeting",
       time: "16:00 - 17:00",
-      date: "Thứ 5",
+      date: "Thursday",
       participants: 9,
     },
   ];
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { color: "#D1FAE5", textColor: "#065F46", text: "Hoạt động" },
-      completed: { color: "#DBEAFE", textColor: "#1E40AF", text: "Hoàn thành" },
-      pending: { color: "#FEF3C7", textColor: "#92400E", text: "Chờ xử lý" },
+      active: { color: "#D1FAE5", textColor: "#065F46", text: "Active" },
+      completed: { color: "#DBEAFE", textColor: "#1E40AF", text: "Completed" },
+      pending: { color: "#FEF3C7", textColor: "#92400E", text: "Pending" },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig];
@@ -408,7 +408,7 @@ const BusinessDashboard = () => {
       {/* Time Filter */}
       <div className="time-filter-container">
         <div className="time-filter-header">
-          <h3>Bộ lọc thời gian</h3>
+          <h3>Time Filter</h3>
         </div>
         <div className="time-filter-select">
           <select
@@ -416,21 +416,21 @@ const BusinessDashboard = () => {
             onChange={(e) => setSelectedPeriod(e.target.value)}
             className="time-filter-dropdown"
           >
-            <option value="week">Tuần này</option>
-            <option value="month">Tháng này</option>
-            <option value="quarter">Quý này</option>
-            <option value="year">Năm này</option>
-            <option value="last-week">Tuần trước</option>
-            <option value="last-month">Tháng trước</option>
-            <option value="last-quarter">Quý trước</option>
-            <option value="last-year">Năm trước</option>
-            <option value="custom">Tùy chỉnh</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="quarter">This Quarter</option>
+            <option value="year">This Year</option>
+            <option value="last-week">Last Week</option>
+            <option value="last-month">Last Month</option>
+            <option value="last-quarter">Last Quarter</option>
+            <option value="last-year">Last Year</option>
+            <option value="custom">Custom</option>
           </select>
 
           {selectedPeriod === "custom" && (
             <div className="custom-date-range">
               <div className="date-input-group">
-                <label>Từ ngày:</label>
+                <label>From:</label>
                 <input
                   type="date"
                   value={customDateRange.startDate}
@@ -444,7 +444,7 @@ const BusinessDashboard = () => {
                 />
               </div>
               <div className="date-input-group">
-                <label>Đến ngày:</label>
+                <label>To:</label>
                 <input
                   type="date"
                   value={customDateRange.endDate}
@@ -462,15 +462,15 @@ const BusinessDashboard = () => {
                 className="apply-date-btn"
                 onClick={() => {
                   if (customDateRange.startDate && customDateRange.endDate) {
-                    console.log("Áp dụng khoảng thời gian:", customDateRange);
-                    // Ở đây bạn có thể thêm logic để filter dữ liệu theo khoảng thời gian
+                    console.log("Apply time range:", customDateRange);
+                    // Add logic to filter data by time range here
                   }
                 }}
                 disabled={
                   !customDateRange.startDate || !customDateRange.endDate
                 }
               >
-                Áp dụng
+                Apply
               </button>
             </div>
           )}
@@ -501,10 +501,21 @@ const BusinessDashboard = () => {
                 <div className="tooltip-content">
                   <strong>{stat.title}</strong>
                   <br />
-                  {stat.id === "revenue" 
-                    ? `Tăng ${stat.change} dự án so với ${selectedPeriod === "week" ? "tuần trước" : selectedPeriod === "month" ? "tháng trước" : "quý trước"}`
-                    : `Tăng ${stat.change} so với ${selectedPeriod === "week" ? "tuần trước" : selectedPeriod === "month" ? "tháng trước" : "quý trước"}`
-                  }
+                  {stat.id === "revenue"
+                    ? `Increased by ${stat.change} projects compared to ${
+                        selectedPeriod === "week"
+                          ? "last week"
+                          : selectedPeriod === "month"
+                          ? "last month"
+                          : "last quarter"
+                      }`
+                    : `Increased by ${stat.change} compared to ${
+                        selectedPeriod === "week"
+                          ? "last week"
+                          : selectedPeriod === "month"
+                          ? "last month"
+                          : "last quarter"
+                      }`}
                 </div>
               </div>
             )}
@@ -517,7 +528,7 @@ const BusinessDashboard = () => {
         {/* Project Overview Chart */}
         <div className="main-chart-container">
           <div className="chart-header">
-            <h3>Thống Kê Dự Án</h3>
+            <h3>Project Statistics</h3>
           </div>
           <div className="chart-content">
             <div className="project-stats">
@@ -542,7 +553,7 @@ const BusinessDashboard = () => {
                 </div>
                 <div className="status-info">
                   <span className="status-count">18</span>
-                  <span className="status-label">Hoàn thành</span>
+                  <span className="status-label">Completed</span>
                 </div>
               </div>
               <div className="status-item in-progress">
@@ -566,7 +577,7 @@ const BusinessDashboard = () => {
                 </div>
                 <div className="status-info">
                   <span className="status-count">6</span>
-                  <span className="status-label">Đang thực hiện</span>
+                  <span className="status-label">In Progress</span>
                 </div>
               </div>
               <div className="status-item pending">
@@ -632,7 +643,7 @@ const BusinessDashboard = () => {
                 </div>
                 <div className="status-info">
                   <span className="status-count">3</span>
-                  <span className="status-label">Chờ xử lý</span>
+                  <span className="status-label">Pending</span>
                 </div>
               </div>
             </div>
@@ -645,14 +656,14 @@ const BusinessDashboard = () => {
         {/* Project Trend Chart */}
         <div className="revenue-trend-section">
           <div className="section-header">
-            <h3>Xu hướng dự án năm 2025</h3>
+            <h3>Project Trend 2025</h3>
             <div className="revenue-stats">
               <div className="revenue-stat">
-                <span className="stat-label">Tháng này</span>
+                <span className="stat-label">This Month</span>
                 <span className="stat-value">27</span>
               </div>
               <div className="revenue-stat">
-                <span className="stat-label">Tăng trưởng</span>
+                <span className="stat-label">Growth</span>
                 <span className="stat-value positive">+17.4%</span>
               </div>
             </div>
@@ -680,7 +691,7 @@ const BusinessDashboard = () => {
                     border: "1px solid #FF5E13",
                     borderRadius: "8px",
                   }}
-                  formatter={(value: any) => [`${value} dự án`, "Số dự án"]}
+                  formatter={(value: any) => [`${value} projects`, "Projects"]}
                 />
                 <Line
                   type="monotone"
@@ -707,12 +718,12 @@ const BusinessDashboard = () => {
         {/* Upcoming Meetings */}
         <div className="upcoming-meetings">
           <div className="section-header">
-            <h3>Cuộc Họp Sắp Tới</h3>
+            <h3>Upcoming Meetings</h3>
             <button
               className="create-btn"
               onClick={() => setShowAllMeetings(!showAllMeetings)}
             >
-              {showAllMeetings ? "Thu gọn" : "Xem tất cả"}
+              {showAllMeetings ? "Collapse" : "View All"}
             </button>
           </div>
 
@@ -730,11 +741,11 @@ const BusinessDashboard = () => {
                 <div className="meeting-info">
                   <h4>{meeting.title}</h4>
                   <span className="participants">
-                    {meeting.participants} người tham gia
+                    {meeting.participants} participants
                   </span>
                 </div>
 
-                <button className="join-btn">Tham gia</button>
+                <button className="join-btn">Join</button>
               </div>
             ))}
           </div>
@@ -743,7 +754,7 @@ const BusinessDashboard = () => {
         {/* Meeting Statistics Chart */}
         <div className="meeting-stats-section">
           <div className="section-header">
-            <h3>Thống Kê Cuộc Họp</h3>
+            <h3>Meeting Statistics</h3>
           </div>
 
           <div className="meeting-stats-content">
@@ -782,7 +793,7 @@ const BusinessDashboard = () => {
                   </svg>
                 </div>
                 <div className="stat-info">
-                  <span className="stat-label">Tổng cuộc họp</span>
+                  <span className="stat-label">Total Meetings</span>
                   <span className="stat-value">156</span>
                 </div>
               </div>
@@ -806,7 +817,7 @@ const BusinessDashboard = () => {
                   </svg>
                 </div>
                 <div className="stat-info">
-                  <span className="stat-label">Đã hoàn thành</span>
+                  <span className="stat-label">Completed</span>
                   <span className="stat-value">142</span>
                 </div>
               </div>
@@ -830,7 +841,7 @@ const BusinessDashboard = () => {
                   </svg>
                 </div>
                 <div className="stat-info">
-                  <span className="stat-label">Sắp diễn ra</span>
+                  <span className="stat-label">Upcoming</span>
                   <span className="stat-value">14</span>
                 </div>
               </div>

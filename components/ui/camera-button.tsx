@@ -28,7 +28,7 @@ const CameraButton = () => {
     <Button
       onClick={toggleCamera}
       disabled={loading}
-      title={isEnabled ? "Tắt camera" : "Bật camera"}
+      title={isEnabled ? "Turn off camera" : "Turn on camera"}
       className={`rounded-full p-3 cursor-pointer ${
         isEnabled ? "bg-gray-800 hover:bg-gray-700" : "bg-red-600"
       }`}

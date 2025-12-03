@@ -68,8 +68,7 @@ const MeetingRoom = () => {
     }
   }, [callingState, router, call]);
 
-  // --- Auto reminders (toast) + auto-end after 60 minutes ---
-  const timersRef = useRef<{ r30?: number; r15?: number; end?: number }>({});
+  const timersRef = useRef<{ r15?: number; r5?: number; end?: number }>({});
 
   // minimal toast implementation (self-contained)
   const showToast = (message: string, durationMs = 6000) => {
@@ -157,7 +156,7 @@ const MeetingRoom = () => {
     try {
       await call.camera?.disable();
       await call.microphone?.disable();
-      showToast("Cuộc họp đã đủ 60 phút. Đang kết thúc cuộc gọi...", 4000);
+      showToast("Meeting has reached 30 minutes. Ending call...", 4000);
       await call.endCall();
 
       const endedAtRaw = await waitForEndedAt();
@@ -199,44 +198,41 @@ const MeetingRoom = () => {
     if (Number.isNaN(startTime.getTime())) return;
 
     const now = Date.now();
-    const msUntil30 = startTime.getTime() + 30 * 60 * 1000 - now; // 30 min after start
-    const msUntil45 = startTime.getTime() + 45 * 60 * 1000 - now; // 45 min after start (15 left)
-    const msUntilEnd = startTime.getTime() + 60 * 60 * 1000 - now; // 60 min after start
+    const msUntil15 = startTime.getTime() + 15 * 60 * 1000 - now; // 15 min after start (15 left)
+    const msUntil25 = startTime.getTime() + 25 * 60 * 1000 - now; // 25 min after start (5 left)
+    const msUntilEnd = startTime.getTime() + 30 * 60 * 1000 - now; // 30 min after start
 
     // clear existing timers
-    if (timersRef.current.r30) {
-      clearTimeout(timersRef.current.r30);
-      timersRef.current.r30 = undefined;
-    }
     if (timersRef.current.r15) {
       clearTimeout(timersRef.current.r15);
       timersRef.current.r15 = undefined;
+    }
+    if (timersRef.current.r5) {
+      clearTimeout(timersRef.current.r5);
+      timersRef.current.r5 = undefined;
     }
     if (timersRef.current.end) {
       clearTimeout(timersRef.current.end);
       timersRef.current.end = undefined;
     }
 
-    // schedule 30-min reminder
-    if (msUntil30 > 0) {
-      timersRef.current.r30 = window.setTimeout(() => {
-        showToast("Còn 30 phút nữa cuộc họp sẽ kết thúc.");
-      }, msUntil30);
-    } else {
-      // if already past 30 but before 45 show immediately
-      if (msUntil45 > 0) {
-        showToast("Còn 15 phút nữa cuộc họp sẽ kết thúc.");
-      }
-    }
-
-    // schedule 15-min reminder (45 min after start)
-    if (msUntil45 > 0) {
+    // schedule 15-min reminder (15 min after start, 15 min remaining)
+    // Only schedule if the reminder time hasn't passed yet
+    if (msUntil15 > 0) {
       timersRef.current.r15 = window.setTimeout(() => {
-        showToast("Còn 15 phút nữa cuộc họp sẽ kết thúc.");
-      }, msUntil45);
+        showToast("15 minutes remaining until the meeting ends.");
+      }, msUntil15);
     }
 
-    // schedule auto end at 60 minutes
+    // schedule 5-min reminder (25 min after start, 5 min remaining)
+    // Only schedule if the reminder time hasn't passed yet
+    if (msUntil25 > 0) {
+      timersRef.current.r5 = window.setTimeout(() => {
+        showToast("5 minutes remaining until the meeting ends.");
+      }, msUntil25);
+    }
+
+    // schedule auto end at 30 minutes
     if (msUntilEnd > 0) {
       timersRef.current.end = window.setTimeout(() => {
         void endCallDueToTimeout();
@@ -247,13 +243,13 @@ const MeetingRoom = () => {
     }
 
     return () => {
-      if (timersRef.current.r30) {
-        clearTimeout(timersRef.current.r30);
-        timersRef.current.r30 = undefined;
-      }
       if (timersRef.current.r15) {
         clearTimeout(timersRef.current.r15);
         timersRef.current.r15 = undefined;
+      }
+      if (timersRef.current.r5) {
+        clearTimeout(timersRef.current.r5);
+        timersRef.current.r5 = undefined;
       }
       if (timersRef.current.end) {
         clearTimeout(timersRef.current.end);
@@ -362,7 +358,7 @@ const MeetingRoom = () => {
               onClick={() => setShowFiltersPanel(false)}
               className="text-xs text-orange-300 hover:text-white cursor-pointer"
             >
-              Đóng
+              Close
             </button>
           </div>
           <BackgroundFilterSettings />

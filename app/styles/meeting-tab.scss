@@ -347,15 +347,19 @@
     }
 
     .col-title {
+      text-align: left;
+
       .meeting-info {
         display: flex;
         align-items: center;
         gap: 12px;
+        justify-content: flex-start;
       }
 
       .meeting-details {
         flex: 1;
         min-width: 0;
+        text-align: left;
       }
 
       .meeting-title-text {
@@ -378,10 +382,13 @@
     }
 
     .col-time {
+      text-align: left;
+
       .time-info {
         display: flex;
         flex-direction: column;
         gap: 3px;
+        align-items: flex-start;
       }
 
       .start-time,
@@ -403,6 +410,8 @@
     }
 
     .col-room {
+      text-align: left;
+
       .join-btn {
         display: inline-flex;
         align-items: center;
@@ -436,6 +445,8 @@
     }
 
     .col-status {
+      text-align: left;
+
       .status-badge {
         display: inline-flex;
         align-items: center;
@@ -477,7 +488,7 @@
       display: flex;
       gap: 6px;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
     }
 
     .action-btn {

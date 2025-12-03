@@ -100,7 +100,7 @@ const EndCallButton = () => {
     <Button
       onClick={isMeetingOwner ? handleEndForAll : handleLeave}
       disabled={isProcessing}
-      title={isMeetingOwner ? "Kết thúc cuộc gọi" : "Rời cuộc gọi"}
+      title={isMeetingOwner ? "End Call" : "Leave Call"}
       className={`cursor-pointer flex items-center disabled:opacity-60 disabled:cursor-not-allowed
         bg-red-600 hover:bg-red-700 rounded-full p-4`}
     >
@@ -109,8 +109,8 @@ const EndCallButton = () => {
           ? "Ending..."
           : "Leaving..."
         : isMeetingOwner
-        ? "Kết thúc cuộc gọi"
-        : "Rời cuộc gọi"}
+        ? "End Call"
+        : "Leave Call"}
     </Button>
   );
 };
