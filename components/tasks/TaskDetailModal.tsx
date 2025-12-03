@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { X, MessageSquare, History, Calendar, User, Flag, Target, Trash2, Edit2 } from "lucide-react";
+import {
+  X,
+  MessageSquare,
+  History,
+  Calendar,
+  User,
+  Flag,
+  Target,
+  Trash2,
+  Edit2,
+} from "lucide-react";
 import { projectService } from "@/services/projectService";
 import { milestoneService } from "@/services/milestoneService";
 import { taskService } from "@/services/taskService";
@@ -15,14 +25,17 @@ import { GetCommentResponse } from "@/types/comment";
 import { toast } from "react-toastify";
 import { useAuth } from "@/hooks/useAuth";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { 
-  getUserInitials, 
-  getAvatarColor, 
-  getHistoryActionText, 
-  formatHistoryDate 
+import {
+  getUserInitials,
+  getAvatarColor,
+  getHistoryActionText,
+  formatHistoryDate,
 } from "@/utils/taskHistoryHelpers";
 import { getTaskStatusColor, getTaskStatusLabel } from "@/constants/status";
-import { validateTaskDates, isValidStatusTransition } from "@/utils/taskValidation";
+import {
+  validateTaskDates,
+  isValidStatusTransition,
+} from "@/utils/taskValidation";
 import "@/app/styles/task-detail-modal.scss";
 import { formatDate } from "@/lib/formatDate";
 
@@ -42,16 +55,23 @@ export const TaskDetailModal = ({
   onSave,
 }: TaskDetailModalProps) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"comments" | "history">("comments");
-  
+  const [activeTab, setActiveTab] = useState<"comments" | "history">(
+    "comments"
+  );
+
   // Check if member can edit this task
-  const isMember = user?.role === 'Member';
-  const isBusiness = user?.role?.toLowerCase() === 'business' || user?.role?.toLowerCase() === 'businessowner';
+  const isMember = user?.role === "Member";
+  const isBusiness =
+    user?.role?.toLowerCase() === "business" ||
+    user?.role?.toLowerCase() === "businessowner";
   const isTaskAssignedToUser = task?.userId === user?.userId;
-  const isTaskLocked = task?.status === 'ReadyToReview' || task?.status === 'Done' || task?.status === 'Cancelled';
-  const canMemberEdit = isMember ? (isTaskAssignedToUser && !isTaskLocked) : true;
+  const isTaskLocked =
+    task?.status === "ReadyToReview" ||
+    task?.status === "Done" ||
+    task?.status === "Cancelled";
+  const canMemberEdit = isMember ? isTaskAssignedToUser && !isTaskLocked : true;
   const canEdit = !isBusiness && canMemberEdit;
-  
+
   const [editedTask, setEditedTask] = useState({
     title: task?.title || "",
     description: task?.description || "",
@@ -60,15 +80,18 @@ export const TaskDetailModal = ({
     reviewerId: task?.reviewerId || "",
     startDate: task?.startDate || "",
     endDate: task?.endDate || "",
-    milestoneIds: task?.milestones?.map(m => m.id) || [],
+    milestoneIds: task?.milestones?.map((m) => m.id) || [],
   });
 
   const [commentText, setCommentText] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState("");
-  const [isConfirmDeleteCommentOpen, setIsConfirmDeleteCommentOpen] = useState(false);
-  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
-  
+  const [isConfirmDeleteCommentOpen, setIsConfirmDeleteCommentOpen] =
+    useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(
+    null
+  );
+
   // API data
   const [members, setMembers] = useState<any[]>([]);
   const [reviewers, setReviewers] = useState<any[]>([]);
@@ -89,13 +112,18 @@ export const TaskDetailModal = ({
       setIsLoadingData(true);
       try {
         // Fetch project details for date validation
-        const projectResponse = await projectService.getProjectById(task.projectId);
+        const projectResponse = await projectService.getProjectById(
+          task.projectId
+        );
         if (projectResponse.success && projectResponse.data) {
           setProject(projectResponse.data);
         }
 
         // Fetch members (for assignee)
-        const membersResponse = await projectService.getProjectMembersByRole(task.projectId, 'Member');
+        const membersResponse = await projectService.getProjectMembersByRole(
+          task.projectId,
+          "Member"
+        );
         if (membersResponse.success && membersResponse.data) {
           const membersList = membersResponse.data
             .filter((pm: any) => pm.member)
@@ -108,7 +136,9 @@ export const TaskDetailModal = ({
         }
 
         // Fetch reviewers (Project Managers)
-        const reviewersResponse = await projectService.getProjectManagers(task.projectId);
+        const reviewersResponse = await projectService.getProjectManagers(
+          task.projectId
+        );
         if (reviewersResponse.success && reviewersResponse.data) {
           const reviewersList = reviewersResponse.data
             .filter((pm: any) => pm.member)
@@ -121,15 +151,16 @@ export const TaskDetailModal = ({
         }
 
         // Fetch milestones
-        const milestonesResponse = await milestoneService.getMilestonesByProjectId(task.projectId);
+        const milestonesResponse =
+          await milestoneService.getMilestonesByProjectId(task.projectId);
         if (milestonesResponse.success && milestonesResponse.data) {
-          const items = Array.isArray(milestonesResponse.data) 
-            ? milestonesResponse.data 
+          const items = Array.isArray(milestonesResponse.data)
+            ? milestonesResponse.data
             : (milestonesResponse.data as any).items || [];
           setMilestones(items);
         }
       } catch (error) {
-        console.error('Error fetching modal data:', error);
+        console.error("Error fetching modal data:", error);
       } finally {
         setIsLoadingData(false);
       }
@@ -144,14 +175,16 @@ export const TaskDetailModal = ({
 
     setIsLoadingHistory(true);
     try {
-      const response = await taskHistoryService.getTaskHistoriesByTaskId(task.id);
+      const response = await taskHistoryService.getTaskHistoriesByTaskId(
+        task.id
+      );
       if (response.success && response.data) {
         setTaskHistories(response.data);
       } else {
         setTaskHistories([]);
       }
     } catch (error) {
-      console.error('Error fetching task history:', error);
+      console.error("Error fetching task history:", error);
       setTaskHistories([]);
     } finally {
       setIsLoadingHistory(false);
@@ -174,18 +207,17 @@ export const TaskDetailModal = ({
     setIsLoadingComments(true);
     try {
       const response = await commentService.getCommentsByTaskId(task.id);
-      
+
       if (response.success && response.data) {
-        
         // Handle both array and PagingResponse format
         let commentsList: GetCommentResponse[] = [];
-        
+
         if (Array.isArray(response.data)) {
           commentsList = response.data;
         } else if (response.data.items && Array.isArray(response.data.items)) {
           commentsList = response.data.items;
         } else {
-          console.warn('[Comments] Unexpected data format:', response.data);
+          console.warn("[Comments] Unexpected data format:", response.data);
         }
         setComments(commentsList);
       } else {
@@ -216,7 +248,7 @@ export const TaskDetailModal = ({
         reviewerId: task.reviewerId || "",
         startDate: task.startDate || "",
         endDate: task.endDate || "",
-        milestoneIds: task.milestones?.map(m => m.id) || [],
+        milestoneIds: task.milestones?.map((m) => m.id) || [],
       });
     }
   }, [task]);
@@ -230,12 +262,18 @@ export const TaskDetailModal = ({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    
-    return date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60)
+      return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
+    if (diffHours < 24)
+      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   // Statuses - filtered based on user role
@@ -256,11 +294,13 @@ export const TaskDetailModal = ({
 
   // Determine which status options to show based on user role
   // If task status is ReOpened, member can see it but cannot change it
-  const TASK_STATUS_OPTIONS = isMember ? MEMBER_STATUS_OPTIONS : ALL_TASK_STATUS_OPTIONS;
+  const TASK_STATUS_OPTIONS = isMember
+    ? MEMBER_STATUS_OPTIONS
+    : ALL_TASK_STATUS_OPTIONS;
 
   const handleSubmitComment = async () => {
     if (!commentText.trim()) return;
-    
+
     if (!user?.userId || !task?.id) {
       toast.error("Không thể tạo bình luận");
       return;
@@ -275,15 +315,15 @@ export const TaskDetailModal = ({
       });
 
       if (response.success) {
-        toast.success("Comment thành công");
+        toast.success("Bình luận thành công");
         setCommentText("");
         await fetchComments(); // Refresh comments list
       } else {
-        toast.error(response.error || "Failed to post comment");
+        toast.error(response.error || "Không thể đăng bình luận");
       }
     } catch (error) {
       console.error("Error posting comment:", error);
-      toast.error("An error occurred while posting comment");
+      toast.error("Đã xảy ra lỗi khi đăng bình luận");
     } finally {
       setIsSubmittingComment(false);
     }
@@ -301,7 +341,7 @@ export const TaskDetailModal = ({
 
   const handleSaveEditComment = async (commentId: string) => {
     if (!editingCommentText.trim()) {
-      toast.error("Comment không thể bị trống");
+      toast.error("Bình luận không thể bị trống");
       return;
     }
 
@@ -317,17 +357,17 @@ export const TaskDetailModal = ({
         setEditingCommentText("");
         await fetchComments(); // Refresh comments list
       } else {
-        toast.error(response.error || "Lỗi khi cập nhật comment");
+        toast.error(response.error || "Lỗi khi cập nhật bình luận");
       }
     } catch (error) {
       console.error("Error updating comment:", error);
-      toast.error("An error occurred while updating comment");
+      toast.error("Đã xảy ra lỗi khi cập nhật bình luận");
     }
   };
 
   const handleDeleteComment = (commentId: string) => {
     if (!user?.userId) {
-      toast.error("Unable to delete comment");
+      toast.error("Không thể xóa bình luận");
       return;
     }
 
@@ -339,7 +379,10 @@ export const TaskDetailModal = ({
     if (!deletingCommentId || !user?.userId) return;
 
     try {
-      const response = await commentService.deleteComment(deletingCommentId, user.userId);
+      const response = await commentService.deleteComment(
+        deletingCommentId,
+        user.userId
+      );
 
       if (response.success) {
         toast.success("Xóa bình luận thành công");
@@ -361,11 +404,13 @@ export const TaskDetailModal = ({
     if (field === "status" && value !== editedTask.status) {
       const statusValidation = isValidStatusTransition(task.status, value);
       if (!statusValidation.valid) {
-        toast.warning(statusValidation.message || "This status change is not allowed");
+        toast.warning(
+          statusValidation.message || "Không được phép thay đổi trạng thái này"
+        );
         return; // Don't update if invalid
       }
     }
-    
+
     setEditedTask({ ...editedTask, [field]: value });
   };
 
@@ -373,34 +418,39 @@ export const TaskDetailModal = ({
   const formatDateForInput = (isoDate: string) => {
     if (!isoDate) return "";
     const date = new Date(isoDate);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
     return `${year}-${month}-${day}`;
   };
 
   const handleSaveTask = async () => {
     if (!editedTask.title.trim()) {
-      toast.error("Task title is required");
+      toast.error("Tiêu đề công việc là bắt buộc");
       return;
     }
 
     if (!user?.userId) {
-      toast.error("User not authenticated");
+      toast.error("Người dùng chưa đăng nhập");
       return;
     }
 
     // Validation 1: Member cannot change assignee
     if (isMember && editedTask.userId !== task.userId) {
-      toast.error("Members are not allowed to change task assignee");
+      toast.error("Thành viên không được phép thay đổi người thực hiện");
       return;
     }
 
     // Validation 2: Validate status transition
     if (editedTask.status !== task.status) {
-      const statusValidation = isValidStatusTransition(task.status, editedTask.status);
+      const statusValidation = isValidStatusTransition(
+        task.status,
+        editedTask.status
+      );
       if (!statusValidation.valid) {
-        toast.error(statusValidation.message || "Invalid status change");
+        toast.error(
+          statusValidation.message || "Thay đổi trạng thái không hợp lệ"
+        );
         return;
       }
     }
@@ -415,7 +465,7 @@ export const TaskDetailModal = ({
       );
 
       if (!dateValidation.valid) {
-        toast.error(dateValidation.message || "Invalid dates");
+        toast.error(dateValidation.message || "Ngày không hợp lệ");
         return;
       }
     }
@@ -430,19 +480,26 @@ export const TaskDetailModal = ({
         status: editedTask.status,
         userId: editedTask.userId || undefined,
         reviewerId: editedTask.reviewerId || undefined,
-        startDate: editedTask.startDate ? new Date(editedTask.startDate).toISOString() : undefined,
-        endDate: editedTask.endDate ? new Date(editedTask.endDate).toISOString() : undefined,
-        milestoneIds: editedTask.milestoneIds.length > 0 ? editedTask.milestoneIds : undefined,
+        startDate: editedTask.startDate
+          ? new Date(editedTask.startDate).toISOString()
+          : undefined,
+        endDate: editedTask.endDate
+          ? new Date(editedTask.endDate).toISOString()
+          : undefined,
+        milestoneIds:
+          editedTask.milestoneIds.length > 0
+            ? editedTask.milestoneIds
+            : undefined,
       };
 
       const response = await taskService.updateTask(updateData);
 
       if (response.success) {
         toast.success("Cập nhật công việc thành công");
-        
+
         // Refresh history to show the update action
         await fetchHistory();
-        
+
         if (onSave) {
           onSave();
         }
@@ -452,7 +509,7 @@ export const TaskDetailModal = ({
       }
     } catch (error) {
       console.error("Error updating task:", error);
-      toast.error("An error occurred while updating task");
+      toast.error("Đã xảy ra lỗi khi cập nhật công việc");
     }
   };
 
@@ -496,7 +553,9 @@ export const TaskDetailModal = ({
                 <textarea
                   className="field-textarea"
                   value={editedTask.description}
-                  onChange={(e) => handleUpdateField("description", e.target.value)}
+                  onChange={(e) =>
+                    handleUpdateField("description", e.target.value)
+                  }
                   placeholder="Enter task description..."
                   rows={6}
                 />
@@ -510,18 +569,22 @@ export const TaskDetailModal = ({
             {/* Activity Section */}
             <div className="activity-section">
               <label className="field-label">Activity</label>
-              
+
               {/* Tabs */}
               <div className="activity-tabs">
                 <button
-                  className={`tab-btn ${activeTab === "comments" ? "active" : ""}`}
+                  className={`tab-btn ${
+                    activeTab === "comments" ? "active" : ""
+                  }`}
                   onClick={() => setActiveTab("comments")}
                 >
                   <MessageSquare size={16} />
                   Comments ({comments.length})
                 </button>
                 <button
-                  className={`tab-btn ${activeTab === "history" ? "active" : ""}`}
+                  className={`tab-btn ${
+                    activeTab === "history" ? "active" : ""
+                  }`}
                   onClick={() => setActiveTab("history")}
                 >
                   <History size={16} />
@@ -536,16 +599,31 @@ export const TaskDetailModal = ({
                     {/* Comment List */}
                     <div className="comments-list">
                       {isLoadingComments ? (
-                        <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                        <div
+                          style={{
+                            padding: "20px",
+                            textAlign: "center",
+                            color: "#6b7280",
+                          }}
+                        >
                           Loading comments...
                         </div>
                       ) : comments.length === 0 ? (
-                        <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                        <div
+                          style={{
+                            padding: "20px",
+                            textAlign: "center",
+                            color: "#6b7280",
+                          }}
+                        >
                           No comments yet. Be the first to comment!
                         </div>
                       ) : (
                         comments.map((comment) => {
-                          const author = comment.user?.fullName || comment.user?.email || 'Unknown';
+                          const author =
+                            comment.user?.fullName ||
+                            comment.user?.email ||
+                            "Unknown";
                           const initials = getUserInitials(author);
                           const avatarColor = getAvatarColor(author);
                           const avatarUrl = comment.user?.avatarUrl;
@@ -556,53 +634,70 @@ export const TaskDetailModal = ({
                             <div key={comment.id} className="comment-item">
                               <div className="comment-avatar">
                                 {avatarUrl ? (
-                                  <img 
-                                    src={avatarUrl} 
+                                  <img
+                                    src={avatarUrl}
                                     alt={author}
                                     style={{
-                                      width: '100%',
-                                      height: '100%',
-                                      objectFit: 'cover'
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "cover",
                                     }}
                                   />
                                 ) : (
                                   initials
                                 )}
                               </div>
-                              <div className="comment-content" style={{ flex: 1 }}>
+                              <div
+                                className="comment-content"
+                                style={{ flex: 1 }}
+                              >
                                 <div className="comment-header">
-                                  <span className="comment-author">{author}</span>
-                                  <span className="comment-time">{formatCommentTime(comment.createdAt)}</span>
+                                  <span className="comment-author">
+                                    {author}
+                                  </span>
+                                  <span className="comment-time">
+                                    {formatCommentTime(comment.createdAt)}
+                                  </span>
                                   {canEdit && !isEditing && (
-                                    <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+                                    <div
+                                      style={{
+                                        marginLeft: "auto",
+                                        display: "flex",
+                                        gap: "8px",
+                                      }}
+                                    >
                                       <button
                                         className="edit-comment-btn"
-                                        onClick={() => handleEditComment(comment)}
+                                        onClick={() =>
+                                          handleEditComment(comment)
+                                        }
                                         title="Edit comment"
                                         style={{
-                                          background: 'none',
-                                          border: 'none',
-                                          color: '#3b82f6',
-                                          cursor: 'pointer',
-                                          padding: '4px',
-                                          display: 'flex',
-                                          alignItems: 'center'
+                                          background: "none",
+                                          border: "none",
+                                          color: "#3b82f6",
+                                          cursor: "pointer",
+                                          padding: "4px",
+                                          display: "flex",
+                                          alignItems: "center",
                                         }}
                                       >
                                         <Edit2 size={14} />
                                       </button>
                                       <button
                                         className="delete-comment-btn"
-                                        onClick={() => handleDeleteComment(comment.id)}
+                                        onClick={() =>
+                                          handleDeleteComment(comment.id)
+                                        }
                                         title="Delete comment"
                                         style={{
-                                          background: 'none',
-                                          border: 'none',
-                                          color: '#ef4444',
-                                          cursor: 'pointer',
-                                          padding: '4px',
-                                          display: 'flex',
-                                          alignItems: 'center'
+                                          background: "none",
+                                          border: "none",
+                                          color: "#ef4444",
+                                          cursor: "pointer",
+                                          padding: "4px",
+                                          display: "flex",
+                                          alignItems: "center",
                                         }}
                                       >
                                         <Trash2 size={14} />
@@ -611,40 +706,57 @@ export const TaskDetailModal = ({
                                   )}
                                 </div>
                                 {isEditing ? (
-                                  <div style={{ marginTop: '8px' }}>
+                                  <div style={{ marginTop: "8px" }}>
                                     <textarea
                                       className="comment-input"
                                       value={editingCommentText}
-                                      onChange={(e) => setEditingCommentText(e.target.value)}
+                                      onChange={(e) =>
+                                        setEditingCommentText(e.target.value)
+                                      }
                                       rows={3}
-                                      style={{ width: '100%', marginBottom: '8px' }}
+                                      style={{
+                                        width: "100%",
+                                        marginBottom: "8px",
+                                      }}
                                     />
-                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        gap: "8px",
+                                        justifyContent: "flex-end",
+                                      }}
+                                    >
                                       <button
                                         onClick={handleCancelEdit}
                                         style={{
-                                          padding: '6px 12px',
-                                          background: '#f3f4f6',
-                                          border: '1px solid #d1d5db',
-                                          borderRadius: '6px',
-                                          cursor: 'pointer',
-                                          fontSize: '13px'
+                                          padding: "6px 12px",
+                                          background: "#f3f4f6",
+                                          border: "1px solid #d1d5db",
+                                          borderRadius: "6px",
+                                          cursor: "pointer",
+                                          fontSize: "13px",
                                         }}
                                       >
                                         Cancel
                                       </button>
                                       <button
-                                        onClick={() => handleSaveEditComment(comment.id)}
+                                        onClick={() =>
+                                          handleSaveEditComment(comment.id)
+                                        }
                                         disabled={!editingCommentText.trim()}
                                         style={{
-                                          padding: '6px 12px',
-                                          background: '#ff5e13',
-                                          color: 'white',
-                                          border: 'none',
-                                          borderRadius: '6px',
-                                          cursor: editingCommentText.trim() ? 'pointer' : 'not-allowed',
-                                          fontSize: '13px',
-                                          opacity: editingCommentText.trim() ? 1 : 0.5
+                                          padding: "6px 12px",
+                                          background: "#ff5e13",
+                                          color: "white",
+                                          border: "none",
+                                          borderRadius: "6px",
+                                          cursor: editingCommentText.trim()
+                                            ? "pointer"
+                                            : "not-allowed",
+                                          fontSize: "13px",
+                                          opacity: editingCommentText.trim()
+                                            ? 1
+                                            : 0.5,
                                         }}
                                       >
                                         Save
@@ -652,7 +764,9 @@ export const TaskDetailModal = ({
                                     </div>
                                   </div>
                                 ) : (
-                                  <p className="comment-text">{comment.content}</p>
+                                  <p className="comment-text">
+                                    {comment.content}
+                                  </p>
                                 )}
                               </div>
                             </div>
@@ -676,61 +790,95 @@ export const TaskDetailModal = ({
                         onClick={handleSubmitComment}
                         disabled={!commentText.trim() || isSubmittingComment}
                       >
-                        {isSubmittingComment ? 'Posting...' : 'Post Comment'}
+                        {isSubmittingComment ? "Posting..." : "Post Comment"}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="history-tab">
                     {isLoadingHistory ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                      <div
+                        style={{
+                          padding: "20px",
+                          textAlign: "center",
+                          color: "#6b7280",
+                        }}
+                      >
                         Loading history...
                       </div>
                     ) : taskHistories.length === 0 ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                      <div
+                        style={{
+                          padding: "20px",
+                          textAlign: "center",
+                          color: "#6b7280",
+                        }}
+                      >
                         No history available
                       </div>
                     ) : (
                       <div className="history-list">
                         {taskHistories.map((item) => {
-                          const userName = item.changedBy?.fullName || 'Unknown';
+                          const userName =
+                            item.changedBy?.fullName || "Unknown";
                           const initials = getUserInitials(userName);
                           const avatarColor = getAvatarColor(userName);
                           const avatarUrl = item.changedBy?.avatarUrl;
                           const actionText = getHistoryActionText(item);
-                          
+
                           // Render different content based on action type
                           let detailContent = null;
 
-                          if (item.action === 'Assigned' || item.action === 'Reassigned') {
+                          if (
+                            item.action === "Assigned" ||
+                            item.action === "Reassigned"
+                          ) {
                             const toUserAvatarUrl = item.toUser?.avatarUrl;
                             detailContent = (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                                <span>{item.fromUser?.fullName || 'Unassigned'}</span>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  marginTop: "4px",
+                                }}
+                              >
+                                <span>
+                                  {item.fromUser?.fullName || "Unassigned"}
+                                </span>
                                 <span>→</span>
                                 {item.toUser && (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <div style={{
-                                      width: '24px',
-                                      height: '24px',
-                                      borderRadius: '50%',
-                                      background: 'linear-gradient(135deg, #ff5e13, #ff8c42)',
-                                      color: 'white',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      fontSize: '10px',
-                                      fontWeight: '600',
-                                      overflow: 'hidden'
-                                    }}>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "6px",
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        width: "24px",
+                                        height: "24px",
+                                        borderRadius: "50%",
+                                        background:
+                                          "linear-gradient(135deg, #ff5e13, #ff8c42)",
+                                        color: "white",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: "10px",
+                                        fontWeight: "600",
+                                        overflow: "hidden",
+                                      }}
+                                    >
                                       {toUserAvatarUrl ? (
-                                        <img 
-                                          src={toUserAvatarUrl} 
+                                        <img
+                                          src={toUserAvatarUrl}
                                           alt={item.toUser.fullName}
                                           style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover'
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover",
                                           }}
                                         />
                                       ) : (
@@ -742,44 +890,77 @@ export const TaskDetailModal = ({
                                 )}
                               </div>
                             );
-                          } else if (item.action === 'StatusChanged' || item.fieldName === 'Status') {
-                            const oldStatusColor = item.oldValue ? getTaskStatusColor(item.oldValue) : '#6b7280';
-                            const newStatusColor = item.newValue ? getTaskStatusColor(item.newValue) : '#6b7280';
-                            const oldStatusLabel = item.oldValue ? getTaskStatusLabel(item.oldValue) : 'N/A';
-                            const newStatusLabel = item.newValue ? getTaskStatusLabel(item.newValue) : 'N/A';
-                            
+                          } else if (
+                            item.action === "StatusChanged" ||
+                            item.fieldName === "Status"
+                          ) {
+                            const oldStatusColor = item.oldValue
+                              ? getTaskStatusColor(item.oldValue)
+                              : "#6b7280";
+                            const newStatusColor = item.newValue
+                              ? getTaskStatusColor(item.newValue)
+                              : "#6b7280";
+                            const oldStatusLabel = item.oldValue
+                              ? getTaskStatusLabel(item.oldValue)
+                              : "N/A";
+                            const newStatusLabel = item.newValue
+                              ? getTaskStatusLabel(item.newValue)
+                              : "N/A";
+
                             detailContent = (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                                <span style={{
-                                  padding: '4px 12px',
-                                  borderRadius: '12px',
-                                  fontSize: '11px',
-                                  fontWeight: '600',
-                                  color: 'white',
-                                  backgroundColor: oldStatusColor,
-                                  textTransform: 'capitalize'
-                                }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "8px",
+                                  marginTop: "8px",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    padding: "4px 12px",
+                                    borderRadius: "12px",
+                                    fontSize: "11px",
+                                    fontWeight: "600",
+                                    color: "white",
+                                    backgroundColor: oldStatusColor,
+                                    textTransform: "capitalize",
+                                  }}
+                                >
                                   {oldStatusLabel}
                                 </span>
-                                <span style={{ color: '#9ca3af', fontWeight: '500' }}>→</span>
-                                <span style={{
-                                  padding: '4px 12px',
-                                  borderRadius: '12px',
-                                  fontSize: '11px',
-                                  fontWeight: '600',
-                                  color: 'white',
-                                  backgroundColor: newStatusColor,
-                                  textTransform: 'capitalize'
-                                }}>
+                                <span
+                                  style={{
+                                    color: "#9ca3af",
+                                    fontWeight: "500",
+                                  }}
+                                >
+                                  →
+                                </span>
+                                <span
+                                  style={{
+                                    padding: "4px 12px",
+                                    borderRadius: "12px",
+                                    fontSize: "11px",
+                                    fontWeight: "600",
+                                    color: "white",
+                                    backgroundColor: newStatusColor,
+                                    textTransform: "capitalize",
+                                  }}
+                                >
                                   {newStatusLabel}
                                 </span>
                               </div>
                             );
-                          } else if (item.fieldName && item.oldValue && item.newValue) {
+                          } else if (
+                            item.fieldName &&
+                            item.oldValue &&
+                            item.newValue
+                          ) {
                             detailContent = (
-                              <div style={{ marginTop: '4px' }}>
+                              <div style={{ marginTop: "4px" }}>
                                 <span>{item.oldValue}</span>
-                                <span style={{ margin: '0 8px' }}>→</span>
+                                <span style={{ margin: "0 8px" }}>→</span>
                                 <span>{item.newValue}</span>
                               </div>
                             );
@@ -789,13 +970,13 @@ export const TaskDetailModal = ({
                             <div key={item.id} className="history-item">
                               <div className="history-avatar">
                                 {avatarUrl ? (
-                                  <img 
-                                    src={avatarUrl} 
+                                  <img
+                                    src={avatarUrl}
                                     alt={userName}
                                     style={{
-                                      width: '100%',
-                                      height: '100%',
-                                      objectFit: 'cover'
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "cover",
                                     }}
                                   />
                                 ) : (
@@ -803,11 +984,17 @@ export const TaskDetailModal = ({
                                 )}
                               </div>
                               <div className="history-content">
-                                <div style={{ marginBottom: '4px' }}>
+                                <div style={{ marginBottom: "4px" }}>
                                   <strong>{userName}</strong> {actionText}
                                 </div>
                                 {detailContent}
-                                <div style={{ marginTop: '4px', color: '#6b7280', fontSize: '13px' }}>
+                                <div
+                                  style={{
+                                    marginTop: "4px",
+                                    color: "#6b7280",
+                                    fontSize: "13px",
+                                  }}
+                                >
                                   {formatHistoryDate(item.createdAt)}
                                 </div>
                               </div>
@@ -858,7 +1045,9 @@ export const TaskDetailModal = ({
                 className="info-select"
                 value={editedTask.userId}
                 onChange={(e) => handleUpdateField("userId", e.target.value)}
-                disabled={isLoadingData || mode === "view" || !canEdit || isMember}
+                disabled={
+                  isLoadingData || mode === "view" || !canEdit || isMember
+                }
               >
                 <option value="">Unassigned</option>
                 {members.map((member) => (
@@ -868,7 +1057,13 @@ export const TaskDetailModal = ({
                 ))}
               </select>
               {isMember && mode === "edit" && (
-                <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    color: "#6b7280",
+                    marginTop: "4px",
+                  }}
+                >
                   Members cannot change assignee
                 </span>
               )}
@@ -883,7 +1078,9 @@ export const TaskDetailModal = ({
               <select
                 className="info-select"
                 value={editedTask.reviewerId}
-                onChange={(e) => handleUpdateField("reviewerId", e.target.value)}
+                onChange={(e) =>
+                  handleUpdateField("reviewerId", e.target.value)
+                }
                 disabled={isLoadingData || mode === "view" || !canEdit}
               >
                 <option value="">No reviewer</option>
@@ -901,7 +1098,7 @@ export const TaskDetailModal = ({
                 <Calendar size={16} />
                 Start Date
               </label>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: "relative" }}>
                 <input
                   type="date"
                   className="info-input"
@@ -909,20 +1106,34 @@ export const TaskDetailModal = ({
                   onChange={(e) => {
                     const dateValue = e.target.value; // yyyy-mm-dd format from date input
                     if (dateValue) {
-                      handleUpdateField("startDate", new Date(dateValue).toISOString());
+                      handleUpdateField(
+                        "startDate",
+                        new Date(dateValue).toISOString()
+                      );
                     } else {
                       handleUpdateField("startDate", "");
                     }
                   }}
-                  min={project?.startDate ? formatDate(project.startDate) : undefined}
+                  min={
+                    project?.startDate
+                      ? formatDate(project.startDate)
+                      : undefined
+                  }
                   max={formatDate(new Date().toISOString())}
                   disabled={mode === "view" || !canEdit}
-                  style={{ colorScheme: 'light' }}
+                  style={{ colorScheme: "light" }}
                 />
               </div>
               {project?.startDate && mode === "edit" && (
-                <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
-                  Project: {formatDate(project.startDate)} - {project.endDate ? formatDate(project.endDate) : 'No end'}
+                <span
+                  style={{
+                    fontSize: "11px",
+                    color: "#6b7280",
+                    marginTop: "4px",
+                  }}
+                >
+                  Project: {formatDate(project.startDate)} -{" "}
+                  {project.endDate ? formatDate(project.endDate) : "No end"}
                 </span>
               )}
             </div>
@@ -933,7 +1144,7 @@ export const TaskDetailModal = ({
                 <Calendar size={16} />
                 End Date
               </label>
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: "relative" }}>
                 <input
                   type="date"
                   className="info-input"
@@ -941,15 +1152,26 @@ export const TaskDetailModal = ({
                   onChange={(e) => {
                     const dateValue = e.target.value; // yyyy-mm-dd format from date input
                     if (dateValue) {
-                      handleUpdateField("endDate", new Date(dateValue).toISOString());
+                      handleUpdateField(
+                        "endDate",
+                        new Date(dateValue).toISOString()
+                      );
                     } else {
                       handleUpdateField("endDate", "");
                     }
                   }}
-                  min={editedTask.startDate ? formatDateForInput(editedTask.startDate) : undefined}
-                  max={project?.endDate ? formatDateForInput(project.endDate) : undefined}
+                  min={
+                    editedTask.startDate
+                      ? formatDateForInput(editedTask.startDate)
+                      : undefined
+                  }
+                  max={
+                    project?.endDate
+                      ? formatDateForInput(project.endDate)
+                      : undefined
+                  }
                   disabled={mode === "view" || !canEdit}
-                  style={{ colorScheme: 'light' }}
+                  style={{ colorScheme: "light" }}
                 />
               </div>
             </div>
@@ -962,11 +1184,23 @@ export const TaskDetailModal = ({
               </label>
               <div className="milestones-list">
                 {isLoadingData ? (
-                  <div style={{ padding: '8px', color: '#6b7280', fontSize: '13px' }}>
+                  <div
+                    style={{
+                      padding: "8px",
+                      color: "#6b7280",
+                      fontSize: "13px",
+                    }}
+                  >
                     Loading milestones...
                   </div>
                 ) : milestones.length === 0 ? (
-                  <div style={{ padding: '8px', color: '#6b7280', fontSize: '13px' }}>
+                  <div
+                    style={{
+                      padding: "8px",
+                      color: "#6b7280",
+                      fontSize: "13px",
+                    }}
+                  >
                     No milestones available
                   </div>
                 ) : (
@@ -978,7 +1212,9 @@ export const TaskDetailModal = ({
                         onChange={(e) => {
                           const newMilestoneIds = e.target.checked
                             ? [...editedTask.milestoneIds, milestone.id]
-                            : editedTask.milestoneIds.filter((id: string) => id !== milestone.id);
+                            : editedTask.milestoneIds.filter(
+                                (id: string) => id !== milestone.id
+                              );
                           handleUpdateField("milestoneIds", newMilestoneIds);
                         }}
                         disabled={mode === "view" || !canEdit}

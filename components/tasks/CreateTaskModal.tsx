@@ -22,16 +22,16 @@ interface CreateTaskModalProps {
 }
 
 const MEMBER_CREATE_STATUS_OPTIONS = [
-  { value: 'Todo', label: 'Todo' },
-  { value: 'InProgress', label: 'In Progress' },
+  { value: "Todo", label: "Todo" },
+  { value: "InProgress", label: "In Progress" },
 ];
 
 const ALL_STATUS_OPTIONS = [
-  { value: 'Todo', label: 'Todo' },
-  { value: 'InProgress', label: 'In Progress' },
-  { value: 'ReadyToReview', label: 'Ready to Review' },
-  { value: 'Done', label: 'Done' },
-  { value: 'Cancelled', label: 'Cancelled' },
+  { value: "Todo", label: "Todo" },
+  { value: "InProgress", label: "In Progress" },
+  { value: "ReadyToReview", label: "Ready to Review" },
+  { value: "Done", label: "Done" },
+  { value: "Cancelled", label: "Cancelled" },
 ];
 
 export const CreateTaskModal = ({
@@ -41,8 +41,8 @@ export const CreateTaskModal = ({
   onSuccess,
 }: CreateTaskModalProps) => {
   const { user } = useAuth();
-  const isMember = user?.role === 'Member';
-  
+  const isMember = user?.role === "Member";
+
   const [taskData, setTaskData] = useState({
     title: "",
     description: "",
@@ -73,7 +73,10 @@ export const CreateTaskModal = ({
           setProject(projectResponse.data);
         }
 
-        const membersResponse = await projectService.getProjectMembersByRole(projectId, 'Member');
+        const membersResponse = await projectService.getProjectMembersByRole(
+          projectId,
+          "Member"
+        );
         if (membersResponse.success && membersResponse.data) {
           const membersList = membersResponse.data
             .filter((pm: any) => pm.member)
@@ -85,7 +88,9 @@ export const CreateTaskModal = ({
           setMembers(membersList);
         }
 
-        const reviewersResponse = await projectService.getProjectManagers(projectId);
+        const reviewersResponse = await projectService.getProjectManagers(
+          projectId
+        );
         if (reviewersResponse.success && reviewersResponse.data) {
           const reviewersList = reviewersResponse.data
             .filter((pm: any) => pm.member)
@@ -97,16 +102,17 @@ export const CreateTaskModal = ({
           setReviewers(reviewersList);
         }
 
-        const milestonesResponse = await milestoneService.getMilestonesByProjectId(projectId);
+        const milestonesResponse =
+          await milestoneService.getMilestonesByProjectId(projectId);
         if (milestonesResponse.success && milestonesResponse.data) {
-          const items = Array.isArray(milestonesResponse.data) 
-            ? milestonesResponse.data 
+          const items = Array.isArray(milestonesResponse.data)
+            ? milestonesResponse.data
             : (milestonesResponse.data as any).items || [];
           setMilestones(items);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Error loading data');
+        console.error("Error fetching data:", error);
+        toast.error("Lỗi khi tải dữ liệu");
       } finally {
         setIsLoadingData(false);
       }
@@ -138,19 +144,19 @@ export const CreateTaskModal = ({
 
   const handleSave = async () => {
     if (!user?.userId) {
-      toast.error("User not authenticated");
+      toast.error("Người dùng chưa đăng nhập");
       return;
     }
     if (!taskData.title.trim()) {
-      toast.error('Please enter task title');
+      toast.error("Vui lòng nhập tiêu đề công việc");
       return;
     }
     if (!taskData.userId) {
-      toast.error('Please select assignee');
+      toast.error("Vui lòng chọn người thực hiện");
       return;
     }
     if (!taskData.startDate || !taskData.endDate) {
-      toast.error('Please select start and end dates');
+      toast.error("Vui lòng chọn ngày bắt đầu và kết thúc");
       return;
     }
 
@@ -163,7 +169,7 @@ export const CreateTaskModal = ({
     );
 
     if (!dateValidation.valid) {
-      toast.error(dateValidation.message || 'Invalid dates');
+      toast.error(dateValidation.message || "Ngày không hợp lệ");
       return;
     }
 
@@ -186,40 +192,45 @@ export const CreateTaskModal = ({
       const response = await taskService.createTask(createData);
 
       if (response.success) {
-        toast.success('Task created successfully');
+        toast.success("Tạo công việc thành công");
         onSuccess?.();
         onClose();
       } else {
-        toast.error(response.error || 'Unable to create task');
+        toast.error(response.error || "Không thể tạo công việc");
       }
     } catch (error) {
-      console.error('Error creating task:', error);
-      toast.error('Error creating task');
+      console.error("Error creating task:", error);
+      toast.error("Lỗi khi tạo công việc");
     } finally {
       setIsSaving(false);
     }
   };
 
   const toggleMilestone = (milestoneId: string) => {
-    setTaskData(prev => ({
+    setTaskData((prev) => ({
       ...prev,
       milestoneIds: prev.milestoneIds.includes(milestoneId)
-        ? prev.milestoneIds.filter(id => id !== milestoneId)
-        : [...prev.milestoneIds, milestoneId]
+        ? prev.milestoneIds.filter((id) => id !== milestoneId)
+        : [...prev.milestoneIds, milestoneId],
     }));
   };
 
-  const statusOptions = isMember ? MEMBER_CREATE_STATUS_OPTIONS : ALL_STATUS_OPTIONS;
+  const statusOptions = isMember
+    ? MEMBER_CREATE_STATUS_OPTIONS
+    : ALL_STATUS_OPTIONS;
 
   if (!isOpen) return null;
 
   return (
     <div className="create-task-modal-overlay" onClick={handleClose}>
-      <div className="create-task-modal-container" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="create-task-modal-container"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
           <h2 className="modal-title">Create New Task</h2>
-          <button 
-            className="close-button" 
+          <button
+            className="close-button"
             onClick={handleClose}
             disabled={isSaving}
           >
@@ -245,7 +256,9 @@ export const CreateTaskModal = ({
                     type="text"
                     className="form-input"
                     value={taskData.title}
-                    onChange={(e) => setTaskData({ ...taskData, title: e.target.value })}
+                    onChange={(e) =>
+                      setTaskData({ ...taskData, title: e.target.value })
+                    }
                     placeholder="Enter task title..."
                     disabled={isSaving}
                   />
@@ -258,7 +271,9 @@ export const CreateTaskModal = ({
                   <textarea
                     className="form-textarea"
                     value={taskData.description}
-                    onChange={(e) => setTaskData({ ...taskData, description: e.target.value })}
+                    onChange={(e) =>
+                      setTaskData({ ...taskData, description: e.target.value })
+                    }
                     placeholder="Enter task description..."
                     rows={5}
                     disabled={isSaving}
@@ -274,11 +289,16 @@ export const CreateTaskModal = ({
                     {milestones.length === 0 ? (
                       <p className="no-data-text">No milestones available</p>
                     ) : (
-                      milestones.map(milestone => (
-                        <label key={milestone.id} className="milestone-checkbox-label">
+                      milestones.map((milestone) => (
+                        <label
+                          key={milestone.id}
+                          className="milestone-checkbox-label"
+                        >
                           <input
                             type="checkbox"
-                            checked={taskData.milestoneIds.includes(milestone.id)}
+                            checked={taskData.milestoneIds.includes(
+                              milestone.id
+                            )}
                             onChange={() => toggleMilestone(milestone.id)}
                             disabled={isSaving}
                           />
@@ -288,7 +308,6 @@ export const CreateTaskModal = ({
                     )}
                   </div>
                 </div>
-                
               </div>
 
               <div className="right-column">
@@ -300,10 +319,12 @@ export const CreateTaskModal = ({
                   <select
                     className="form-select"
                     value={taskData.status}
-                    onChange={(e) => setTaskData({ ...taskData, status: e.target.value })}
+                    onChange={(e) =>
+                      setTaskData({ ...taskData, status: e.target.value })
+                    }
                     disabled={isSaving}
                   >
-                    {statusOptions.map(option => (
+                    {statusOptions.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -320,11 +341,13 @@ export const CreateTaskModal = ({
                   <select
                     className="form-select"
                     value={taskData.userId}
-                    onChange={(e) => setTaskData({ ...taskData, userId: e.target.value })}
+                    onChange={(e) =>
+                      setTaskData({ ...taskData, userId: e.target.value })
+                    }
                     disabled={isSaving}
                   >
                     <option value="">Select assignee</option>
-                    {members.map(member => (
+                    {members.map((member) => (
                       <option key={member.id} value={member.id}>
                         {member.name}
                       </option>
@@ -342,13 +365,28 @@ export const CreateTaskModal = ({
                     type="date"
                     className="form-input"
                     value={taskData.startDate}
-                    onChange={(e) => setTaskData({ ...taskData, startDate: e.target.value })}
-                    min={project?.startDate ? new Date(project.startDate).toISOString().split('T')[0] : undefined}
-                    max={new Date().toISOString().split('T')[0]}
+                    onChange={(e) =>
+                      setTaskData({ ...taskData, startDate: e.target.value })
+                    }
+                    min={
+                      project?.startDate
+                        ? new Date(project.startDate)
+                            .toISOString()
+                            .split("T")[0]
+                        : undefined
+                    }
+                    max={new Date().toISOString().split("T")[0]}
                     disabled={isSaving}
                   />
                   {project?.startDate && (
-                    <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', display: 'block' }}>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        color: "#6b7280",
+                        marginTop: "4px",
+                        display: "block",
+                      }}
+                    >
                       Project start: {formatDate(project.startDate)}
                     </span>
                   )}
@@ -364,38 +402,49 @@ export const CreateTaskModal = ({
                     type="date"
                     className="form-input"
                     value={taskData.endDate}
-                    onChange={(e) => setTaskData({ ...taskData, endDate: e.target.value })}
+                    onChange={(e) =>
+                      setTaskData({ ...taskData, endDate: e.target.value })
+                    }
                     min={taskData.startDate || undefined}
-                    max={project?.endDate ? new Date(project.endDate).toISOString().split('T')[0] : undefined}
+                    max={
+                      project?.endDate
+                        ? new Date(project.endDate).toISOString().split("T")[0]
+                        : undefined
+                    }
                     disabled={isSaving}
                   />
                   {project?.endDate && (
-                    <span style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', display: 'block' }}>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        color: "#6b7280",
+                        marginTop: "4px",
+                        display: "block",
+                      }}
+                    >
                       Project end: {formatDate(project.endDate)}
                     </span>
                   )}
                 </div>
-
-                
               </div>
             </div>
           )}
         </div>
 
         <div className="modal-footer">
-          <button 
-            className="footer-button cancel-button" 
+          <button
+            className="footer-button cancel-button"
             onClick={handleClose}
             disabled={isSaving}
           >
             Cancel
           </button>
-          <button 
-            className="footer-button save-button" 
+          <button
+            className="footer-button save-button"
             onClick={handleSave}
             disabled={isSaving || isLoadingData}
           >
-            {isSaving ? 'Creating...' : 'Create Task'}
+            {isSaving ? "Creating..." : "Create Task"}
           </button>
         </div>
       </div>

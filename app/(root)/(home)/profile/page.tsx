@@ -97,10 +97,10 @@ export default function ProfilePage() {
         setIsSaving(true);
         const uploadedUrl = await uploadFileToCloudinary(file);
         setAvatarPreview(uploadedUrl);
-        toast.success("Avatar uploaded successfully");
+        toast.success("Đã tải ảnh đại diện thành công");
       } catch (error) {
         console.error("Error uploading avatar:", error);
-        toast.error("Failed to upload avatar");
+        toast.error("Không thể tải ảnh đại diện");
       } finally {
         setIsSaving(false);
       }
@@ -135,7 +135,7 @@ export default function ProfilePage() {
       });
 
       if (result.success) {
-        toast.success(result.message || "Profile updated successfully");
+        toast.success(result.message || "Cập nhật hồ sơ thành công");
         setIsEditing(false);
 
         const { setUserData } = useUser.getState();
@@ -150,11 +150,11 @@ export default function ProfilePage() {
 
         await refreshUserDetail();
       } else {
-        toast.error(result.error || "Failed to update profile");
+        toast.error(result.error || "Không thể cập nhật hồ sơ");
       }
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast.error("An error occurred while saving profile");
+      toast.error("Đã xảy ra lỗi khi lưu hồ sơ");
     } finally {
       setIsSaving(false);
     }

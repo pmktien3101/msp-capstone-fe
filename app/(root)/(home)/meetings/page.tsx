@@ -102,7 +102,7 @@ const MeetingsPage = () => {
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error("Failed to load data");
+        toast.error("Không thể tải dữ liệu");
       } finally {
         setLoading(false);
       }
@@ -217,7 +217,7 @@ const MeetingsPage = () => {
 
     // Close modal
     setIsCreateModalOpen(false);
-    toast.success("Meeting created successfully!");
+    toast.success("Tạo cuộc họp thành công!");
   };
 
   const handleEditMeeting = (meeting: any, e: React.MouseEvent) => {
@@ -246,13 +246,13 @@ const MeetingsPage = () => {
         setMeetings((prevMeetings: MeetingItem[]) =>
           prevMeetings.filter((m: MeetingItem) => m.id !== meetingToDelete.id)
         );
-        toast.success("Meeting deleted successfully!");
+        toast.success("Xóa cuộc họp thành công!");
       } else {
-        toast.error(result.error || "Failed to delete meeting");
+        toast.error(result.error || "Không thể xóa cuộc họp");
       }
     } catch (error: any) {
       console.error("Error deleting meeting:", error);
-      toast.error(error.message || "Failed to delete meeting");
+      toast.error(error.message || "Không thể xóa cuộc họp");
     } finally {
       setIsConfirmDeleteOpen(false);
       setMeetingToDelete(null);

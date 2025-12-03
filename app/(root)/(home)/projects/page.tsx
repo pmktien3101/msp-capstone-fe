@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { ProjectsTable } from '@/components/projects/ProjectsTable';
-import { EditProjectModal } from '@/components/projects/modals/EditProjectModal';
-import { CreateProjectModal } from '@/components/projects/modals/CreateProjectModal';
-import { ProjectHeader } from '@/components/projects/ProjectHeader';
-import { useProjectModal } from '@/contexts/ProjectModalContext';
-import { projectService } from '@/services/projectService';
-import { useAuth } from '@/hooks/useAuth';
-import { UserRole } from '@/lib/rbac';
-import '@/app/styles/projects.scss';
-import '@/app/styles/projects-table.scss';
-import { Project } from '@/types/project';
-import { toast } from 'react-toastify';
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { ProjectsTable } from "@/components/projects/ProjectsTable";
+import { EditProjectModal } from "@/components/projects/modals/EditProjectModal";
+import { CreateProjectModal } from "@/components/projects/modals/CreateProjectModal";
+import { ProjectHeader } from "@/components/projects/ProjectHeader";
+import { useProjectModal } from "@/contexts/ProjectModalContext";
+import { projectService } from "@/services/projectService";
+import { useAuth } from "@/hooks/useAuth";
+import { UserRole } from "@/lib/rbac";
+import "@/app/styles/projects.scss";
+import "@/app/styles/projects-table.scss";
+import { Project } from "@/types/project";
+import { toast } from "react-toastify";
 
 const ProjectsPage = () => {
   const router = useRouter();
@@ -23,44 +23,57 @@ const ProjectsPage = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const hasFetchedRef = useRef(false);
 
   const fetchProjects = async () => {
     if (!user?.userId || !user?.role) {
-      setError('User information not found');
+      setError("User information not found");
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      setError('');
-      
+      setError("");
+
       let result;
-      
+
       // Fetch projects based on user role
-      if (user.role === UserRole.PROJECT_MANAGER || user.role === 'ProjectManager') {
-        console.log('[ProjectsPage] Fetching projects managed by ProjectManager:', user.userId);
+      if (
+        user.role === UserRole.PROJECT_MANAGER ||
+        user.role === "ProjectManager"
+      ) {
+        console.log(
+          "[ProjectsPage] Fetching projects managed by ProjectManager:",
+          user.userId
+        );
         result = await projectService.getProjectsByManagerId(user.userId);
-      } else if (user.role === UserRole.MEMBER || user.role === 'Member') {
-        console.log('[ProjectsPage] Fetching projects where Member participates:', user.userId);
+      } else if (user.role === UserRole.MEMBER || user.role === "Member") {
+        console.log(
+          "[ProjectsPage] Fetching projects where Member participates:",
+          user.userId
+        );
         result = await projectService.getProjectsByMemberId(user.userId);
       } else {
-        console.log('[ProjectsPage] Unknown role, fetching all projects');
+        console.log("[ProjectsPage] Unknown role, fetching all projects");
         result = await projectService.getAllProjects();
       }
-      
+
       if (result.success && result.data) {
-        console.log('[ProjectsPage] Projects fetched successfully:', result.data.items.length, 'projects');
+        console.log(
+          "[ProjectsPage] Projects fetched successfully:",
+          result.data.items.length,
+          "projects"
+        );
         setProjects(result.data.items);
       } else {
-        console.error('[ProjectsPage] Failed to fetch projects:', result.error);
-        setError(result.error || 'Unable to load project list');
+        console.error("[ProjectsPage] Failed to fetch projects:", result.error);
+        setError(result.error || "Unable to load project list");
       }
     } catch (error: any) {
-      console.error('[ProjectsPage] Fetch projects error:', error);
-      setError(error.message || 'An error occurred while loading projects');
+      console.error("[ProjectsPage] Fetch projects error:", error);
+      setError(error.message || "An error occurred while loading projects");
     } finally {
       setLoading(false);
     }
@@ -73,7 +86,7 @@ const ProjectsPage = () => {
       fetchProjects();
     } else if (!isAuthenticated) {
       setLoading(false);
-      setError('Please login to view projects');
+      setError("Please login to view projects");
     }
   }, [isAuthenticated, user?.userId]); // Only depend on user.userId (stable value), not entire user object
 
@@ -82,7 +95,7 @@ const ProjectsPage = () => {
     setSelectedProject(project);
     setShowEditProjectModal(true);
   };
-  
+
   const handleCloseEditProject = () => {
     setSelectedProject(null);
     setShowEditProjectModal(false);
@@ -98,25 +111,25 @@ const ProjectsPage = () => {
         description: updatedProjectData.description,
         status: updatedProjectData.status,
         startDate: updatedProjectData.startDate,
-        endDate: updatedProjectData.endDate
+        endDate: updatedProjectData.endDate,
       });
 
       if (result.success && result.data) {
         // Update local state
-        setProjects(prevProjects => 
-          prevProjects.map(project => 
+        setProjects((prevProjects) =>
+          prevProjects.map((project) =>
             project.id === selectedProject.id ? result.data! : project
           )
         );
         setShowEditProjectModal(false);
         setSelectedProject(null);
-        toast.success('Project updated successfully!');
+        toast.success("Cập nhật dự án thành công!");
       } else {
-        toast.error(result.error || 'Unable to update project');
+        toast.error(result.error || "Không thể cập nhật dự án");
       }
     } catch (error) {
-      console.error('Update project error:', error);
-      toast.error('An error occurred while updating project');
+      console.error("Update project error:", error);
+      toast.error("Đã xảy ra lỗi khi cập nhật dự án");
     }
   };
 
@@ -125,11 +138,11 @@ const ProjectsPage = () => {
   };
 
   const handleCreateProject = async (newProject: Project) => {
-    console.log('New project created:', newProject);
-    
+    console.log("New project created:", newProject);
+
     // Refresh projects list to get updated data from backend
     await fetchProjects();
-    
+
     closeCreateModal();
   };
 
@@ -159,7 +172,9 @@ const ProjectsPage = () => {
         <div className="projects-content">
           <div className="error-container">
             <p className="error-message">{error}</p>
-            <button onClick={fetchProjects} className="retry-button">Retry</button>
+            <button onClick={fetchProjects} className="retry-button">
+              Retry
+            </button>
           </div>
         </div>
       </div>
@@ -169,9 +184,9 @@ const ProjectsPage = () => {
   return (
     <div className="projects-page">
       <ProjectHeader />
-      
+
       <div className="projects-content">
-        <ProjectsTable 
+        <ProjectsTable
           projects={projects}
           onEditProject={handleEditProject}
           onAddMeeting={handleAddMeeting}
@@ -185,7 +200,7 @@ const ProjectsPage = () => {
         onClose={closeCreateModal}
         onCreateProject={handleCreateProject}
       />
-      
+
       {showEditProjectModal && selectedProject && (
         <EditProjectModal
           isOpen={showEditProjectModal}
@@ -195,7 +210,7 @@ const ProjectsPage = () => {
         />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ProjectsPage
+export default ProjectsPage;

@@ -177,20 +177,20 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
   };
 
   const handleCancel = async (meeting: MeetingItem) => {
-    if (!confirm("Are you sure you want to cancel this meeting?")) return;
+    if (!confirm("Bạn có chắc chắn muốn hủy cuộc họp này?")) return;
 
     try {
       const res = await meetingService.cancelMeeting(meeting.id);
 
       if (res?.success) {
         await refetchCalls();
-        toast.success("Meeting cancelled successfully");
+        toast.success("Hủy cuộc họp thành công");
       } else {
-        toast.error(res?.error || res?.message || "Failed to cancel meeting");
+        toast.error(res?.error || res?.message || "Không thể hủy cuộc họp");
       }
     } catch (e: any) {
       console.error("Cancel meeting failed", e);
-      toast.error(e?.message || "Failed to cancel meeting");
+      toast.error(e?.message || "Không thể hủy cuộc họp");
     }
   };
 

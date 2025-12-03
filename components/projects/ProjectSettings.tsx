@@ -8,16 +8,19 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
 import { toast } from "react-toastify";
-import { PROJECT_STATUS_OPTIONS, getProjectStatusLabel } from "@/constants/status";
+import {
+  PROJECT_STATUS_OPTIONS,
+  getProjectStatusLabel,
+} from "@/constants/status";
 import { useMemberInProjectLimitationCheck } from "@/hooks/useLimitationCheck";
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Settings, 
-  Users, 
-  Bell, 
-  Shield, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Settings,
+  Users,
+  Bell,
+  Shield,
   Save,
   X,
   Calendar,
@@ -25,7 +28,7 @@ import {
   Mail,
   MessageSquare,
   Paperclip,
-  UserCog
+  UserCog,
 } from "lucide-react";
 import "@/app/styles/project-settings.scss";
 
@@ -42,42 +45,50 @@ interface ProjectSettingsProps {
   onProjectUpdate?: () => void;
 }
 
-export const ProjectSettings = ({ project, availableProjectManagers = [], onProjectUpdate }: ProjectSettingsProps) => {
+export const ProjectSettings = ({
+  project,
+  availableProjectManagers = [],
+  onProjectUpdate,
+}: ProjectSettingsProps) => {
   const { checkMemberInProjectLimit } = useMemberInProjectLimitationCheck();
 
   // Helper function to format ISO date to YYYY-MM-DD for date input
   const formatDateForInput = (dateString?: string) => {
-    if (!dateString) return '';
+    if (!dateString) return "";
     try {
       const date = new Date(dateString);
       const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
     } catch {
-      return '';
+      return "";
     }
   };
 
   // Helper function to format date for display (dd/MM/yyyy)
   const formatDateForDisplay = (dateString?: string) => {
-    if (!dateString) return '';
+    if (!dateString) return "";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      return date.toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
     } catch {
-      return '';
+      return "";
     }
   };
 
   // Helper function to convert dd/MM/yyyy back to yyyy-MM-dd for date input
   const convertDisplayToInput = (displayDate: string) => {
-    if (!displayDate) return '';
-    const [day, month, year] = displayDate.split('/');
+    if (!displayDate) return "";
+    const [day, month, year] = displayDate.split("/");
     if (day && month && year) {
-      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
     }
-    return '';
+    return "";
   };
 
   type Settings = {
@@ -106,7 +117,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
     status: project.status,
     startDate: formatDateForDisplay(project.startDate),
     endDate: formatDateForDisplay(project.endDate),
-    manager: project.owner?.fullName || project.createdBy?.fullName || '',
+    manager: project.owner?.fullName || project.createdBy?.fullName || "",
     notifications: {
       email: true,
       slack: false,
@@ -123,32 +134,38 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  
+
   // Confirm dialog states
-  const [isConfirmDeleteMemberOpen, setIsConfirmDeleteMemberOpen] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isConfirmDeleteMemberOpen, setIsConfirmDeleteMemberOpen] =
+    useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const [isEditingBasicInfo, setIsEditingBasicInfo] = useState(false);
-  const [tempSettings, setTempSettings] = useState<Settings>({...settings});
+  const [tempSettings, setTempSettings] = useState<Settings>({ ...settings });
 
   // Get user role for permission checks
   const { role } = useUser();
   const userRole = role?.toLowerCase();
 
   // Permission checks
-  const canEditBasicInfo = userRole === 'projectmanager' || userRole === 'businessowner';
-  const canAddPM = userRole === 'businessowner';
-  const canAddMember = userRole === 'projectmanager' || userRole === 'businessowner';
+  const canEditBasicInfo =
+    userRole === "projectmanager" || userRole === "businessowner";
+  const canAddPM = userRole === "businessowner";
+  const canAddMember =
+    userRole === "projectmanager" || userRole === "businessowner";
 
   // Fetch project members from API
   useEffect(() => {
     const fetchMembers = async () => {
       if (!project.id) return;
-      
+
       setIsLoadingMembers(true);
       try {
         const result = await projectService.getProjectMembers(project.id);
-        
+
         if (result.success && result.data) {
           // Transform ProjectMember[] to Member[]
           // API returns: { id, projectId, userId, member: { id, fullName, email, role, ... }, joinedAt, leftAt }
@@ -157,17 +174,17 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             .map((pm: any) => ({
               id: pm.member.id,
               pmId: pm.id, // Store ProjectMember ID for deletion
-              name: pm.member.fullName || 'Unknown',
-              email: pm.member.email || '',
-              role: pm.member.role || 'Member',
-              avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase(),
-              avatarUrl: pm.member.avatarUrl || null
+              name: pm.member.fullName || "Unknown",
+              email: pm.member.email || "",
+              role: pm.member.role || "Member",
+              avatar: (pm.member.fullName || "U").charAt(0).toUpperCase(),
+              avatarUrl: pm.member.avatarUrl || null,
             }));
-          
+
           setMembers(transformedMembers);
         }
       } catch (error) {
-        console.error('Error fetching project members:', error);
+        console.error("Error fetching project members:", error);
       } finally {
         setIsLoadingMembers(false);
       }
@@ -205,7 +222,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
     }
 
     setShowAddMemberModal(false);
-    
+
     // Re-fetch members from API to get latest data
     try {
       const result = await projectService.getProjectMembers(project.id);
@@ -214,21 +231,21 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
           .filter((pm: any) => pm.member)
           .map((pm: any) => ({
             id: pm.member.id,
-            name: pm.member.fullName || 'Unknown',
-            email: pm.member.email || '',
-            role: pm.member.role || 'Member',
-            avatar: (pm.member.fullName || 'U').charAt(0).toUpperCase(),
-            avatarUrl: pm.member.avatarUrl || null
+            name: pm.member.fullName || "Unknown",
+            email: pm.member.email || "",
+            role: pm.member.role || "Member",
+            avatar: (pm.member.fullName || "U").charAt(0).toUpperCase(),
+            avatarUrl: pm.member.avatarUrl || null,
           }));
         setMembers(transformedMembers);
       }
     } catch (error) {
-      console.error('Error refreshing members:', error);
+      console.error("Error refreshing members:", error);
     }
   };
 
   const handleDeleteMember = (memberId: string) => {
-    const member = members.find(m => m.id === memberId);
+    const member = members.find((m) => m.id === memberId);
     if (member) {
       setMemberToDelete({ id: member.pmId || member.id, name: member.name });
       setIsConfirmDeleteMemberOpen(true);
@@ -240,17 +257,23 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
 
     try {
       // Call API to remove project member
-      const result = await projectService.removeProjectMember(memberToDelete.id);
-      
+      const result = await projectService.removeProjectMember(
+        memberToDelete.id
+      );
+
       if (result.success) {
         // Remove from UI on success
-        setMembers((prev) => prev.filter((m) => (m.pmId || m.id) !== memberToDelete.id));
-        toast.success('Member removed successfully!');
+        setMembers((prev) =>
+          prev.filter((m) => (m.pmId || m.id) !== memberToDelete.id)
+        );
+        toast.success("Xóa thành viên thành công!");
       } else {
-        toast.error(`Error removing member: ${result.error || 'Unknown error'}`);
+        toast.error(
+          `Lỗi khi xóa thành viên: ${result.error || "Lỗi không xác định"}`
+        );
       }
     } catch (error) {
-      toast.error('An error occurred while removing member');
+      toast.error("Đã xảy ra lỗi khi xóa thành viên");
     } finally {
       setMemberToDelete(null);
       setIsConfirmDeleteMemberOpen(false);
@@ -258,18 +281,18 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
   };
 
   const handleStartEdit = () => {
-    setTempSettings({...settings});
+    setTempSettings({ ...settings });
     setIsEditingBasicInfo(true);
   };
 
   const handleCancelEdit = () => {
-    setTempSettings({...settings});
+    setTempSettings({ ...settings });
     setIsEditingBasicInfo(false);
   };
 
   const handleSaveBasicInfo = async () => {
     if (!project.id) {
-      toast.error('Project information not found');
+      toast.error("Không tìm thấy thông tin dự án");
       return;
     }
 
@@ -278,39 +301,48 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
       const convertToISO = (dateStr: string) => {
         if (!dateStr) return undefined;
         try {
-          const [day, month, year] = dateStr.split('/');
-          return new Date(Number(year), Number(month) - 1, Number(day)).toISOString();
+          const [day, month, year] = dateStr.split("/");
+          return new Date(
+            Number(year),
+            Number(month) - 1,
+            Number(day)
+          ).toISOString();
         } catch {
           return undefined;
         }
       };
-      
+
       const updateData = {
         id: project.id,
         name: tempSettings.name,
         description: tempSettings.description,
         status: tempSettings.status,
         startDate: convertToISO(tempSettings.startDate),
-        endDate: convertToISO(tempSettings.endDate)
+        endDate: convertToISO(tempSettings.endDate),
       };
 
       const result = await projectService.updateProject(updateData);
-      
+
       if (result.success && result.data) {
-        console.log('[ProjectSettings] Project updated successfully:', result.data);
+        console.log(
+          "[ProjectSettings] Project updated successfully:",
+          result.data
+        );
         setSettings(tempSettings);
         setIsEditingBasicInfo(false);
-        toast.success('Project information updated successfully!');
-        
+        toast.success("Cập nhật thông tin dự án thành công!");
+
         // Trigger parent component to refetch data
         if (onProjectUpdate) {
           onProjectUpdate();
         }
       } else {
-        toast.error(`Error: ${result.error || 'Failed to update project information'}`);
+        toast.error(
+          `Lỗi: ${result.error || "Không thể cập nhật thông tin dự án"}`
+        );
       }
     } catch (error) {
-      toast.error('An error occurred while updating project information');
+      toast.error("Đã xảy ra lỗi khi cập nhật thông tin dự án");
     }
   };
 
@@ -331,16 +363,13 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
             </div>
             <h4>Basic Information</h4>
             {!isEditingBasicInfo && canEditBasicInfo && (
-              <button
-                className="btn btn-secondary"
-                onClick={handleStartEdit}
-              >
+              <button className="btn btn-secondary" onClick={handleStartEdit}>
                 <Edit size={14} />
                 Edit
               </button>
             )}
           </div>
-          
+
           <div className="form-grid">
             <div className="form-group full-width">
               <label className="form-label">
@@ -363,8 +392,14 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                 Description
               </label>
               <textarea
-                value={isEditingBasicInfo ? tempSettings.description : settings.description}
-                onChange={(e) => handleTempInputChange("description", e.target.value)}
+                value={
+                  isEditingBasicInfo
+                    ? tempSettings.description
+                    : settings.description
+                }
+                onChange={(e) =>
+                  handleTempInputChange("description", e.target.value)
+                }
                 className="form-textarea"
                 rows={3}
                 placeholder="Detailed project description"
@@ -378,8 +413,12 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                 Status
               </label>
               <select
-                value={isEditingBasicInfo ? tempSettings.status : settings.status}
-                onChange={(e) => handleTempInputChange("status", e.target.value)}
+                value={
+                  isEditingBasicInfo ? tempSettings.status : settings.status
+                }
+                onChange={(e) =>
+                  handleTempInputChange("status", e.target.value)
+                }
                 className="form-select"
                 disabled={!isEditingBasicInfo}
               >
@@ -398,8 +437,12 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
               </label>
               <input
                 type="text"
-                value={isEditingBasicInfo ? tempSettings.manager : settings.manager}
-                onChange={(e) => handleTempInputChange("manager", e.target.value)}
+                value={
+                  isEditingBasicInfo ? tempSettings.manager : settings.manager
+                }
+                onChange={(e) =>
+                  handleTempInputChange("manager", e.target.value)
+                }
                 className="form-input"
                 placeholder="Manager name"
                 disabled={!isEditingBasicInfo}
@@ -415,7 +458,12 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                 <input
                   type="date"
                   value={convertDisplayToInput(tempSettings.startDate)}
-                  onChange={(e) => handleTempInputChange("startDate", formatDateForDisplay(e.target.value))}
+                  onChange={(e) =>
+                    handleTempInputChange(
+                      "startDate",
+                      formatDateForDisplay(e.target.value)
+                    )
+                  }
                   className="form-input"
                 />
               ) : (
@@ -437,7 +485,12 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                 <input
                   type="date"
                   value={convertDisplayToInput(tempSettings.endDate)}
-                  onChange={(e) => handleTempInputChange("endDate", formatDateForDisplay(e.target.value))}
+                  onChange={(e) =>
+                    handleTempInputChange(
+                      "endDate",
+                      formatDateForDisplay(e.target.value)
+                    )
+                  }
                   className="form-input"
                 />
               ) : (
@@ -453,25 +506,21 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
 
           {/* Action buttons */}
           {isEditingBasicInfo && (
-            <div style={{ 
-              display: 'flex', 
-              gap: '10px', 
-              justifyContent: 'flex-end',
-              marginTop: '20px',
-              paddingTop: '16px',
-              borderTop: '2px solid #FFF4ED'
-            }}>
-              <button 
-                className="btn btn-secondary"
-                onClick={handleCancelEdit}
-              >
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                justifyContent: "flex-end",
+                marginTop: "20px",
+                paddingTop: "16px",
+                borderTop: "2px solid #FFF4ED",
+              }}
+            >
+              <button className="btn btn-secondary" onClick={handleCancelEdit}>
                 <X size={14} />
                 Cancel
               </button>
-              <button 
-                className="btn btn-primary"
-                onClick={handleSaveBasicInfo}
-              >
+              <button className="btn btn-primary" onClick={handleSaveBasicInfo}>
                 <Save size={14} />
                 Save Changes
               </button>
@@ -553,7 +602,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                 onClick={() => setShowAddMemberModal(true)}
               >
                 <Plus size={14} />
-                {userRole === 'businessowner' ? 'Add Manager' : 'Add Member'}
+                {userRole === "businessowner" ? "Add Manager" : "Add Member"}
               </button>
             )}
           </div>
@@ -578,7 +627,9 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                     onClick={() => setShowAddMemberModal(true)}
                   >
                     <Plus size={14} />
-                    {userRole === 'businessowner' ? 'Add First Manager' : 'Add First Member'}
+                    {userRole === "businessowner"
+                      ? "Add First Manager"
+                      : "Add First Member"}
                   </button>
                 )}
               </div>
@@ -587,20 +638,31 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                 {members
                   .sort((a, b) => {
                     // Sort by role: ProjectManager first, then Member
-                    const roleA = a.role?.toLowerCase() || '';
-                    const roleB = b.role?.toLowerCase() || '';
-                    
-                    if (roleA === 'projectmanager' && roleB !== 'projectmanager') return -1;
-                    if (roleA !== 'projectmanager' && roleB === 'projectmanager') return 1;
-                    
+                    const roleA = a.role?.toLowerCase() || "";
+                    const roleB = b.role?.toLowerCase() || "";
+
+                    if (
+                      roleA === "projectmanager" &&
+                      roleB !== "projectmanager"
+                    )
+                      return -1;
+                    if (
+                      roleA !== "projectmanager" &&
+                      roleB === "projectmanager"
+                    )
+                      return 1;
+
                     // If same role, sort by name A-Z
-                    return (a.name || '').localeCompare(b.name || '');
+                    return (a.name || "").localeCompare(b.name || "");
                   })
                   .map((member) => (
                     <div key={member.id} className="member-card">
                       <div className="member-avatar">
                         {(member as any).avatarUrl ? (
-                          <img src={(member as any).avatarUrl} alt={member.name} />
+                          <img
+                            src={(member as any).avatarUrl}
+                            alt={member.name}
+                          />
                         ) : (
                           member.avatar
                         )}
@@ -610,20 +672,22 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
                         <div className="member-role">{member.role}</div>
                         <div className="member-email">{member.email}</div>
                       </div>
-                      {canAddMember && (userRole === 'businessowner' || member.role?.toLowerCase() === 'member') && (
-                        <div className="member-actions">
-                          <button
-                            className="btn btn-sm btn-danger"
-                            onClick={() => handleDeleteMember(member.id)}
-                            title="Remove member"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      )}
+                      {canAddMember &&
+                        (userRole === "businessowner" ||
+                          member.role?.toLowerCase() === "member") && (
+                          <div className="member-actions">
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleDeleteMember(member.id)}
+                              title="Remove member"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
                     </div>
                   ))}
-                </div>
+              </div>
             )}
           </div>
         </div>
@@ -637,7 +701,7 @@ export const ProjectSettings = ({ project, availableProjectManagers = [], onProj
         onRemoveMember={handleDeleteMember}
         existingMembers={members}
         projectId={project.id}
-        ownerId={project.ownerId || project.owner?.userId || ''}
+        ownerId={project.ownerId || project.owner?.userId || ""}
         userRole={userRole}
       />
 

@@ -4,7 +4,15 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle, XCircle, Lock, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Lock,
+  AlertCircle,
+  Loader2,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import { authService } from "@/services/authService";
 
@@ -40,17 +48,17 @@ export default function ResetPasswordPage() {
 
   const validatePassword = () => {
     if (!newPassword || !confirmPassword) {
-      toast.error("Please enter both password fields.");
+      toast.error("Vui lòng nhập cả hai trường mật khẩu.");
       return false;
     }
 
     if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters long.");
+      toast.error("Mật khẩu phải có ít nhất 6 ký tự.");
       return false;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match.");
+      toast.error("Mật khẩu không khớp.");
       return false;
     }
 
@@ -69,24 +77,29 @@ export default function ResetPasswordPage() {
 
       if (result.success) {
         setStatus("success");
-        setMessage(result.message || "Password has been reset successfully!");
-        toast.success("Password has been reset successfully!");
+        setMessage(result.message || "Đặt lại mật khẩu thành công!");
+        toast.success("Đặt lại mật khẩu thành công!");
       } else {
-        if (result.error?.toLowerCase().includes("expired") || 
-            result.error?.toLowerCase().includes("hết hạn")) {
+        if (
+          result.error?.toLowerCase().includes("expired") ||
+          result.error?.toLowerCase().includes("hết hạn")
+        ) {
           setStatus("expired");
           setMessage(result.error || "Reset token has expired.");
         } else {
           setStatus("error");
-          setMessage(result.error || "Password reset failed. Token may have expired or is invalid.");
+          setMessage(
+            result.error ||
+              "Password reset failed. Token may have expired or is invalid."
+          );
         }
         toast.error(result.error || "Password reset failed.");
       }
     } catch (error) {
       console.error("Error resetting password:", error);
       setStatus("error");
-      setMessage("An error occurred while resetting password. Please try again later.");
-      toast.error("An error occurred while resetting password.");
+      setMessage("Đã xảy ra lỗi khi đặt lại mật khẩu. Vui lòng thử lại sau.");
+      toast.error("Đã xảy ra lỗi khi đặt lại mật khẩu.");
     } finally {
       setIsResetting(false);
     }
@@ -227,10 +240,22 @@ export default function ResetPasswordPage() {
               <div className="text-xs text-gray-600 text-left">
                 <p className="font-medium mb-1">Password requirements:</p>
                 <ul className="space-y-1">
-                  <li className={newPassword.length >= 6 ? "text-green-600" : "text-gray-600"}>
+                  <li
+                    className={
+                      newPassword.length >= 6
+                        ? "text-green-600"
+                        : "text-gray-600"
+                    }
+                  >
                     ✓ At least 6 characters
                   </li>
-                  <li className={newPassword === confirmPassword && newPassword ? "text-green-600" : "text-gray-600"}>
+                  <li
+                    className={
+                      newPassword === confirmPassword && newPassword
+                        ? "text-green-600"
+                        : "text-gray-600"
+                    }
+                  >
                     ✓ Passwords match
                   </li>
                 </ul>
@@ -244,7 +269,13 @@ export default function ResetPasswordPage() {
               <Button
                 onClick={handleResetPassword}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-                disabled={!email || !token || isResetting || !newPassword || !confirmPassword}
+                disabled={
+                  !email ||
+                  !token ||
+                  isResetting ||
+                  !newPassword ||
+                  !confirmPassword
+                }
               >
                 {isResetting ? (
                   <>
@@ -294,10 +325,10 @@ export default function ResetPasswordPage() {
 
           {/* Additional Info */}
           {(status === "error" || status === "expired") && (
-            <div className={`mt-6 p-4 ${config.bgColor} border ${config.borderColor} rounded-lg`}>
-              <h3 className="text-sm font-medium text-gray-800 mb-2">
-                Note:
-              </h3>
+            <div
+              className={`mt-6 p-4 ${config.bgColor} border ${config.borderColor} rounded-lg`}
+            >
+              <h3 className="text-sm font-medium text-gray-800 mb-2">Note:</h3>
               <ul className="text-xs text-gray-700 space-y-1 text-left">
                 <li>• Reset token may have expired</li>
                 <li>• Link may have already been used</li>
@@ -313,7 +344,8 @@ export default function ResetPasswordPage() {
                 Congratulations!
               </h3>
               <p className="text-xs text-orange-700">
-                Your password has been reset successfully. You can now sign in with your new password.
+                Your password has been reset successfully. You can now sign in
+                with your new password.
               </p>
             </div>
           )}

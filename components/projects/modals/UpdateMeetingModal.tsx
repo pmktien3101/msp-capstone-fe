@@ -122,7 +122,7 @@ export const UpdateMeetingModal = ({
           );
         }
       } catch (error: any) {
-        toast.error("Unable to load projects");
+        toast.error("Không thể tải danh sách dự án");
         setProjects([]);
       }
     };
@@ -154,7 +154,7 @@ export const UpdateMeetingModal = ({
           setParticipants([]);
         }
       } catch (error: any) {
-        toast.error("Unable to load project members");
+        toast.error("Không thể tải danh sách thành viên");
         setParticipants([]);
       } finally {
         setIsLoadingParticipants(false);
@@ -240,12 +240,12 @@ export const UpdateMeetingModal = ({
           role: "call_member",
         })),
       });
-      toast.success("Meeting updated successfully");
+      toast.success("Cập nhật cuộc họp thành công");
       onUpdated?.();
       onClose();
     } catch (err: any) {
-      setError(err?.message || "Update failed");
-      toast.error(err?.message || "Update failed");
+      setError(err?.message || "Cập nhật thất bại");
+      toast.error(err?.message || "Cập nhật thất bại");
     } finally {
       setSaving(false);
     }
@@ -284,9 +284,7 @@ export const UpdateMeetingModal = ({
             />
           </div>
           <div className="space-y-1">
-            <label className="block text-sm font-medium">
-              Start Time
-            </label>
+            <label className="block text-sm font-medium">Start Time</label>
             <DatePicker
               selected={dateTime}
               onChange={(date) => setDateTime(date)}
@@ -322,9 +320,7 @@ export const UpdateMeetingModal = ({
               Milestone (optional)
             </label>
             {isLoadingMilestones ? (
-              <div className="text-sm text-gray-500">
-                Loading milestones...
-              </div>
+              <div className="text-sm text-gray-500">Loading milestones...</div>
             ) : (
               <select
                 value={milestoneId}
@@ -344,9 +340,7 @@ export const UpdateMeetingModal = ({
           <div className="space-y-2">
             <label className="block text-sm font-medium">Participants</label>
             {isLoadingParticipants ? (
-              <div className="text-sm text-gray-500">
-                Loading members...
-              </div>
+              <div className="text-sm text-gray-500">Loading members...</div>
             ) : participants.length === 0 ? (
               <div className="text-sm text-gray-500">
                 No members in the project

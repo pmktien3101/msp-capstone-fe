@@ -4,7 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mail, CheckCircle, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
+import {
+  Mail,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  ArrowLeft,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import { authService } from "@/services/authService";
 
@@ -24,12 +30,12 @@ export default function ForgotPasswordPage() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      toast.error("Please enter your email address.");
+      toast.error("Vui lòng nhập địa chỉ email.");
       return;
     }
 
     if (!validateEmail(email)) {
-      toast.error("Please enter a valid email address.");
+      toast.error("Vui lòng nhập địa chỉ email hợp lệ.");
       return;
     }
 
@@ -40,18 +46,26 @@ export default function ForgotPasswordPage() {
 
       if (result.success) {
         setStatus("success");
-        setMessage(result.message || "Password reset link has been sent to your email!");
-        toast.success("Password reset link has been sent to your email!");
+        setMessage(
+          result.message ||
+            "Liên kết đặt lại mật khẩu đã được gửi đến email của bạn!"
+        );
+        toast.success(
+          "Liên kết đặt lại mật khẩu đã được gửi đến email của bạn!"
+        );
       } else {
         setStatus("error");
-        setMessage(result.error || "Failed to send password reset link. Please try again.");
-        toast.error(result.error || "Failed to send password reset link.");
+        setMessage(
+          result.error ||
+            "Không thể gửi liên kết đặt lại mật khẩu. Vui lòng thử lại."
+        );
+        toast.error(result.error || "Không thể gửi liên kết đặt lại mật khẩu.");
       }
     } catch (error) {
       console.error("Error requesting password reset:", error);
       setStatus("error");
-      setMessage("An error occurred. Please try again later.");
-      toast.error("An error occurred. Please try again later.");
+      setMessage("Đã xảy ra lỗi. Vui lòng thử lại sau.");
+      toast.error("Đã xảy ra lỗi. Vui lòng thử lại sau.");
     } finally {
       setIsLoading(false);
     }
@@ -128,7 +142,8 @@ export default function ForgotPasswordPage() {
           {/* Subtitle */}
           {status === "input" && (
             <p className="text-sm text-gray-600 mb-6">
-              Enter your email address and we'll send you a link to reset your password.
+              Enter your email address and we'll send you a link to reset your
+              password.
             </p>
           )}
 
@@ -229,7 +244,9 @@ export default function ForgotPasswordPage() {
 
           {/* Additional Info */}
           {status === "success" && (
-            <div className={`mt-6 p-4 ${config.bgColor} border ${config.borderColor} rounded-lg`}>
+            <div
+              className={`mt-6 p-4 ${config.bgColor} border ${config.borderColor} rounded-lg`}
+            >
               <h3 className="text-sm font-medium text-orange-800 mb-2">
                 What's Next?
               </h3>
@@ -243,7 +260,9 @@ export default function ForgotPasswordPage() {
           )}
 
           {status === "error" && (
-            <div className={`mt-6 p-4 ${config.bgColor} border ${config.borderColor} rounded-lg`}>
+            <div
+              className={`mt-6 p-4 ${config.bgColor} border ${config.borderColor} rounded-lg`}
+            >
               <h3 className="text-sm font-medium text-orange-800 mb-2">
                 Troubleshooting:
               </h3>

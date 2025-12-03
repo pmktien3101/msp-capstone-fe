@@ -33,16 +33,16 @@ export const CreateMilestoneModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: ""
+        [field]: "",
       }));
     }
   };
@@ -68,7 +68,7 @@ export const CreateMilestoneModal = ({
       const selectedDate = new Date(formData.dueDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       if (selectedDate < today) {
         newErrors.dueDate = "Due date cannot be in the past";
       }
@@ -80,7 +80,7 @@ export const CreateMilestoneModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm() || isSubmitting) {
       return;
     }
@@ -90,14 +90,16 @@ export const CreateMilestoneModal = ({
     try {
       // Get userId from useAuth hook
       if (!user || !user.userId) {
-        console.error('No user found from useAuth');
-        toast.error('User information not found. Please log in again.');
+        console.error("No user found from useAuth");
+        toast.error(
+          "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại."
+        );
         setIsSubmitting(false);
         return;
       }
 
-      console.log('User from useAuth:', user);
-      console.log('Using userId:', user.userId);
+      console.log("User from useAuth:", user);
+      console.log("Using userId:", user.userId);
 
       const milestoneData = {
         userId: user.userId,
@@ -114,14 +116,14 @@ export const CreateMilestoneModal = ({
         if (onCreateMilestone) {
           onCreateMilestone(response.data);
         }
-        
+
         // Call onSuccess to refresh the milestone list
         if (onSuccess) {
           onSuccess();
         }
-        
-        toast.success('Milestone created successfully!');
-        
+
+        toast.success("Tạo cột mốc thành công!");
+
         // Reset form
         setFormData({
           name: "",
@@ -131,11 +133,11 @@ export const CreateMilestoneModal = ({
         setErrors({});
         onClose();
       } else {
-        toast.error(`Error: ${response.error}`);
+        toast.error(`Lỗi: ${response.error}`);
       }
     } catch (error) {
-      console.error('Error creating milestone:', error);
-      toast.error('An error occurred while creating milestone');
+      console.error("Error creating milestone:", error);
+      toast.error("Đã xảy ra lỗi khi tạo cột mốc");
     } finally {
       setIsSubmitting(false);
     }
@@ -181,7 +183,9 @@ export const CreateMilestoneModal = ({
               placeholder="Enter milestone name..."
               maxLength={100}
             />
-            {errors.name && <span className="error-message">{errors.name}</span>}
+            {errors.name && (
+              <span className="error-message">{errors.name}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -201,7 +205,9 @@ export const CreateMilestoneModal = ({
             <div className="char-count">
               {formData.description.length}/500 characters
             </div>
-            {errors.description && <span className="error-message">{errors.description}</span>}
+            {errors.description && (
+              <span className="error-message">{errors.description}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -215,17 +221,28 @@ export const CreateMilestoneModal = ({
               value={formData.dueDate}
               onChange={(e) => handleInputChange("dueDate", e.target.value)}
               className={`form-input ${errors.dueDate ? "error" : ""}`}
-              min={new Date().toISOString().split('T')[0]}
+              min={new Date().toISOString().split("T")[0]}
             />
-            {errors.dueDate && <span className="error-message">{errors.dueDate}</span>}
+            {errors.dueDate && (
+              <span className="error-message">{errors.dueDate}</span>
+            )}
           </div>
 
           <div className="modal-actions">
-            <button type="button" className="btn-cancel" onClick={handleClose} disabled={isSubmitting}>
+            <button
+              type="button"
+              className="btn-cancel"
+              onClick={handleClose}
+              disabled={isSubmitting}
+            >
               Cancel
             </button>
-            <button type="submit" className="btn-submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Creating...' : 'Create Milestone'}
+            <button
+              type="submit"
+              className="btn-submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create Milestone"}
             </button>
           </div>
         </form>
