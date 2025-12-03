@@ -17,11 +17,18 @@ import { meetingService } from "@/services/meetingService";
 import { useMemberInMeetingLimitationCheck } from "@/hooks/useLimitationCheck";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import "@/app/styles/meeting-modals.scss";
 
 const formSchema = z.object({
-  title: z.string().min(1, "Please enter a title"),
-  description: z.string().min(1, "Please enter a description"),
-  datetime: z.date().min(new Date(), "Please select a valid date and time"),
+  title: z.string().min(1, "Please enter a meeting title"),
+  description: z.string(),
+  datetime: z
+    .date({
+      message: "Please select a date and time",
+    })
+    .refine((date) => date > new Date(), {
+      message: "Meeting time must be in the future",
+    }),
   participants: z
     .array(z.string())
     .min(1, "Please select at least 1 participant"),
@@ -78,7 +85,9 @@ export default function MeetingForm({
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
   const [isLoadingMilestones, setIsLoadingMilestones] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId || "");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(
+    initialProjectId || ""
+  );
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -145,7 +154,9 @@ export default function MeetingForm({
       setIsLoadingParticipants(true);
       setIsLoadingMilestones(true);
       try {
-        const membersResult = await projectService.getProjectMembers(selectedProjectId);
+        const membersResult = await projectService.getProjectMembers(
+          selectedProjectId
+        );
         if (membersResult.success && membersResult.data) {
           setParticipants(convertToParticipants(membersResult.data as any));
         } else setParticipants([]);
@@ -174,7 +185,7 @@ export default function MeetingForm({
   const handleParticipantChange = (participantId: string) => {
     // Check if adding or removing
     const isAdding = !selectedParticipants.includes(participantId);
-    
+
     if (isAdding) {
       // Check limitation before adding participant
       const newCount = selectedParticipants.length + 1;
@@ -305,142 +316,188 @@ export default function MeetingForm({
             </div>
           </div>
         ) : (
-          <form onSubmit={form.handleSubmit(onSubmit)} style={styles.form}>
-            {/* Project Selection (only if requireProjectSelection is true) */}
-            {requireProjectSelection && (
+          <>
+            <form onSubmit={form.handleSubmit(onSubmit)} style={styles.form}>
+              {/* Project Selection (only if requireProjectSelection is true) */}
+              {requireProjectSelection && (
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Project *</label>
+                  {isLoadingProjects ? (
+                    <div style={styles.loadingText}>Loading projects...</div>
+                  ) : (
+                    <select
+                      value={selectedProjectId}
+                      onChange={(e) => {
+                        setSelectedProjectId(e.target.value);
+                        setSelectedParticipants([]);
+                        form.setValue("participants", []);
+                        form.setValue("milestoneId", "");
+                      }}
+                      style={styles.select}
+                      required
+                    >
+                      <option value="">-- Select a project --</option>
+                      {projects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              {/* Title */}
               <div style={styles.formGroup}>
-                <label style={styles.label}>Project *</label>
-                {isLoadingProjects ? (
-                  <div style={styles.loadingText}>Loading projects...</div>
+                <label style={styles.label}>
+                  Meeting Title <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                <Input
+                  placeholder="Enter meeting title"
+                  {...form.register("title")}
+                  style={
+                    form.formState.errors.title
+                      ? { borderColor: "#ef4444" }
+                      : {}
+                  }
+                />
+                {form.formState.errors.title && (
+                  <p style={styles.error}>
+                    {form.formState.errors.title.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Description</label>
+                <Textarea
+                  placeholder="Enter meeting description (optional)"
+                  {...form.register("description")}
+                />
+              </div>
+
+              {/* Date & Time */}
+              <div style={styles.formGroup}>
+                <label style={styles.label}>
+                  Meeting Date & Time{" "}
+                  <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                <div
+                  style={{
+                    ...styles.dateWrapper,
+                    position: "relative",
+                    zIndex: 9999,
+                  }}
+                >
+                  <DatePicker
+                    selected={form.watch("datetime")}
+                    onChange={(date) =>
+                      form.setValue("datetime", date as Date, {
+                        shouldValidate: true,
+                      })
+                    }
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={30}
+                    dateFormat="dd/MM/yyyy HH:mm"
+                    minDate={new Date()}
+                    placeholderText="Select date and time"
+                    customInput={
+                      <Input
+                        style={
+                          form.formState.errors.datetime
+                            ? { ...styles.dateInput, borderColor: "#ef4444" }
+                            : styles.dateInput
+                        }
+                      />
+                    }
+                    popperClassName="datepicker-popper"
+                    popperPlacement="bottom-start"
+                    popperProps={{
+                      strategy: "fixed",
+                    }}
+                  />
+                </div>
+                {form.formState.errors.datetime && (
+                  <p style={styles.error}>
+                    {form.formState.errors.datetime.message as string}
+                  </p>
+                )}
+              </div>
+
+              {/* Milestone */}
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Milestone (optional)</label>
+                {isLoadingMilestones ? (
+                  <div style={styles.loadingText}>Loading milestones...</div>
                 ) : (
                   <select
-                    value={selectedProjectId}
-                    onChange={(e) => {
-                      setSelectedProjectId(e.target.value);
-                      setSelectedParticipants([]);
-                      form.setValue("participants", []);
-                      form.setValue("milestoneId", "");
-                    }}
+                    {...form.register("milestoneId")}
                     style={styles.select}
-                    required
                   >
-                    <option value="">-- Select a project --</option>
-                    {projects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
+                    <option value="">-- Select milestone --</option>
+                    {milestones.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
                       </option>
                     ))}
                   </select>
                 )}
               </div>
-            )}
 
-            {/* Title */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Meeting Title</label>
-              <Input
-                placeholder="Enter meeting title"
-                {...form.register("title")}
-              />
-              {form.formState.errors.title && (
-                <p style={styles.error}>
-                  {form.formState.errors.title.message}
-                </p>
-              )}
-            </div>
-
-            {/* Description */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Description</label>
-              <Textarea
-                placeholder="Enter meeting description"
-                {...form.register("description")}
-              />
-              {form.formState.errors.description && (
-                <p style={styles.error}>
-                  {form.formState.errors.description.message}
-                </p>
-              )}
-            </div>
-
-            {/* Date & Time */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Meeting Date & Time</label>
-              <div style={styles.dateWrapper}>
-                <DatePicker
-                  selected={form.watch("datetime")}
-                  onChange={(date) => form.setValue("datetime", date as Date)}
-                  showTimeSelect
-                  timeFormat="HH:mm"
-                  timeIntervals={30}
-                  dateFormat="dd/MM/yyyy HH:mm"
-                  // use the project's Input so the date input matches other inputs
-                  customInput={<Input style={styles.dateInput} />}
-                />
+              {/* Participants */}
+              <div style={styles.formGroup}>
+                <label style={styles.label}>
+                  Participants <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                {isLoadingParticipants ? (
+                  <div style={styles.loadingText}>Loading members...</div>
+                ) : participants.length === 0 ? (
+                  <div style={styles.loadingText}>
+                    No members in the project
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      ...styles.participantList,
+                      borderColor: form.formState.errors.participants
+                        ? "#ef4444"
+                        : "#e5e7eb",
+                    }}
+                  >
+                    {participants.map((p) => (
+                      <div key={p.id} style={styles.participantItem}>
+                        <input
+                          type="checkbox"
+                          id={`participant-${p.id}`}
+                          checked={selectedParticipants.includes(p.id)}
+                          onChange={() => handleParticipantChange(p.id)}
+                          style={{
+                            width: 16,
+                            height: 16,
+                            accentColor: "#FF5E13",
+                            cursor: "pointer",
+                          }}
+                        />
+                        <label
+                          htmlFor={`participant-${p.id}`}
+                          style={styles.participantLabel}
+                        >
+                          {p.name}{" "}
+                          <span style={{ color: "#9ca3af" }}>({p.email})</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {form.formState.errors.participants && (
+                  <p style={styles.error}>
+                    {form.formState.errors.participants.message}
+                  </p>
+                )}
               </div>
-              {form.formState.errors.datetime && (
-                <p style={styles.error}>
-                  {form.formState.errors.datetime.message as string}
-                </p>
-              )}
-            </div>
-
-            {/* Milestone */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Milestone (optional)</label>
-              {isLoadingMilestones ? (
-                <div style={styles.loadingText}>
-                  Loading milestones...
-                </div>
-              ) : (
-                <select {...form.register("milestoneId")} style={styles.select}>
-                  <option value="">-- Select milestone --</option>
-                  {milestones.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Participants */}
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Participants</label>
-              {isLoadingParticipants ? (
-                <div style={styles.loadingText}>
-                  Loading members...
-                </div>
-              ) : participants.length === 0 ? (
-                <div style={styles.loadingText}>
-                  No members in the project
-                </div>
-              ) : (
-                <div style={styles.participantList}>
-                  {participants.map((p) => (
-                    <div key={p.id} style={styles.participantItem}>
-                      <input
-                        type="checkbox"
-                        id={`participant-${p.id}`}
-                        checked={selectedParticipants.includes(p.id)}
-                        onChange={() => handleParticipantChange(p.id)}
-                      />
-                      <label
-                        htmlFor={`participant-${p.id}`}
-                        style={styles.participantLabel}
-                      >
-                        {p.email} - {p.name}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {form.formState.errors.participants && (
-                <p style={styles.error}>
-                  {form.formState.errors.participants.message}
-                </p>
-              )}
-            </div>
+            </form>
 
             <div style={styles.footer}>
               {onClose && (
@@ -455,13 +512,15 @@ export default function MeetingForm({
               )}
               <Button
                 type="submit"
+                form="meeting-form"
                 style={styles.primaryButton}
                 disabled={isCreating}
+                onClick={form.handleSubmit(onSubmit)}
               >
                 {isCreating ? "Creating..." : "Create Meeting"}
               </Button>
             </div>
-          </form>
+          </>
         )}
       </div>
     </div>
@@ -479,96 +538,178 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    padding: "20px",
   },
   backdrop: {
     position: "absolute",
     inset: 0,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    backdropFilter: "blur(1px)",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    backdropFilter: "blur(4px)",
   },
   modal: {
     position: "relative",
     background: "#fff",
-    borderRadius: 10,
-    border: "1px solid #e5e7eb",
-    padding: 24,
-    maxWidth: 600,
+    borderRadius: 16,
+    border: "none",
+    padding: 0,
+    maxWidth: 560,
     width: "100%",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+    boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
     zIndex: 10,
+    overflow: "hidden",
   },
   closeButton: {
     position: "absolute",
-    top: 12,
-    right: 12,
-    fontSize: 14,
-    color: "#6b7280",
+    top: 16,
+    right: 16,
+    fontSize: 18,
+    color: "#9ca3af",
     cursor: "pointer",
-    background: "none",
+    background: "#f3f4f6",
     border: "none",
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.2s ease",
   },
-  header: { marginBottom: 16 },
-  title: { fontSize: 18, fontWeight: 600 },
-  subtitle: { fontSize: 12, color: "#6b7280" },
-  successContainer: { textAlign: "center" },
-  successTitle: { fontSize: 22, fontWeight: 600, color: "#9a3412" },
+  header: {
+    padding: "24px 28px 16px",
+    borderBottom: "1px solid #f3f4f6",
+    background: "#fafbfc",
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 700,
+    color: "#1a1a2e",
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: "#6b7280",
+    margin: 0,
+  },
+  successContainer: {
+    textAlign: "center",
+    padding: "48px 28px",
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: 700,
+    color: "#FF5E13",
+    marginBottom: 8,
+  },
   buttonGroup: {
     display: "flex",
     justifyContent: "center",
     gap: 12,
-    marginTop: 16,
+    marginTop: 24,
   },
   primaryButton: {
-    backgroundColor: "#f97316",
+    backgroundColor: "#FF5E13",
     color: "white",
     cursor: "pointer",
-    padding: "8px 14px",
+    padding: "10px 20px",
     borderRadius: 8,
     fontWeight: 600,
-    minWidth: 140,
+    fontSize: 14,
+    border: "none",
+    transition: "all 0.2s ease",
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: 20,
+    gap: 18,
+    padding: "24px 28px",
     maxHeight: "60vh",
     overflowY: "auto",
   },
-  formGroup: { display: "flex", flexDirection: "column", gap: 6 },
-  label: { fontSize: 14, fontWeight: 500 },
-  error: { fontSize: 13, color: "#ef4444" },
-  loadingText: { fontSize: 13, color: "#6b7280" },
-  select: { border: "1px solid #d1d5db", borderRadius: 6, padding: 8 },
-  dateWrapper: { marginBottom: 8 },
+  formGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "#374151",
+  },
+  error: {
+    fontSize: 12,
+    color: "#ef4444",
+    marginTop: 4,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: "#9ca3af",
+    padding: "12px",
+    background: "#f9fafb",
+    borderRadius: 8,
+    textAlign: "center",
+  },
+  select: {
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: "10px 12px",
+    fontSize: 14,
+    color: "#374151",
+    background: "white",
+    cursor: "pointer",
+    transition: "border-color 0.2s ease",
+    outline: "none",
+  },
+  dateWrapper: {
+    marginBottom: 0,
+  },
   dateInput: {
     width: "100%",
-    borderRadius: 6,
-    padding: "8px 10px",
-    border: "1px solid #d1d5db",
+    borderRadius: 8,
+    padding: "10px 12px",
+    border: "1px solid #e5e7eb",
     fontSize: 14,
-    color: "#111827",
+    color: "#374151",
   },
   participantList: {
-    border: "1px solid #d1d5db",
-    borderRadius: 6,
-    padding: 8,
-    maxHeight: 160,
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: 12,
+    maxHeight: 180,
     overflowY: "auto",
+    background: "#fafbfc",
   },
   participantItem: {
     display: "flex",
     alignItems: "center",
-    gap: 8,
-    padding: "4px 0",
-  },
-  participantLabel: { fontSize: 14, color: "#374151" },
-  cancelButton: {
-    backgroundColor: "white",
-    border: "1px solid #d1d5db",
-    color: "#374151",
-    padding: "8px 12px",
-    borderRadius: 8,
+    gap: 10,
+    padding: "8px 10px",
+    borderRadius: 6,
+    transition: "background 0.15s ease",
     cursor: "pointer",
   },
-  footer: { display: "flex", justifyContent: "flex-end", gap: 12 },
+  participantLabel: {
+    fontSize: 13,
+    color: "#374151",
+    cursor: "pointer",
+  },
+  cancelButton: {
+    backgroundColor: "white",
+    border: "1px solid #e5e7eb",
+    color: "#6b7280",
+    padding: "10px 20px",
+    borderRadius: 8,
+    cursor: "pointer",
+    fontWeight: 500,
+    fontSize: 14,
+    transition: "all 0.2s ease",
+  },
+  footer: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 12,
+    padding: "20px 28px",
+    borderTop: "1px solid #f3f4f6",
+    background: "#fafbfc",
+  },
 };

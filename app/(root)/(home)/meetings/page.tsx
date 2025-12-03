@@ -26,6 +26,15 @@ import {
   Trash2,
   MoreVertical,
   Loader2,
+  Video,
+  CalendarDays,
+  CheckCircle2,
+  XCircle,
+  ArrowRight,
+  Sparkles,
+  X,
+  ChevronDown,
+  FolderKanban,
 } from "lucide-react";
 
 interface Meeting {
@@ -50,7 +59,9 @@ const MeetingsPage = () => {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [dateRangeStart, setDateRangeStart] = useState("");
   const [dateRangeEnd, setDateRangeEnd] = useState("");
-  const [quickFilter, setQuickFilter] = useState<"all" | "upcoming" | "today" | null>(null);
+  const [quickFilter, setQuickFilter] = useState<
+    "all" | "upcoming" | "today" | null
+  >(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
@@ -66,21 +77,25 @@ const MeetingsPage = () => {
       try {
         setLoading(true);
         const projectsResponse = await projectService.getAllProjects();
-        
+
         if (projectsResponse.success && projectsResponse.data) {
           const projectsList = projectsResponse.data.items || [];
           setProjects(projectsList);
-          
+
           // Fetch meetings for all projects
           const allMeetings: MeetingItem[] = [];
           for (const project of projectsList) {
             try {
-              const meetingsResponse = await meetingService.getMeetingsByProjectId(project.id);
+              const meetingsResponse =
+                await meetingService.getMeetingsByProjectId(project.id);
               if (meetingsResponse.success && meetingsResponse.data) {
                 allMeetings.push(...meetingsResponse.data);
               }
             } catch (error) {
-              console.error(`Error fetching meetings for project ${project.id}:`, error);
+              console.error(
+                `Error fetching meetings for project ${project.id}:`,
+                error
+              );
             }
           }
           setMeetings(allMeetings);
@@ -107,19 +122,17 @@ const MeetingsPage = () => {
         selectedProject === "all" || meeting.projectId === selectedProject;
 
       const matchesStatus =
-        selectedStatuses.length === 0 || selectedStatuses.includes(meeting.status);
+        selectedStatuses.length === 0 ||
+        selectedStatuses.includes(meeting.status);
 
       // Date range filter
       const meetingDate = new Date(meeting.startTime);
-      const matchesDateRange = 
+      const matchesDateRange =
         (!dateRangeStart || meetingDate >= new Date(dateRangeStart)) &&
         (!dateRangeEnd || meetingDate <= new Date(dateRangeEnd));
 
       return (
-        matchesSearch &&
-        matchesProject &&
-        matchesStatus &&
-        matchesDateRange
+        matchesSearch && matchesProject && matchesStatus && matchesDateRange
       );
     });
 
@@ -161,30 +174,11 @@ const MeetingsPage = () => {
       case "scheduled":
         return "Scheduled";
       case "finished":
-        return "Completed";
+        return "Finished";
       case "cancelled":
         return "Cancelled";
       default:
         return status;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "scheduled":
-      case "upcoming":
-        return "bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-300";
-      case "completed":
-      case "finished":
-        return "bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-300";
-      case "cancelled":
-      case "canceled":
-        return "bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300";
-      case "in-progress":
-      case "ongoing":
-        return "bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border border-yellow-300";
-      default:
-        return "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border border-gray-300";
     }
   };
 
@@ -216,7 +210,10 @@ const MeetingsPage = () => {
     console.log("Meeting created:", meetingData);
 
     // Add new meeting to state
-    setMeetings((prevMeetings: MeetingItem[]) => [meetingData, ...prevMeetings]);
+    setMeetings((prevMeetings: MeetingItem[]) => [
+      meetingData,
+      ...prevMeetings,
+    ]);
 
     // Close modal
     setIsCreateModalOpen(false);
@@ -239,11 +236,11 @@ const MeetingsPage = () => {
 
   const handleConfirmDelete = async () => {
     if (!meetingToDelete) return;
-    
+
     try {
       // Call API to delete meeting
       const result = await meetingService.deleteMeeting(meetingToDelete.id);
-      
+
       if (result.success) {
         // Remove from local state
         setMeetings((prevMeetings: MeetingItem[]) =>
@@ -262,27 +259,30 @@ const MeetingsPage = () => {
     }
   };
 
-
-
   const handleUpdateMeeting = async () => {
     // Reload meetings after update
     try {
       const allMeetings: MeetingItem[] = [];
       for (const project of projects) {
         try {
-          const meetingsResponse = await meetingService.getMeetingsByProjectId(project.id);
+          const meetingsResponse = await meetingService.getMeetingsByProjectId(
+            project.id
+          );
           if (meetingsResponse.success && meetingsResponse.data) {
             allMeetings.push(...meetingsResponse.data);
           }
         } catch (error) {
-          console.error(`Error fetching meetings for project ${project.id}:`, error);
+          console.error(
+            `Error fetching meetings for project ${project.id}:`,
+            error
+          );
         }
       }
       setMeetings(allMeetings);
     } catch (error) {
       console.error("Error reloading meetings:", error);
     }
-    
+
     // Close modal
     setIsUpdateModalOpen(false);
     setSelectedMeeting(null);
@@ -329,13 +329,58 @@ const MeetingsPage = () => {
     setMeetingToDelete(null);
   }, []);
 
+  // Get active filters count
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (selectedStatuses.length > 0) count++;
+    if (dateRangeStart || dateRangeEnd) count++;
+    if (selectedProject !== "all") count++;
+    if (quickFilter) count++;
+    return count;
+  };
+
+  // Format date nicely
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return "Today";
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return "Tomorrow";
+    }
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // Get status icon
+  const getStatusIcon = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "scheduled":
+        return <CalendarDays size={12} />;
+      case "finished":
+        return <CheckCircle2 size={12} />;
+      case "cancelled":
+        return <XCircle size={12} />;
+      default:
+        return <Clock size={12} />;
+    }
+  };
+
   // Show loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-500" />
-          <p className="text-gray-500">Loading meetings...</p>
+      <div className="meetings-page">
+        <div className="loading-container">
+          <div className="loading-spinner">
+            <Loader2 className="spinner-icon" />
+          </div>
+          <p className="loading-text">Loading your meetings...</p>
         </div>
       </div>
     );
@@ -344,12 +389,13 @@ const MeetingsPage = () => {
   // Redirect if not ProjectManager
   if (role !== UserRole.PROJECT_MANAGER) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-600 mb-2">
-            Access Denied
-          </h2>
-          <p className="text-gray-500">
+      <div className="meetings-page">
+        <div className="access-denied">
+          <div className="denied-icon">
+            <XCircle size={48} />
+          </div>
+          <h2 className="denied-title">Access Denied</h2>
+          <p className="denied-text">
             Only Project Managers can view this page.
           </p>
         </div>
@@ -359,158 +405,222 @@ const MeetingsPage = () => {
 
   return (
     <div className="meetings-page">
-      <div className="page-header">
-        <div className="header-content">
-          <h1 className="page-title">Meetings List</h1>
-          <p className="page-subtitle">
-            Manage and track project meetings
-          </p>
+      {/* Hero Header */}
+      <div className="hero-header">
+        <div className="hero-background">
+          <div className="hero-gradient" />
+          <div className="hero-pattern" />
         </div>
-        <button className="create-meeting-btn" onClick={handleOpenCreateModal}>
-          <Plus size={16} />
-          Create new meeting
-        </button>
+        <div className="hero-content">
+          <div className="hero-text">
+            <div className="hero-badge">
+              <Video size={14} />
+              <span>Meeting Hub</span>
+            </div>
+            <h1 className="hero-title">Meetings List</h1>
+            <p className="hero-subtitle">
+              Schedule, manage and track all your project meetings in one place
+            </p>
+          </div>
+          <button className="create-btn" onClick={handleOpenCreateModal}>
+            <Plus size={18} />
+            <span>New Meeting</span>
+            <Sparkles size={14} className="sparkle-icon" />
+          </button>
+        </div>
       </div>
 
-      <div className="filters-section">
-        <div className="search-bar">
-          <span className="search-icon">
-            <Search size={20} />
-          </span>
+      {/* Stats Cards */}
+      <div className="stats-row">
+        <div className="stat-card total">
+          <div className="stat-icon-wrapper">
+            <Video size={20} />
+          </div>
+          <div className="stat-info">
+            <span className="stat-value">{filteredMeetings.length}</span>
+            <span className="stat-label">Total Meetings</span>
+          </div>
+        </div>
+        <div className="stat-card scheduled">
+          <div className="stat-icon-wrapper">
+            <CalendarDays size={20} />
+          </div>
+          <div className="stat-info">
+            <span className="stat-value">
+              {
+                filteredMeetings.filter(
+                  (m: MeetingItem) => m.status === "Scheduled"
+                ).length
+              }
+            </span>
+            <span className="stat-label">Scheduled</span>
+          </div>
+        </div>
+        <div className="stat-card completed">
+          <div className="stat-icon-wrapper">
+            <CheckCircle2 size={20} />
+          </div>
+          <div className="stat-info">
+            <span className="stat-value">
+              {
+                filteredMeetings.filter(
+                  (m: MeetingItem) => m.status === "Finished"
+                ).length
+              }
+            </span>
+            <span className="stat-label">Completed</span>
+          </div>
+        </div>
+        <div className="stat-card cancelled">
+          <div className="stat-icon-wrapper">
+            <XCircle size={20} />
+          </div>
+          <div className="stat-info">
+            <span className="stat-value">
+              {
+                filteredMeetings.filter(
+                  (m: MeetingItem) =>
+                    m.status === "Cancelled" || m.status === "Cancel"
+                ).length
+              }
+            </span>
+            <span className="stat-label">Cancelled</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters Section */}
+      <div className="filters-container">
+        <div className="search-wrapper">
+          <Search size={18} className="search-icon" />
           <input
             type="text"
-            placeholder="Search meetings..."
+            placeholder="Search meetings by title or description..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
+          {searchTerm && (
+            <button className="clear-search" onClick={() => setSearchTerm("")}>
+              <X size={16} />
+            </button>
+          )}
         </div>
 
-        <details className="filters-dropdown">
-          <summary className="filters-toggle-btn">
-            <Filter size={16} />
-            Filters
-            {(selectedStatuses.length > 0 || 
-              dateRangeStart || 
-              dateRangeEnd || 
-              selectedProject !== "all" || 
-              quickFilter) && (
-              <span className="filter-badge">
-                {(selectedStatuses.length > 0 ? 1 : 0) +
-                  (dateRangeStart || dateRangeEnd ? 1 : 0) +
-                  (selectedProject !== "all" ? 1 : 0) +
-                  (quickFilter && quickFilter !== "all" ? 1 : 0)}
-              </span>
-            )}
-          </summary>
+        <div className="filter-actions">
+          {/* Quick Filter Buttons */}
+          <div className="quick-filters">
+            <button
+              className={`quick-btn ${quickFilter === null ? "active" : ""}`}
+              onClick={() => setQuickFilter(null)}
+            >
+              All
+            </button>
+            <button
+              className={`quick-btn ${
+                quickFilter === "upcoming" ? "active" : ""
+              }`}
+              onClick={() => setQuickFilter("upcoming")}
+            >
+              <Calendar size={14} />
+              Upcoming
+            </button>
+            <button
+              className={`quick-btn ${quickFilter === "today" ? "active" : ""}`}
+              onClick={() => setQuickFilter("today")}
+            >
+              <Clock size={14} />
+              Today
+            </button>
+          </div>
 
-          <div className="filters-panel">
-            {/* Quick Filters */}
-            <div className="filter-section">
-              <div className="filter-section-title">Quick Filters</div>
-              <div className="quick-filters">
-                <button
-                  className={`quick-filter-btn ${quickFilter === null ? "active" : ""}`}
-                  onClick={() => setQuickFilter(null)}
+          {/* Advanced Filter Dropdown */}
+          <details className="filter-dropdown">
+            <summary className="filter-toggle">
+              <Filter size={16} />
+              <span>Filters</span>
+              {getActiveFiltersCount() > 0 && (
+                <span className="filter-count">{getActiveFiltersCount()}</span>
+              )}
+              <ChevronDown size={14} className="chevron" />
+            </summary>
+
+            <div className="filter-panel">
+              {/* Project Filter */}
+              <div className="filter-group">
+                <label className="filter-label">
+                  <FolderKanban size={14} />
+                  Project
+                </label>
+                <select
+                  value={selectedProject}
+                  onChange={(e) => setSelectedProject(e.target.value)}
+                  className="filter-select"
                 >
-                  All Meetings
-                </button>
-                <button
-                  className={`quick-filter-btn ${quickFilter === "upcoming" ? "active" : ""}`}
-                  onClick={() => setQuickFilter("upcoming")}
-                >
+                  <option value="all">All Projects</option>
+                  {projects?.map((project: any) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div className="filter-group">
+                <label className="filter-label">
+                  <CheckCircle2 size={14} />
+                  Status
+                </label>
+                <div className="checkbox-group">
+                  {["Scheduled", "Finished", "Cancelled"].map((status) => (
+                    <label key={status} className="checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedStatuses.includes(status)}
+                        onChange={() => {
+                          if (selectedStatuses.includes(status)) {
+                            setSelectedStatuses(
+                              selectedStatuses.filter((s) => s !== status)
+                            );
+                          } else {
+                            setSelectedStatuses([...selectedStatuses, status]);
+                          }
+                        }}
+                      />
+                      <span className="checkbox-text">{status}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Date Range */}
+              <div className="filter-group">
+                <label className="filter-label">
                   <Calendar size={14} />
-                  Upcoming
-                </button>
+                  Date Range
+                </label>
+                <div className="date-inputs">
+                  <input
+                    type="date"
+                    value={dateRangeStart}
+                    onChange={(e) => setDateRangeStart(e.target.value)}
+                    className="date-input"
+                  />
+                  <span className="date-separator">to</span>
+                  <input
+                    type="date"
+                    value={dateRangeEnd}
+                    onChange={(e) => setDateRangeEnd(e.target.value)}
+                    className="date-input"
+                  />
+                </div>
+              </div>
+
+              {/* Clear All */}
+              {getActiveFiltersCount() > 0 && (
                 <button
-                  className={`quick-filter-btn ${quickFilter === "today" ? "active" : ""}`}
-                  onClick={() => setQuickFilter("today")}
-                >
-                  <Clock size={14} />
-                  Today
-                </button>
-              </div>
-            </div>
-
-            {/* Project Filter */}
-            <div className="filter-section">
-              <div className="filter-section-title">Project</div>
-              <select
-                value={selectedProject}
-                onChange={(e) => setSelectedProject(e.target.value)}
-                className="filter-select-full"
-              >
-                <option value="all">All projects</option>
-                {projects?.map((project: any) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Status Multi-Select */}
-            <div className="filter-section">
-              <div className="filter-section-title">
-                Status{" "}
-                {selectedStatuses.length > 0 && (
-                  <span className="count-badge">({selectedStatuses.length})</span>
-                )}
-              </div>
-              <div className="filter-checkboxes">
-                {["Scheduled", "Finished", "Cancelled"].map((status) => (
-                  <label key={status} className="filter-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={selectedStatuses.includes(status)}
-                      onChange={() => {
-                        if (selectedStatuses.includes(status)) {
-                          setSelectedStatuses(selectedStatuses.filter((s) => s !== status));
-                        } else {
-                          setSelectedStatuses([...selectedStatuses, status]);
-                        }
-                      }}
-                    />
-                    <span>{status}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Date Range */}
-            <div className="filter-section">
-              <div className="filter-section-title">
-                <Calendar size={14} />
-                Date Range
-              </div>
-              <div className="date-range-filter">
-                <input
-                  type="date"
-                  className="date-input"
-                  value={dateRangeStart}
-                  onChange={(e) => setDateRangeStart(e.target.value)}
-                  placeholder="Start date"
-                />
-                <span>to</span>
-                <input
-                  type="date"
-                  className="date-input"
-                  value={dateRangeEnd}
-                  onChange={(e) => setDateRangeEnd(e.target.value)}
-                  placeholder="End date"
-                />
-              </div>
-            </div>
-
-            {/* Clear Filters */}
-            {(selectedStatuses.length > 0 ||
-              dateRangeStart ||
-              dateRangeEnd ||
-              selectedProject !== "all" ||
-              quickFilter) && (
-              <div className="filter-actions">
-                <button
-                  className="clear-filters-btn"
+                  className="clear-all-btn"
                   onClick={() => {
                     setSearchTerm("");
                     setSelectedProject("all");
@@ -520,126 +630,107 @@ const MeetingsPage = () => {
                     setQuickFilter(null);
                   }}
                 >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  <X size={14} />
                   Clear All Filters
                 </button>
-              </div>
-            )}
-          </div>
-        </details>
+              )}
+            </div>
+          </details>
+        </div>
       </div>
 
-      <div className="meetings-content">
-        <div className="meetings-stats">
-          <div className="stat-card">
-            <div className="stat-number">{filteredMeetings.length}</div>
-            <div className="stat-label">Total meetings</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">
-              {filteredMeetings.filter((m: MeetingItem) => m.status === "Scheduled").length}
+      {/* Meetings Grid */}
+      <div className="meetings-section">
+        {filteredMeetings.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-illustration">
+              <Video size={64} />
             </div>
-            <div className="stat-label">Scheduled</div>
+            <h3 className="empty-title">No meetings found</h3>
+            <p className="empty-text">
+              {searchTerm ||
+              selectedProject !== "all" ||
+              selectedStatuses.length > 0 ||
+              dateRangeStart ||
+              dateRangeEnd ||
+              quickFilter
+                ? "Try adjusting your filters to find what you're looking for."
+                : "Get started by scheduling your first meeting."}
+            </p>
+            {!searchTerm &&
+              selectedProject === "all" &&
+              selectedStatuses.length === 0 &&
+              !dateRangeStart &&
+              !dateRangeEnd &&
+              !quickFilter && (
+                <button className="empty-cta" onClick={handleOpenCreateModal}>
+                  <Plus size={18} />
+                  Create Meeting
+                </button>
+              )}
           </div>
-          <div className="stat-card">
-            <div className="stat-number">
-              {filteredMeetings.filter((m: MeetingItem) => m.status === "Finished").length}
-            </div>
-            <div className="stat-label">Completed</div>
-          </div>
-        </div>
-
-        <div className="meetings-list">
-          {filteredMeetings.length === 0 ? (
-            <div className="empty-state">
-              <span className="empty-icon">
-                <Calendar size={48} />
-              </span>
-              <h3 className="empty-title">No meetings</h3>
-              <p className="empty-description">
-                {searchTerm ||
-                selectedProject !== "all" ||
-                selectedStatuses.length > 0 ||
-                dateRangeStart ||
-                dateRangeEnd ||
-                quickFilter
-                  ? "No meetings found matching the filters."
-                  : "No meetings have been created yet."}
-              </p>
-            </div>
-          ) : (
-            <div className="meetings-grid">
-              {filteredMeetings.map((meeting: any) => (
-                <div
-                  key={meeting.id}
-                  className="meeting-card"
-                  onClick={() => handleCardClick(meeting.id)}
-                >
-                  <div className="meeting-header">
-                    <h3 className="meeting-title">{meeting.title}</h3>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`status-badge ${getStatusColor(
-                          meeting.status
-                        )}`}
-                      >
-                        {getStatusLabel(meeting.status)}
-                      </span>
-                      <div className="relative">
-                        <button
-                          onClick={(e) => handleDropdownToggle(meeting.id, e)}
-                          className="dropdown-trigger"
-                          title="Options"
-                        >
-                          <MoreVertical size={16} />
-                        </button>
-                        {openDropdownId === meeting.id && (
-                          <div className="dropdown-menu">
-                            <button
-                              onClick={(e) => handleEditMeeting(meeting, e)}
-                              className="dropdown-item edit-item"
-                            >
-                              <Edit size={14} />
-                              <span>Edit</span>
-                            </button>
-                            <button
-                              onClick={(e) => handleDeleteMeeting(meeting, e)}
-                              className="dropdown-item delete-item"
-                            >
-                              <Trash2 size={14} />
-                              <span>Delete</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+        ) : (
+          <div className="meetings-grid">
+            {filteredMeetings.map((meeting: any) => (
+              <div
+                key={meeting.id}
+                className={`meeting-card status-${meeting.status.toLowerCase()}`}
+                onClick={() => handleCardClick(meeting.id)}
+              >
+                {/* Card Header */}
+                <div className="card-header">
+                  <div
+                    className={`status-indicator ${meeting.status.toLowerCase()}`}
+                  >
+                    {getStatusIcon(meeting.status)}
+                    <span>{getStatusLabel(meeting.status)}</span>
                   </div>
+                  <div className="card-actions">
+                    <button
+                      onClick={(e) => handleDropdownToggle(meeting.id, e)}
+                      className="action-btn"
+                      title="More options"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+                    {openDropdownId === meeting.id && (
+                      <div className="action-menu">
+                        <button
+                          onClick={(e) => handleEditMeeting(meeting, e)}
+                          className="menu-item"
+                        >
+                          <Edit size={14} />
+                          Edit Meeting
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteMeeting(meeting, e)}
+                          className="menu-item danger"
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-                  <p className="meeting-description">{meeting.description}</p>
+                {/* Card Body */}
+                <div className="card-body">
+                  <h3 className="card-title">{meeting.title}</h3>
+                  <p className="card-description">
+                    {meeting.description || "No description provided"}
+                  </p>
+                </div>
 
-                  <div className="meeting-details">
-                    <div className="detail-item">
-                      <Calendar size={16} />
-                      <span>
-                        {new Date(meeting.startTime).toLocaleDateString(
-                          "en-US"
-                        )}
-                      </span>
+                {/* Card Info */}
+                <div className="card-info">
+                  <div className="info-row">
+                    <div className="info-item">
+                      <Calendar size={14} />
+                      <span>{formatDate(meeting.startTime)}</span>
                     </div>
-                    <div className="detail-item">
-                      <Clock size={16} />
+                    <div className="info-item">
+                      <Clock size={14} />
                       <span>
                         {new Date(meeting.startTime).toLocaleTimeString(
                           "en-US",
@@ -650,38 +741,50 @@ const MeetingsPage = () => {
                         )}
                       </span>
                     </div>
-                    <div className="detail-item">
-                      <Users size={16} />
-                      <span>
-                        {meeting.participants?.length ?? 0} participants
-                      </span>
-                    </div>
                   </div>
-
-                  <div className="meeting-meta">
-                    <div className="meta-item">
-                      <span className="meta-label">Project:</span>
-                      <span className="meta-value">
-                        {getProjectName(meeting.projectId)}
+                  <div className="info-row">
+                    <div className="info-item">
+                      <Users size={14} />
+                      <span>
+                        {meeting.attendees?.length ??
+                          meeting.participants?.length ??
+                          0}{" "}
+                        attendees
                       </span>
                     </div>
-                    {meeting.roomUrl && (
-                      <div className="meta-item">
-                        <span className="meta-label">Link:</span>
-                        <button
-                          onClick={(e) => handleJoinMeeting(e, meeting.title)}
-                          className="meta-link"
-                        >
-                          Join meeting
-                        </button>
-                      </div>
-                    )}
+                    <div className="info-item project-tag">
+                      <FolderKanban size={14} />
+                      <span>{getProjectName(meeting.projectId)}</span>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+
+                {/* Card Footer */}
+                <div className="card-footer">
+                  <button
+                    className="view-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCardClick(meeting.id);
+                    }}
+                  >
+                    View Details
+                    <ArrowRight size={14} />
+                  </button>
+                  {meeting.roomUrl && meeting.status === "Scheduled" && (
+                    <button
+                      className="join-btn"
+                      onClick={(e) => handleJoinMeeting(e, meeting.title)}
+                    >
+                      <Video size={14} />
+                      Join
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {isCreateModalOpen && (

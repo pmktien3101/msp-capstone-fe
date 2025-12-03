@@ -1,7 +1,21 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Trash2, Users } from "lucide-react";
+import {
+  Package,
+  Plus,
+  Users,
+  DollarSign,
+  TrendingUp,
+  Sparkles,
+  X,
+  Check,
+  AlertTriangle,
+  Search,
+  Filter,
+  LayoutGrid,
+  List,
+} from "lucide-react";
 
 import packageService from "@/services/packageService";
 import { toast } from "react-toastify";
@@ -12,7 +26,7 @@ import {
   PricingPlan,
   PricingPlanFeature,
 } from "@/components/pricing";
-import "./packages.scss";
+import "../../../../../styles/packages.scss";
 
 const AdminPackages = () => {
   const [showAddPlanModal, setShowAddPlanModal] = useState(false);
@@ -20,25 +34,58 @@ const AdminPackages = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showFeatureSidebar, setShowFeatureSidebar] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [newPlan, setNewPlan] = useState({
     name: "",
     price: "",
     period: "month",
-    currency: "USD",
+    currency: "VND",
     description: "",
     features: [] as string[],
     limitations: [] as (object | string | number)[],
   });
 
+  // Format price with dot separator (e.g., 20.000)
+  const formatPrice = (price: number | string): string => {
+    const numPrice = typeof price === "string" ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return "0";
+    return numPrice.toLocaleString("de-DE");
+  };
+
   const [limitations, setLimitations] = useState<any[]>([]);
   const [loadingLimitations, setLoadingLimitations] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [plans, setPlans] = useState<any[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const { userId } = useUser();
 
+  // Stats calculations
+  const totalPackages = plans.length;
+  const activePackages = plans.filter((p) => p.status === "active").length;
+  const totalSubscriptions = plans.reduce(
+    (sum, p) => sum + (p.activeSubscriptions || 0),
+    0
+  );
+  const totalRevenue = plans.reduce((sum, p) => {
+    const revenue = p.revenue
+      ? parseFloat(String(p.revenue).replace(/[^0-9.-]+/g, ""))
+      : 0;
+    return sum + (isNaN(revenue) ? 0 : revenue);
+  }, 0);
+
+  // Filter plans by search query
+  const filteredPlans = plans.filter(
+    (plan) =>
+      plan.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (plan.description &&
+        plan.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   useEffect(() => {
     let mounted = true;
+    setIsLoading(true);
     (async () => {
       try {
         const res = await packageService.getPackages();
@@ -81,6 +128,8 @@ const AdminPackages = () => {
         }
       } catch (e) {
         // ignore, keep mock plans
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     })();
 
@@ -152,7 +201,7 @@ const AdminPackages = () => {
               id: p.id ?? p.ID,
               name: p.name ?? p.title ?? newPlan.name,
               price: p.price ?? payload.Price,
-              currency: p.currency ?? p.Currency ?? newPlan.currency ?? "USD",
+              currency: "VND",
               period: p.period ?? newPlan.period,
               description: p.description ?? newPlan.description,
               billingCycle:
@@ -173,7 +222,7 @@ const AdminPackages = () => {
               id: plans.length + 1,
               name: newPlan.name,
               price: parseInt(newPlan.price),
-              currency: newPlan.currency || "USD",
+              currency: "VND",
               period: newPlan.period,
               description: newPlan.description,
               billingCycle: (function () {
@@ -211,7 +260,7 @@ const AdminPackages = () => {
           name: "",
           price: "",
           period: "month",
-          currency: "USD",
+          currency: "VND",
           description: "",
           features: [],
           limitations: [],
@@ -413,7 +462,7 @@ const AdminPackages = () => {
           Name: newPlan.name,
           Description: newPlan.description || undefined,
           Price: Number(newPlan.price) || 0,
-          Currency: newPlan.currency || "USD",
+          Currency: "VND",
           BillingCycle: billingCycleMap[newPlan.period] ?? 0,
           billingCycle: billingCycleMap[newPlan.period] ?? 0,
           CreatedById: userId || null,
@@ -439,11 +488,7 @@ const AdminPackages = () => {
               id: res.data?.id ?? res.data?.ID ?? selectedPlan.id,
               name: res.data?.name ?? newPlan.name,
               price: res.data?.price ?? Number(newPlan.price),
-              currency:
-                res.data?.currency ??
-                res.data?.Currency ??
-                newPlan.currency ??
-                "USD",
+              currency: "VND",
               period: res.data?.period ?? newPlan.period,
               billingCycle:
                 res.data?.billingCycle ??
@@ -482,7 +527,7 @@ const AdminPackages = () => {
               ...selectedPlan,
               name: newPlan.name,
               price: parseInt(newPlan.price),
-              currency: newPlan.currency || selectedPlan.currency || "USD",
+              currency: "VND",
               period: newPlan.period,
               description: newPlan.description,
               features: selectedFeatureNames,
@@ -528,7 +573,7 @@ const AdminPackages = () => {
             name: "",
             price: "",
             period: "month",
-            currency: "USD",
+            currency: "VND",
             description: "",
             features: [],
             limitations: [],
@@ -615,37 +660,102 @@ const AdminPackages = () => {
 
   return (
     <div className="admin-packages">
-      <div className="page-header">
-        <h1>Package Management</h1>
-        <p>Manage service packages and customer subscriptions</p>
+      {/* Hero Header */}
+      <div className="packages-hero">
+        <div className="hero-content">
+          <div className="hero-icon">
+            <Package size={32} />
+          </div>
+          <div className="hero-text">
+            <h1>Package Management</h1>
+            <p>Create and manage subscription packages for your customers</p>
+          </div>
+        </div>
+        <button
+          className="add-package-btn"
+          onClick={() => setShowAddPlanModal(true)}
+        >
+          <Plus size={20} />
+          <span>Create Package</span>
+        </button>
       </div>
 
-      <div className="packages-content">
-        <div className="packages-header">
-          <h2>Package List</h2>
-          <button
-            className="add-package-btn"
-            onClick={() => setShowAddPlanModal(true)}
-          >
-            + Add New Package
-          </button>
+      {/* Toolbar */}
+      <div className="packages-toolbar">
+        <div className="search-box">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Search packages..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
+        <div className="toolbar-actions">
+          <div className="view-toggle">
+            <button
+              className={`toggle-btn ${viewMode === "grid" ? "active" : ""}`}
+              onClick={() => setViewMode("grid")}
+            >
+              <LayoutGrid size={18} />
+            </button>
+            <button
+              className={`toggle-btn ${viewMode === "list" ? "active" : ""}`}
+              onClick={() => setViewMode("list")}
+            >
+              <List size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
 
-        <div className="pricing-grid">
-          {plans.map((plan: any) => (
-            <PricingCard
-              key={plan.id}
-              plan={convertToPricingPlan(plan)}
-              showActions={true}
-              actionType="button"
-              featuredLabel="Popular"
-              showEdit={true}
-              showDelete={true}
-              onEdit={() => handleEditPlan(plan)}
-              onDelete={() => handleDeletePlan(plan)}
-            />
-          ))}
-        </div>
+      {/* Packages Content */}
+      <div className="packages-content">
+        {isLoading ? (
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>Loading packages...</p>
+          </div>
+        ) : filteredPlans.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <Package size={48} />
+            </div>
+            <h3>No packages found</h3>
+            <p>
+              {searchQuery
+                ? "Try adjusting your search query"
+                : "Create your first package to get started"}
+            </p>
+            {!searchQuery && (
+              <button
+                className="add-package-btn secondary"
+                onClick={() => setShowAddPlanModal(true)}
+              >
+                <Plus size={18} />
+                <span>Create Package</span>
+              </button>
+            )}
+          </div>
+        ) : (
+          <div
+            className={`pricing-grid ${viewMode === "list" ? "list-view" : ""}`}
+          >
+            {filteredPlans.map((plan: any) => (
+              <PricingCard
+                key={plan.id}
+                plan={convertToPricingPlan(plan)}
+                showActions={true}
+                actionType="button"
+                featuredLabel="Popular"
+                showEdit={true}
+                showDelete={true}
+                onEdit={() => handleEditPlan(plan)}
+                onDelete={() => handleDeletePlan(plan)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Add Plan Modal */}
@@ -654,121 +764,184 @@ const AdminPackages = () => {
           className="modal-overlay"
           onClick={() => setShowAddPlanModal(false)}
         >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content modern"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
-              <h3>Add New Package</h3>
+              <div className="modal-title-group">
+                <div className="modal-icon add">
+                  <Plus size={20} />
+                </div>
+                <div>
+                  <h3>Create New Package</h3>
+                  <p>Add a new subscription package for your customers</p>
+                </div>
+              </div>
               <button
                 className="modal-close"
                 onClick={() => setShowAddPlanModal(false)}
               >
-                ×
+                <X size={20} />
               </button>
             </div>
             <div className="modal-body">
-              <div className="form-group">
-                <label>Package Name:</label>
-                <input
-                  type="text"
-                  value={newPlan.name}
-                  onChange={(e) => handleNewPlanChange("name", e.target.value)}
-                  placeholder="Enter package name (e.g., Pro, Advanced...)"
-                  className="form-input"
-                />
-              </div>
-
-              <div className="form-row">
+              <div className="form-section">
+                <h4 className="section-title">Basic Information</h4>
                 <div className="form-group">
-                  <label>Price:</label>
+                  <label>
+                    Package Name <span className="required">*</span>
+                  </label>
                   <input
-                    type="number"
-                    value={newPlan.price}
+                    type="text"
+                    value={newPlan.name}
                     onChange={(e) =>
-                      handleNewPlanChange("price", e.target.value)
+                      handleNewPlanChange("name", e.target.value)
                     }
-                    placeholder="Enter price (e.g., 99)"
+                    placeholder="e.g., Professional, Enterprise..."
+                    className={`form-input ${
+                      !newPlan.name &&
+                      (newPlan.price || newPlan.limitations.length > 0)
+                        ? "input-error"
+                        : ""
+                    }`}
+                  />
+                  {!newPlan.name &&
+                    (newPlan.price || newPlan.limitations.length > 0) && (
+                      <span className="error-text">
+                        Package name is required
+                      </span>
+                    )}
+                </div>
+
+                <div className="form-group">
+                  <label>Description</label>
+                  <textarea
+                    value={newPlan.description}
+                    onChange={(e) =>
+                      handleNewPlanChange("description", e.target.value)
+                    }
+                    placeholder="Brief description of what's included..."
                     className="form-input"
+                    rows={3}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Billing Cycle:</label>
-                  <select
-                    value={newPlan.period}
-                    onChange={(e) =>
-                      handleNewPlanChange("period", e.target.value)
-                    }
-                    className="form-select"
-                  >
-                    <option value="month">Monthly</option>
-                    <option value="year">Yearly</option>
-                    <option value="quarter">Quarterly</option>
-                  </select>
-                </div>
               </div>
 
-              <div className="form-group">
-                <label>Description:</label>
-                <textarea
-                  value={newPlan.description}
-                  onChange={(e) =>
-                    handleNewPlanChange("description", e.target.value)
-                  }
-                  placeholder="Short description (optional)"
-                  className="form-input"
-                  rows={3}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Currency:</label>
-                <select
-                  value={newPlan.currency}
-                  onChange={(e) =>
-                    handleNewPlanChange("currency", e.target.value)
-                  }
-                  className="form-select"
-                >
-                  <option value="USD">USD</option>
-                  <option value="VND">VND</option>
-                  <option value="EUR">EUR</option>
-                </select>
-              </div>
-
-              {/* status removed from create form per request */}
-
-              <div className="form-group">
-                <label>Limitations:</label>
-                <div className="feature-selector">
-                  <div className="selected-features-preview">
-                    <span className="selected-count">
-                      Selected: {newPlan.features.length} limitation(s)
-                    </span>
-                    {newPlan.features.length > 0 && (
-                      <div className="selected-features-list">
-                        {newPlan.features.slice(0, 3).map((feature, index) => (
-                          <span key={index} className="feature-tag">
-                            {renderFeatureLabel(feature)}
-                          </span>
-                        ))}
-                        {newPlan.features.length > 3 && (
-                          <span className="more-features">
-                            +{newPlan.features.length - 3} more
-                          </span>
-                        )}
-                      </div>
+              <div className="form-section">
+                <h4 className="section-title">Pricing</h4>
+                <div className="form-row three-cols">
+                  <div className="form-group">
+                    <label>
+                      Price (VND) <span className="required">*</span>
+                    </label>
+                    <div className="input-with-icon">
+                      <span className="currency-icon">₫</span>
+                      <input
+                        type="number"
+                        value={newPlan.price}
+                        onChange={(e) =>
+                          handleNewPlanChange("price", e.target.value)
+                        }
+                        placeholder="20000"
+                        className={`form-input ${
+                          (!newPlan.price &&
+                            (newPlan.name || newPlan.limitations.length > 0)) ||
+                          Number(newPlan.price) < 0
+                            ? "input-error"
+                            : ""
+                        }`}
+                        min="0"
+                      />
+                    </div>
+                    {!newPlan.price &&
+                      (newPlan.name || newPlan.limitations.length > 0) && (
+                        <span className="error-text">Price is required</span>
+                      )}
+                    {Number(newPlan.price) < 0 && (
+                      <span className="error-text">
+                        Price cannot be negative
+                      </span>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    className="select-features-btn"
-                    onClick={() => setShowFeatureSidebar(true)}
-                  >
-                    {newPlan.features.length === 0
-                      ? "Select Limitations"
-                      : "Edit Limitations"}
-                  </button>
+                  <div className="form-group">
+                    <label>Currency</label>
+                    <div className="currency-display">
+                      <span>VND (₫)</span>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Billing Cycle</label>
+                    <select
+                      value={newPlan.period}
+                      onChange={(e) =>
+                        handleNewPlanChange("period", e.target.value)
+                      }
+                      className="form-select"
+                    >
+                      <option value="month">Monthly</option>
+                      <option value="year">Yearly</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-              {/* Limitations are selectable in the Feature Sidebar now; no inline list here */}
+
+              <div className="form-section">
+                <h4 className="section-title">Features & Limitations</h4>
+                <div className="form-group">
+                  <div
+                    className={`feature-selector modern ${
+                      newPlan.limitations.length === 0 &&
+                      newPlan.name &&
+                      newPlan.price
+                        ? "selector-error"
+                        : ""
+                    }`}
+                  >
+                    <div className="selected-features-preview">
+                      <div className="preview-header">
+                        <span className="selected-count">
+                          <Check size={16} />
+                          {newPlan.features.length} limitation(s) selected
+                        </span>
+                      </div>
+                      {newPlan.features.length > 0 && (
+                        <div className="selected-features-list">
+                          {newPlan.features
+                            .slice(0, 4)
+                            .map((feature, index) => (
+                              <span key={index} className="feature-tag">
+                                {renderFeatureLabel(feature)}
+                              </span>
+                            ))}
+                          {newPlan.features.length > 4 && (
+                            <span className="more-features">
+                              +{newPlan.features.length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="select-features-btn"
+                      onClick={() => setShowFeatureSidebar(true)}
+                    >
+                      <Sparkles size={16} />
+                      {newPlan.features.length === 0
+                        ? "Select Limitations"
+                        : "Manage Limitations"}
+                    </button>
+                  </div>
+                  {newPlan.limitations.length === 0 &&
+                    newPlan.name &&
+                    newPlan.price && (
+                      <span className="error-text">
+                        Please select at least one limitation
+                      </span>
+                    )}
+                </div>
+              </div>
             </div>
             <div className="modal-footer">
               <button
@@ -780,9 +953,15 @@ const AdminPackages = () => {
               <button
                 className="btn-save"
                 onClick={handleAddPlan}
-                disabled={!newPlan.name || !newPlan.price}
+                disabled={
+                  !newPlan.name ||
+                  !newPlan.price ||
+                  Number(newPlan.price) < 0 ||
+                  newPlan.limitations.length === 0
+                }
               >
-                Add Package
+                <Plus size={16} />
+                Create Package
               </button>
             </div>
           </div>
@@ -795,118 +974,163 @@ const AdminPackages = () => {
           className="modal-overlay"
           onClick={() => setShowEditPlanModal(false)}
         >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-content modern"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
-              <h3>Edit Package</h3>
+              <div className="modal-title-group">
+                <div className="modal-icon edit">
+                  <Package size={20} />
+                </div>
+                <div>
+                  <h3>Edit Package</h3>
+                  <p>Update the details of "{selectedPlan.name}"</p>
+                </div>
+              </div>
               <button
                 className="modal-close"
                 onClick={() => setShowEditPlanModal(false)}
               >
-                ×
+                <X size={20} />
               </button>
             </div>
             <div className="modal-body">
-              <div className="form-group">
-                <label>Package Name:</label>
-                <input
-                  type="text"
-                  value={newPlan.name}
-                  onChange={(e) => handleNewPlanChange("name", e.target.value)}
-                  placeholder="Enter package name (e.g., Pro, Advanced...)"
-                  className="form-input"
-                />
-              </div>
-
-              <div className="form-row">
+              <div className="form-section">
+                <h4 className="section-title">Basic Information</h4>
                 <div className="form-group">
-                  <label>Price:</label>
+                  <label>Package Name</label>
                   <input
-                    type="number"
-                    value={newPlan.price}
+                    type="text"
+                    value={newPlan.name}
                     onChange={(e) =>
-                      handleNewPlanChange("price", e.target.value)
+                      handleNewPlanChange("name", e.target.value)
                     }
-                    placeholder="Enter price (e.g., 99)"
+                    placeholder="e.g., Professional, Enterprise..."
+                    className={`form-input ${
+                      !newPlan.name ? "input-error" : ""
+                    }`}
+                  />
+                  {!newPlan.name && (
+                    <span className="error-text">Package name is required</span>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Description</label>
+                  <textarea
+                    value={newPlan.description}
+                    onChange={(e) =>
+                      handleNewPlanChange("description", e.target.value)
+                    }
+                    placeholder="Brief description of what's included..."
                     className="form-input"
+                    rows={3}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Billing Cycle:</label>
-                  <select
-                    value={newPlan.period}
-                    onChange={(e) =>
-                      handleNewPlanChange("period", e.target.value)
-                    }
-                    className="form-select"
-                  >
-                    <option value="month">Monthly</option>
-                    <option value="year">Yearly</option>
-                    <option value="quarter">Quarterly</option>
-                  </select>
+              </div>
+
+              <div className="form-section">
+                <h4 className="section-title">Pricing</h4>
+                <div className="form-row three-cols">
+                  <div className="form-group">
+                    <label>Price (VND)</label>
+                    <div className="input-with-icon">
+                      <span className="currency-icon">₫</span>
+                      <input
+                        type="number"
+                        value={newPlan.price}
+                        onChange={(e) =>
+                          handleNewPlanChange("price", e.target.value)
+                        }
+                        placeholder="20000"
+                        className={`form-input ${
+                          !newPlan.price || Number(newPlan.price) < 0
+                            ? "input-error"
+                            : ""
+                        }`}
+                        min="0"
+                      />
+                    </div>
+                    {!newPlan.price && (
+                      <span className="error-text">Price is required</span>
+                    )}
+                    {Number(newPlan.price) < 0 && (
+                      <span className="error-text">
+                        Price cannot be negative
+                      </span>
+                    )}
+                  </div>
+                  <div className="form-group">
+                    <label>Currency</label>
+                    <div className="currency-display">
+                      <span>VND (₫)</span>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Billing Cycle</label>
+                    <select
+                      value={newPlan.period}
+                      onChange={(e) =>
+                        handleNewPlanChange("period", e.target.value)
+                      }
+                      className="form-select"
+                    >
+                      <option value="month">Monthly</option>
+                      <option value="year">Yearly</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Description:</label>
-                <textarea
-                  value={newPlan.description}
-                  onChange={(e) =>
-                    handleNewPlanChange("description", e.target.value)
-                  }
-                  placeholder="Short description (optional)"
-                  className="form-input"
-                  rows={3}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Currency:</label>
-                <select
-                  value={newPlan.currency}
-                  onChange={(e) =>
-                    handleNewPlanChange("currency", e.target.value)
-                  }
-                  className="form-select"
-                >
-                  <option value="USD">USD</option>
-                  <option value="VND">VND</option>
-                  <option value="EUR">EUR</option>
-                </select>
-              </div>
-
-              {/* status removed from edit form per request */}
-
-              <div className="form-group">
-                <label>Limitations:</label>
-                <div className="feature-selector">
-                  <div className="selected-features-preview">
-                    <span className="selected-count">
-                      Selected: {newPlan.limitations.length} limitation(s)
-                    </span>
-                    {newPlan.features.length > 0 && (
-                      <div className="selected-features-list">
-                        {newPlan.features.slice(0, 3).map((feature, index) => (
-                          <span key={index} className="feature-tag">
-                            {renderFeatureLabel(feature)}
-                          </span>
-                        ))}
-                        {newPlan.features.length > 3 && (
-                          <span className="more-features">
-                            +{newPlan.features.length - 3} more
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    className="select-features-btn"
-                    onClick={() => setShowFeatureSidebar(true)}
+              <div className="form-section">
+                <h4 className="section-title">Features & Limitations</h4>
+                <div className="form-group">
+                  <div
+                    className={`feature-selector modern ${
+                      newPlan.limitations.length === 0 ? "selector-error" : ""
+                    }`}
                   >
-                    {newPlan.features.length === 0
-                      ? "Select Limitations"
-                      : "Edit Limitations"}
-                  </button>
+                    <div className="selected-features-preview">
+                      <div className="preview-header">
+                        <span className="selected-count">
+                          <Check size={16} />
+                          {newPlan.limitations.length} limitation(s) selected
+                        </span>
+                      </div>
+                      {newPlan.features.length > 0 && (
+                        <div className="selected-features-list">
+                          {newPlan.features
+                            .slice(0, 4)
+                            .map((feature, index) => (
+                              <span key={index} className="feature-tag">
+                                {renderFeatureLabel(feature)}
+                              </span>
+                            ))}
+                          {newPlan.features.length > 4 && (
+                            <span className="more-features">
+                              +{newPlan.features.length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="select-features-btn"
+                      onClick={() => setShowFeatureSidebar(true)}
+                    >
+                      <Sparkles size={16} />
+                      {newPlan.features.length === 0
+                        ? "Select Limitations"
+                        : "Manage Limitations"}
+                    </button>
+                  </div>
+                  {newPlan.limitations.length === 0 && (
+                    <span className="error-text">
+                      Please select at least one limitation
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -920,9 +1144,15 @@ const AdminPackages = () => {
               <button
                 className="btn-save"
                 onClick={handleUpdatePlan}
-                disabled={!newPlan.name || !newPlan.price}
+                disabled={
+                  !newPlan.name ||
+                  !newPlan.price ||
+                  Number(newPlan.price) < 0 ||
+                  newPlan.limitations.length === 0
+                }
               >
-                Update
+                <Check size={16} />
+                Save Changes
               </button>
             </div>
           </div>
@@ -936,39 +1166,49 @@ const AdminPackages = () => {
           onClick={() => setShowDeleteConfirm(false)}
         >
           <div
-            className="modal-content delete-modal"
+            className="modal-content delete-modal modern"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-header">
-              <h3>Confirm Delete Package</h3>
+            <div className="modal-header delete-header">
+              <div className="modal-title-group">
+                <div className="modal-icon delete">
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h3>Delete Package</h3>
+                  <p>This action cannot be undone</p>
+                </div>
+              </div>
               <button
                 className="modal-close"
                 onClick={() => setShowDeleteConfirm(false)}
               >
-                ×
+                <X size={20} />
               </button>
             </div>
             <div className="modal-body">
               <div className="delete-confirmation">
-                <div className="warning-icon">⚠️</div>
-                <h4>Are you sure you want to delete "{selectedPlan.name}"?</h4>
-                <p>
-                  This action cannot be undone. All data related to this package
-                  will be permanently deleted.
-                </p>
+                <div className="delete-message">
+                  <p>
+                    Are you sure you want to delete{" "}
+                    <strong>"{selectedPlan.name}"</strong>?
+                  </p>
+                  <span className="warning-text">
+                    All associated data will be permanently removed.
+                  </span>
+                </div>
 
-                <div className="plan-summary">
+                <div className="plan-summary modern">
                   <div className="summary-item">
-                    <span className="label">Package Name:</span>
+                    <Package size={16} />
+                    <span className="label">Package</span>
                     <span className="value">{selectedPlan.name}</span>
                   </div>
                   <div className="summary-item">
-                    <span className="label">Price:</span>
+                    <DollarSign size={16} />
+                    <span className="label">Price</span>
                     <span className="value">
-                      {currencySymbol(
-                        selectedPlan.currency ?? selectedPlan.Currency
-                      )}
-                      {selectedPlan.price}/
+                      {formatPrice(selectedPlan.price)}₫/
                       {formatPeriodLabel(
                         selectedPlan.period,
                         selectedPlan.billingCycle
@@ -976,9 +1216,10 @@ const AdminPackages = () => {
                     </span>
                   </div>
                   <div className="summary-item">
-                    <span className="label">Active Subscriptions:</span>
+                    <Users size={16} />
+                    <span className="label">Subscriptions</span>
                     <span className="value">
-                      {selectedPlan.activeSubscriptions}
+                      {selectedPlan.activeSubscriptions} active
                     </span>
                   </div>
                 </div>
@@ -997,7 +1238,17 @@ const AdminPackages = () => {
                 onClick={confirmDeletePlan}
                 disabled={isDeleting}
               >
-                {isDeleting ? "Deleting..." : "Delete Package"}
+                {isDeleting ? (
+                  <>
+                    <span className="btn-spinner"></span>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle size={16} />
+                    Delete Package
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1010,14 +1261,23 @@ const AdminPackages = () => {
           className="sidebar-overlay"
           onClick={() => setShowFeatureSidebar(false)}
         >
-          <div className="feature-sidebar" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="feature-sidebar modern"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="sidebar-header">
-              <h3>Select Limitations</h3>
+              <div className="sidebar-title-group">
+                <Sparkles size={20} className="sidebar-icon" />
+                <div>
+                  <h3>Select Limitations</h3>
+                  <p>Choose the features to include in this package</p>
+                </div>
+              </div>
               <button
                 className="sidebar-close"
                 onClick={() => setShowFeatureSidebar(false)}
               >
-                ×
+                <X size={20} />
               </button>
             </div>
 
@@ -1026,12 +1286,14 @@ const AdminPackages = () => {
                 className="action-btn select-all"
                 onClick={handleSelectAllFeatures}
               >
+                <Check size={14} />
                 Select All
               </button>
               <button
                 className="action-btn clear-all"
                 onClick={handleClearAllFeatures}
               >
+                <X size={14} />
                 Clear All
               </button>
             </div>
@@ -1039,13 +1301,7 @@ const AdminPackages = () => {
             <div className="sidebar-content">
               {limitations && limitations.length > 0 ? (
                 <div className="feature-group">
-                  <div className="group-header">
-                    <div className="group-icon" style={{ color: "#ff5e13" }}>
-                      <Users size={20} />
-                    </div>
-                    <h4 className="group-title">Limitations</h4>
-                  </div>
-                  <div className="features-grid">
+                  <div className="features-grid modern">
                     {limitations.map((lim: any) => (
                       <div
                         key={lim.id}
@@ -1054,32 +1310,25 @@ const AdminPackages = () => {
                         }`}
                         onClick={() => handleToggleLimFeature(lim)}
                       >
-                        <div className="feature-card-header">
-                          <input
-                            type="checkbox"
-                            checked={newPlan.features.includes(lim.name)}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              handleToggleLimFeature(lim);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="feature-radio"
-                          />
+                        <div className="feature-card-check">
+                          {newPlan.features.includes(lim.name) && (
+                            <Check size={14} />
+                          )}
                         </div>
                         <div className="feature-card-body">
                           <div className="feature-title-row">
                             <h5 className="feature-title">{lim.name}</h5>
-                            <span className="feature-meta">
-                              {lim.isUnlimited
-                                ? "Unlimited"
-                                : lim.limitValue !== null &&
-                                  lim.limitValue !== undefined
-                                ? `${lim.limitValue}${
-                                    lim.limitUnit ? ` ${lim.limitUnit}` : ""
-                                  }`
-                                : ""}
-                            </span>
                           </div>
+                          <span className="feature-meta">
+                            {lim.isUnlimited
+                              ? "Unlimited"
+                              : lim.limitValue !== null &&
+                                lim.limitValue !== undefined
+                              ? `${lim.limitValue}${
+                                  lim.limitUnit ? ` ${lim.limitUnit}` : ""
+                                }`
+                              : ""}
+                          </span>
                           {lim.description && (
                             <p className="feature-description">
                               {lim.description}
@@ -1091,21 +1340,24 @@ const AdminPackages = () => {
                   </div>
                 </div>
               ) : (
-                <div className="no-limitations" style={{ padding: 16 }}>
-                  <p>No limitations to display</p>
+                <div className="no-limitations">
+                  <Package size={40} />
+                  <p>No limitations available</p>
                 </div>
               )}
             </div>
 
             <div className="sidebar-footer">
               <div className="selected-summary">
-                <span>Selected: {newPlan.features.length} limitation(s)</span>
+                <Check size={16} />
+                <span>{newPlan.features.length} limitation(s) selected</span>
               </div>
               <button
                 className="confirm-btn"
                 onClick={() => setShowFeatureSidebar(false)}
               >
-                Confirm
+                <Check size={16} />
+                Confirm Selection
               </button>
             </div>
           </div>

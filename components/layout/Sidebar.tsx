@@ -206,23 +206,23 @@ const Sidebar = ({ onCollapsedChange }: SidebarProps) => {
   return (
     <div className={`sidebar-container ${isCollapsed ? "collapsed" : ""}`}>
       {/* Collapse Toggle Button */}
-      <button 
-        className="collapse-toggle" 
+      <button
+        className="collapse-toggle"
         onClick={toggleSidebar}
         title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
       >
-        <svg 
-          width="20" 
-          height="20" 
-          viewBox="0 0 24 24" 
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
           fill="none"
           style={{ transform: isCollapsed ? "rotate(180deg)" : "rotate(0deg)" }}
         >
-          <path 
-            d="M15 18L9 12L15 6" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
+          <path
+            d="M15 18L9 12L15 6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
             strokeLinejoin="round"
           />
         </svg>
@@ -233,9 +233,9 @@ const Sidebar = ({ onCollapsedChange }: SidebarProps) => {
           {sidebarItems.map((item) => (
             <div
               key={item.id}
-              className={`sidebar-item ${activeItem === item.id ? "active" : ""} ${
-                item.badge ? "has-badge" : ""
-              }`}
+              className={`sidebar-item ${
+                activeItem === item.id ? "active" : ""
+              } ${item.badge ? "has-badge" : ""}`}
               onClick={() => handleItemClick(item)}
             >
               <div className="item-content">
@@ -251,12 +251,13 @@ const Sidebar = ({ onCollapsedChange }: SidebarProps) => {
             </div>
           ))}
 
-          {!isCollapsed && (role === UserRole.PROJECT_MANAGER || role === UserRole.MEMBER) && (
-            <ProjectSection
-              isExpanded={isProjectSectionExpanded}
-              onToggle={handleProjectSectionToggle}
-            />
-          )}
+          {!isCollapsed &&
+            (role === UserRole.PROJECT_MANAGER || role === UserRole.MEMBER) && (
+              <ProjectSection
+                isExpanded={isProjectSectionExpanded}
+                onToggle={handleProjectSectionToggle}
+              />
+            )}
         </div>
 
         {/* Logout Button */}
