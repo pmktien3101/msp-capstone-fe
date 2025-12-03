@@ -28,7 +28,7 @@ const MicButton = () => {
     <Button
       onClick={toggleMic}
       disabled={loading}
-      title={isEnabled ? "Tắt mic" : "Bật mic"}
+      title={isEnabled ? "Mute" : "Unmute"}
       className={`rounded-full p-3 cursor-pointer ${
         isEnabled ? "bg-gray-800 hover:bg-gray-700" : "bg-red-600"
       }`}

@@ -32,8 +32,14 @@ const MeetingSetup = ({
   // Add this useEffect to check permissions
   useEffect(() => {
     const attendees = call?.state?.custom?.attendeeIds || [];
-    setCanJoin(attendees.includes(userId));
-  }, [call?.state?.custom?.attendeeIds, userId]);
+    const createdById = call?.state?.custom?.createdById;
+    // Allow join if user is in attendees list OR is the meeting creator
+    setCanJoin(attendees.includes(userId) || createdById === userId);
+  }, [
+    call?.state?.custom?.attendeeIds,
+    call?.state?.custom?.createdById,
+    userId,
+  ]);
 
   if (!call) throw new Error("Call not found in MeetingSetup");
 
@@ -67,29 +73,30 @@ const MeetingSetup = ({
       : null;
     const endedAt = call.state?.endedAt ? new Date(call.state?.endedAt) : null;
 
-    // Check if user is in attendees list
+    // Check if user is in attendees list or is the meeting creator
     const attendees = call.state?.custom?.attendeeIds || [];
-    if (!attendees.includes(userId)) {
-      toast.error("Bạn không được phép tham gia cuộc họp này", {
+    const createdById = call.state?.custom?.createdById;
+    if (!attendees.includes(userId) && createdById !== userId) {
+      toast.error("You are not allowed to join this meeting", {
         autoClose: 5000,
       });
       return;
     }
 
     if (endedAt) {
-      toast.error("Cuộc họp đã kết thúc", { autoClose: 5000 });
+      toast.error("The meeting has ended", { autoClose: 5000 });
       return;
     }
 
     if (!startsAt) {
-      toast.error("Cuộc họp chưa bắt đầu", { autoClose: 5000 });
+      toast.error("The meeting has not started yet", { autoClose: 5000 });
       return;
     }
 
     const earlyJoinTime = new Date(startsAt.getTime() - 30 * 60 * 1000);
 
     if (now < earlyJoinTime) {
-      toast.error("Bạn chỉ có thể vào trước giờ họp 30 phút", {
+      toast.error("You can only join 30 minutes before the meeting starts", {
         autoClose: 5000,
       });
       return;
@@ -99,7 +106,7 @@ const MeetingSetup = ({
       await call.join();
       setIsSetupComplete(true);
     } catch (err) {
-      toast.error("🚨 Không thể tham gia cuộc họp");
+      toast.error("🚨 Unable to join the meeting");
       console.error(err);
     }
   };
@@ -109,9 +116,7 @@ const MeetingSetup = ({
       <div className="w-full max-w-5xl h-[600px] rounded-2xl shadow-2xl bg-white p-8 flex gap-8 border border-orange-200">
         {/* Video Preview - Left Side */}
         <div className="flex-1 flex flex-col">
-          <h2 className="text-xl font-medium text-orange-800 mb-4">
-            Bản xem trước
-          </h2>
+          <h2 className="text-xl font-medium text-orange-800 mb-4">Preview</h2>
           <div className="flex-1 rounded-xl overflow-hidden bg-gray-900 border-2 border-orange-300 flex items-center justify-center shadow-lg">
             <VideoPreview className="w-full h-full object-cover" />
           </div>
@@ -142,14 +147,14 @@ const MeetingSetup = ({
         {/* Settings Panel - Right Side */}
         <div className="w-80 flex flex-col">
           <h1 className="text-2xl font-bold text-orange-800 mb-2">
-            Sẵn sàng tham gia?
+            Ready to join?
           </h1>
           <p className="text-orange-600 text-sm mb-6">
-            Kiểm tra thiết bị, chọn hiệu ứng nền trước khi tham gia
+            Check your devices and choose background effects before joining
           </p>
           <div className="space-y-4 mb-6">
             <div className="flex items-center justify-between bg-orange-50 p-3 rounded-lg border border-orange-200">
-              <span className="text-sm text-orange-800">Cài đặt thiết bị</span>
+              <span className="text-sm text-orange-800">Device Settings</span>
               <DeviceSettings />
             </div>
             <Button
@@ -157,7 +162,7 @@ const MeetingSetup = ({
               className="w-full bg-orange-100 hover:bg-orange-200 justify-start px-3 py-2 h-auto text-orange-800 border border-orange-200 transition-all"
             >
               <Filter size={18} className="mr-2 text-orange-600" />
-              <span>Hiệu ứng nền</span>
+              <span>Background Effects</span>
             </Button>
           </div>
           <Button
@@ -170,23 +175,23 @@ const MeetingSetup = ({
                   : "bg-gray-400 cursor-not-allowed"
               }`}
           >
-            {canJoin ? "Tham gia ngay" : "Không có quyền tham gia"}
+            {canJoin ? "Join Now" : "No permission to join"}
           </Button>
         </div>
       </div>
 
-      {/* Bộ lọc nền */}
+      {/* Background Filters */}
       {showFiltersPanel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="w-[500px] max-h-[80vh] overflow-y-auto rounded-2xl border border-orange-300 bg-white p-6 text-orange-900 shadow-xl relative">
             <div className="flex items-center justify-between mb-5 pb-3 border-b border-orange-200">
               <h3 className="text-lg font-semibold text-orange-800">
-                Hiệu ứng nền
+                Background Effects
               </h3>
               <button
                 onClick={() => setShowFiltersPanel(false)}
                 className="text-orange-500 hover:text-orange-700 p-1 rounded-full hover:bg-orange-100 transition-colors"
-                aria-label="Đóng"
+                aria-label="Close"
               >
                 <X size={20} />
               </button>

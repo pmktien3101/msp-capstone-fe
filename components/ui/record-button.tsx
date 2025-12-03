@@ -56,13 +56,13 @@ const RecordButton = () => {
     if (!call) return;
 
     if (hasExistingRecordings && !isRecording) {
-      toast.warning("Cuộc gọi này đã được ghi hình trước đó!");
+      toast.warning("This call has already been recorded!");
       return;
     }
 
     if (isRecording) {
       const confirmStop = window.confirm(
-        "Bạn có chắc muốn dừng ghi hình? Sau khi dừng sẽ không thể ghi hình lại!"
+        "Are you sure you want to stop recording? You cannot record again after stopping!"
       );
       if (!confirmStop) return;
     }
@@ -76,12 +76,12 @@ const RecordButton = () => {
           call.stopTranscription(),
         ]);
         setHasExistingRecordings(true);
-        toast.info("Đã dừng ghi hình!");
+        toast.info("Recording stopped!");
       } else {
         // Check again before starting recording
         const res = await call.queryRecordings();
         if (res.recordings && res.recordings.length > 0) {
-          toast.warning("Cuộc gọi này đã được ghi hình trước đó!");
+          toast.warning("This call has already been recorded!");
           setHasExistingRecordings(true);
           setLoading(false);
           return;
@@ -91,11 +91,11 @@ const RecordButton = () => {
           call.startRecording(),
           call.startTranscription(),
         ]);
-        toast.success("Bắt đầu ghi hình!");
+        toast.success("Recording started!");
       }
     } catch (err) {
       console.error("Record/Transcript error", err);
-      toast.error("Lỗi khi bật/tắt ghi hình!");
+      toast.error("Error starting/stopping recording!");
     } finally {
       setLoading(false);
     }
@@ -109,10 +109,10 @@ const RecordButton = () => {
       disabled={loading || (hasExistingRecordings && !isRecording)}
       title={
         isRecording
-          ? "Dừng ghi hình"
+          ? "Stop recording"
           : hasExistingRecordings
-          ? "Không thể ghi hình lại"
-          : "Bắt đầu ghi hình"
+          ? "Cannot record again"
+          : "Start recording"
       }
       className={`rounded-full p-4 cursor-pointer ${
         isRecording

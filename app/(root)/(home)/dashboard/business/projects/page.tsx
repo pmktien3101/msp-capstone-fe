@@ -1,12 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { ProjectStatus, TaskStatus, getProjectStatusLabel, PROJECT_STATUS_LABELS } from '@/constants/status';
-import { projectService } from '@/services/projectService';
-import { taskService } from '@/services/taskService';
-import { useAuth } from '@/hooks/useAuth';
-import type { Project as ProjectType, ProjectMemberResponse } from '@/types/project';
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ProjectStatus,
+  TaskStatus,
+  getProjectStatusLabel,
+  PROJECT_STATUS_LABELS,
+} from "@/constants/status";
+import { projectService } from "@/services/projectService";
+import { taskService } from "@/services/taskService";
+import { useAuth } from "@/hooks/useAuth";
+import type {
+  Project as ProjectType,
+  ProjectMemberResponse,
+} from "@/types/project";
 
 interface ProjectStats {
   memberCount: number;
@@ -20,10 +28,16 @@ const BusinessProjectsPage = () => {
   const { user } = useAuth();
   const [projects, setProjects] = useState<ProjectType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  const [projectManagers, setProjectManagers] = useState<Array<{ id: string; name: string; email: string }>>([]);
-  const [projectPMs, setProjectPMs] = useState<Map<string, string[]>>(new Map()); // projectId -> PM userIds
-  const [projectStats, setProjectStats] = useState<Map<string, ProjectStats>>(new Map()); // projectId -> stats
+  const [error, setError] = useState<string>("");
+  const [projectManagers, setProjectManagers] = useState<
+    Array<{ id: string; name: string; email: string }>
+  >([]);
+  const [projectPMs, setProjectPMs] = useState<Map<string, string[]>>(
+    new Map()
+  ); // projectId -> PM userIds
+  const [projectStats, setProjectStats] = useState<Map<string, ProjectStats>>(
+    new Map()
+  ); // projectId -> stats
 
   // Fetch projects and their members from API
   const fetchProjects = useCallback(async () => {
@@ -34,36 +48,44 @@ const BusinessProjectsPage = () => {
 
     try {
       setLoading(true);
-      setError('');
-      
+      setError("");
+
       const result = await projectService.getProjectsByBOId(user.userId);
-      
+
       if (result.success && result.data) {
         const projectList = result.data.items || [];
         setProjects(projectList);
 
         // Fetch members for all projects and extract ProjectManagers
-        const pmMap = new Map<string, { id: string; name: string; email: string }>();
+        const pmMap = new Map<
+          string,
+          { id: string; name: string; email: string }
+        >();
         const projectPMMap = new Map<string, string[]>();
         const statsMap = new Map<string, ProjectStats>();
 
         await Promise.all(
           projectList.map(async (project) => {
             // Fetch members
-            const membersResult = await projectService.getProjectMembers(project.id);
+            const membersResult = await projectService.getProjectMembers(
+              project.id
+            );
             let memberCount = 0;
-            
+
             if (membersResult.success && membersResult.data) {
               memberCount = membersResult.data.length;
               const pmUserIds: string[] = [];
-              
+
               membersResult.data.forEach((projectMember: any) => {
                 // API returns: { userId, member: { id, role, fullName, email } }
-                if (projectMember.member && projectMember.member.role === 'ProjectManager') {
+                if (
+                  projectMember.member &&
+                  projectMember.member.role === "ProjectManager"
+                ) {
                   pmMap.set(projectMember.userId, {
                     id: projectMember.userId,
                     name: projectMember.member.fullName,
-                    email: projectMember.member.email
+                    email: projectMember.member.email,
                   });
                   pmUserIds.push(projectMember.userId);
                 }
@@ -72,7 +94,9 @@ const BusinessProjectsPage = () => {
             }
 
             // Fetch tasks to calculate progress
-            const tasksResult = await taskService.getTasksByProjectId(project.id);
+            const tasksResult = await taskService.getTasksByProjectId(
+              project.id
+            );
             let completedTasks = 0;
             let totalTasks = 0;
             let progress = 0;
@@ -81,19 +105,22 @@ const BusinessProjectsPage = () => {
               // API returns PagingResponse with items array
               const tasks = (tasksResult.data as any).items || tasksResult.data;
               const taskArray = Array.isArray(tasks) ? tasks : [];
-              
+
               totalTasks = taskArray.length;
-              completedTasks = taskArray.filter((task: any) => 
-                task.status === TaskStatus.Done
+              completedTasks = taskArray.filter(
+                (task: any) => task.status === TaskStatus.Done
               ).length;
-              progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+              progress =
+                totalTasks > 0
+                  ? Math.round((completedTasks / totalTasks) * 100)
+                  : 0;
             }
 
             statsMap.set(project.id, {
               memberCount,
               progress,
               completedTasks,
-              totalTasks
+              totalTasks,
             });
           })
         );
@@ -102,11 +129,11 @@ const BusinessProjectsPage = () => {
         setProjectPMs(projectPMMap);
         setProjectStats(statsMap);
       } else {
-        setError(result.error || 'Không thể tải danh sách dự án');
+        setError(result.error || "Unable to load project list");
       }
     } catch (err) {
-      console.error('[BusinessProjects] Error:', err);
-      setError('Có lỗi xảy ra khi tải dữ liệu');
+      console.error("[BusinessProjects] Error:", err);
+      setError("An error occurred while loading data");
     } finally {
       setLoading(false);
     }
@@ -116,18 +143,24 @@ const BusinessProjectsPage = () => {
     fetchProjects();
   }, [fetchProjects]);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | string>('all');
-  const [pmFilter, setPmFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | string>("all");
+  const [pmFilter, setPmFilter] = useState<string>("all");
 
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (project.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    
+  const filteredProjects = projects.filter((project) => {
+    const matchesSearch =
+      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (project.description?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      );
+    const matchesStatus =
+      statusFilter === "all" || project.status === statusFilter;
+
     // Check if project has the selected PM as a member
-    const matchesPM = pmFilter === 'all' || (projectPMs.get(project.id) || []).includes(pmFilter);
-    
+    const matchesPM =
+      pmFilter === "all" ||
+      (projectPMs.get(project.id) || []).includes(pmFilter);
+
     return matchesSearch && matchesStatus && matchesPM;
   });
 
@@ -136,21 +169,45 @@ const BusinessProjectsPage = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { color: string; text: string; bg: string }> = {
-      [ProjectStatus.NotStarted]: { color: '#6B7280', text: PROJECT_STATUS_LABELS[ProjectStatus.NotStarted], bg: '#F3F4F6' },
-      [ProjectStatus.InProgress]: { color: '#3B82F6', text: PROJECT_STATUS_LABELS[ProjectStatus.InProgress], bg: '#DBEAFE' },
-      [ProjectStatus.OnHold]: { color: '#F59E0B', text: PROJECT_STATUS_LABELS[ProjectStatus.OnHold], bg: '#FEF3C7' },
-      [ProjectStatus.Completed]: { color: '#10B981', text: PROJECT_STATUS_LABELS[ProjectStatus.Completed], bg: '#ECFDF5' },
-      [ProjectStatus.Cancelled]: { color: '#EF4444', text: PROJECT_STATUS_LABELS[ProjectStatus.Cancelled], bg: '#FEE2E2' }
+    const statusConfig: Record<
+      string,
+      { color: string; text: string; bg: string }
+    > = {
+      [ProjectStatus.NotStarted]: {
+        color: "#6B7280",
+        text: PROJECT_STATUS_LABELS[ProjectStatus.NotStarted],
+        bg: "#F3F4F6",
+      },
+      [ProjectStatus.InProgress]: {
+        color: "#3B82F6",
+        text: PROJECT_STATUS_LABELS[ProjectStatus.InProgress],
+        bg: "#DBEAFE",
+      },
+      [ProjectStatus.OnHold]: {
+        color: "#F59E0B",
+        text: PROJECT_STATUS_LABELS[ProjectStatus.OnHold],
+        bg: "#FEF3C7",
+      },
+      [ProjectStatus.Completed]: {
+        color: "#10B981",
+        text: PROJECT_STATUS_LABELS[ProjectStatus.Completed],
+        bg: "#ECFDF5",
+      },
+      [ProjectStatus.Cancelled]: {
+        color: "#EF4444",
+        text: PROJECT_STATUS_LABELS[ProjectStatus.Cancelled],
+        bg: "#FEE2E2",
+      },
     };
 
-    const config = statusConfig[status] || statusConfig[ProjectStatus.NotStarted];
+    const config =
+      statusConfig[status] || statusConfig[ProjectStatus.NotStarted];
     return (
       <span
         className="status-badge"
         style={{
           color: config.color,
-          backgroundColor: config.bg
+          backgroundColor: config.bg,
         }}
       >
         {config.text}
@@ -159,10 +216,10 @@ const BusinessProjectsPage = () => {
   };
 
   const getProgressColor = (progress: number) => {
-    if (progress >= 80) return '#10B981';
-    if (progress >= 60) return '#3B82F6';
-    if (progress >= 40) return '#F59E0B';
-    return '#DC2626';
+    if (progress >= 80) return "#10B981";
+    if (progress >= 60) return "#3B82F6";
+    if (progress >= 40) return "#F59E0B";
+    return "#DC2626";
   };
 
   // Loading state
@@ -171,7 +228,7 @@ const BusinessProjectsPage = () => {
       <div className="business-projects-page">
         <div className="loading-container">
           <div className="loading-spinner"></div>
-          <p>Đang tải dữ liệu...</p>
+          <p>Loading data...</p>
         </div>
       </div>
     );
@@ -182,9 +239,9 @@ const BusinessProjectsPage = () => {
     return (
       <div className="business-projects-page">
         <div className="error-container">
-          <h2>Có lỗi xảy ra</h2>
+          <h2>An error occurred</h2>
           <p>{error}</p>
-          <button onClick={() => window.location.reload()}>Thử lại</button>
+          <button onClick={() => window.location.reload()}>Try again</button>
         </div>
       </div>
     );
@@ -194,8 +251,8 @@ const BusinessProjectsPage = () => {
     <div className="business-projects-page">
       <div className="page-header">
         <div className="header-content">
-          <h1>Quản Lý Dự Án</h1>
-          <p>Xem và quản lý tất cả dự án trong tổ chức</p>
+          <h1>Project Management</h1>
+          <p>View and manage all projects in the organization</p>
         </div>
       </div>
 
@@ -204,12 +261,24 @@ const BusinessProjectsPage = () => {
         <div className="stat-card">
           <div className="stat-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M9 12L11 14L15 10"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
           <div className="stat-content">
-            <h3>Tổng Dự Án</h3>
+            <h3>Total Projects</h3>
             <p className="stat-number">{projects.length}</p>
           </div>
         </div>
@@ -217,34 +286,80 @@ const BusinessProjectsPage = () => {
         <div className="stat-card">
           <div className="stat-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M13 2L3 14H12L11 22L21 10H12L13 2Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
           <div className="stat-content">
-            <h3>Đang Hoạt Động</h3>
-            <p className="stat-number">{projects.filter(p => p.status === ProjectStatus.InProgress).length}</p>
+            <h3>Active</h3>
+            <p className="stat-number">
+              {
+                projects.filter((p) => p.status === ProjectStatus.InProgress)
+                  .length
+              }
+            </p>
           </div>
         </div>
 
         <div className="stat-card">
           <div className="stat-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M9 12L11 14L15 10"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
           <div className="stat-content">
-            <h3>Hoàn Thành</h3>
-            <p className="stat-number">{projects.filter(p => p.status === ProjectStatus.Completed).length}</p>
+            <h3>Completed</h3>
+            <p className="stat-number">
+              {
+                projects.filter((p) => p.status === ProjectStatus.Completed)
+                  .length
+              }
+            </p>
           </div>
         </div>
 
         <div className="stat-card">
           <div className="stat-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M12 2L2 7L12 12L22 7L12 2Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M2 17L12 22L22 17"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M2 12L12 17L22 12"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
           <div className="stat-content">
@@ -258,12 +373,24 @@ const BusinessProjectsPage = () => {
       <div className="filters-section">
         <div className="search-box">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
-            <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle
+              cx="11"
+              cy="11"
+              r="8"
+              stroke="currentColor"
+              strokeWidth="2"
+            />
+            <path
+              d="M21 21L16.65 16.65"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
           <input
             type="text"
-            placeholder="Tìm kiếm theo tên dự án hoặc mô tả..."
+            placeholder="Search by project name or description..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -274,12 +401,22 @@ const BusinessProjectsPage = () => {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value={ProjectStatus.NotStarted}>{PROJECT_STATUS_LABELS[ProjectStatus.NotStarted]}</option>
-            <option value={ProjectStatus.InProgress}>{PROJECT_STATUS_LABELS[ProjectStatus.InProgress]}</option>
-            <option value={ProjectStatus.OnHold}>{PROJECT_STATUS_LABELS[ProjectStatus.OnHold]}</option>
-            <option value={ProjectStatus.Completed}>{PROJECT_STATUS_LABELS[ProjectStatus.Completed]}</option>
-            <option value={ProjectStatus.Cancelled}>{PROJECT_STATUS_LABELS[ProjectStatus.Cancelled]}</option>
+            <option value="all">All Statuses</option>
+            <option value={ProjectStatus.NotStarted}>
+              {PROJECT_STATUS_LABELS[ProjectStatus.NotStarted]}
+            </option>
+            <option value={ProjectStatus.InProgress}>
+              {PROJECT_STATUS_LABELS[ProjectStatus.InProgress]}
+            </option>
+            <option value={ProjectStatus.OnHold}>
+              {PROJECT_STATUS_LABELS[ProjectStatus.OnHold]}
+            </option>
+            <option value={ProjectStatus.Completed}>
+              {PROJECT_STATUS_LABELS[ProjectStatus.Completed]}
+            </option>
+            <option value={ProjectStatus.Cancelled}>
+              {PROJECT_STATUS_LABELS[ProjectStatus.Cancelled]}
+            </option>
           </select>
         </div>
 
@@ -288,9 +425,11 @@ const BusinessProjectsPage = () => {
             value={pmFilter}
             onChange={(e) => setPmFilter(e.target.value)}
           >
-            <option value="all">Tất cả PM</option>
+            <option value="all">All PMs</option>
             {projectManagers.map((pm) => (
-              <option key={pm.id} value={pm.id}>{pm.name}</option>
+              <option key={pm.id} value={pm.id}>
+                {pm.name}
+              </option>
             ))}
           </select>
         </div>
@@ -300,25 +439,27 @@ const BusinessProjectsPage = () => {
       <div className="projects-table-container">
         <div className="table-header">
           <div className="header-left">
-            <h3>Danh Sách Dự Án</h3>
-            <span className="project-count">{filteredProjects.length} dự án</span>
+            <h3>Project List</h3>
+            <span className="project-count">
+              {filteredProjects.length} projects
+            </span>
           </div>
         </div>
 
         <div className="projects-table">
           <div className="table-header-row">
-            <div className="col-project">Dự án</div>
+            <div className="col-project">Project</div>
             <div className="col-pm">Project Managers</div>
-            <div className="col-status">Trạng thái</div>
-            <div className="col-progress">Tiến độ</div>
-            <div className="col-members">Thành viên</div>
+            <div className="col-status">Status</div>
+            <div className="col-progress">Progress</div>
+            <div className="col-members">Members</div>
             <div className="col-tasks">Tasks</div>
-            <div className="col-dates">Thời gian</div>
+            <div className="col-dates">Timeline</div>
           </div>
 
           {filteredProjects.map((project) => (
-            <div 
-              key={project.id} 
+            <div
+              key={project.id}
               className="table-row"
               onClick={() => handleProjectClick(project.id)}
             >
@@ -326,7 +467,9 @@ const BusinessProjectsPage = () => {
                 <div className="project-info">
                   <div className="project-details">
                     <div className="project-name">{project.name}</div>
-                    <div className="project-description">{project.description}</div>
+                    <div className="project-description">
+                      {project.description}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -335,26 +478,28 @@ const BusinessProjectsPage = () => {
                 <div className="pm-list">
                   {(() => {
                     const pmIds = projectPMs.get(project.id) || [];
-                    const pms = projectManagers.filter(pm => pmIds.includes(pm.id));
-                    
+                    const pms = projectManagers.filter((pm) =>
+                      pmIds.includes(pm.id)
+                    );
+
                     if (pms.length === 0) {
                       return (
                         <div className="pm-item">
                           <div className="pm-details">
-                            <div className="pm-name">Chưa có PM</div>
+                            <div className="pm-name">No PM assigned</div>
                           </div>
                         </div>
                       );
                     }
-                    
-                    return pms.map(pm => (
+
+                    return pms.map((pm) => (
                       <div key={pm.id} className="pm-item">
                         <div className="pm-avatar">
-                          {pm.name?.charAt(0) || 'P'}
+                          {pm.name?.charAt(0) || "P"}
                         </div>
                         <div className="pm-details">
-                          <div className="pm-name">{pm.name || 'N/A'}</div>
-                          <div className="pm-email">{pm.email || ''}</div>
+                          <div className="pm-name">{pm.name || "N/A"}</div>
+                          <div className="pm-email">{pm.email || ""}</div>
                         </div>
                       </div>
                     ));
@@ -362,44 +507,60 @@ const BusinessProjectsPage = () => {
                 </div>
               </div>
 
-              <div className="col-status">
-                {getStatusBadge(project.status)}
-              </div>
+              <div className="col-status">{getStatusBadge(project.status)}</div>
 
               <div className="col-progress">
                 <div className="progress-container">
                   <div className="progress-bar">
-                    <div 
+                    <div
                       className="progress-fill"
                       style={{
-                        width: `${projectStats.get(project.id)?.progress || 0}%`,
-                        backgroundColor: getProgressColor(projectStats.get(project.id)?.progress || 0)
+                        width: `${
+                          projectStats.get(project.id)?.progress || 0
+                        }%`,
+                        backgroundColor: getProgressColor(
+                          projectStats.get(project.id)?.progress || 0
+                        ),
                       }}
                     />
                   </div>
-                  <span className="progress-text">{projectStats.get(project.id)?.progress || 0}%</span>
+                  <span className="progress-text">
+                    {projectStats.get(project.id)?.progress || 0}%
+                  </span>
                 </div>
               </div>
 
               <div className="col-members">
-                <span className="member-count">{projectStats.get(project.id)?.memberCount || 0} người</span>
+                <span className="member-count">
+                  {projectStats.get(project.id)?.memberCount || 0} members
+                </span>
               </div>
 
               <div className="col-tasks">
                 <div className="task-stats">
-                  <span className="task-completed">{projectStats.get(project.id)?.completedTasks || 0}</span>
+                  <span className="task-completed">
+                    {projectStats.get(project.id)?.completedTasks || 0}
+                  </span>
                   <span className="task-separator">/</span>
-                  <span className="task-total">{projectStats.get(project.id)?.totalTasks || 0}</span>
+                  <span className="task-total">
+                    {projectStats.get(project.id)?.totalTasks || 0}
+                  </span>
                 </div>
               </div>
 
               <div className="col-dates">
                 <div className="date-info">
                   <div className="start-date">
-                    Bắt đầu: {project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : 'N/A'}
+                    Start:{" "}
+                    {project.startDate
+                      ? new Date(project.startDate).toLocaleDateString("en-US")
+                      : "N/A"}
                   </div>
                   <div className="end-date">
-                    Kết thúc: {project.endDate ? new Date(project.endDate).toLocaleDateString('vi-VN') : 'N/A'}
+                    End:{" "}
+                    {project.endDate
+                      ? new Date(project.endDate).toLocaleDateString("en-US")
+                      : "N/A"}
                   </div>
                 </div>
               </div>
@@ -413,7 +574,7 @@ const BusinessProjectsPage = () => {
           max-width: 1400px;
           margin: 0 auto;
           padding: 32px;
-          background: #FAFAFA;
+          background: #fafafa;
           min-height: 100vh;
         }
 
@@ -423,16 +584,16 @@ const BusinessProjectsPage = () => {
           align-items: center;
           margin-bottom: 40px;
           padding: 24px 32px;
-          background: linear-gradient(135deg, #FFF4ED 0%, #FFE8D9 100%);
+          background: linear-gradient(135deg, #fff4ed 0%, #ffe8d9 100%);
           border-radius: 16px;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          border: 1px solid #FFD4B8;
+          border: 1px solid #ffd4b8;
         }
 
         .header-content h1 {
           font-size: 32px;
           font-weight: 700;
-          color: #0D062D;
+          color: #0d062d;
           margin: 0 0 8px 0;
         }
 
@@ -444,7 +605,7 @@ const BusinessProjectsPage = () => {
 
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          grid-template-columns: repeat(4, 1fr);
           gap: 20px;
           margin-bottom: 40px;
         }
@@ -457,18 +618,18 @@ const BusinessProjectsPage = () => {
           display: flex;
           align-items: center;
           gap: 16px;
-          border: 1px solid #F1F1F1;
+          border: 1px solid #f1f1f1;
         }
 
         .stat-icon {
           width: 56px;
           height: 56px;
-          background: #FFF4ED;
+          background: #fff4ed;
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #FF5E13;
+          color: #ff5e13;
         }
 
         .stat-content h3 {
@@ -483,7 +644,7 @@ const BusinessProjectsPage = () => {
         .stat-number {
           font-size: 32px;
           font-weight: 800;
-          color: #FF5E13;
+          color: #ff5e13;
           margin: 0;
         }
 
@@ -518,13 +679,13 @@ const BusinessProjectsPage = () => {
         }
 
         .search-box:focus-within svg {
-          color: #FF5E13;
+          color: #ff5e13;
         }
 
         .search-box input {
           width: 100%;
           padding: 14px 16px 14px 48px;
-          border: 2px solid #E5E7EB;
+          border: 2px solid #e5e7eb;
           border-radius: 12px;
           font-size: 14px;
           font-weight: 500;
@@ -534,21 +695,21 @@ const BusinessProjectsPage = () => {
 
         .search-box input:focus {
           outline: none;
-          border-color: #FF5E13;
+          border-color: #ff5e13;
         }
 
         .search-box input::placeholder {
-          color: #A0AEC0;
+          color: #a0aec0;
         }
 
         .filter-group select {
           padding: 14px 20px;
-          border: 2px solid #E5E7EB;
+          border: 2px solid #e5e7eb;
           border-radius: 12px;
           font-size: 14px;
           font-weight: 600;
           background: white;
-          color: #0D062D;
+          color: #0d062d;
           cursor: pointer;
           transition: all 0.3s ease;
           min-width: 180px;
@@ -556,13 +717,13 @@ const BusinessProjectsPage = () => {
         }
 
         .filter-group select:hover {
-          border-color: #FFD4B8;
+          border-color: #ffd4b8;
           box-shadow: 0 4px 12px rgba(255, 94, 19, 0.08);
         }
 
         .filter-group select:focus {
           outline: none;
-          border-color: #FF5E13;
+          border-color: #ff5e13;
           box-shadow: 0 4px 16px rgba(255, 94, 19, 0.15);
         }
 
@@ -571,18 +732,18 @@ const BusinessProjectsPage = () => {
           border-radius: 16px;
           box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
           overflow: hidden;
-          border: 1px solid #F1F1F1;
+          border: 1px solid #f1f1f1;
           position: relative;
         }
 
         .projects-table-container::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: 0;
           right: 0;
           height: 3px;
-          background: linear-gradient(90deg, #FF5E13, #FF8C42, #FFA463);
+          background: linear-gradient(90deg, #ff5e13, #ff8c42, #ffa463);
         }
 
         .table-header {
@@ -590,8 +751,8 @@ const BusinessProjectsPage = () => {
           justify-content: space-between;
           align-items: center;
           padding: 24px 32px;
-          border-bottom: 2px solid #F8F9FA;
-          background: #FAFBFC;
+          border-bottom: 2px solid #f8f9fa;
+          background: #fafbfc;
         }
 
         .header-left {
@@ -603,7 +764,7 @@ const BusinessProjectsPage = () => {
         .table-header h3 {
           font-size: 20px;
           font-weight: 700;
-          color: #0D062D;
+          color: #0d062d;
           margin: 0;
         }
 
@@ -622,13 +783,13 @@ const BusinessProjectsPage = () => {
           grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 1fr 1.5fr;
           gap: 20px;
           padding: 18px 32px;
-          background: #FFF4ED;
+          background: #fff4ed;
           font-size: 12px;
           font-weight: 700;
-          color: #FF5E13;
+          color: #ff5e13;
           text-transform: uppercase;
           letter-spacing: 0.8px;
-          border-bottom: 1px solid #FFE8D9;
+          border-bottom: 1px solid #ffe8d9;
         }
 
         .table-row {
@@ -636,7 +797,7 @@ const BusinessProjectsPage = () => {
           grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 1fr 1.5fr;
           gap: 20px;
           padding: 24px 32px;
-          border-bottom: 1px solid #F8F9FA;
+          border-bottom: 1px solid #f8f9fa;
           align-items: start;
           transition: all 0.3s ease;
           background: white;
@@ -645,18 +806,18 @@ const BusinessProjectsPage = () => {
         }
 
         .table-row::before {
-          content: '';
+          content: "";
           position: absolute;
           left: 0;
           top: 0;
           bottom: 0;
           width: 0;
-          background: #FF5E13;
+          background: #ff5e13;
           transition: width 0.3s ease;
         }
 
         .table-row:hover {
-          background: #FFFBF8;
+          background: #fffbf8;
           transform: translateX(4px);
         }
 
@@ -686,17 +847,17 @@ const BusinessProjectsPage = () => {
         .project-name {
           font-size: 15px;
           font-weight: 700;
-          color: #0D062D;
+          color: #0d062d;
           transition: color 0.3s ease;
         }
 
         .table-row:hover .project-name {
-          color: #FF5E13;
+          color: #ff5e13;
         }
 
         .project-description {
           font-size: 13px;
-          color: #64748B;
+          color: #64748b;
           font-weight: 500;
           line-height: 1.4;
         }
@@ -723,15 +884,15 @@ const BusinessProjectsPage = () => {
         .pm-avatar {
           width: 32px;
           height: 32px;
-          background: #FFF4ED;
-          color: #FF5E13;
+          background: #fff4ed;
+          color: #ff5e13;
           border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
           font-size: 13px;
-          border: 2px solid #FFE8D9;
+          border: 2px solid #ffe8d9;
           flex-shrink: 0;
         }
 
@@ -745,7 +906,7 @@ const BusinessProjectsPage = () => {
         .pm-name {
           font-size: 13px;
           font-weight: 600;
-          color: #0D062D;
+          color: #0d062d;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -753,7 +914,7 @@ const BusinessProjectsPage = () => {
 
         .pm-email {
           font-size: 11px;
-          color: #94A3B8;
+          color: #94a3b8;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -761,14 +922,14 @@ const BusinessProjectsPage = () => {
 
         .pm-more {
           font-size: 11px;
-          color: #FF5E13;
+          color: #ff5e13;
           font-weight: 600;
           padding: 6px 10px;
-          background: #FFF4ED;
+          background: #fff4ed;
           border-radius: 6px;
           display: inline-block;
           margin-top: 4px;
-          border: 1px solid #FFE8D9;
+          border: 1px solid #ffe8d9;
         }
 
         .col-status {
@@ -806,7 +967,7 @@ const BusinessProjectsPage = () => {
         .progress-bar {
           flex: 1;
           height: 8px;
-          background: #E5E7EB;
+          background: #e5e7eb;
           border-radius: 8px;
           overflow: hidden;
         }
@@ -851,15 +1012,15 @@ const BusinessProjectsPage = () => {
         }
 
         .task-completed {
-          color: #10B981;
+          color: #10b981;
         }
 
         .task-separator {
-          color: #94A3B8;
+          color: #94a3b8;
         }
 
         .task-total {
-          color: #64748B;
+          color: #64748b;
         }
 
         .col-dates {
@@ -875,9 +1036,10 @@ const BusinessProjectsPage = () => {
           width: 100%;
         }
 
-        .start-date, .end-date {
+        .start-date,
+        .end-date {
           font-size: 12px;
-          color: #64748B;
+          color: #64748b;
           font-weight: 600;
         }
 
@@ -899,16 +1061,44 @@ const BusinessProjectsPage = () => {
             justify-content: space-between;
             align-items: center;
             padding: 12px 0;
-            border-bottom: 1px solid #F3F4F6;
+            border-bottom: 1px solid #f3f4f6;
           }
 
-          .col-project::before { content: "Dự án: "; font-weight: 700; color: #FF5E13; }
-          .col-pm::before { content: "PMs: "; font-weight: 700; color: #FF5E13; }
-          .col-status::before { content: "Trạng thái: "; font-weight: 700; color: #FF5E13; }
-          .col-progress::before { content: "Tiến độ: "; font-weight: 700; color: #FF5E13; }
-          .col-members::before { content: "Thành viên: "; font-weight: 700; color: #FF5E13; }
-          .col-tasks::before { content: "Tasks: "; font-weight: 700; color: #FF5E13; }
-          .col-dates::before { content: "Thời gian: "; font-weight: 700; color: #FF5E13; }
+          .col-project::before {
+            content: "Project: ";
+            font-weight: 700;
+            color: #ff5e13;
+          }
+          .col-pm::before {
+            content: "PMs: ";
+            font-weight: 700;
+            color: #ff5e13;
+          }
+          .col-status::before {
+            content: "Status: ";
+            font-weight: 700;
+            color: #ff5e13;
+          }
+          .col-progress::before {
+            content: "Progress: ";
+            font-weight: 700;
+            color: #ff5e13;
+          }
+          .col-members::before {
+            content: "Members: ";
+            font-weight: 700;
+            color: #ff5e13;
+          }
+          .col-tasks::before {
+            content: "Tasks: ";
+            font-weight: 700;
+            color: #ff5e13;
+          }
+          .col-dates::before {
+            content: "Timeline: ";
+            font-weight: 700;
+            color: #ff5e13;
+          }
         }
 
         @media (max-width: 768px) {
@@ -956,13 +1146,15 @@ const BusinessProjectsPage = () => {
           width: 50px;
           height: 50px;
           border: 4px solid #f3f4f6;
-          border-top-color: #FF5E13;
+          border-top-color: #ff5e13;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
 
         @keyframes spin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .error-container h2 {
@@ -979,7 +1171,7 @@ const BusinessProjectsPage = () => {
 
         .error-container button {
           padding: 10px 24px;
-          background: #FF5E13;
+          background: #ff5e13;
           color: white;
           border: none;
           border-radius: 8px;
@@ -990,7 +1182,7 @@ const BusinessProjectsPage = () => {
         }
 
         .error-container button:hover {
-          background: #E54D0F;
+          background: #e54d0f;
           transform: translateY(-1px);
         }
       `}</style>
