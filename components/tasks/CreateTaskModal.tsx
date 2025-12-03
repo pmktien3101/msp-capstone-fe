@@ -137,6 +137,10 @@ export const CreateTaskModal = ({
   };
 
   const handleSave = async () => {
+    if (!user?.userId) {
+      toast.error("User not authenticated");
+      return;
+    }
     if (!taskData.title.trim()) {
       toast.error('Please enter task title');
       return;
@@ -171,6 +175,7 @@ export const CreateTaskModal = ({
         title: taskData.title.trim(),
         description: taskData.description.trim(),
         status: taskData.status,
+        actorId: user.userId,
         userId: taskData.userId,
         reviewerId: taskData.reviewerId || undefined,
         startDate: new Date(taskData.startDate).toISOString(),
