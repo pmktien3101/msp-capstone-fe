@@ -37,7 +37,7 @@
 }
 
 // Header
-.modal-header {
+.task-detail-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -68,7 +68,7 @@
 }
 
 // Body
-.modal-body {
+.task-detail-modal-body {
   display: flex;
   flex: 1;
   overflow: hidden;
@@ -529,7 +529,7 @@
 }
 
 // Footer
-.modal-footer {
+.task-detail-modal-footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -574,7 +574,7 @@
     min-width: 0;
   }
 
-  .modal-body {
+  .task-detail-modal-body {
     flex-direction: column;
   }
 
@@ -596,7 +596,7 @@
     min-width: 0;
   }
 
-  .modal-header {
+  .task-detail-modal-header {
     padding: 16px;
 
     h2 {

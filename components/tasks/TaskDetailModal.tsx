@@ -462,7 +462,7 @@ export const TaskDetailModal = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="modal-header">
+        <div className="task-detail-modal-header">
           <h2>{mode === "view" ? "Task Details" : "Edit Task"}</h2>
           <button className="close-btn" onClick={onClose}>
             <X size={24} />
@@ -470,7 +470,7 @@ export const TaskDetailModal = ({
         </div>
 
         {/* Body with 2 columns */}
-        <div className="modal-body">
+        <div className="task-detail-modal-body">
           {/* Left Panel - 60% */}
           <div className="left-panel">
             {/* Title */}
@@ -993,7 +993,7 @@ export const TaskDetailModal = ({
         </div>
 
         {/* Footer */}
-        <div className="modal-footer">
+        <div className="task-detail-modal-footer">
           <button className="cancel-btn" onClick={onClose}>
             Cancel
           </button>
