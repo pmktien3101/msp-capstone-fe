@@ -38,8 +38,8 @@ export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
 
   return (
     <div className="status-overview">
-      <div className="section-header">
-        <div className="section-title">
+      <div className="status-section-header">
+        <div className="status-section-title">
           <h3>Status Overview</h3>
           <p>View the status overview of your tasks.</p>
         </div>
@@ -139,21 +139,21 @@ export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        .section-header {
+        .status-section-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
           margin-bottom: 24px;
         }
 
-        .section-title h3 {
+        .status-section-title h3 {
           font-size: 16px;
           font-weight: 600;
           color: #1f2937;
           margin: 0 0 4px 0;
         }
 
-        .section-title p {
+        .status-section-title p {
           font-size: 14px;
           color: #6b7280;
           margin: 0;

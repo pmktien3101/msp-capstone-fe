@@ -143,7 +143,7 @@ export const ProjectSection = ({ isExpanded, onToggle }: ProjectSectionProps) =>
     <div className="project-section">
       {/* Section Header */}
       <div 
-        className={`section-header ${isAnyProjectActive ? 'has-active' : ''}`}
+        className={`project-section-header ${isAnyProjectActive ? 'has-active' : ''}`}
         onClick={onToggle}
       >
         <div className="section-title">

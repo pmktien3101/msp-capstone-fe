@@ -81,7 +81,7 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
     return (
       <div className="team-workload">
         <div className="section-header">
-          <div className="section-title">
+          <div className="team-workload-section-title">
             <h3>Team Members</h3>
             <p>List of members and their assigned tasks.</p>
           </div>
@@ -97,8 +97,8 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
   if (isLoading) {
     return (
       <div className="team-workload">
-        <div className="section-header">
-          <div className="section-title">
+        <div className="team-workload-section-header">
+          <div className="team-workload-section-title">
             <h3>Team Members</h3>
             <p>List of members and their assigned tasks.</p>
           </div>
@@ -152,8 +152,8 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
 
   return (
     <div className="team-workload">
-      <div className="section-header">
-        <div className="section-title">
+      <div className="team-workload-section-header">
+        <div className="team-workload-section-title">
           <h3>Team Members</h3>
           <p>List of members and their assigned tasks.</p>
         </div>
@@ -218,18 +218,18 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        .section-header {
+        .team-workload-section-header {
           margin-bottom: 24px;
         }
 
-        .section-title h3 {
+        .team-workload-section-title h3 {
           font-size: 16px;
           font-weight: 600;
           color: #1f2937;
           margin: 0 0 4px 0;
         }
 
-        .section-title p {
+        .team-workload-section-title p {
           font-size: 14px;
           color: #6b7280;
           margin: 0;

@@ -1,20 +1,19 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { NotificationHub } from './useNotificationHub';
 import { getAccessToken } from '@/lib/auth';
 import { notificationService } from '@/services/notificationService';
 import type { NotificationResponse } from '@/types/notification';
 import { toast } from 'react-toastify';
+import { signalRConfig } from '@/config/signalr.config';
 
 interface UseNotificationsOptions {
   userId: string;
-  accessToken?: string;
   autoConnect?: boolean;
   showToast?: boolean;
 }
 
 export const useNotifications = ({
   userId,
-  accessToken,
   autoConnect = true,
   showToast = true,
 }: UseNotificationsOptions) => {
@@ -22,104 +21,122 @@ export const useNotifications = ({
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   
   const hubRef = useRef<NotificationHub | null>(null);
+  const isInitializedRef = useRef(false);
 
-  // Initialize SignalR Hub
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || isInitializedRef.current) return;
 
-    const baseUrl = 'https://localhost:7129';
-    // access token factory so SignalR negotiate gets current token
-    const accessTokenFactory = () => getAccessToken() ?? '';
-
-    const hub = NotificationHub.getInstance(baseUrl, userId, accessTokenFactory);
-    hubRef.current = hub;
-
-    // Setup event handlers and capture unsubscribe functions
-    const offReceive = hub.onNotificationReceived((notification) => {
-      console.log('📬 New notification:', notification);
+    const accessTokenFactory = () => {
+      const token = getAccessToken();
+      if (!token) {
+        console.warn('⚠️ No access token available');
+        return '';
+      }
       
-      // Add to notifications list
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const exp = payload.exp * 1000;
+        const now = Date.now();
+        const minutesLeft = Math.floor((exp - now) / 60000);
+        console.log(`🔑 Token expires in ${minutesLeft}m`);
+      } catch (err) {
+        console.error('❌ Token parse error:', err);
+      }
+      
+      return token;
+    };
+
+    const hub = NotificationHub.getInstance(userId, accessTokenFactory);
+    hubRef.current = hub;
+    isInitializedRef.current = true;
+
+    const offReceive = hub.onNotificationReceived((notification) => {
       setNotifications((prev) => [notification, ...prev]);
       
-      // Update unread count
       if (!notification.isRead) {
         setUnreadCount((prev) => prev + 1);
       }
 
-      // Show toast notification
       if (showToast) {
         toast.info(`${notification.title}\n${notification.message}`, {
           position: 'top-right',
           autoClose: 5000,
+          hideProgressBar: false,
         });
       }
     });
 
-    const offUnread = hub.onUnreadCountUpdated((count) => {
-      console.log('🔢 Unread count updated:', count);
+    const offUnread = hub.onUnreadCountUpdated((count: number) => {
       setUnreadCount(count);
     });
 
-    const offRead = hub.onNotificationRead((notificationId) => {
-      console.log('✓ Notification marked as read:', notificationId);
-      
-      // Update notification in list
+    const offRead = hub.onNotificationRead((notificationId: string) => {
       setNotifications((prev) =>
         prev.map((n) =>
-          n.id === notificationId ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
+          n.id === notificationId 
+            ? { ...n, isRead: true, readAt: new Date().toISOString() } 
+            : n
         )
       );
+      
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     });
 
-    // Auto-connect if enabled
     if (autoConnect) {
+      let isMounted = true;
+      
       hub.start()
         .then(() => {
+          if (!isMounted) return;
+          
           setIsConnected(true);
-          console.log('✅ SignalR auto-connected');
+          setConnectionError(null);
 
-          // Ensure the client is in the user's personal group so server pushes
-          // to `user_{userId}` will be received even if server didn't add the
-          // group on OnConnected (auth/claims mismatch cases).
-          if (userId) {
-            hub.joinGroup(`user_${userId}`)
-              .then(() => console.debug('Joined personal user group', `user_${userId}`))
-              .catch((err) => console.error('Failed to join personal user group', err));
-          }
+          const userGroup = signalRConfig.groups.userGroup(userId);
+          return hub.joinGroup(userGroup);
         })
-        .catch((err) => {
+        .then(() => {
+          // Silent success
+        })
+        .catch((err: any) => {
+          if (!isMounted) return;
+          
           setIsConnected(false);
-          console.error('❌ SignalR auto-connect failed:', err);
+          setConnectionError(err?.message || 'Connection failed');
+          console.error('❌ Auto-connect failed:', err);
         });
+
+      return () => {
+        isMounted = false;
+        
+        try {
+          if (offReceive) offReceive();
+          if (offUnread) offUnread();
+          if (offRead) offRead();
+        } catch (err) {
+          console.error('❌ Error removing handlers:', err);
+        }
+
+        setIsConnected(false);
+      };
     }
 
-    // Cleanup on unmount: remove handlers and optionally stop
     return () => {
       try {
-        offReceive && offReceive();
-        offUnread && offUnread();
-        offRead && offRead();
+        if (offReceive) offReceive();
+        if (offUnread) offUnread();
+        if (offRead) offRead();
       } catch (err) {
-        // ignore
+        console.error('❌ Error removing handlers:', err);
       }
-
-      if (hubRef.current) {
-        // We stop the connection to avoid stray connections when user leaves
-        hubRef.current.stop()
-          .then(() => {
-            setIsConnected(false);
-            console.log('🔌 SignalR disconnected on cleanup');
-          })
-          .catch((err) => {
-            console.error('Error disconnecting SignalR:', err);
-          });
-      }
+      
+      isInitializedRef.current = false;
     };
-  }, [userId, accessToken, autoConnect, showToast]);
+  }, [userId, autoConnect, showToast]);
 
-  // Fetch all notifications
   const fetchNotifications = useCallback(async () => {
     if (!userId) return;
     
@@ -129,17 +146,17 @@ export const useNotifications = ({
       if (result.success && result.data) {
         setNotifications(result.data);
       } else {
-        console.error('Failed to fetch notifications:', result.error);
+        console.error('❌ Fetch notifications failed:', result.error);
         toast.error('Không thể tải thông báo');
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('❌ Fetch notifications error:', error);
+      toast.error('Lỗi khi tải thông báo');
     } finally {
       setIsLoading(false);
     }
   }, [userId]);
 
-  // Fetch unread notifications
   const fetchUnreadNotifications = useCallback(async () => {
     if (!userId) return;
     
@@ -149,16 +166,15 @@ export const useNotifications = ({
       if (result.success && result.data) {
         setNotifications(result.data);
       } else {
-        console.error('Failed to fetch unread notifications:', result.error);
+        console.error('❌ Fetch unread failed:', result.error);
       }
     } catch (error) {
-      console.error('Error fetching unread notifications:', error);
+      console.error('❌ Fetch unread error:', error);
     } finally {
       setIsLoading(false);
     }
   }, [userId]);
 
-  // Fetch unread count
   const fetchUnreadCount = useCallback(async () => {
     if (!userId) return;
     
@@ -168,38 +184,45 @@ export const useNotifications = ({
         setUnreadCount(result.data);
       }
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      console.error('❌ Fetch count error:', error);
     }
   }, [userId]);
 
-  // Mark notification as read
   const markAsRead = useCallback(async (notificationId: string) => {
     try {
       const result = await notificationService.markAsRead(notificationId);
       if (result.success) {
-        // Update local state
         setNotifications((prev) =>
           prev.map((n) =>
-            n.id === notificationId ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
+            n.id === notificationId 
+              ? { ...n, isRead: true, readAt: new Date().toISOString() } 
+              : n
           )
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
+        
+        if (hubRef.current?.isConnectionActive()) {
+          try {
+            await hubRef.current.markNotificationAsRead(notificationId);
+          } catch (err) {
+            console.warn('⚠️ SignalR notify failed:', err);
+          }
+        }
       } else {
         toast.error('Không thể đánh dấu đã đọc');
       }
     } catch (error) {
-      console.error('Error marking as read:', error);
+      console.error('❌ Mark read error:', error);
+      toast.error('Lỗi khi đánh dấu đã đọc');
     }
   }, []);
 
-  // Mark all as read
   const markAllAsRead = useCallback(async () => {
     if (!userId) return;
     
     try {
       const result = await notificationService.markAllAsRead(userId);
       if (result.success) {
-        // Update local state
         setNotifications((prev) =>
           prev.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
         );
@@ -209,49 +232,93 @@ export const useNotifications = ({
         toast.error('Không thể đánh dấu tất cả');
       }
     } catch (error) {
-      console.error('Error marking all as read:', error);
+      console.error('❌ Mark all error:', error);
+      toast.error('Lỗi khi đánh dấu tất cả');
     }
   }, [userId]);
 
-  // Delete notification
   const deleteNotification = useCallback(async (notificationId: string) => {
     try {
       const result = await notificationService.deleteNotification(notificationId);
       if (result.success) {
-        // Remove from local state
-        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-        
-        // Update unread count if notification was unread
         const notification = notifications.find((n) => n.id === notificationId);
         if (notification && !notification.isRead) {
           setUnreadCount((prev) => Math.max(0, prev - 1));
         }
+        
+        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
         
         toast.success('Đã xóa thông báo');
       } else {
         toast.error('Không thể xóa thông báo');
       }
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      console.error('❌ Delete error:', error);
+      toast.error('Lỗi khi xóa thông báo');
     }
   }, [notifications]);
 
-  // Manual connect/disconnect
   const connect = useCallback(async () => {
-    if (hubRef.current && !isConnected) {
+    if (!hubRef.current) {
+      console.error('❌ Hub not initialized');
+      return;
+    }
+    
+    if (isConnected) return;
+    
+    try {
       await hubRef.current.start();
       setIsConnected(true);
+      setConnectionError(null);
+      
+      const userGroup = signalRConfig.groups.userGroup(userId);
+      await hubRef.current.joinGroup(userGroup);
+    } catch (err: any) {
+      setConnectionError(err?.message || 'Connection failed');
+      console.error('❌ Manual connect failed:', err);
+      throw err;
     }
-  }, [isConnected]);
+  }, [isConnected, userId]);
 
   const disconnect = useCallback(async () => {
-    if (hubRef.current && isConnected) {
+    if (!hubRef.current) return;
+    
+    try {
       await hubRef.current.stop();
       setIsConnected(false);
+    } catch (err) {
+      console.error('❌ Disconnect error:', err);
     }
-  }, [isConnected]);
+  }, []);
 
-  // Load initial data on mount
+  const joinGroup = useCallback(async (groupName: string) => {
+    if (!hubRef.current) {
+      console.error('❌ Hub not initialized');
+      return;
+    }
+    
+    try {
+      await hubRef.current.joinGroup(groupName);
+    } catch (err) {
+      console.error(`❌ Join group ${groupName} failed:`, err);
+      throw err;
+    }
+  }, []);
+
+  const leaveGroup = useCallback(async (groupName: string) => {
+    if (!hubRef.current) {
+      console.error('❌ Hub not initialized');
+      return;
+    }
+    
+    try {
+      await hubRef.current.leaveGroup(groupName);
+    } catch (err) {
+      console.error(`❌ Leave group ${groupName} failed:`, err);
+      throw err;
+    }
+  }, []);
+
   useEffect(() => {
     if (userId && autoConnect) {
       fetchNotifications();
@@ -259,14 +326,26 @@ export const useNotifications = ({
     }
   }, [userId, autoConnect, fetchNotifications, fetchUnreadCount]);
 
+  useEffect(() => {
+    if (!hubRef.current) return;
+
+    const interval = setInterval(() => {
+      const state = hubRef.current?.getState();
+      if (state) {
+        setIsConnected(state.isConnected);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return {
-    // State
     notifications,
     unreadCount,
     isLoading,
     isConnected,
+    connectionError,
     
-    // Actions
     fetchNotifications,
     fetchUnreadNotifications,
     fetchUnreadCount,
@@ -275,8 +354,10 @@ export const useNotifications = ({
     deleteNotification,
     connect,
     disconnect,
+    joinGroup,
+    leaveGroup,
     
-    // Hub reference (for advanced usage)
     hub: hubRef.current,
+    hubState: hubRef.current?.getState(),
   };
 };

@@ -133,28 +133,28 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
   ];
 
   return (
-    <div className="overview-cards">
+    <div className="overview-cards-123">
       {overviewData.map((card) => (
-        <div key={card.id} className="overview-card">
-          <div className="card-icon" style={{ color: card.color }}>
+        <div key={card.id} className="overview-card-123">
+          <div className="card-icon-123" style={{ color: card.color }}>
             {card.icon}
           </div>
-          <div className="card-content">
-            <h3 className="card-title">{card.title}</h3>
-            <p className="card-subtitle">{card.subtitle}</p>
+          <div className="card-content-123">
+            <h3 className="card-title-123">{card.title}</h3>
+            <p className="card-subtitle-123">{card.subtitle}</p>
           </div>
         </div>
       ))}
 
       <style jsx>{`
-        .overview-cards {
+        .overview-cards-123 {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 18px;
           margin-bottom: 28px;
         }
 
-        .overview-card {
+        .overview-card-123 {
           background: white;
           border: 1px solid #e5e7eb;
           border-radius: 10px;
@@ -166,12 +166,12 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        .overview-card:hover {
+        .overview-card-123:hover {
           box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
           transform: translateY(-1px);
         }
 
-        .card-icon {
+        .card-icon-123 {
           width: 40px;
           height: 40px;
           display: flex;
@@ -182,11 +182,11 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
           flex-shrink: 0;
         }
 
-        .card-content {
+        .card-content-123 {
           flex: 1;
         }
 
-        .card-title {
+        .card-title-123 {
           font-size: 20px;
           font-weight: 600;
           color: #1f2937;
@@ -194,7 +194,7 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
           line-height: 1.2;
         }
 
-        .card-subtitle {
+        .card-subtitle-123 {
           font-size: 13px;
           color: #6b7280;
           margin: 0;
@@ -202,16 +202,16 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
         }
 
         @media (max-width: 768px) {
-          .overview-cards {
+          .overview-cards-123 {
             grid-template-columns: 1fr;
             gap: 14px;
           }
 
-          .overview-card {
+          .overview-card-123 {
             padding: 16px;
           }
 
-          .card-title {
+          .card-title-123 {
             font-size: 18px;
           }
         }

@@ -71,7 +71,7 @@ export const QuickActions = ({ projects }: QuickActionsProps) => {
   return (
     <div className="quick-actions">
       {/* Header */}
-      <div className="section-header">
+      <div className="pm-quick-actions-section-header">
         <h2>Quick Actions</h2>
         <p>Frequently used actions and quick access</p>
       </div>
