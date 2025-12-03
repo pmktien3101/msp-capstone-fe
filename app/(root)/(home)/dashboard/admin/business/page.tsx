@@ -1,10 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Eye, X, Search, CheckCircle, XCircle, UserX } from "lucide-react";
+import {
+  Eye,
+  X,
+  Search,
+  CheckCircle,
+  XCircle,
+  UserX,
+  Briefcase,
+  Users,
+  Clock,
+  UserCheck,
+  UserMinus,
+  Mail,
+  Phone,
+  Building2,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import { userService } from "@/services/userService";
 import type { BusinessOwner } from "@/types/auth";
+import "../../../../../styles/business.scss";
 
 const AdminBusinessOwners = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,6 +37,8 @@ const AdminBusinessOwners = () => {
   const [selectedBusinessOwner, setSelectedBusinessOwner] =
     useState<BusinessOwner | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const [businessOwners, setBusinessOwners] = useState<BusinessOwner[]>([]);
 
@@ -54,9 +75,28 @@ const AdminBusinessOwners = () => {
     const matchesFilter =
       filterStatus === "all" ||
       (filterStatus === "pending" && !businessOwner.isApproved) ||
-      (filterStatus === "active" && businessOwner.isApproved);
+      (filterStatus === "active" &&
+        businessOwner.isApproved &&
+        businessOwner.isActive) ||
+      (filterStatus === "inactive" &&
+        businessOwner.isApproved &&
+        !businessOwner.isActive);
     return matchesSearch && matchesFilter;
   });
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredBusinessOwners.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedBusinessOwners = filteredBusinessOwners.slice(
+    startIndex,
+    endIndex
+  );
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, searchTerm]);
 
   const handleDeleteBusinessOwner = (businessOwner: BusinessOwner) => {
     setSelectedBusinessOwner(businessOwner);
@@ -178,213 +218,301 @@ const AdminBusinessOwners = () => {
     const isApproved = businessOwner.isApproved;
     const isActive = businessOwner.isActive;
 
-    const statusConfig = {
-      active: { color: "#D1FAE5", textColor: "#065F46", text: "Active" },
-      inactive: {
-        color: "#F3F4F6",
-        textColor: "#6B7280",
-        text: "Inactive",
-      },
-      pending: { color: "#FEF3C7", textColor: "#D97706", text: "Pending" },
-    };
-
-    let config;
     if (!isApproved) {
-      config = statusConfig.pending;
+      return <span className="status-badge pending">Pending</span>;
     } else if (isActive) {
-      config = statusConfig.active;
+      return <span className="status-badge active">Active</span>;
     } else {
-      config = statusConfig.inactive;
+      return <span className="status-badge inactive">Inactive</span>;
     }
-
-    return (
-      <span
-        className="status-badge"
-        style={{
-          backgroundColor: config.color,
-          color: config.textColor,
-        }}
-      >
-        {config.text}
-      </span>
-    );
   };
 
+  // Stats calculations
+  const totalOwners = businessOwners.length;
+  const pendingCount = businessOwners.filter((bo) => !bo.isApproved).length;
+  const activeCount = businessOwners.filter(
+    (bo) => bo.isApproved && bo.isActive
+  ).length;
+  const inactiveCount = businessOwners.filter(
+    (bo) => bo.isApproved && !bo.isActive
+  ).length;
+
   return (
-    <div className="admin-business-owners">
+    <div className="admin-business">
+      {/* Page Header */}
       <div className="page-header">
-        <h1>Manage Business Owners</h1>
+        <h1>
+          <Briefcase size={26} className="header-icon" />
+          Manage Business Owners
+        </h1>
         <p>Manage all business owners using the system</p>
       </div>
 
-      {/* Filters */}
-      <div className="filters-section">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="Search by name, email, or organization..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <span className="search-icon">
-            <Search size={16} />
-          </span>
-        </div>
-
-        <div className="filter-buttons">
-          <button
-            className={`filter-btn ${filterStatus === "all" ? "active" : ""}`}
-            onClick={() => setFilterStatus("all")}
-          >
-            All
-          </button>
-          <button
-            className={`filter-btn ${
-              filterStatus === "pending" ? "active" : ""
-            }`}
-            onClick={() => setFilterStatus("pending")}
-          >
-            Pending
-          </button>
-          <button
-            className={`filter-btn ${
-              filterStatus === "active" ? "active" : ""
-            }`}
-            onClick={() => setFilterStatus("active")}
-          >
-            Active
-          </button>
-          <button
-            className={`filter-btn ${
-              filterStatus === "inactive" ? "active" : ""
-            }`}
-            onClick={() => setFilterStatus("inactive")}
-          >
-            Inactive
-          </button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="stats-row">
-        <div className="stat-item">
-          <span className="stat-number">{businessOwners.length}</span>
-          <span className="stat-label">Total Owners</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-number">
-            {businessOwners.filter((bo) => !bo.isApproved).length}
-          </span>
-          <span className="stat-label">Pending</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-number">
-            {businessOwners.filter((bo) => bo.isApproved).length}
-          </span>
-          <span className="stat-label">Active</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-number">
-            {
-              businessOwners.filter((bo) => bo.isApproved && !bo.isActive)
-                .length
-            }
-          </span>
-          <span className="stat-label">Inactive</span>
-        </div>
-      </div>
-
-      {/* Business Owners Table */}
-      <div className="business-owners-table">
-        <div className="table-header">
-          <div className="table-cell">Full Name</div>
-          <div className="table-cell">Email</div>
-          <div className="table-cell">Phone</div>
-          <div className="table-cell">Organization</div>
-          <div className="table-cell">Status</div>
-          <div className="table-cell">Account Created</div>
-          <div className="table-cell">Actions</div>
-        </div>
-
-        {filteredBusinessOwners.map((businessOwner) => (
-          <div key={businessOwner.id} className="table-row">
-            <div className="table-cell" data-label="Full Name">
-              <div className="business-owner-info">
-                <div className="business-owner-avatar">
-                  {businessOwner.fullName.charAt(0)}
-                </div>
-                <span className="business-owner-name">
-                  {businessOwner.fullName}
-                </span>
-              </div>
-            </div>
-            <div className="table-cell" data-label="Email">
-              {businessOwner.email}
-            </div>
-            <div className="table-cell" data-label="Phone">
-              {businessOwner.phoneNumber}
-            </div>
-            <div className="table-cell" data-label="Organization">
-              <span className="organization-badge">
-                {businessOwner.organization}
-              </span>
-            </div>
-            <div className="table-cell" data-label="Status">
-              {getStatusBadge(businessOwner)}
-            </div>
-            <div className="table-cell" data-label="Account Created">
-              {new Date(businessOwner.createdAt).toLocaleDateString("en-US")}
-            </div>
-            <div className="table-cell" data-label="Actions">
-              <div className="action-buttons">
-                <button
-                  className="action-btn view"
-                  title="View Details"
-                  onClick={() => handleViewBusinessOwner(businessOwner)}
-                >
-                  <Eye size={16} />
-                </button>
-                {!businessOwner.isApproved ? (
-                  <>
-                    <button
-                      className="action-btn approve"
-                      title="Approve"
-                      onClick={() => handleApproveBusinessOwner(businessOwner)}
-                    >
-                      <CheckCircle size={16} />
-                    </button>
-                    <button
-                      className="action-btn reject"
-                      title="Reject"
-                      onClick={() => handleRejectBusinessOwner(businessOwner)}
-                    >
-                      <XCircle size={16} />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {/* Edit button removed per request */}
-                    {businessOwner.isApproved && (
-                      <button
-                        className={`action-btn ${
-                          businessOwner.isActive ? "deactivate" : "activate"
-                        }`}
-                        title={
-                          businessOwner.isActive ? "Deactivate" : "Activate"
-                        }
-                        onClick={() =>
-                          handleDeactivateBusinessOwner(businessOwner)
-                        }
-                      >
-                        <UserX size={16} />
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
+      {/* Stats Grid */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-header">
+            <span className="stat-label">Total Owners</span>
+            <div className="stat-icon total">
+              <Users size={16} />
             </div>
           </div>
-        ))}
+          <div className="stat-value">{totalOwners}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-header">
+            <span className="stat-label">Pending</span>
+            <div className="stat-icon pending">
+              <Clock size={16} />
+            </div>
+          </div>
+          <div className="stat-value">{pendingCount}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-header">
+            <span className="stat-label">Active</span>
+            <div className="stat-icon active">
+              <UserCheck size={16} />
+            </div>
+          </div>
+          <div className="stat-value">{activeCount}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-header">
+            <span className="stat-label">Inactive</span>
+            <div className="stat-icon inactive">
+              <UserMinus size={16} />
+            </div>
+          </div>
+          <div className="stat-value">{inactiveCount}</div>
+        </div>
+      </div>
+
+      {/* Filters Card */}
+      <div className="filters-card">
+        <div className="filters-row">
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder="Search by name, email, or organization..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <span className="search-icon">
+              <Search size={15} />
+            </span>
+          </div>
+
+          <div className="filter-tabs">
+            <button
+              className={`filter-tab ${filterStatus === "all" ? "active" : ""}`}
+              onClick={() => setFilterStatus("all")}
+            >
+              All
+            </button>
+            <button
+              className={`filter-tab ${
+                filterStatus === "pending" ? "active" : ""
+              }`}
+              onClick={() => setFilterStatus("pending")}
+            >
+              Pending
+            </button>
+            <button
+              className={`filter-tab ${
+                filterStatus === "active" ? "active" : ""
+              }`}
+              onClick={() => setFilterStatus("active")}
+            >
+              Active
+            </button>
+            <button
+              className={`filter-tab ${
+                filterStatus === "inactive" ? "active" : ""
+              }`}
+              onClick={() => setFilterStatus("inactive")}
+            >
+              Inactive
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Table Card */}
+      <div className="table-card">
+        {isLoading ? (
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>Loading business owners...</p>
+          </div>
+        ) : filteredBusinessOwners.length === 0 ? (
+          <div className="empty-state">
+            <Users size={40} className="empty-icon" />
+            <p>No business owners found</p>
+          </div>
+        ) : (
+          <table className="business-table">
+            <thead>
+              <tr>
+                <th>
+                  <div className="th-content">
+                    <Users size={13} />
+                    Full Name
+                  </div>
+                </th>
+                <th>
+                  <div className="th-content">
+                    <Mail size={13} />
+                    Email
+                  </div>
+                </th>
+                <th>
+                  <div className="th-content">
+                    <Phone size={13} />
+                    Phone
+                  </div>
+                </th>
+                <th>
+                  <div className="th-content">
+                    <Building2 size={13} />
+                    Organization
+                  </div>
+                </th>
+                <th>Status</th>
+                <th>
+                  <div className="th-content">
+                    <Calendar size={13} />
+                    Created
+                  </div>
+                </th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedBusinessOwners.map((businessOwner) => (
+                <tr key={businessOwner.id}>
+                  <td data-label="Full Name">
+                    <div className="owner-info">
+                      <div className="owner-avatar">
+                        {businessOwner.fullName.charAt(0)}
+                      </div>
+                      <span className="owner-name">
+                        {businessOwner.fullName}
+                      </span>
+                    </div>
+                  </td>
+                  <td data-label="Email">{businessOwner.email}</td>
+                  <td data-label="Phone">{businessOwner.phoneNumber || "-"}</td>
+                  <td data-label="Organization">
+                    <span className="org-badge">
+                      <Building2 size={12} />
+                      {businessOwner.organization}
+                    </span>
+                  </td>
+                  <td data-label="Status">{getStatusBadge(businessOwner)}</td>
+                  <td data-label="Created">
+                    {new Date(businessOwner.createdAt).toLocaleDateString(
+                      "en-US"
+                    )}
+                  </td>
+                  <td data-label="Actions">
+                    <div className="action-buttons">
+                      <button
+                        className="action-btn view"
+                        title="View Details"
+                        onClick={() => handleViewBusinessOwner(businessOwner)}
+                      >
+                        <Eye size={15} />
+                      </button>
+                      {!businessOwner.isApproved ? (
+                        <>
+                          <button
+                            className="action-btn approve"
+                            title="Approve"
+                            onClick={() =>
+                              handleApproveBusinessOwner(businessOwner)
+                            }
+                          >
+                            <CheckCircle size={15} />
+                          </button>
+                          <button
+                            className="action-btn reject"
+                            title="Reject"
+                            onClick={() =>
+                              handleRejectBusinessOwner(businessOwner)
+                            }
+                          >
+                            <XCircle size={15} />
+                          </button>
+                        </>
+                      ) : (
+                        businessOwner.isApproved && (
+                          <button
+                            className={`action-btn ${
+                              businessOwner.isActive ? "deactivate" : "activate"
+                            }`}
+                            title={
+                              businessOwner.isActive ? "Deactivate" : "Activate"
+                            }
+                            onClick={() =>
+                              handleDeactivateBusinessOwner(businessOwner)
+                            }
+                          >
+                            <UserX size={15} />
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Pagination */}
+        {!isLoading && filteredBusinessOwners.length > 0 && (
+          <div className="pagination">
+            <div className="pagination-info">
+              Showing {startIndex + 1} -{" "}
+              {Math.min(endIndex, filteredBusinessOwners.length)} of{" "}
+              {filteredBusinessOwners.length} business owners
+            </div>
+            <div className="pagination-controls">
+              <button
+                className="pagination-btn"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <div className="pagination-pages">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      className={`pagination-page ${
+                        currentPage === page ? "active" : ""
+                      }`}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+              </div>
+              <button
+                className="pagination-btn"
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Deactivate/Activate Confirmation Modal */}
@@ -646,9 +774,9 @@ const AdminBusinessOwners = () => {
             <button
               className="license-preview-close"
               onClick={() => setShowLicensePreview(false)}
-              title="Đóng"
+              title="Close"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
             <img
               src={selectedBusinessOwner.businessLicense}
@@ -662,801 +790,6 @@ const AdminBusinessOwners = () => {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .admin-business-owners {
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: 24px;
-        }
-
-        .page-header {
-          margin-bottom: 32px;
-        }
-
-        .page-header h1 {
-          font-size: 32px;
-          font-weight: 700;
-          color: #0d062d;
-          margin: 0 0 8px 0;
-        }
-
-        .page-header p {
-          font-size: 16px;
-          color: #787486;
-          margin: 0;
-        }
-
-        .filters-section {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-          gap: 20px;
-        }
-
-        .search-box {
-          position: relative;
-          flex: 1;
-          max-width: 400px;
-        }
-
-        .search-box input {
-          width: 100%;
-          padding: 12px 16px 12px 40px;
-          border: 2px solid #e5e7eb;
-          border-radius: 10px;
-          font-size: 14px;
-          transition: border-color 0.3s ease;
-        }
-
-        .search-box input:focus {
-          outline: none;
-          border-color: #ff5e13;
-        }
-
-        .search-icon {
-          position: absolute;
-          left: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #787486;
-        }
-
-        .filter-buttons {
-          display: flex;
-          gap: 8px;
-        }
-
-        .filter-btn {
-          padding: 8px 16px;
-          border: 2px solid #e5e7eb;
-          background: white;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #787486;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .filter-btn:hover {
-          border-color: #ffa463;
-          color: #ff5e13;
-        }
-
-        .filter-btn.active {
-          background: #ff5e13;
-          border-color: #ff5e13;
-          color: white;
-        }
-
-        .stats-row {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 20px;
-          margin-bottom: 32px;
-        }
-
-        .stat-item {
-          background: white;
-          padding: 20px;
-          border-radius: 12px;
-          text-align: center;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
-
-        .stat-number {
-          display: block;
-          font-size: 24px;
-          font-weight: 700;
-          color: #0d062d;
-          margin-bottom: 4px;
-        }
-
-        .stat-label {
-          font-size: 14px;
-          color: #787486;
-        }
-
-        .business-owners-table {
-          background: white;
-          border-radius: 16px;
-          overflow-x: auto;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          min-width: 100%; /* Đảm bảo bảng có thể scroll ngang */
-        }
-
-        .table-header,
-        .table-row {
-          min-width: 1200px; /* Đặt chiều rộng tối thiểu cho bảng */
-        }
-
-        .table-header {
-          display: grid;
-          grid-template-columns: 180px 200px 140px 180px 120px 160px 140px;
-          background: #f9f4ee;
-          padding: 16px 20px;
-          font-weight: 600;
-          color: #0d062d;
-          font-size: 14px;
-        }
-
-        .table-row {
-          display: grid;
-          grid-template-columns: 180px 200px 140px 180px 120px 160px 140px;
-          padding: 16px 20px;
-          border-bottom: 1px solid #f3f4f6;
-          align-items: center;
-          transition: background 0.3s ease;
-        }
-
-        .table-row:hover {
-          background: #f9f4ee;
-        }
-
-        .table-cell {
-          font-size: 14px;
-          color: #0d062d;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          padding: 0 4px;
-        }
-
-        .business-owner-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .business-owner-avatar {
-          width: 32px;
-          height: 32px;
-          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: 600;
-          font-size: 14px;
-        }
-
-        .business-owner-name {
-          font-weight: 500;
-        }
-
-        .status-badge,
-        .organization-badge {
-          padding: 4px 8px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-        }
-
-        .organization-badge {
-          background: #e0f2fe;
-          color: #0369a1;
-          border: 1px solid #bae6fd;
-        }
-
-        .action-buttons {
-          display: flex;
-          gap: 8px;
-        }
-
-        .action-btn {
-          width: 32px;
-          height: 32px;
-          border: none;
-          background: #f3f4f6;
-          border-radius: 6px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.3s ease;
-        }
-
-        .action-btn:hover {
-          transform: scale(1.1);
-        }
-
-        .action-btn.view {
-          color: #3b82f6;
-        }
-
-        .action-btn.view:hover {
-          background: #dbeafe;
-          color: #1d4ed8;
-        }
-
-        .action-btn.edit {
-          color: #f59e0b;
-        }
-
-        .action-btn.edit:hover {
-          background: #fef3c7;
-          color: #d97706;
-        }
-
-        .action-btn.deactivate {
-          color: #f50b0b;
-        }
-
-        .action-btn.deactivate:hover {
-          background: #fed5c7;
-          color: #f50b0b;
-        }
-
-        .action-btn.activate {
-          color: #10b981;
-        }
-
-        .action-btn.activate:hover {
-          background: #d1fae5;
-          color: #059669;
-        }
-
-        .action-btn.delete {
-          color: #ef4444;
-        }
-
-        .action-btn.delete:hover {
-          background: #fee2e2;
-          color: #dc2626;
-        }
-
-        .action-btn.approve {
-          color: #10b981;
-        }
-
-        .action-btn.approve:hover {
-          background: #d1fae5;
-          color: #059669;
-        }
-
-        .action-btn.reject {
-          color: #ef4444;
-        }
-
-        .action-btn.reject:hover {
-          background: #fee2e2;
-          color: #dc2626;
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal-content {
-          background: white;
-          border-radius: 12px;
-          max-width: 700px; /* tăng lên */
-          width: 98%; /* tăng lên */
-          max-height: 90vh;
-          overflow-y: auto;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-        .detail-modal {
-          max-width: 700px; /* thêm dòng này nếu chưa có */
-          width: 98%;
-        }
-
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px 24px;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .modal-header h3 {
-          margin: 0;
-          font-size: 18px;
-          font-weight: 600;
-          color: #0d062d;
-        }
-
-        .modal-close {
-          background: none;
-          border: none;
-          cursor: pointer;
-          color: #6b7280;
-          padding: 4px;
-          border-radius: 4px;
-          transition: background 0.2s ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .modal-close:hover {
-          background: #f3f4f6;
-        }
-
-        .modal-body {
-          padding: 24px;
-        }
-
-        .modal-body p {
-          margin: 0 0 12px 0;
-          color: #374151;
-          line-height: 1.5;
-        }
-
-        .warning-text {
-          color: #dc2626;
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .info-text {
-          color: #059669;
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .success-text {
-          color: #059669;
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .modal-footer {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          padding: 20px 24px;
-          border-top: 1px solid #e5e7eb;
-        }
-
-        .btn-cancel,
-        .btn-delete,
-        .btn-deactivate,
-        .btn-approve,
-        .btn-reject {
-          padding: 10px 20px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          border: none;
-        }
-
-        .btn-cancel {
-          background: #f3f4f6;
-          color: #0369a1;
-        }
-
-        .btn-cancel:hover {
-          background: #e5e7eb;
-        }
-
-        .btn-delete {
-          background: #dc2626;
-          color: white;
-        }
-
-        .btn-delete:hover {
-          background: #b91c1c;
-        }
-
-        .btn-deactivate {
-          background: #f59e0b;
-          color: white;
-        }
-
-        .btn-deactivate:hover {
-          background: #d97706;
-        }
-
-        .btn-activate {
-          background: #10b981;
-          color: white;
-        }
-
-        .btn-activate:hover {
-          background: #059669;
-        }
-
-        .btn-approve {
-          background: #10b981;
-          color: white;
-        }
-
-        .btn-approve:hover {
-          background: #059669;
-        }
-
-        .btn-reject {
-          background: #ef4444;
-          color: white;
-        }
-
-        .btn-reject:hover {
-          background: #dc2626;
-        }
-
-        @media (max-width: 1400px) {
-          .table-header {
-            display: none;
-          }
-
-          .table-row {
-            display: block;
-            margin-bottom: 16px;
-            padding: 16px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background: white;
-          }
-
-          .table-cell {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding: 4px 0;
-            white-space: normal;
-            overflow: visible;
-            text-overflow: unset;
-          }
-
-          .table-cell:last-child {
-            margin-bottom: 0;
-          }
-
-          .table-cell::before {
-            content: attr(data-label);
-            font-weight: 600;
-            color: #787486;
-            min-width: 120px;
-          }
-
-          .action-buttons {
-            justify-content: flex-end;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .admin-business-owners {
-            padding: 16px;
-          }
-
-          .page-header h1 {
-            font-size: 24px;
-          }
-
-          .filters-section {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 16px;
-          }
-
-          .search-box {
-            max-width: none;
-          }
-
-          .filter-buttons {
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 6px;
-          }
-
-          .filter-btn {
-            padding: 6px 12px;
-            font-size: 12px;
-          }
-
-          .stats-row {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-          }
-
-          .stat-item {
-            padding: 16px;
-          }
-
-          .stat-number {
-            font-size: 20px;
-          }
-
-          .business-owner-info {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
-          }
-
-          .action-buttons {
-            flex-wrap: wrap;
-            gap: 4px;
-          }
-
-          .action-btn {
-            width: 28px;
-            height: 28px;
-          }
-
-          .modal-content {
-            width: 95%;
-            margin: 20px;
-          }
-
-          .modal-header,
-          .modal-body,
-          .modal-footer {
-            padding: 16px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .admin-business-owners {
-            padding: 12px;
-          }
-
-          .page-header h1 {
-            font-size: 20px;
-          }
-
-          .stats-row {
-            grid-template-columns: 1fr;
-          }
-
-          .filter-buttons {
-            gap: 4px;
-          }
-
-          .filter-btn {
-            padding: 4px 8px;
-            font-size: 11px;
-          }
-
-          .table-cell::before {
-            min-width: 100px;
-            font-size: 12px;
-          }
-
-          .business-owner-name {
-            font-size: 14px;
-          }
-
-          .status-badge,
-          .organization-badge {
-            font-size: 10px;
-            padding: 2px 6px;
-          }
-        }
-        .detail-modal-grid {
-          display: flex;
-          gap: 32px;
-          align-items: flex-start;
-          padding: 26px 0;
-        }
-        .detail-modal-left {
-          min-width: 120px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-        }
-        .detail-avatar {
-          width: 56px;
-          height: 56px;
-          background: linear-gradient(135deg, #ffa463 0%, #ff5e13 100%);
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: 700;
-          font-size: 28px;
-          margin-bottom: 4px;
-          box-shadow: 0 2px 8px rgba(255, 94, 19, 0.15);
-        }
-        .detail-name {
-          font-size: 18px;
-          font-weight: 600;
-          color: #0d062d;
-          text-align: center;
-        }
-        .detail-status {
-          margin-top: 4px;
-        }
-        .detail-modal-right {
-          flex: 1;
-          background: #f9f4ee;
-          border-radius: 12px;
-          padding: 18px 20px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        }
-        .detail-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-        }
-        .detail-label {
-          font-weight: 500;
-          color: #787486;
-          min-width: 120px;
-        }
-        .detail-value {
-          color: #0d062d;
-          font-weight: 500;
-          text-align: right;
-          word-break: break-word;
-        }
-        @media (max-width: 768px) {
-          .detail-modal-grid {
-            flex-direction: column;
-            gap: 16px;
-          }
-          .detail-modal-right {
-            padding: 12px;
-          }
-          .detail-avatar {
-            width: 40px;
-            height: 40px;
-            font-size: 18px;
-          }
-        }
-
-        .license-row {
-          flex-direction: column;
-          align-items: flex-start !important;
-          gap: 12px;
-        }
-
-        .license-display {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          width: 100%;
-        }
-
-        .license-thumbnail {
-          width: 60px;
-          height: 60px;
-          object-fit: cover;
-          border-radius: 8px;
-          border: 2px solid #e5e7eb;
-          transition: transform 0.2s ease;
-        }
-
-        .license-thumbnail:hover {
-          transform: scale(1.05);
-        }
-
-        .view-license-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
-          background: #ff5e13;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 13px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .view-license-btn:hover {
-          background: #e85a0a;
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(255, 94, 19, 0.2);
-        }
-
-        .license-preview-modal {
-          background: white;
-          border-radius: 12px;
-          padding: 20px;
-          max-width: 90vw;
-          max-height: 90vh;
-          overflow: auto;
-          position: relative;
-          animation: slideUp 0.3s ease-out;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-
-        .license-preview-close {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          background: #f3f4f6;
-          border: none;
-          border-radius: 50%;
-          width: 36px;
-          height: 36px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          color: #6b7280;
-          transition: all 0.2s ease;
-          z-index: 10;
-        }
-
-        .license-preview-close:hover {
-          background: #e5e7eb;
-          color: #1f2937;
-        }
-
-        .license-preview-image {
-          max-width: 100%;
-          max-height: 80vh;
-          object-fit: contain;
-          border-radius: 8px;
-          display: block;
-          margin: 0 auto;
-        }
-
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @media (max-width: 768px) {
-          .license-row {
-            flex-direction: column;
-          }
-
-          .license-display {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .license-thumbnail {
-            width: 80px;
-            height: 80px;
-          }
-
-          .license-preview-modal {
-            max-width: 95vw;
-            padding: 16px;
-          }
-        }
-      `}</style>
     </div>
   );
 };

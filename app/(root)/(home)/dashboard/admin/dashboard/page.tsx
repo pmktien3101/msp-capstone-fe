@@ -1,1174 +1,720 @@
 "use client";
 
-import React, { useState } from "react";
-// Note: removed Chart.js / Doughnut import — meeting chart removed
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import {
+  Building2,
+  FolderKanban,
+  Video,
+  Trophy,
+  Star,
+  Package,
+} from "lucide-react";
+import packageService from "@/services/packageService";
+import { subscriptionService } from "@/services/subscriptionService";
+import { userService } from "@/services/userService";
+import { projectService } from "@/services/projectService";
+import { meetingService } from "@/services/meetingService";
+import "../../../../../styles/admin-dashboard.scss";
+
+interface PackageInfo {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  features?: string[];
+  isActive?: boolean;
+}
+
+interface PackageDistribution {
+  name: string;
+  count: number;
+  color: string;
+  percentage: number;
+}
+
+interface SubscriptionInfo {
+  id: string;
+  packageName: string;
+  userName: string;
+  userEmail: string;
+  totalPrice: number;
+  paidAt: string;
+  status: string;
+}
+
+interface MonthlyRevenue {
+  month: string;
+  revenue: number;
+}
+
+interface MonthlyBusinessReg {
+  month: string;
+  count: number;
+}
 
 const AdminDashboard = () => {
-  // --- LOGIC GIỮ NGUYÊN ---
-  const [activeTab, setActiveTab] = useState("Revenue");
-  const [hoveredBar, setHoveredBar] = useState<string | null>(null);
-  const [hoveredProgress, setHoveredProgress] = useState<string | null>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [selectedYears, setSelectedYears] = useState<string[]>([
-    "2024",
-    "2023",
-  ]);
-  const [selectedTimeFilter, setSelectedTimeFilter] = useState<string>("30");
+  const [selectedPeriod, setSelectedPeriod] = useState("Month");
+  const [timeFilter, setTimeFilter] = useState("This Year");
+  const [businessRegPeriod, setBusinessRegPeriod] = useState("Year");
+  const [packages, setPackages] = useState<PackageInfo[]>([]);
+  const [packageDistribution, setPackageDistribution] = useState<
+    PackageDistribution[]
+  >([]);
+  const [isLoadingPackages, setIsLoadingPackages] = useState(true);
+  const [recentSubscriptions, setRecentSubscriptions] = useState<
+    SubscriptionInfo[]
+  >([]);
+  const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState(true);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [monthlyRevenueData, setMonthlyRevenueData] = useState<
+    MonthlyRevenue[]
+  >([]);
+  const [monthlyBusinessRegData, setMonthlyBusinessRegData] = useState<
+    MonthlyBusinessReg[]
+  >([]);
+  const [totalBusinesses, setTotalBusinesses] = useState(0);
+  const [isLoadingBusinesses, setIsLoadingBusinesses] = useState(true);
+  const [totalProjects, setTotalProjects] = useState(0);
+  const [totalMeetings, setTotalMeetings] = useState(0);
 
-  const getDefaultDateRange = () => {
-    const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    return {
-      startDate: firstDayOfMonth.toISOString().split("T")[0],
-      endDate: today.toISOString().split("T")[0],
+  // Fetch packages from API
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        setIsLoadingPackages(true);
+        const response = await packageService.getPackages();
+        if (response.success && response.data) {
+          const packagesData = Array.isArray(response.data)
+            ? response.data
+            : [];
+          setPackages(packagesData);
+
+          // Calculate distribution - for now using mock subscription counts
+          // In real scenario, you would fetch subscription data per package
+          const colors = [
+            "#F97316",
+            "#FB923C",
+            "#FDBA74",
+            "#FED7AA",
+            "#FFEDD5",
+          ];
+          const totalPackages = packagesData.length;
+
+          const distribution = packagesData.map(
+            (pkg: PackageInfo, index: number) => ({
+              name: pkg.name,
+              count: Math.floor(Math.random() * 50) + 10, // Mock count - replace with real data
+              color: colors[index % colors.length],
+              percentage: 0,
+            })
+          );
+
+          // Calculate percentages
+          const totalCount = distribution.reduce(
+            (sum: number, item: PackageDistribution) => sum + item.count,
+            0
+          );
+          distribution.forEach((item: PackageDistribution) => {
+            item.percentage =
+              totalCount > 0 ? Math.round((item.count / totalCount) * 100) : 0;
+          });
+
+          setPackageDistribution(distribution);
+        }
+      } catch (error) {
+        console.error("Error fetching packages:", error);
+      } finally {
+        setIsLoadingPackages(false);
+      }
     };
-  };
 
-  const [customDateRange, setCustomDateRange] = useState<{
-    startDate: string;
-    endDate: string;
-  }>(getDefaultDateRange());
-  const [isCustomRange, setIsCustomRange] = useState<boolean>(false);
+    fetchPackages();
+  }, []);
 
-  const timeFilterOptions = [
-    { value: "7", label: "7 Days" },
-    { value: "30", label: "30 Days" },
-    { value: "90", label: "3 Months" },
-    { value: "365", label: "1 Year" },
-    { value: "custom", label: "Custom" },
+  // Fetch subscriptions from API
+  useEffect(() => {
+    const fetchSubscriptions = async () => {
+      try {
+        setIsLoadingSubscriptions(true);
+        const response = await subscriptionService.getAllSubscriptions();
+        if (response.success && response.data) {
+          const subscriptionsData = Array.isArray(response.data)
+            ? response.data
+            : [];
+
+          // Calculate total revenue from all subscriptions
+          const total = subscriptionsData.reduce(
+            (sum: number, sub: any) => sum + (sub.totalPrice || 0),
+            0
+          );
+          setTotalRevenue(total);
+
+          // Calculate monthly revenue for the chart
+          const monthNames = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
+          const currentYear = new Date().getFullYear();
+          const monthlyRevenue: { [key: string]: number } = {};
+
+          // Initialize all months with 0
+          monthNames.forEach((month) => {
+            monthlyRevenue[month] = 0;
+          });
+
+          // Sum up revenue by month
+          subscriptionsData.forEach((sub: any) => {
+            const paidDate = sub.paidAt ? new Date(sub.paidAt) : null;
+            if (paidDate && paidDate.getFullYear() === currentYear) {
+              const monthName = monthNames[paidDate.getMonth()];
+              monthlyRevenue[monthName] += sub.totalPrice || 0;
+            }
+          });
+
+          // Convert to array format
+          const revenueArray = monthNames.map((month) => ({
+            month,
+            revenue: monthlyRevenue[month],
+          }));
+          setMonthlyRevenueData(revenueArray);
+
+          // Map and sort by paidAt date (most recent first), take top 6
+          const mappedSubscriptions: SubscriptionInfo[] = subscriptionsData
+            .map((sub: any) => ({
+              id: sub.id,
+              packageName: sub.package?.name || "Unknown Package",
+              userName: sub.user?.fullName || "Unknown User",
+              userEmail: sub.user?.email || "",
+              totalPrice: sub.totalPrice || 0,
+              paidAt: sub.paidAt || sub.startDate || "",
+              status: sub.status || "unknown",
+            }))
+            .sort(
+              (a: SubscriptionInfo, b: SubscriptionInfo) =>
+                new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime()
+            )
+            .slice(0, 6);
+
+          setRecentSubscriptions(mappedSubscriptions);
+        }
+      } catch (error) {
+        console.error("Error fetching subscriptions:", error);
+      } finally {
+        setIsLoadingSubscriptions(false);
+      }
+    };
+
+    fetchSubscriptions();
+  }, []);
+
+  // Fetch business owners from API
+  useEffect(() => {
+    const fetchBusinessOwners = async () => {
+      try {
+        setIsLoadingBusinesses(true);
+        const response = await userService.getBusinessOwners();
+        if (response.success && response.data) {
+          const businessOwners = Array.isArray(response.data)
+            ? response.data
+            : [];
+
+          // Set total businesses count
+          setTotalBusinesses(businessOwners.length);
+
+          // Calculate monthly registrations
+          const monthNames = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
+          const currentYear = new Date().getFullYear();
+          const monthlyReg: { [key: string]: number } = {};
+
+          // Initialize all months with 0
+          monthNames.forEach((month) => {
+            monthlyReg[month] = 0;
+          });
+
+          // Count registrations by month
+          businessOwners.forEach((owner: any) => {
+            const createdDate = owner.createdAt
+              ? new Date(owner.createdAt)
+              : null;
+            if (createdDate && createdDate.getFullYear() === currentYear) {
+              const monthName = monthNames[createdDate.getMonth()];
+              monthlyReg[monthName]++;
+            }
+          });
+
+          // Convert to array format
+          const regArray = monthNames.map((month) => ({
+            month,
+            count: monthlyReg[month],
+          }));
+          setMonthlyBusinessRegData(regArray);
+        }
+      } catch (error) {
+        console.error("Error fetching business owners:", error);
+      } finally {
+        setIsLoadingBusinesses(false);
+      }
+    };
+
+    fetchBusinessOwners();
+  }, []);
+
+  // Fetch total projects from API
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await projectService.getAllProjects();
+        if (response.success && response.data) {
+          const projects = response.data.items || [];
+          setTotalProjects(projects.length);
+        }
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  // Fetch total meetings from API
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      try {
+        // Get all projects first, then fetch meetings for each project
+        const projectsResponse = await projectService.getAllProjects();
+        if (projectsResponse.success && projectsResponse.data) {
+          const projects = projectsResponse.data.items || [];
+          let totalMeetingsCount = 0;
+
+          // Fetch meetings for each project
+          const meetingsPromises = projects.map((project: any) =>
+            meetingService.getMeetingsByProjectId(project.id)
+          );
+          const meetingsResults = await Promise.all(meetingsPromises);
+
+          meetingsResults.forEach((result) => {
+            if (result.success && result.data) {
+              totalMeetingsCount += result.data.length;
+            }
+          });
+
+          setTotalMeetings(totalMeetingsCount);
+        }
+      } catch (error) {
+        console.error("Error fetching meetings:", error);
+      }
+    };
+
+    fetchMeetings();
+  }, []);
+
+  // Stats data - Meeting/Project/Business related (removed Tasks)
+  const statsCards = [
+    {
+      icon: Building2,
+      label: "Businesses",
+      value: totalBusinesses,
+      color: "#F97316",
+    },
+    {
+      icon: FolderKanban,
+      label: "Total Projects",
+      value: totalProjects,
+      color: "#F97316",
+    },
+    { icon: Video, label: "Meetings", value: totalMeetings, color: "#F97316" },
   ];
 
-  const getPreviousLabel = (label?: string) => {
-    if (!label) return "prev period";
-    if (label === "Custom") return "prev period";
-    if (label.startsWith("Last ")) return label.replace("Last ", "Prev ");
-    return "prev period";
+  // Revenue Overview data derived from API
+  const revenueData = {
+    labels: monthlyRevenueData.map((item) => item.month),
+    values: monthlyRevenueData.map((item) => item.revenue),
   };
 
-  const statsData = {
-    "7": {
-      revenue: { current: 125430, previous: 118200, change: 6.1 },
-      subscriptions: { current: 3456, previous: 3200, change: 8.0 },
-      companies: { current: 1247, previous: 1150, change: 8.4 },
-      meetings: { current: 8932, previous: 8200, change: 8.9 },
-    },
-    "30": {
-      revenue: { current: 125430, previous: 112500, change: 11.5 },
-      subscriptions: { current: 3456, previous: 3100, change: 11.5 },
-      companies: { current: 1247, previous: 1080, change: 15.5 },
-      meetings: { current: 8932, previous: 7800, change: 14.5 },
-    },
-    "90": {
-      revenue: { current: 125430, previous: 98000, change: 28.0 },
-      subscriptions: { current: 3456, previous: 2800, change: 23.4 },
-      companies: { current: 1247, previous: 950, change: 31.3 },
-      meetings: { current: 8932, previous: 6500, change: 37.4 },
-    },
-    "365": {
-      revenue: { current: 125430, previous: 85000, change: 47.6 },
-      subscriptions: { current: 3456, previous: 2400, change: 44.0 },
-      companies: { current: 1247, previous: 800, change: 55.9 },
-      meetings: { current: 8932, previous: 5200, change: 71.8 },
-    },
+  // Business Registration data derived from API
+  const businessRegData = {
+    labels: monthlyBusinessRegData.map((item) => item.month),
+    values: monthlyBusinessRegData.map((item) => item.count),
   };
 
-  const formatNumber = (num: number, isCurrency: boolean = false) => {
-    if (isCurrency) {
-      return `$${num.toLocaleString()}`;
-    }
-    return num.toLocaleString();
+  // Helper function to get icon based on package name
+  const getPackageIcon = (packageName: string) => {
+    const name = packageName.toLowerCase();
+    if (name.includes("enterprise") || name.includes("premium")) return Trophy;
+    if (name.includes("professional") || name.includes("pro")) return Star;
+    return Package;
   };
 
-  const calculateDaysBetween = (startDate: string, endDate: string) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  };
-
-  const generateCustomStatsData = (startDate: string, endDate: string) => {
-    const days = calculateDaysBetween(startDate, endDate);
-    const baseRevenue = 125430;
-    const baseSubscriptions = 3456;
-    const baseCompanies = 1247;
-    const baseMeetings = 8932;
-    const growthFactor = Math.min(days / 30, 2);
-
-    return {
-      revenue: {
-        current: Math.round(baseRevenue * growthFactor),
-        previous: Math.round(baseRevenue * growthFactor * 0.8),
-        change: 20.0,
-      },
-      subscriptions: {
-        current: Math.round(baseSubscriptions * growthFactor),
-        previous: Math.round(baseSubscriptions * growthFactor * 0.85),
-        change: 15.0,
-      },
-      companies: {
-        current: Math.round(baseCompanies * growthFactor),
-        previous: Math.round(baseCompanies * growthFactor * 0.75),
-        change: 25.0,
-      },
-      meetings: {
-        current: Math.round(baseMeetings * growthFactor),
-        previous: Math.round(baseMeetings * growthFactor * 0.7),
-        change: 30.0,
-      },
-    };
-  };
-
-  const currentStats = isCustomRange
-    ? generateCustomStatsData(
-        customDateRange.startDate,
-        customDateRange.endDate
-      )
-    : statsData[selectedTimeFilter as keyof typeof statsData] ||
-      statsData["30"];
-
-  const handleTimeFilterChange = (value: string) => {
-    setSelectedTimeFilter(value);
-    setIsCustomRange(value === "custom");
-    if (
-      value === "custom" &&
-      (!customDateRange.startDate || !customDateRange.endDate)
-    ) {
-      setCustomDateRange(getDefaultDateRange());
-    }
-  };
-
-  const handleCustomDateChange = (
-    field: "startDate" | "endDate",
-    value: string
-  ) => {
-    setCustomDateRange((prev) => {
-      const newRange = { ...prev, [field]: value };
-      if (newRange.startDate && newRange.endDate) {
-        const startDate = new Date(newRange.startDate);
-        const endDate = new Date(newRange.endDate);
-        if (startDate > endDate) {
-          return { startDate: newRange.endDate, endDate: newRange.startDate };
-        }
-      }
-      return newRange;
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
-  // meetingTimeData and options removed (meeting chart removed)
+  // Generate SVG path for line chart
+  const generateChartPath = () => {
+    if (revenueData.values.length === 0) return "";
 
-  const chartData = {
-    Revenue: {
-      years: {
-        "2024": {
-          values: [130, 90, 170, 150, 110, 190, 160, 0, 0, 0, 0, 0],
-          displayValues: [
-            "$130K",
-            "$90K",
-            "$170K",
-            "$150K",
-            "$110K",
-            "$190K",
-            "$160K",
-            "$0",
-            "$0",
-            "$0",
-            "$0",
-            "$0",
-          ],
-          color: "#F97316", // Primary Orange
-          label: "2024",
-        },
-        "2023": {
-          values: [110, 70, 140, 120, 90, 160, 130, 145, 95, 175, 155, 125],
-          displayValues: [
-            "$110K",
-            "$70K",
-            "$140K",
-            "$120K",
-            "$90K",
-            "$160K",
-            "$130K",
-            "$145K",
-            "$95K",
-            "$175K",
-            "$155K",
-            "$125K",
-          ],
-          color: "#cbd5e1", // Slate 300
-          label: "2023",
-        },
-        "2022": {
-          values: [100, 80, 120, 110, 85, 140, 120, 130, 90, 160, 140, 110],
-          displayValues: [
-            "$100K",
-            "$80K",
-            "$120K",
-            "$110K",
-            "$85K",
-            "$140K",
-            "$120K",
-            "$130K",
-            "$90K",
-            "$160K",
-            "$140K",
-            "$110K",
-          ],
-          color: "#e2e8f0", // Slate 200
-          label: "2022",
-        },
-      },
-      yLabels: ["$200K", "$150K", "$100K", "$50K", "$0"],
-      maxValue: 200,
-    },
-    Subscriptions: {
-      years: {
-        "2024": {
-          values: [1400, 1200, 1600, 1300, 1500, 1700, 1800, 0, 0, 0, 0, 0],
-          displayValues: [
-            "1,400",
-            "1,200",
-            "1,600",
-            "1,300",
-            "1,500",
-            "1,700",
-            "1,800",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-          ],
-          color: "#F97316",
-          label: "2024",
-        },
-        "2023": {
-          values: [
-            1200, 1000, 1400, 1100, 1300, 1500, 1600, 1350, 1150, 1550, 1450,
-            1250,
-          ],
-          displayValues: [
-            "1,200",
-            "1,000",
-            "1,400",
-            "1,100",
-            "1,300",
-            "1,500",
-            "1,600",
-            "1,350",
-            "1,150",
-            "1,550",
-            "1,450",
-            "1,250",
-          ],
-          color: "#cbd5e1",
-          label: "2023",
-        },
-        "2022": {
-          values: [
-            1000, 800, 1200, 1100, 900, 1300, 1200, 1150, 950, 1400, 1300, 1100,
-          ],
-          displayValues: [
-            "1,000",
-            "800",
-            "1,200",
-            "1,100",
-            "900",
-            "1,300",
-            "1,200",
-            "1,150",
-            "950",
-            "1,400",
-            "1,300",
-            "1,100",
-          ],
-          color: "#e2e8f0",
-          label: "2022",
-        },
-      },
-      yLabels: ["2k", "1.5k", "1k", "0.5k", "0"],
-      maxValue: 2000,
-    },
-    "New Companies": {
-      years: {
-        "2024": {
-          values: [125, 87, 150, 112, 100, 175, 137, 0, 0, 0, 0, 0],
-          displayValues: [
-            "125",
-            "87",
-            "150",
-            "112",
-            "100",
-            "175",
-            "137",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-          ],
-          color: "#F97316",
-          label: "2024",
-        },
-        "2023": {
-          values: [100, 62, 125, 87, 75, 150, 112, 95, 67, 135, 97, 85],
-          displayValues: [
-            "100",
-            "62",
-            "125",
-            "87",
-            "75",
-            "150",
-            "112",
-            "95",
-            "67",
-            "135",
-            "97",
-            "85",
-          ],
-          color: "#cbd5e1",
-          label: "2023",
-        },
-        "2022": {
-          values: [80, 50, 100, 70, 60, 120, 90, 75, 55, 110, 80, 70],
-          displayValues: [
-            "80",
-            "50",
-            "100",
-            "70",
-            "60",
-            "120",
-            "90",
-            "75",
-            "55",
-            "110",
-            "80",
-            "70",
-          ],
-          color: "#e2e8f0",
-          label: "2022",
-        },
-      },
-      yLabels: ["200", "150", "100", "50", "0"],
-      maxValue: 200,
-    },
-  };
+    const width = 500;
+    const height = 150;
+    const padding = 20;
+    const maxValue = Math.max(...revenueData.values, 1); // Ensure at least 1 to avoid division by zero
+    const minValue = Math.min(...revenueData.values);
+    const range = maxValue - minValue || 1; // Avoid division by zero
 
-  const currentData = chartData[activeTab as keyof typeof chartData];
-
-  const toggleYear = (year: string) => {
-    setSelectedYears((prev) => {
-      if (prev.includes(year)) {
-        if (prev.length > 1) return prev.filter((y) => y !== year);
-        return prev;
-      } else {
-        return [...prev, year];
-      }
+    const points = revenueData.values.map((value, index) => {
+      const x =
+        padding +
+        (index * (width - 2 * padding)) / (revenueData.values.length - 1 || 1);
+      const y =
+        height -
+        padding -
+        ((value - minValue) / range) * (height - 2 * padding);
+      return `${x},${y}`;
     });
+
+    return `M ${points.join(" L ")}`;
   };
 
-  const filteredYears = Object.fromEntries(
-    Object.entries(currentData.years).filter(([year]) =>
-      selectedYears.includes(year)
-    )
-  );
+  const generateAreaPath = () => {
+    if (revenueData.values.length === 0) return "";
+
+    const width = 500;
+    const height = 150;
+    const padding = 20;
+    const maxValue = Math.max(...revenueData.values, 1);
+    const minValue = Math.min(...revenueData.values);
+    const range = maxValue - minValue || 1;
+
+    const points = revenueData.values.map((value, index) => {
+      const x =
+        padding +
+        (index * (width - 2 * padding)) / (revenueData.values.length - 1 || 1);
+      const y =
+        height -
+        padding -
+        ((value - minValue) / range) * (height - 2 * padding);
+      return `${x},${y}`;
+    });
+
+    return `M ${padding},${height - padding} L ${points.join(" L ")} L ${
+      width - padding
+    },${height - padding} Z`;
+  };
 
   return (
     <div className="admin-dashboard">
-      {/* Header / Filter Section */}
-      <div className="dashboard-header">
-        <div className="header-title">
-          <h1>Dashboard Overview</h1>
-          <p>Welcome back, Administrator</p>
-        </div>
-
-        <div className="time-filter-wrapper">
-          <div className="time-filter-pills">
-            {timeFilterOptions.map((option) => (
-              <button
-                key={option.value}
-                className={`filter-pill ${
-                  selectedTimeFilter === option.value ? "active" : ""
-                }`}
-                onClick={() => handleTimeFilterChange(option.value)}
+      <div className="dashboard-content">
+        {/* Left Section */}
+        <div className="left-section">
+          {/* Filter Header */}
+          <div className="filter-header">
+            <div className="filter-title">
+              <h1>Dashboard Overview</h1>
+              <p>Welcome back, Admin</p>
+            </div>
+            <div className="filter-controls">
+              <select
+                value={timeFilter}
+                onChange={(e) => setTimeFilter(e.target.value)}
+                className="time-filter-select"
               >
-                {option.label}
-              </button>
-            ))}
+                <option value="Today">Today</option>
+                <option value="This Week">This Week</option>
+                <option value="This Month">This Month</option>
+                <option value="This Quarter">This Quarter</option>
+                <option value="This Year">This Year</option>
+                <option value="All Time">All Time</option>
+              </select>
+            </div>
           </div>
 
-          {isCustomRange && (
-            <div className="custom-range-picker">
-              <div className="date-field">
-                <span>From</span>
-                <input
-                  type="date"
-                  value={customDateRange.startDate}
-                  onChange={(e) =>
-                    handleCustomDateChange("startDate", e.target.value)
-                  }
-                />
-              </div>
-              <div className="date-separator">-</div>
-              <div className="date-field">
-                <span>To</span>
-                <input
-                  type="date"
-                  value={customDateRange.endDate}
-                  onChange={(e) =>
-                    handleCustomDateChange("endDate", e.target.value)
-                  }
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* KPI Stats Cards */}
-      <div className="stats-grid">
-        {[
-          {
-            id: "revenue",
-            label: "Total Revenue",
-            val: currentStats.revenue.current,
-            prev: currentStats.revenue.previous,
-            change: currentStats.revenue.change,
-            isCurrency: true,
-            icon: "$",
-          },
-          {
-            id: "companies",
-            label: "Total Companies",
-            val: currentStats.companies.current,
-            prev: currentStats.companies.previous,
-            change: currentStats.companies.change,
-            isCurrency: false,
-            icon: "🏢",
-          },
-          {
-            id: "users",
-            label: "Total Users",
-            val: currentStats.subscriptions.current,
-            prev: currentStats.subscriptions.previous,
-            change: currentStats.subscriptions.change,
-            isCurrency: false,
-            icon: "👥",
-          },
-          {
-            id: "meetings",
-            label: "Total Meetings",
-            val: currentStats.meetings.current,
-            prev: currentStats.meetings.previous,
-            change: currentStats.meetings.change,
-            isCurrency: false,
-            icon: "📅",
-          },
-        ].map((stat) => (
-          <div
-            key={stat.id}
-            className="stat-card"
-            onMouseEnter={() => setHoveredBar(stat.id)}
-            onMouseLeave={() => setHoveredBar(null)}
-          >
-            <div className="stat-top">
-              <div className="stat-icon-box">{stat.icon}</div>
-              <div
-                className={`stat-badge ${
-                  stat.change >= 0 ? "positive" : "negative"
-                }`}
-              >
-                {stat.change >= 0 ? "↑" : "↓"} {Math.abs(stat.change)}%
-              </div>
-            </div>
-            <div className="stat-main">
-              <div className="stat-label">{stat.label}</div>
-              <div className="stat-value">
-                {formatNumber(stat.val, stat.isCurrency)}
-              </div>
-              <div className="stat-sub">
-                vs {formatNumber(stat.prev, stat.isCurrency)} prev
-              </div>
-            </div>
-
-            {/* Tooltip logic kept simpler visually */}
-            {hoveredBar === stat.id && (
-              <div className="stat-tooltip">
-                <div className="tooltip-inner">
-                  <span>Comparing to previous period</span>
+          {/* Stats Cards Row */}
+          <div className="stats-row">
+            {statsCards.map((stat, index) => {
+              const IconComponent = stat.icon;
+              return (
+                <div key={index} className="stat-card">
+                  <div className="stat-icon">
+                    <IconComponent size={24} color="#F97316" />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-label">{stat.label}</span>
+                    <span className="stat-value">
+                      {stat.value.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+
+          {/* Revenue Overview Chart */}
+          <div className="chart-card market-overview">
+            <div className="chart-header">
+              <h3>Revenue Overview</h3>
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+                className="period-select"
+              >
+                <option value="Week">Week</option>
+                <option value="Month">Month</option>
+                <option value="Year">Year</option>
+              </select>
+            </div>
+            <div className="chart-container">
+              <div className="y-axis-labels">
+                <span>$50k</span>
+                <span>$25k</span>
+                <span>$10k</span>
+              </div>
+              <svg viewBox="0 0 500 150" className="line-chart">
+                <defs>
+                  <linearGradient
+                    id="areaGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="0%"
+                    y2="100%"
+                  >
+                    <stop offset="0%" stopColor="#F97316" stopOpacity="0.3" />
+                    <stop
+                      offset="100%"
+                      stopColor="#F97316"
+                      stopOpacity="0.05"
+                    />
+                  </linearGradient>
+                </defs>
+                <path d={generateAreaPath()} fill="url(#areaGradient)" />
+                <path
+                  d={generateChartPath()}
+                  fill="none"
+                  stroke="#F97316"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <div className="x-axis-labels">
+                {revenueData.labels.map((label, index) => (
+                  <span key={index}>{label}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Row - Business Registration & Package Distribution */}
+          <div className="bottom-row">
+            {/* Business Registration Chart */}
+            <div className="chart-card map-distribution">
+              <div className="chart-header">
+                <h3>Business Registrations</h3>
+                <select
+                  value={businessRegPeriod}
+                  onChange={(e) => setBusinessRegPeriod(e.target.value)}
+                  className="period-select"
+                >
+                  <option value="Week">This Week</option>
+                  <option value="Month">This Month</option>
+                  <option value="Quarter">This Quarter</option>
+                  <option value="Year">This Year</option>
+                </select>
+              </div>
+              <div className="bar-chart-container">
+                <div className="bar-chart-y-axis">
+                  <span>40</span>
+                  <span>30</span>
+                  <span>20</span>
+                  <span>10</span>
+                  <span>0</span>
+                </div>
+                <div className="bar-chart-content">
+                  <div className="bar-chart-grid">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="grid-line"></div>
+                    ))}
+                  </div>
+                  <div className="bar-chart-bars">
+                    {businessRegData.values.map((value, index) => (
+                      <div key={index} className="bar-wrapper">
+                        <div
+                          className="bar"
+                          style={{ height: `${(value / 40) * 100}%` }}
+                          title={`${businessRegData.labels[index]}: ${value} businesses`}
+                        >
+                          <span className="bar-tooltip">{value}</span>
+                        </div>
+                        <span className="bar-label">
+                          {businessRegData.labels[index]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Package Distribution */}
+            <div className="chart-card visitor-profile">
+              <h3>Package Distribution</h3>
+              {isLoadingPackages ? (
+                <div className="loading-container">
+                  <span>Loading...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="donut-chart-container">
+                    <svg viewBox="0 0 120 120" className="donut-chart">
+                      {/* Background circle */}
+                      <circle
+                        cx="60"
+                        cy="60"
+                        r="50"
+                        fill="none"
+                        stroke="#E5E7EB"
+                        strokeWidth="20"
+                      />
+                      {/* Dynamic segments based on package distribution */}
+                      {packageDistribution.map((pkg, index) => {
+                        const circumference = 2 * Math.PI * 50;
+                        const offset = packageDistribution
+                          .slice(0, index)
+                          .reduce(
+                            (sum, p) =>
+                              sum + (p.percentage / 100) * circumference,
+                            0
+                          );
+                        return (
+                          <circle
+                            key={pkg.name}
+                            cx="60"
+                            cy="60"
+                            r="50"
+                            fill="none"
+                            stroke={pkg.color}
+                            strokeWidth="20"
+                            strokeDasharray={`${
+                              (pkg.percentage / 100) * circumference
+                            } ${circumference}`}
+                            strokeDashoffset={-offset}
+                            transform="rotate(-90 60 60)"
+                          />
+                        );
+                      })}
+                    </svg>
+                  </div>
+                  <div className="legend">
+                    {packageDistribution.map((pkg) => (
+                      <div key={pkg.name} className="legend-item">
+                        <span
+                          className="legend-dot"
+                          style={{ backgroundColor: pkg.color }}
+                        ></span>
+                        <span>
+                          {pkg.name} ({pkg.percentage}%)
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Section */}
+        <div className="right-section">
+          {/* Total Revenue Card */}
+          <div className="wallet-card">
+            <div className="wallet-header">
+              <span>Total Revenue</span>
+            </div>
+            <div className="wallet-balance">
+              <span className="currency">$</span>
+              <span className="amount">{totalRevenue.toLocaleString()}</span>
+            </div>
+            <div className="revenue-period">
+              <span>{timeFilter}</span>
+            </div>
+          </div>
+
+          {/* Recent Subscriptions */}
+          <div className="transactions-card">
+            <div className="transactions-header">
+              <h3>Recent Subscriptions</h3>
+              <Link href="/dashboard/admin/revenue" className="see-all-btn">
+                See All
+              </Link>
+            </div>
+            {isLoadingSubscriptions ? (
+              <div className="loading-container">
+                <span>Loading...</span>
+              </div>
+            ) : recentSubscriptions.length === 0 ? (
+              <div className="empty-container">
+                <span>No subscriptions found</span>
+              </div>
+            ) : (
+              <div className="transactions-list">
+                {recentSubscriptions.map((subscription) => {
+                  const IconComponent = getPackageIcon(
+                    subscription.packageName
+                  );
+                  return (
+                    <div key={subscription.id} className="transaction-item">
+                      <div className="transaction-icon">
+                        <IconComponent size={24} color="#F97316" />
+                      </div>
+                      <div className="transaction-info">
+                        <span className="transaction-name">
+                          {subscription.packageName}
+                        </span>
+                        <span className="transaction-date">
+                          {subscription.userName} •{" "}
+                          {formatDate(subscription.paidAt)}
+                        </span>
+                      </div>
+                      <span className="transaction-amount">
+                        +${subscription.totalPrice}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
-        ))}
-      </div>
-
-      {/* Charts Section 1 */}
-      <div className="charts-grid">
-        {/* Main Bar Chart */}
-        <div className="chart-card main-chart">
-          <div className="card-header">
-            <div className="chart-selector">
-              {["Revenue", "Subscriptions", "New Companies"].map((tab) => (
-                <button
-                  key={tab}
-                  className={`tab-btn ${activeTab === tab ? "active" : ""}`}
-                  onClick={() => setActiveTab(tab)}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-            <div className="legend-group">
-              {Object.entries(currentData.years).map(([year, data]) => (
-                <label key={year} className="legend-check">
-                  <input
-                    type="checkbox"
-                    checked={selectedYears.includes(year)}
-                    onChange={() => toggleYear(year)}
-                  />
-                  <span
-                    className="dot"
-                    style={{ backgroundColor: data.color }}
-                  ></span>
-                  <span>{data.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="chart-body">
-            <div className="y-axis">
-              {currentData.yLabels.map((label, i) => (
-                <div key={i}>{label}</div>
-              ))}
-            </div>
-            <div className="chart-plot-area">
-              <div className="grid-lines">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="line"></div>
-                ))}
-              </div>
-              <div className="bars-container">
-                {[
-                  "Jan",
-                  "Feb",
-                  "Mar",
-                  "Apr",
-                  "May",
-                  "Jun",
-                  "Jul",
-                  "Aug",
-                  "Sep",
-                  "Oct",
-                  "Nov",
-                  "Dec",
-                ].map((month, idx) => (
-                  <div key={month} className="month-group">
-                    {Object.entries(filteredYears).map(([year, data]) => {
-                      const height =
-                        (data.values[idx] / currentData.maxValue) * 100;
-                      return (
-                        <div
-                          key={year}
-                          className="bar-stick"
-                          style={{
-                            height: `${height}%`,
-                            backgroundColor: data.color,
-                          }}
-                          onMouseEnter={() => setHoveredBar(`${month}-${year}`)}
-                          onMouseLeave={() => setHoveredBar(null)}
-                        >
-                          {hoveredBar === `${month}-${year}` && (
-                            <div className="bar-popup">
-                              <strong>{data.displayValues[idx]}</strong>
-                              <span>
-                                {month} {year}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="x-axis">
-            {[
-              "Jan",
-              "Feb",
-              "Mar",
-              "Apr",
-              "May",
-              "Jun",
-              "Jul",
-              "Aug",
-              "Sep",
-              "Oct",
-              "Nov",
-              "Dec",
-            ].map((m) => (
-              <div key={m} className="x-label">
-                {m}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Subscription Distribution */}
-        <div className="chart-card side-chart">
-          <div className="card-header simple">
-            <h3>Subscription Plans</h3>
-          </div>
-          <div className="progress-list">
-            {[
-              {
-                name: "Premium",
-                width: "100%",
-                count: "1,200",
-                revenue: "$48k",
-                color: "#F97316",
-              },
-              {
-                name: "Professional",
-                width: "75%",
-                count: "900",
-                revenue: "$27k",
-                color: "#8B5CF6",
-              },
-              {
-                name: "Business",
-                width: "85%",
-                count: "1,020",
-                revenue: "$30k",
-                color: "#EC4899",
-              },
-              {
-                name: "Enterprise",
-                width: "45%",
-                count: "540",
-                revenue: "$21k",
-                color: "#10B981",
-              },
-              {
-                name: "Basic",
-                width: "60%",
-                count: "720",
-                revenue: "$14k",
-                color: "#F59E0B",
-              },
-              {
-                name: "Starter",
-                width: "30%",
-                count: "360",
-                revenue: "$7k",
-                color: "#64748B",
-              },
-            ].map((plan) => (
-              <div key={plan.name} className="progress-item">
-                <div className="progress-info">
-                  <span className="p-name">{plan.name}</span>
-                  <span className="p-val">{plan.count} users</span>
-                </div>
-                <div
-                  className="progress-track"
-                  onMouseEnter={(e) => {
-                    setHoveredProgress(plan.name);
-                    setMousePosition({ x: e.clientX, y: e.clientY });
-                  }}
-                  onMouseMove={(e) =>
-                    setMousePosition({ x: e.clientX, y: e.clientY })
-                  }
-                  onMouseLeave={() => setHoveredProgress(null)}
-                >
-                  <div
-                    className="progress-fill"
-                    style={{ width: plan.width, backgroundColor: plan.color }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
-
-      {/* Floating Tooltip */}
-      {hoveredProgress && (
-        <div
-          className="floating-tooltip"
-          style={{ left: mousePosition.x + 15, top: mousePosition.y }}
-        >
-          <span>{hoveredProgress} Plan</span>
-        </div>
-      )}
-
-      {/* Meeting times removed per design request */}
-
-      <style jsx>{`
-        /* --- GLOBAL RESET & VARS --- */
-        :global(body) {
-          margin: 0;
-          font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-            Roboto, sans-serif;
-          background-color: #f3f4f6; /* Cool Gray 100 */
-        }
-
-        .admin-dashboard {
-          max-width: 1440px;
-          margin: 0 auto;
-          padding: 32px;
-          display: flex;
-          flex-direction: column;
-          gap: 32px;
-          min-height: 100vh;
-        }
-
-        h1,
-        h2,
-        h3,
-        p {
-          margin: 0;
-        }
-
-        /* --- HEADER --- */
-        .dashboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-          flex-wrap: wrap;
-          gap: 20px;
-        }
-        .header-title h1 {
-          font-size: 28px;
-          font-weight: 700;
-          color: #111827;
-          letter-spacing: -0.02em;
-        }
-        .header-title p {
-          color: #6b7280;
-          margin-top: 4px;
-        }
-
-        /* --- TIME FILTER --- */
-        .time-filter-wrapper {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-end;
-          gap: 12px;
-        }
-        .time-filter-pills {
-          background: #fff;
-          padding: 4px;
-          border-radius: 12px;
-          display: flex;
-          gap: 4px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-        .filter-pill {
-          border: none;
-          background: transparent;
-          padding: 8px 16px;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 600;
-          color: #6b7280;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .filter-pill:hover {
-          color: #111827;
-          background: #f9fafb;
-        }
-        .filter-pill.active {
-          background: #f97316; /* Orange 500 */
-          color: #fff;
-          box-shadow: 0 2px 4px rgba(249, 115, 22, 0.18);
-        }
-
-        .custom-range-picker {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: #fff;
-          padding: 6px 12px;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-        }
-        .date-field {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          color: #6b7280;
-        }
-        .date-field input {
-          border: none;
-          background: #f3f4f6;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-family: inherit;
-          color: #374151;
-          outline: none;
-        }
-
-        /* --- STATS CARDS --- */
-        .stats-grid {
-          display: flex;
-          gap: 24px;
-          align-items: stretch;
-          flex-wrap: nowrap; /* keep cards on single row and allow them to shrink */
-          padding-bottom: 6px;
-        }
-        .stats-grid .stat-card {
-          flex: 1 1 0; /* distribute available width evenly */
-          min-width: 0; /* allow shrinking below content width when needed */
-        }
-        .stat-card {
-          background: #fff;
-          border-radius: 16px;
-          padding: 24px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
-            0 2px 4px -1px rgba(0, 0, 0, 0.03);
-          border: 1px solid rgba(0, 0, 0, 0.02);
-          transition: transform 0.2s, box-shadow 0.2s;
-          position: relative;
-        }
-        .stat-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
-        }
-        .stat-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-        }
-        .stat-icon-box {
-          width: 40px;
-          height: 40px;
-          background: #fff7ed;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 20px;
-          color: #f97316;
-        }
-        .stat-badge {
-          padding: 4px 8px;
-          border-radius: 20px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-        .stat-badge.positive {
-          background: #ecfdf5;
-          color: #059669;
-        }
-        .stat-badge.negative {
-          background: #fef2f2;
-          color: #dc2626;
-        }
-
-        .stat-main {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .stat-label {
-          font-size: 14px;
-          color: #6b7280;
-          font-weight: 500;
-        }
-        .stat-value {
-          font-size: 28px;
-          color: #111827;
-          font-weight: 700;
-          letter-spacing: -0.03em;
-        }
-        .stat-sub {
-          font-size: 12px;
-          color: #9ca3af;
-        }
-
-        .stat-tooltip {
-          position: absolute;
-          top: -40px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #1f2937;
-          color: #fff;
-          padding: 6px 12px;
-          border-radius: 6px;
-          font-size: 12px;
-          pointer-events: none;
-          white-space: nowrap;
-          z-index: 10;
-        }
-
-        /* --- CHARTS GRID --- */
-        .charts-grid {
-          display: flex;
-          gap: 24px;
-          flex-wrap: wrap;
-        }
-        .chart-card {
-          background: #fff;
-          border-radius: 16px;
-          padding: 24px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-          border: 1px solid rgba(0, 0, 0, 0.02);
-          display: flex;
-          flex-direction: column;
-        }
-        .main-chart {
-          flex: 2;
-          min-width: 600px;
-          height: 400px;
-        }
-        .side-chart {
-          flex: 1;
-          min-width: 300px;
-          height: 400px;
-        }
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-        .card-header.simple h3 {
-          font-size: 18px;
-          color: #111827;
-          font-weight: 600;
-        }
-        .chart-selector {
-          background: #f3f4f6;
-          border-radius: 8px;
-          padding: 2px;
-          display: flex;
-        }
-        .tab-btn {
-          padding: 6px 12px;
-          border: none;
-          background: transparent;
-          border-radius: 6px;
-          font-size: 13px;
-          font-weight: 500;
-          color: #6b7280;
-          cursor: pointer;
-        }
-        .tab-btn.active {
-          background: #fff;
-          color: #111827;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        .legend-group {
-          display: flex;
-          gap: 16px;
-        }
-        .legend-check {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13px;
-          color: #4b5563;
-          cursor: pointer;
-        }
-        .dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-        }
-
-        /* Custom Bar Chart CSS */
-        .chart-body {
-          display: flex;
-          height: 100%;
-          gap: 12px;
-          padding-bottom: 10px;
-        }
-        .y-axis {
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          text-align: right;
-          color: #9ca3af;
-          font-size: 12px;
-          padding-bottom: 24px;
-        }
-        .chart-plot-area {
-          flex: 1;
-          position: relative;
-          display: flex;
-          flex-direction: column;
-        }
-        .grid-lines {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: calc(100% - 24px);
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          z-index: 0;
-        }
-        .line {
-          height: 1px;
-          background: #f3f4f6;
-          border-bottom: 1px dashed #e5e7eb;
-        }
-
-        .bars-container {
-          position: absolute;
-          top: 12px;
-          left: 0;
-          width: 100%;
-          height: calc(100% - 24px);
-          display: flex;
-          justify-content: space-around;
-          align-items: flex-end;
-          z-index: 1;
-        }
-        .month-group {
-          height: 100%;
-          display: flex;
-          align-items: flex-end;
-          gap: 4px;
-          width: 40px;
-          justify-content: center;
-        }
-        .bar-stick {
-          width: 12px;
-          border-radius: 4px 4px 0 0;
-          transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-            background-color 0.2s;
-          position: relative;
-        }
-        .bar-stick:hover {
-          filter: brightness(90%);
-        }
-        .bar-popup {
-          position: absolute;
-          bottom: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          margin-bottom: 8px;
-          background: #1f2937;
-          color: white;
-          padding: 8px;
-          border-radius: 6px;
-          font-size: 12px;
-          text-align: center;
-          white-space: nowrap;
-          z-index: 20;
-          pointer-events: none;
-        }
-        .x-axis {
-          display: flex;
-          justify-content: space-around;
-          padding-left: 40px;
-          margin-top: -20px;
-        }
-        .x-label {
-          font-size: 12px;
-          color: #9ca3af;
-          width: 40px;
-          text-align: center;
-        }
-
-        /* Progress List */
-        .progress-list {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          overflow-y: auto;
-          padding-right: 8px;
-        }
-        .progress-item {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .progress-info {
-          display: flex;
-          justify-content: space-between;
-          font-size: 13px;
-          font-weight: 500;
-          color: #374151;
-        }
-        .p-val {
-          color: #6b7280;
-          font-weight: 400;
-        }
-        .progress-track {
-          height: 8px;
-          background: #f3f4f6;
-          border-radius: 4px;
-          overflow: hidden;
-          cursor: pointer;
-        }
-        .progress-fill {
-          height: 100%;
-          border-radius: 4px;
-          transition: width 0.8s ease-out;
-        }
-
-        .floating-tooltip {
-          position: fixed;
-          background: rgba(0, 0, 0, 0.8);
-          color: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          pointer-events: none;
-          z-index: 100;
-        }
-
-        /* Meeting chart removed - related styles deleted */
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-          .charts-grid {
-            flex-direction: column;
-          }
-          .main-chart,
-          .side-chart {
-            width: 100%;
-            min-width: unset;
-          }
-        }
-        @media (max-width: 768px) {
-          .admin-dashboard {
-            padding: 16px;
-          }
-          .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-          .stats-grid .stat-card {
-            min-width: unset;
-            flex: 1 1 auto;
-          }
-          .dashboard-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .time-filter-wrapper {
-            align-items: flex-start;
-            width: 100%;
-          }
-          .bars-container {
-            gap: 2px;
-          }
-          .bar-stick {
-            width: 8px;
-          }
-        }
-      `}</style>
     </div>
   );
 };

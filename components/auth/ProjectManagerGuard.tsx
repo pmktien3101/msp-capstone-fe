@@ -6,24 +6,24 @@ import { useUser } from "@/hooks/useUser";
 import { isAuthenticated, getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@/lib/rbac";
 
-interface AdminGuardProps {
+interface ProjectManagerGuardProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
   allowedRoles?: UserRole[];
 }
 
-const AdminGuard = ({
+const ProjectManagerGuard = ({
   children,
   fallback,
-  allowedRoles = [UserRole.ADMIN],
-}: AdminGuardProps) => {
+  allowedRoles = [UserRole.PROJECT_MANAGER],
+}: ProjectManagerGuardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const { role, userId, email } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    const checkAdminAccess = () => {
+    const checkProjectManagerAccess = () => {
       const authenticated = isAuthenticated();
       const user = getCurrentUser();
 
@@ -40,25 +40,25 @@ const AdminGuard = ({
       if (hasAccess) {
         setIsAuthorized(true);
       } else {
-        console.log(`User role ${user.role} not authorized for admin access`);
+        console.log(`User role ${user.role} not authorized for project manager access`);
         router.push("/dashboard");
       }
 
       setIsLoading(false);
     };
 
-    const timer = setTimeout(checkAdminAccess, 100);
+    const timer = setTimeout(checkProjectManagerAccess, 100);
     return () => clearTimeout(timer);
   }, [role, router, allowedRoles]);
 
   if (isLoading) {
     return (
       fallback || (
-        <div className="admin-loading">
+        <div className="project-manager-loading">
           <div className="loading-spinner"></div>
-          <p>Checking for admin access...</p>
+          <p>Checking for project manager access...</p>
           <style jsx>{`
-            .admin-loading {
+            .project-manager-loading {
               display: flex;
               flex-direction: column;
               align-items: center;
@@ -104,4 +104,4 @@ const AdminGuard = ({
   return <>{children}</>;
 };
 
-export default AdminGuard;
+export default ProjectManagerGuard;

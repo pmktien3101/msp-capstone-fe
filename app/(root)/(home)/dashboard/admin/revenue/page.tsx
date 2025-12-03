@@ -1,8 +1,21 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import {
+  Search,
+  Banknote,
+  Receipt,
+  Crown,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
+  Clock,
+  Building2,
+  Box,
+  RotateCw,
+} from "lucide-react";
 import { subscriptionService } from "@/services/subscriptionService";
+import "../../../../../styles/revenue.scss";
 
 type Revenue = {
   id: string;
@@ -21,46 +34,42 @@ const AdminRevenue = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await subscriptionService.getAllSubscriptions();
-        if (!mounted) return;
-        if (!res.success) {
-          setError(res.error || "Failed to load subscriptions");
-          setRevenues([]);
-          setPackageOptions(["All"]);
-        } else {
-          const mapped: Revenue[] = (res.data || []).map((s: any) => ({
-            id: s.id,
-            businessOwner: s.user?.fullName || "-",
-            packageName: s.package?.name || "-",
-            amount:
-              typeof s.totalPrice === "number"
-                ? s.totalPrice
-                : Number(s.totalPrice) || 0,
-            currency: s.package?.currency,
-            paidDate: s.paidAt
-              ? new Date(s.paidAt).toLocaleString()
-              : s.startDate || "-",
-          }));
-          setRevenues(mapped);
-          const options = Array.from(new Set(mapped.map((r) => r.packageName)));
-          setPackageOptions(["All", ...options]);
-        }
-      } catch (err: any) {
-        setError(err?.message || "Failed to load subscriptions");
-      } finally {
-        setLoading(false);
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await subscriptionService.getAllSubscriptions();
+      if (!res.success) {
+        setError(res.error || "Failed to load subscriptions");
+        setRevenues([]);
+        setPackageOptions(["All"]);
+      } else {
+        const mapped: Revenue[] = (res.data || []).map((s: any) => ({
+          id: s.id,
+          businessOwner: s.user?.fullName || "-",
+          packageName: s.package?.name || "-",
+          amount:
+            typeof s.totalPrice === "number"
+              ? s.totalPrice
+              : Number(s.totalPrice) || 0,
+          currency: s.package?.currency,
+          paidDate: s.paidAt
+            ? new Date(s.paidAt).toLocaleString()
+            : s.startDate || "-",
+        }));
+        setRevenues(mapped);
+        const options = Array.from(new Set(mapped.map((r) => r.packageName)));
+        setPackageOptions(["All", ...options]);
       }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
+    } catch (err: any) {
+      setError(err?.message || "Failed to load subscriptions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const filteredRevenues = revenues.filter((revenue) => {
@@ -73,8 +82,6 @@ const AdminRevenue = () => {
     return matchesSearch && matchesPackage;
   });
 
-  const totalRevenue = filteredRevenues.reduce((sum, r) => sum + r.amount, 0);
-
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -84,7 +91,6 @@ const AdminRevenue = () => {
   );
 
   useEffect(() => {
-    // reset to first page when filters or data change
     setCurrentPage(1);
   }, [searchTerm, packageFilter, revenues]);
 
@@ -93,13 +99,7 @@ const AdminRevenue = () => {
     currentPage * itemsPerPage
   );
 
-  const packageRevenueMap: Record<string, number> = {};
-  filteredRevenues.forEach((r) => {
-    packageRevenueMap[r.packageName] =
-      (packageRevenueMap[r.packageName] || 0) + r.amount;
-  });
-
-  // Overall stats (not affected by search/package filters)
+  // Overall stats
   const overallTotalTransactions = revenues.length;
   const overallTotalRevenue = revenues.reduce((sum, r) => sum + r.amount, 0);
   const overallPackageRevenueMap: Record<string, number> = {};
@@ -114,382 +114,279 @@ const AdminRevenue = () => {
         )
       : ["-", 0];
 
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 3) {
+        pages.push(1, 2, 3, 4, "...", totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(
+          1,
+          "...",
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages
+        );
+      } else {
+        pages.push(
+          1,
+          "...",
+          currentPage - 1,
+          currentPage,
+          currentPage + 1,
+          "...",
+          totalPages
+        );
+      }
+    }
+    return pages;
+  };
+
   return (
     <div className="admin-revenue">
+      {/* Header Section */}
       <div className="page-header">
-        <h1>Revenue Management</h1>
-        <p>List of packages paid by business owners</p>
+        <div className="header-content">
+          <div className="header-text">
+            <h1>Revenue Management</h1>
+            <p>Track and analyze subscription revenue from business owners</p>
+          </div>
+        </div>
       </div>
 
-      <div className="filters-section">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="Search by owner, package or id..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <span className="search-icon">
-            <Search size={16} />
-          </span>
+      {/* Stats Cards */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon transactions">
+            <Receipt size={20} />
+          </div>
+          <div className="stat-content">
+            <span className="stat-value">{overallTotalTransactions}</span>
+            <span className="stat-label">Total Transactions</span>
+          </div>
         </div>
-        <select
-          className="package-filter"
-          value={packageFilter}
-          onChange={(e) => setPackageFilter(e.target.value)}
-        >
-          {packageOptions.map((pkg) => (
-            <option key={pkg} value={pkg}>
-              {pkg}
-            </option>
-          ))}
-        </select>
-      </div>
 
-      <div className="stats-row">
-        <div className="stat-item">
-          <span className="stat-number">{overallTotalTransactions}</span>
-          <span className="stat-label">Total Transactions</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-number">
-            {overallTotalRevenue.toLocaleString()}
-          </span>
-          <span className="stat-label">Total Revenue</span>
-        </div>
-        <div className="stat-item stat-highlight">
-          <span className="stat-number">
-            {overallHighestPackage[0]}
-            <br />
-            <span style={{ fontSize: 14, color: "#fff" }}>
-              {Number(overallHighestPackage[1]).toLocaleString()}
+        <div className="stat-card">
+          <div className="stat-icon revenue">
+            <Banknote size={20} />
+          </div>
+          <div className="stat-content">
+            <span className="stat-value">
+              {overallTotalRevenue.toLocaleString()}
+              <small>VND</small>
             </span>
-          </span>
-          <span className="stat-label">Top Earning Package</span>
+            <span className="stat-label">Total Revenue</span>
+          </div>
+        </div>
+
+        <div className="stat-card highlight">
+          <div className="stat-icon top">
+            <Crown size={20} />
+          </div>
+          <div className="stat-content">
+            <span className="stat-value">{overallHighestPackage[0]}</span>
+            <span className="stat-sub">
+              {Number(overallHighestPackage[1]).toLocaleString()} VND
+            </span>
+            <span className="stat-label">Top Earning Package</span>
+          </div>
         </div>
       </div>
 
+      {/* Filters Section */}
+      <div className="filters-card">
+        <div className="filters-header">
+          <SlidersHorizontal size={16} />
+          <span>Filter Transactions</span>
+        </div>
+        <div className="filters-content">
+          <div className="search-box">
+            <Search size={16} className="search-icon" />
+            <input
+              type="text"
+              placeholder="Search by owner, package or ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="filter-select">
+            <Box size={16} />
+            <select
+              value={packageFilter}
+              onChange={(e) => setPackageFilter(e.target.value)}
+            >
+              {packageOptions.map((pkg) => (
+                <option key={pkg} value={pkg}>
+                  {pkg === "All" ? "All Packages" : pkg}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {(searchTerm || packageFilter !== "All") && (
+          <div className="active-filters">
+            <span className="filter-count">
+              Showing {filteredRevenues.length} of {revenues.length}{" "}
+              transactions
+            </span>
+            {(searchTerm || packageFilter !== "All") && (
+              <button
+                className="clear-filters"
+                onClick={() => {
+                  setSearchTerm("");
+                  setPackageFilter("All");
+                }}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Table Section */}
       {loading ? (
-        <div>Loading subscriptions...</div>
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <span>Loading transactions...</span>
+        </div>
       ) : error ? (
-        <div style={{ color: "#d9534f" }}>Error: {error}</div>
+        <div className="error-state">
+          <span className="error-icon">⚠️</span>
+          <span className="error-text">Error: {error}</span>
+          <button className="retry-btn" onClick={loadData}>
+            Try Again
+          </button>
+        </div>
+      ) : filteredRevenues.length === 0 ? (
+        <div className="empty-state">
+          <Banknote size={40} />
+          <h3>No transactions found</h3>
+          <p>
+            {searchTerm || packageFilter !== "All"
+              ? "Try adjusting your filters"
+              : "Revenue transactions will appear here"}
+          </p>
+        </div>
       ) : (
-        <div className="revenue-table">
-          <div className="table-header">
-            <div className="table-cell">Business Owner</div>
-            <div className="table-cell">Package</div>
-            <div className="table-cell">Amount</div>
-            <div className="table-cell">Paid Date</div>
+        <div className="table-card">
+          <div className="table-container">
+            <table className="revenue-table">
+              <thead>
+                <tr>
+                  <th>
+                    <Building2 size={13} />
+                    <span>Business Owner</span>
+                  </th>
+                  <th>
+                    <Box size={13} />
+                    <span>Package</span>
+                  </th>
+                  <th>
+                    <Banknote size={13} />
+                    <span>Amount</span>
+                  </th>
+                  <th>
+                    <Clock size={13} />
+                    <span>Paid Date</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedRevenues.map((revenue, index) => (
+                  <tr
+                    key={revenue.id}
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <td>
+                      <div className="owner-cell">
+                        <div className="owner-avatar">
+                          {revenue.businessOwner.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="owner-name">
+                          {revenue.businessOwner}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="package-badge">
+                        {revenue.packageName}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="amount">
+                        {revenue.amount.toLocaleString()}{" "}
+                        <small>{revenue.currency || "VND"}</small>
+                      </span>
+                    </td>
+                    <td>
+                      <span className="date">{revenue.paidDate}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          {displayedRevenues.map((revenue) => (
-            <div key={revenue.id} className="table-row">
-              <div className="table-cell" data-label="Business Owner">
-                {revenue.businessOwner}
-              </div>
-              <div className="table-cell" data-label="Package">
-                <span className="package-badge">{revenue.packageName}</span>
-              </div>
-              <div className="table-cell" data-label="Amount">
-                {revenue.amount.toLocaleString()} {revenue.currency || "VND"}
-              </div>
-              <div className="table-cell" data-label="Paid Date">
-                {revenue.paidDate}
-              </div>
-            </div>
-          ))}
-
-          {/* Pagination controls */}
+          {/* Pagination */}
           <div className="pagination">
             <div className="page-info">
               Showing{" "}
-              {filteredRevenues.length === 0
-                ? 0
-                : (currentPage - 1) * itemsPerPage + 1}{" "}
-              - {Math.min(currentPage * itemsPerPage, filteredRevenues.length)}{" "}
-              of {filteredRevenues.length}
+              <strong>
+                {filteredRevenues.length === 0
+                  ? 0
+                  : (currentPage - 1) * itemsPerPage + 1}
+              </strong>{" "}
+              -{" "}
+              <strong>
+                {Math.min(currentPage * itemsPerPage, filteredRevenues.length)}
+              </strong>{" "}
+              of <strong>{filteredRevenues.length}</strong> transactions
             </div>
             <div className="page-controls">
               <button
-                className="page-button"
+                className="page-btn nav"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
               >
-                Prev
+                <ChevronLeft size={14} />
               </button>
 
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  className={`page-button ${p === currentPage ? "active" : ""}`}
-                  onClick={() => setCurrentPage(p)}
-                >
-                  {p}
-                </button>
-              ))}
+              {getPageNumbers().map((page, i) =>
+                typeof page === "number" ? (
+                  <button
+                    key={i}
+                    className={`page-btn ${
+                      page === currentPage ? "active" : ""
+                    }`}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                ) : (
+                  <span key={i} className="page-ellipsis">
+                    {page}
+                  </span>
+                )
+              )}
 
               <button
-                className="page-button"
+                className="page-btn nav"
                 onClick={() =>
                   setCurrentPage((p) => Math.min(totalPages, p + 1))
                 }
                 disabled={currentPage === totalPages}
               >
-                Next
+                <ChevronRight size={14} />
               </button>
             </div>
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .admin-revenue {
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: 24px;
-        }
-        .pagination {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 16px;
-          border-top: 1px solid #f3f4f6;
-          gap: 12px;
-        }
-        .page-info {
-          color: #6b6b6b;
-          font-size: 14px;
-        }
-        .page-controls {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-        }
-        .page-button {
-          padding: 8px 12px;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-          background: #fff;
-          cursor: pointer;
-        }
-        .page-button[disabled] {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        .page-button.active {
-          background: #ff5e13;
-          color: #fff;
-          border-color: #ff5e13;
-        }
-        .page-header {
-          margin-bottom: 32px;
-        }
-        .page-header h1 {
-          font-size: 32px;
-          font-weight: 700;
-          color: #0d062d;
-          margin: 0 0 8px 0;
-        }
-        .page-header p {
-          font-size: 16px;
-          color: #787486;
-          margin: 0;
-        }
-        .filters-section {
-          display: flex;
-          justify-content: flex-start;
-          align-items: center;
-          margin-bottom: 24px;
-          gap: 20px;
-        }
-        .search-box {
-          position: relative;
-          flex: 1;
-          max-width: 400px;
-        }
-        .search-box input {
-          width: 100%;
-          padding: 12px 16px 12px 40px;
-          border: 2px solid #e5e7eb;
-          border-radius: 10px;
-          font-size: 14px;
-          transition: border-color 0.3s ease;
-        }
-        .search-box input:focus {
-          outline: none;
-          border-color: #ff5e13;
-        }
-        .search-icon {
-          position: absolute;
-          left: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #787486;
-        }
-        .package-filter {
-          padding: 10px 16px;
-          border-radius: 10px;
-          border: 2px solid #e5e7eb;
-          font-size: 14px;
-          background: #fff;
-          color: #0d062d;
-          min-width: 160px;
-        }
-        .package-filter:focus {
-          outline: none;
-          border-color: #ff5e13;
-        }
-        .stats-row {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
-          margin-bottom: 32px;
-        }
-        .stat-item {
-          background: white;
-          padding: 20px;
-          border-radius: 12px;
-          text-align: center;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
-        .stat-number {
-          display: block;
-          font-size: 24px;
-          font-weight: 700;
-          color: #0d062d;
-          margin-bottom: 4px;
-        }
-        .stat-label {
-          display: block;
-          font-size: 14px;
-          color: #787486;
-        }
-        .stat-highlight {
-          background: linear-gradient(90deg, #ff5e13 0%, #ffb347 100%);
-          color: #fff;
-        }
-        .stat-highlight .stat-label {
-          color: #fff;
-        }
-        .revenue-table {
-          background: white;
-          border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        }
-        .table-header {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          background: #f9f4ee;
-          padding: 16px 20px;
-          font-weight: 600;
-          color: #0d062d;
-          font-size: 14px;
-        }
-        .table-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr 1fr;
-          padding: 16px 20px;
-          border-bottom: 1px solid #f3f4f6;
-          align-items: center;
-          transition: background 0.3s ease;
-        }
-        .table-row:hover {
-          background: #f9f4ee;
-        }
-        .table-cell {
-          font-size: 14px;
-          color: #0d062d;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          padding: 0 4px;
-        }
-        .package-badge {
-          display: inline-block;
-          background: linear-gradient(90deg, #ffb347 0%, #ff5e13 100%);
-          color: #fff;
-          font-weight: 600;
-          padding: 4px 14px;
-          border-radius: 16px;
-          font-size: 13px;
-          box-shadow: 0 2px 8px rgba(255, 94, 19, 0.08);
-          letter-spacing: 0.5px;
-        }
-        @media (max-width: 1400px) {
-          .table-header {
-            display: none;
-          }
-          .table-row {
-            display: block;
-            margin-bottom: 16px;
-            padding: 16px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background: white;
-          }
-          .table-cell {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding: 4px 0;
-            white-space: normal;
-            overflow: visible;
-            text-overflow: unset;
-          }
-          .table-cell:last-child {
-            margin-bottom: 0;
-          }
-          .table-cell::before {
-            content: attr(data-label);
-            font-weight: 600;
-            color: #787486;
-            min-width: 120px;
-          }
-        }
-        @media (max-width: 768px) {
-          .admin-revenue {
-            padding: 16px;
-          }
-          .page-header h1 {
-            font-size: 24px;
-          }
-          .filters-section {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 16px;
-          }
-          .search-box {
-            max-width: none;
-          }
-          .stats-row {
-            grid-template-columns: 1fr;
-            gap: 12px;
-          }
-          .stat-item {
-            padding: 16px;
-          }
-          .stat-number {
-            font-size: 20px;
-          }
-        }
-        @media (max-width: 480px) {
-          .admin-revenue {
-            padding: 12px;
-          }
-          .page-header h1 {
-            font-size: 20px;
-          }
-          .stats-row {
-            grid-template-columns: 1fr;
-          }
-          .table-cell::before {
-            min-width: 100px;
-            font-size: 12px;
-          }
-        }
-      `}</style>
     </div>
   );
 };

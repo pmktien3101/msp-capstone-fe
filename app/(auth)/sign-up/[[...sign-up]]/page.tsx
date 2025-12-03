@@ -9,7 +9,16 @@ import { isAuthenticated } from "@/lib/auth";
 import { authService } from "@/services/authService";
 import { uploadFileToCloudinary } from "@/services/uploadFileService";
 import "@/app/styles/sign-up.scss";
-import { User, Eye, EyeOff, Users, Building2, CheckCircle, XCircle, X } from "lucide-react";
+import {
+  User,
+  Eye,
+  EyeOff,
+  Users,
+  Building2,
+  CheckCircle,
+  XCircle,
+  X,
+} from "lucide-react";
 
 interface RegisterFormData {
   fullName: string;
@@ -29,11 +38,16 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [role, setRole] = useState<Role>("Member");
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [businessLicenseUrl, setBusinessLicenseUrl] = useState<string>("");
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [businessLicenseFile, setBusinessLicenseFile] = useState<File | null>(null);
+  const [businessLicenseFile, setBusinessLicenseFile] = useState<File | null>(
+    null
+  );
   const router = useRouter();
   const [registerForm, setRegisterForm] = useState<RegisterFormData>({
     fullName: "",
@@ -65,7 +79,7 @@ export default function SignUpPage() {
     return (
       <div className="auth-checking">
         <div className="loading-spinner"></div>
-        <p>Đang kiểm tra trạng thái đăng nhập...</p>
+        <p>Checking authentication status...</p>
         <style jsx>{`
           .auth-checking {
             display: flex;
@@ -106,7 +120,6 @@ export default function SignUpPage() {
             margin: 0;
           }
 
-
           @keyframes slideDown {
             from {
               opacity: 0;
@@ -128,11 +141,12 @@ export default function SignUpPage() {
     setMessage(null);
 
     if (!isFormValid()) {
-      setMessage({ 
-        type: 'error', 
-        text: role === "BusinessOwner" 
-          ? "Vui lòng điền đầy đủ thông tin và chọn tệp giấy phép kinh doanh" 
-          : "Vui lòng điền đầy đủ thông tin" 
+      setMessage({
+        type: "error",
+        text:
+          role === "BusinessOwner"
+            ? "Please fill in all required fields and upload your business license"
+            : "Please fill in all required fields",
       });
       setIsLoading(false);
       return;
@@ -143,13 +157,18 @@ export default function SignUpPage() {
 
       // Upload file to Cloudinary if it hasn't been uploaded yet
       if (businessLicenseFile && !businessLicenseUrl) {
-        setMessage({ type: 'success', text: "Đang tải lên giấy phép kinh doanh..." });
+        setMessage({ type: "success", text: "Uploading business license..." });
         try {
-          finalBusinessLicenseUrl = await uploadFileToCloudinary(businessLicenseFile);
+          finalBusinessLicenseUrl = await uploadFileToCloudinary(
+            businessLicenseFile
+          );
           setBusinessLicenseUrl(finalBusinessLicenseUrl);
         } catch (uploadError) {
           console.error("File upload error:", uploadError);
-          setMessage({ type: 'error', text: "Tải lên giấy phép kinh doanh thất bại. Vui lòng thử lại." });
+          setMessage({
+            type: "error",
+            text: "Failed to upload business license. Please try again.",
+          });
           setIsLoading(false);
           return;
         }
@@ -173,16 +192,25 @@ export default function SignUpPage() {
 
       if (result.success) {
         console.log("Registration successful:", result.message);
-        setMessage({ type: 'success', text: result.message || "Đăng ký thành công!" });
+        setMessage({
+          type: "success",
+          text: result.message || "Registration successful!",
+        });
         setTimeout(() => {
           router.push("/sign-in");
         }, 2000);
       } else {
-        setMessage({ type: 'error', text: result.error || "Đăng ký thất bại. Vui lòng thử lại." });
+        setMessage({
+          type: "error",
+          text: result.error || "Registration failed. Please try again.",
+        });
       }
     } catch (error) {
       console.error("Registration error:", error);
-      setMessage({ type: 'error', text: "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại." });
+      setMessage({
+        type: "error",
+        text: "An unexpected error occurred. Please try again.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -197,7 +225,7 @@ export default function SignUpPage() {
       [name]:
         type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
-    
+
     if (message) {
       setMessage(null);
     }
@@ -210,7 +238,7 @@ export default function SignUpPage() {
     // Validate file type and size
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      setMessage({ type: 'error', text: "Kích thước tệp không được vượt quá 5MB" });
+      setMessage({ type: "error", text: "File size must not exceed 5MB" });
       return;
     }
 
@@ -262,13 +290,18 @@ export default function SignUpPage() {
         }
 
         .register-message::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: 0;
           right: 0;
           height: 3px;
-          background: linear-gradient(90deg, transparent, currentColor, transparent);
+          background: linear-gradient(
+            90deg,
+            transparent,
+            currentColor,
+            transparent
+          );
           animation: shimmer 2s infinite;
         }
 
@@ -292,8 +325,12 @@ export default function SignUpPage() {
         }
 
         @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
         }
 
         @keyframes slideDown {
@@ -416,8 +453,8 @@ export default function SignUpPage() {
             <div className="logo-icon">
               <User size={32} strokeWidth={2} color="white" />
             </div>
-            <h1>Đăng Ký Tài Khoản</h1>
-            <p>Tạo tài khoản để sử dụng nền tảng</p>
+            <h1>Create Account</h1>
+            <p>Sign up to get started with our platform</p>
           </div>
         </div>
 
@@ -428,17 +465,15 @@ export default function SignUpPage() {
             onClick={() => setRole("Member")}
           >
             <Users size={20} />
-            <span>Tài Khoản Cá Nhân</span>
+            <span>Personal Account</span>
           </button>
           <button
             type="button"
-            className={`tab-button ${
-              role === "BusinessOwner" ? "active" : ""
-            }`}
+            className={`tab-button ${role === "BusinessOwner" ? "active" : ""}`}
             onClick={() => setRole("BusinessOwner")}
           >
             <Building2 size={20} />
-            <span>Tài Khoản Doanh Nghiệp</span>
+            <span>Business Account</span>
           </button>
         </div>
 
@@ -446,9 +481,13 @@ export default function SignUpPage() {
           <form className="register-form" onSubmit={handleSubmit}>
             {/* Message Display */}
             {message && (
-              <div className={`register-message ${message.type === 'success' ? 'success' : 'error'}`}>
+              <div
+                className={`register-message ${
+                  message.type === "success" ? "success" : "error"
+                }`}
+              >
                 <div className="register-message-content">
-                  {message.type === 'success' ? (
+                  {message.type === "success" ? (
                     <CheckCircle size={20} />
                   ) : (
                     <XCircle size={20} />
@@ -457,16 +496,16 @@ export default function SignUpPage() {
                 </div>
               </div>
             )}
-            
+
             <div className="form-grid">
               <div className="form-group">
-                <label htmlFor="fullName">Họ và Tên *</label>
+                <label htmlFor="fullName">Full Name *</label>
                 <div className="input-wrapper">
                   <input
                     type="text"
                     id="fullName"
                     name="fullName"
-                    placeholder="Nhập họ và tên đầy đủ"
+                    placeholder="Enter your full name"
                     value={registerForm.fullName}
                     onChange={handleInputChange}
                     required
@@ -477,32 +516,30 @@ export default function SignUpPage() {
               {role === "BusinessOwner" && (
                 <div className="form-group">
                   <label htmlFor="organizationName">
-                    Tên Tổ Chức/Doanh Nghiệp *
+                    Organization/Business Name *
                   </label>
                   <div className="input-wrapper">
-                  <input
-                    type="text"
-                    id="organizationName"
-                    name="organization"
-                    placeholder="Nhập tên tổ chức/doanh nghiệp"
-                    value={registerForm.organization}
-                    onChange={handleInputChange}
-                    required
-                  />
+                    <input
+                      type="text"
+                      id="organizationName"
+                      name="organization"
+                      placeholder="Enter your organization or business name"
+                      value={registerForm.organization}
+                      onChange={handleInputChange}
+                      required
+                    />
                   </div>
                 </div>
               )}
 
-              {/* Đã bỏ trường ngành kinh doanh */}
-
               <div className="form-group">
-                <label htmlFor="phone">Số Điện Thoại *</label>
+                <label htmlFor="phone">Phone Number *</label>
                 <div className="input-wrapper">
                   <input
                     type="tel"
                     id="phone"
                     name="phoneNumber"
-                    placeholder="Nhập số điện thoại"
+                    placeholder="Enter your phone number"
                     value={registerForm.phoneNumber}
                     onChange={handleInputChange}
                     required
@@ -517,7 +554,7 @@ export default function SignUpPage() {
                     type="email"
                     id="email"
                     name="email"
-                    placeholder="Nhập email"
+                    placeholder="Enter your email"
                     value={registerForm.email}
                     onChange={handleInputChange}
                     required
@@ -526,13 +563,13 @@ export default function SignUpPage() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="password">Mật Khẩu *</label>
+                <label htmlFor="password">Password *</label>
                 <div className="input-wrapper">
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
                     name="password"
-                    placeholder="Nhập mật khẩu"
+                    placeholder="Enter your password"
                     value={registerForm.password}
                     onChange={handleInputChange}
                     required
@@ -554,13 +591,13 @@ export default function SignUpPage() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="confirmPassword">Xác Nhận Mật Khẩu *</label>
+                <label htmlFor="confirmPassword">Confirm Password *</label>
                 <div className="input-wrapper">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     id="confirmPassword"
                     name="confirmPassword"
-                    placeholder="Nhập lại mật khẩu"
+                    placeholder="Re-enter your password"
                     value={registerForm.confirmPassword}
                     onChange={handleInputChange}
                     required
@@ -581,67 +618,65 @@ export default function SignUpPage() {
                 </div>
                 {registerForm.confirmPassword &&
                   registerForm.password !== registerForm.confirmPassword && (
-                    <small className="form-error">
-                      Mật khẩu xác nhận không khớp
-                    </small>
+                    <small className="form-error">Passwords do not match</small>
                   )}
               </div>
 
-               {role === "BusinessOwner" && (
-                 <div className="form-group">
-                   <label htmlFor="businessLicense">Giấy Phép Kinh Doanh*</label>
-                   <div className="input-wrapper">
-                     <input
-                       type="file"
-                       id="businessLicense"
-                       name="businessLicense"
-                       accept="image/*,.pdf"
-                       onChange={handleFileChange}
-                       required
-                       style={{
-                         display: "none",
-                       }}
-                     />
-                     <div className="file-upload-wrapper">
-                       <button
-                         type="button"
-                         onClick={() =>
-                           document.getElementById("businessLicense")?.click()
-                         }
-                         className="custom-file-btn"
-                         style={{
-                           width: "100%",
-                           padding: "12px",
-                           border: "1px solid #e5e7eb",
-                           borderRadius: "8px",
-                           background: "#fff",
-                           color: "#1a1a1a",
-                           cursor: "pointer",
-                         }}
-                       >
-                         {registerForm.businessLicense
-                           ? `Đã chọn: ${registerForm.businessLicense}`
-                           : "Chọn tệp giấy phép kinh doanh..."}
-                       </button>
-                       {businessLicenseFile && (
-                         <button
-                           type="button"
-                           className="preview-btn"
-                           onClick={() => setShowPreview(true)}
-                           title="Xem trước"
-                         >
-                           <Eye size={20} color="#ff5e13" />
-                         </button>
-                       )}
-                     </div>
-                   </div>
-                   {!businessLicenseFile && role === "BusinessOwner" && (
-                     <small style={{ color: "#ef4444", fontWeight: "500" }}>
-                       Vui lòng chọn tệp giấy phép kinh doanh
-                     </small>
-                   )}
-                 </div>
-               )}
+              {role === "BusinessOwner" && (
+                <div className="form-group">
+                  <label htmlFor="businessLicense">Business License *</label>
+                  <div className="input-wrapper">
+                    <input
+                      type="file"
+                      id="businessLicense"
+                      name="businessLicense"
+                      accept="image/*,.pdf"
+                      onChange={handleFileChange}
+                      required
+                      style={{
+                        display: "none",
+                      }}
+                    />
+                    <div className="file-upload-wrapper">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          document.getElementById("businessLicense")?.click()
+                        }
+                        className="custom-file-btn"
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "8px",
+                          background: "#fff",
+                          color: "#1a1a1a",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {registerForm.businessLicense
+                          ? `Selected: ${registerForm.businessLicense}`
+                          : "Choose business license file..."}
+                      </button>
+                      {businessLicenseFile && (
+                        <button
+                          type="button"
+                          className="preview-btn"
+                          onClick={() => setShowPreview(true)}
+                          title="Preview"
+                        >
+                          <Eye size={20} color="#ff5e13" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {!businessLicenseFile && role === "BusinessOwner" && (
+                    <small style={{ color: "#ef4444", fontWeight: "500" }}>
+                      Please upload your business license
+                    </small>
+                  )}
+                </div>
+              )}
             </div>
 
             <button
@@ -652,21 +687,27 @@ export default function SignUpPage() {
               {isLoading ? (
                 <div className="loading-spinner"></div>
               ) : (
-                <span>Đăng Ký Tài Khoản</span>
+                <span>Create Account</span>
               )}
             </button>
 
             <div className="signin-link">
               <p>
-                Đã có tài khoản? <Link href="/sign-in">Đăng nhập</Link>
+                Already have an account? <Link href="/sign-in">Sign In</Link>
               </p>
             </div>
           </form>
 
           {/* Preview Modal */}
           {showPreview && businessLicenseFile && (
-            <div className="preview-modal" onClick={() => setShowPreview(false)}>
-              <div className="preview-content" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="preview-modal"
+              onClick={() => setShowPreview(false)}
+            >
+              <div
+                className="preview-content"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   className="preview-close"
                   onClick={() => setShowPreview(false)}
@@ -684,28 +725,28 @@ export default function SignUpPage() {
           )}
 
           <div className="process-section">
-            <h3 className="section-title">Quy Trình Đăng Ký</h3>
+            <h3 className="section-title">Registration Process</h3>
             {role === "Member" ? (
               <div className="process-steps">
                 <div className="step-item">
                   <div className="step-number">1</div>
                   <div className="step-content">
-                    <h4>Điền thông tin</h4>
-                    <p>Điền đầy đủ thông tin cá nhân của bạn</p>
+                    <h4>Fill in your details</h4>
+                    <p>Complete the form with your personal information</p>
                   </div>
                 </div>
                 <div className="step-item">
                   <div className="step-number">2</div>
                   <div className="step-content">
-                    <h4>Xác nhận email</h4>
-                    <p>Kiểm tra email và xác nhận tài khoản</p>
+                    <h4>Verify your email</h4>
+                    <p>Check your inbox and confirm your account</p>
                   </div>
                 </div>
                 <div className="step-item">
                   <div className="step-number">3</div>
                   <div className="step-content">
-                    <h4>Bắt đầu sử dụng</h4>
-                    <p>Đăng nhập và sử dụng ngay các tính năng của nền tảng</p>
+                    <h4>Start using the platform</h4>
+                    <p>Sign in and enjoy all platform features</p>
                   </div>
                 </div>
               </div>
@@ -714,37 +755,34 @@ export default function SignUpPage() {
                 <div className="step-item">
                   <div className="step-number">1</div>
                   <div className="step-content">
-                    <h4>Điền thông tin</h4>
+                    <h4>Fill in your details</h4>
                     <p>
-                      Điền đầy đủ thông tin người dùng và tên tổ chức/doanh
-                      nghiệp
+                      Complete the form with your personal and business
+                      information
                     </p>
                   </div>
                 </div>
                 <div className="step-item">
                   <div className="step-number">2</div>
                   <div className="step-content">
-                    <h4>Gửi thông tin & Xác nhận email</h4>
-                    <p>Gửi thông tin đăng ký và xác nhận email</p>
+                    <h4>Submit & Verify email</h4>
+                    <p>Submit your registration and verify your email</p>
                   </div>
                 </div>
                 <div className="step-item">
                   <div className="step-number">3</div>
                   <div className="step-content">
-                    <h4>Chờ phê duyệt</h4>
-                    <p>
-                      Admin sẽ xem xét và phê duyệt tài khoản doanh nghiệp của
-                      bạn
-                    </p>
+                    <h4>Wait for approval</h4>
+                    <p>Admin will review and approve your business account</p>
                   </div>
                 </div>
                 <div className="step-item">
                   <div className="step-number">4</div>
                   <div className="step-content">
-                    <h4>Kích hoạt tài khoản</h4>
+                    <h4>Account activation</h4>
                     <p>
-                      Sau khi được phê duyệt, bạn có thể đăng nhập và sử dụng
-                      nền tảng
+                      Once approved, you can sign in and start using the
+                      platform
                     </p>
                   </div>
                 </div>

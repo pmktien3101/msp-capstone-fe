@@ -202,7 +202,7 @@ const SubscriptionBillingPage = () => {
                       </svg>
                       <span>
                         {limitation.name}
-                        {limitation.isUnlimited ? " (Không giới hạn)" : limitation.limitValue !== null && limitation.limitValue !== undefined ? `: ${limitation.limitValue}${limitation.limitUnit ? ` ${limitation.limitUnit}` : ""}` : ""}
+                        {limitation.isUnlimited ? " (No limitations)" : limitation.limitValue !== null && limitation.limitValue !== undefined ? `: ${limitation.limitValue}${limitation.limitUnit ? ` ${limitation.limitUnit}` : ""}` : ""}
                       </span>
                     </li>
                   ))
@@ -263,7 +263,7 @@ const SubscriptionBillingPage = () => {
                             </svg>
                             <span>
                               {limitation.name}
-                              {limitation.isUnlimited ? " (Không giới hạn)" : limitation.limitValue !== null && limitation.limitValue !== undefined ? `: ${limitation.limitValue}${limitation.limitUnit ? ` ${limitation.limitUnit}` : ""}` : ""}
+                              {limitation.isUnlimited ? " (No limitations)" : limitation.limitValue !== null && limitation.limitValue !== undefined ? `: ${limitation.limitValue}${limitation.limitUnit ? ` ${limitation.limitUnit}` : ""}` : ""}
                             </span>
                           </li>
                         ))
@@ -277,11 +277,25 @@ const SubscriptionBillingPage = () => {
                   <div className="plan-actions">
                     {isCurrent ? (
                       <button className="current-btn" disabled>Current plan</button>
-                    ) : (
-                      <button className="upgrade-btn" onClick={() => handleUpgrade(pkg)}>
-                        {currentSubscription ? "Upgrade" : "Select plan"}
-                      </button>
-                    )}
+                    ) : (() => {
+                      // Hide upgrade button if current package price >= selected package price (downgrade)
+                      const currentPrice = currentPackage?.price ?? 0;
+                      const selectedPrice = pkg.price ?? 0;
+                      const isDowngrade = currentPrice >= selectedPrice;
+                      
+                      if (isDowngrade) {
+                        return null; // Hide button for downgrade
+                      }
+                      
+                      return (
+                        <button 
+                          className="upgrade-btn" 
+                          onClick={() => handleUpgrade(pkg)}
+                        >
+                          {currentSubscription ? "Upgrade" : "Select plan"}
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               );
@@ -310,7 +324,7 @@ const SubscriptionBillingPage = () => {
               <div className="col-date"><span className="date">{formatDateVN(bill.date)}</span></div>
               <div className="col-description"><span className="description">{bill.description}</span></div>
               <div className="col-amount"><span className="amount">{bill.amount} {" " + bill.currency}</span></div>
-              <div className="col-status">{bill.status}</div>
+              <div className="col-status"><span className="status-badge paid">{bill.status}</span></div>
               {/* <div className="col-action">
                 <button className="download-btn">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

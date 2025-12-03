@@ -12,11 +12,11 @@ interface AuthGuardProps {
   requiredRoles?: string[];
 }
 
-const AuthGuard = ({ 
-  children, 
-  fallback, 
-  requiredPermissions = [], 
-  requiredRoles = [] 
+const AuthGuard = ({
+  children,
+  fallback,
+  requiredPermissions = [],
+  requiredRoles = [],
 }: AuthGuardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
@@ -28,7 +28,7 @@ const AuthGuard = ({
     const checkAuth = () => {
       const token = getAccessToken();
       console.log("AuthGuard: Checking auth, token exists:", !!token);
-      
+
       // If no token at all, redirect to sign-in
       if (!token) {
         console.log("AuthGuard: No access token found, redirecting to landing");
@@ -37,32 +37,41 @@ const AuthGuard = ({
         setIsLoading(false);
         return;
       }
-      
+
       // Check if user is authenticated (don't check token expiration here)
       const authenticated = isAuthenticated();
       const user = getCurrentUser();
-      
-      console.log("AuthGuard: Authenticated:", authenticated, "User:", user?.email);
-      
+
+      console.log(
+        "AuthGuard: Authenticated:",
+        authenticated,
+        "User:",
+        user?.email
+      );
+
       setIsUserAuthenticated(authenticated);
-      
+
       if (authenticated && user) {
         // Check role-based access
         if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
-          console.log(`AuthGuard: User role ${user.role} not authorized for this route`);
+          console.log(
+            `AuthGuard: User role ${user.role} not authorized for this route`
+          );
           setHasPermission(false);
           router.push("/dashboard");
           return;
         }
-        
+
         console.log("AuthGuard: User authenticated and authorized");
         setHasPermission(true);
       } else {
         setHasPermission(false);
-        console.log("AuthGuard: User not authenticated, redirecting to landing");
+        console.log(
+          "AuthGuard: User not authenticated, redirecting to landing"
+        );
         router.push("/landing");
       }
-      
+
       setIsLoading(false);
     };
 
@@ -77,7 +86,7 @@ const AuthGuard = ({
       fallback || (
         <div className="auth-loading">
           <div className="loading-spinner"></div>
-          <p>Đang kiểm tra xác thực...</p>
+          <p>Checking for authorization...</p>
           <style jsx>{`
             .auth-loading {
               display: flex;

@@ -6,24 +6,24 @@ import { useUser } from "@/hooks/useUser";
 import { isAuthenticated, getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@/lib/rbac";
 
-interface AdminGuardProps {
+interface MemberGuardProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
   allowedRoles?: UserRole[];
 }
 
-const AdminGuard = ({
+const MemberGuard = ({
   children,
   fallback,
-  allowedRoles = [UserRole.ADMIN],
-}: AdminGuardProps) => {
+  allowedRoles = [UserRole.MEMBER],
+}: MemberGuardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const { role, userId, email } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    const checkAdminAccess = () => {
+    const checkMemberAccess = () => {
       const authenticated = isAuthenticated();
       const user = getCurrentUser();
 
@@ -40,25 +40,25 @@ const AdminGuard = ({
       if (hasAccess) {
         setIsAuthorized(true);
       } else {
-        console.log(`User role ${user.role} not authorized for admin access`);
+        console.log(`User role ${user.role} not authorized for member access`);
         router.push("/dashboard");
       }
 
       setIsLoading(false);
     };
 
-    const timer = setTimeout(checkAdminAccess, 100);
+    const timer = setTimeout(checkMemberAccess, 100);
     return () => clearTimeout(timer);
   }, [role, router, allowedRoles]);
 
   if (isLoading) {
     return (
       fallback || (
-        <div className="admin-loading">
+        <div className="member-loading">
           <div className="loading-spinner"></div>
-          <p>Checking for admin access...</p>
+          <p>Checking for member access...</p>
           <style jsx>{`
-            .admin-loading {
+            .member-loading {
               display: flex;
               flex-direction: column;
               align-items: center;
@@ -104,4 +104,4 @@ const AdminGuard = ({
   return <>{children}</>;
 };
 
-export default AdminGuard;
+export default MemberGuard;
