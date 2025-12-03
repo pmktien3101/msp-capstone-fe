@@ -73,27 +73,16 @@ export const TodoCard: React.FC<Props> = ({
     const getTodoStatusLabel = (statusDisplay: string) => {
         switch (statusDisplay) {
             case "Generated":
-                return "Mới tạo";
+                return "New";
             case "UnderReview":
-                return "Đã chỉnh sửa";
+                return "Edited";
             case "ConvertedToTask":
-                return "Đã chuyển đổi thành công việc";
+                return "Converted to task";
             case "Deleted":
-                return "Đã xóa";
+                return "Deleted";
             default:
                 return statusDisplay;
         }
-    };
-
-    const formatDate = (dateString?: string | Date): string => {
-        if (!dateString) return "--/--/----";
-        const dateObj =
-            typeof dateString === "string" ? new Date(dateString) : dateString;
-        if (isNaN(dateObj.getTime())) return "--/--/----";
-        const dd = String(dateObj.getDate()).padStart(2, "0");
-        const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
-        const yyyy = dateObj.getFullYear();
-        return `${dd}/${mm}/${yyyy}`;
     };
 
     const getTodoAssigneeName = (todo: Todo): string => {
@@ -107,7 +96,18 @@ export const TodoCard: React.FC<Props> = ({
             const attendee = attendees.find((att: any) => att.id === todo.assigneeId);
             return attendee?.fullName || attendee?.email || todo.assigneeId;
         }
-        return "Chưa được giao";
+        return "Not assigned";
+    };
+
+    const formatDate = (dateString?: string | Date): string => {
+        if (!dateString) return "--/--/----";
+        const dateObj =
+            typeof dateString === "string" ? new Date(dateString) : dateString;
+        if (isNaN(dateObj.getTime())) return "--/--/----";
+        const dd = String(dateObj.getDate()).padStart(2, "0");
+        const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const yyyy = dateObj.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
     };
 
     return (
@@ -139,10 +139,8 @@ export const TodoCard: React.FC<Props> = ({
                 </div>
 
                 <div className="task-title">
-                    <label
-                        className="detail-label"
-                    >
-                        Tên công việc
+                    <label className="detail-label">
+                        Task Name
                     </label>
                     {editMode ? (
                         <input
@@ -152,21 +150,19 @@ export const TodoCard: React.FC<Props> = ({
                                 onTodoChange(todo.id, { title: e.target.value });
                             }}
                             className="task-title-input"
-                            placeholder="Nhập tên công việc..."
+                            placeholder="Enter task name..."
                             autoFocus
                         />
                     ) : (
                         <div className="task-title-display">
-                            {todo.title || "Nhập tên công việc..."}
+                            {todo.title || "Enter task name..."}
                         </div>
                     )}
                 </div>
 
                 <div className="task-description">
-                    <label
-                        className="detail-label"
-                    >
-                        Mô tả công việc
+                    <label className="detail-label">
+                        Task Description
                     </label>
                     {editMode ? (
                         <textarea
@@ -175,19 +171,19 @@ export const TodoCard: React.FC<Props> = ({
                                 onTodoChange(todo.id, { description: e.target.value });
                             }}
                             className="task-description-input"
-                            placeholder="Mô tả chi tiết công việc..."
+                            placeholder="Detailed task description..."
                             rows={2}
                         />
                     ) : (
                         <div className="task-description-display">
-                            {todo.description || "Mô tả chi tiết công việc..."}
+                            {todo.description || "Detailed task description..."}
                         </div>
                     )}
                 </div>
 
                 <div className="task-details">
                     <div className="detail-item">
-                        <label className="detail-label">Ngày bắt đầu</label>
+                        <label className="detail-label">Start Date</label>
                         <div className="detail-value">
                             <Calendar size={14} />
                             {editMode ? (
@@ -211,7 +207,7 @@ export const TodoCard: React.FC<Props> = ({
                     </div>
 
                     <div className="detail-item">
-                        <label className="detail-label">Ngày kết thúc</label>
+                        <label className="detail-label">End Date</label>
                         <div className="detail-value">
                             <Calendar size={14} />
                             {editMode ? (
@@ -233,7 +229,7 @@ export const TodoCard: React.FC<Props> = ({
                     </div>
 
                     <div className="detail-item">
-                        <label className="detail-label">Người phụ trách</label>
+                        <label className="detail-label">Assignee</label>
                         <div className="detail-value">
                             <User size={14} />
                             {editMode ? (
@@ -261,7 +257,7 @@ export const TodoCard: React.FC<Props> = ({
                                     }}
                                     className="assignee-select"
                                 >
-                                    <option value="">Chưa được giao</option>
+                                    <option value="">Not assigned</option>
                                     {attendees?.map(
                                         (attendee: any, idx: number) => (
                                             <option key={idx} value={attendee.id}>
@@ -285,7 +281,7 @@ export const TodoCard: React.FC<Props> = ({
                         textAlign: 'center',
                         padding: '8px 0'
                     }}>
-                        <span>Liên quan đến <strong style={{ color: '#1681ff' }}>{todo.referencedTasks?.length}</strong> công việc cũ. </span>
+                        <span>Related to <strong style={{ color: '#1681ff' }}>{todo.referencedTasks?.length}</strong> old tasks. </span>
                         <button
                             className="relation-link"
                             style={{
@@ -303,7 +299,7 @@ export const TodoCard: React.FC<Props> = ({
                                 onShowRelatedTasks(todo);
                             }}
                         >
-                            Xem chi tiết
+                            View details
                         </button>
                     </div>
                 )}
@@ -320,7 +316,7 @@ export const TodoCard: React.FC<Props> = ({
                                 await onEditSave(todo);
                             }}
                             className="save-btn"
-                            title="Lưu"
+                            title="Save"
                         >
                             <Check size={16} />
                         </Button>
@@ -332,7 +328,7 @@ export const TodoCard: React.FC<Props> = ({
                                 onEditCancel(todo.id);
                             }}
                             className="cancel-btn"
-                            title="Hủy"
+                            title="Cancel"
                         >
                             <X size={16} />
                         </Button>
@@ -347,7 +343,7 @@ export const TodoCard: React.FC<Props> = ({
                                 onEditStart(todo.id, { ...todo });
                             }}
                             className="edit-btn"
-                            title="Chỉnh sửa"
+                            title="Edit"
                         >
                             <Edit size={16} />
                         </Button>
@@ -359,7 +355,7 @@ export const TodoCard: React.FC<Props> = ({
                                 onDelete(todo.id);
                             }}
                             className="delete-btn"
-                            title="Xóa"
+                            title="Delete"
                         >
                             <Trash2 size={16} />
                         </Button>

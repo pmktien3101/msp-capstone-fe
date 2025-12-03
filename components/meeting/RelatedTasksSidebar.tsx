@@ -91,10 +91,10 @@ export const RelatedTasksSidebar: React.FC<Props> = ({
 
     const getStatusLabel = (status: string) => {
         const labelMap: { [key: string]: string } = {
-            'ToDo': 'Chưa bắt đầu',
-            'InProgress': 'Đang thực hiện',
-            'Done': 'Hoàn thành',
-            'Cancelled': 'Đã hủy',
+            'ToDo': 'To Do',
+            'InProgress': 'In Progress',
+            'Done': 'Completed',
+            'Cancelled': 'Cancelled',
         };
         return labelMap[status] || status;
     };
@@ -104,16 +104,17 @@ export const RelatedTasksSidebar: React.FC<Props> = ({
             {/* Sidebar */}
             <div
                 ref={sidebarRef}
-                className={`fixed right-0 top-0 h-full w-[500px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'
-                    }`}
+                className={`fixed right-0 top-0 h-full w-[500px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+                    open ? 'translate-x-0' : 'translate-x-full'
+                }`}
                 style={{ zIndex: 9999, borderLeft: '1px solid #e5e7eb' }}
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b bg-gradient-to-r from-orange-50 to-white">
                     <div>
-                        <h3 className="text-base font-semibold text-gray-800">Các công việc cũ liên quan</h3>
+                        <h3 className="text-base font-semibold text-gray-800">Related Old Tasks</h3>
                         <p className="text-xs text-gray-500 mt-1">
-                            Tổng cộng: <span className="font-semibold text-orange-600">{tasks.length}</span> công việc
+                            Total: <span className="font-semibold text-orange-600">{tasks.length}</span> tasks
                         </p>
                     </div>
                     <button
@@ -129,7 +130,7 @@ export const RelatedTasksSidebar: React.FC<Props> = ({
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-32">
                             <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-orange-500"></div>
-                            <span className="text-sm text-gray-600 mt-2">Đang tải...</span>
+                            <span className="text-sm text-gray-600 mt-2">Loading...</span>
                         </div>
                     ) : tasks.length > 0 ? (
                         <div className="space-y-3">
@@ -157,7 +158,7 @@ export const RelatedTasksSidebar: React.FC<Props> = ({
                                     <div className="mb-2.5">
                                         <div className="flex items-center gap-1.5 mb-0.5">
                                             <Tag size={12} className="text-gray-400" />
-                                            <label className="text-[10px] font-semibold text-gray-500 uppercase">Tên công việc</label>
+                                            <label className="text-[10px] font-semibold text-gray-500 uppercase">Task Name</label>
                                         </div>
                                         <h4 className="font-semibold text-sm text-gray-800 pl-4">{task.title}</h4>
                                     </div>
@@ -166,19 +167,19 @@ export const RelatedTasksSidebar: React.FC<Props> = ({
                                     <div className="mb-2.5">
                                         <div className="flex items-center gap-1.5 mb-0.5">
                                             <FileText size={12} className="text-gray-400" />
-                                            <label className="text-[10px] font-semibold text-gray-500 uppercase">Mô tả</label>
+                                            <label className="text-[10px] font-semibold text-gray-500 uppercase">Description</label>
                                         </div>
-                                        <p className="text-xs text-gray-600 pl-4 line-clamp-2">{task.description || 'Không có mô tả'}</p>
+                                        <p className="text-xs text-gray-600 pl-4 line-clamp-2">{task.description || 'No description'}</p>
                                     </div>
 
                                     {/* Assignee */}
                                     <div className="mb-2.5">
                                         <div className="flex items-center gap-1.5 mb-0.5">
                                             <User size={12} className="text-gray-400" />
-                                            <label className="text-[10px] font-semibold text-gray-500 uppercase">Người phụ trách</label>
+                                            <label className="text-[10px] font-semibold text-gray-500 uppercase">Assignee</label>
                                         </div>
                                         <p className="text-xs text-gray-700 pl-4 font-medium">
-                                            {task.user?.fullName || 'Chưa phân công'}
+                                            {task.user?.fullName || 'Not assigned'}
                                         </p>
                                     </div>
 
@@ -187,7 +188,7 @@ export const RelatedTasksSidebar: React.FC<Props> = ({
                                         <div>
                                             <div className="flex items-center gap-1.5 mb-0.5">
                                                 <Calendar size={12} className="text-gray-400" />
-                                                <label className="text-[10px] font-semibold text-gray-500 uppercase">Bắt đầu</label>
+                                                <label className="text-[10px] font-semibold text-gray-500 uppercase">Start</label>
                                             </div>
                                             <p className="text-xs text-gray-700 pl-4">
                                                 {task.startDate
@@ -198,7 +199,7 @@ export const RelatedTasksSidebar: React.FC<Props> = ({
                                         <div>
                                             <div className="flex items-center gap-1.5 mb-0.5">
                                                 <Calendar size={12} className="text-gray-400" />
-                                                <label className="text-[10px] font-semibold text-gray-500 uppercase">Kết thúc</label>
+                                                <label className="text-[10px] font-semibold text-gray-500 uppercase">End</label>
                                             </div>
                                             <p className="text-xs text-gray-700 pl-4">
                                                 {task.endDate
@@ -213,7 +214,7 @@ export const RelatedTasksSidebar: React.FC<Props> = ({
                     ) : (
                         <div className="flex flex-col items-center justify-center h-64 text-gray-400">
                             <FileText size={40} className="mb-2" />
-                            <p className="text-base font-medium">Không tìm thấy công việc liên quan</p>
+                            <p className="text-base font-medium">No related tasks found</p>
                             {referenceTaskIds.length > 0 && (
                                 <p className="text-xs mt-1.5">IDs: {referenceTaskIds.join(', ')}</p>
                             )}
@@ -227,7 +228,7 @@ export const RelatedTasksSidebar: React.FC<Props> = ({
                         onClick={onClose}
                         className="w-full py-2 px-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg transition-all text-white text-sm font-semibold shadow-md hover:shadow-lg"
                     >
-                        Đóng
+                        Close
                     </button>
                 </div>
             </div>

@@ -23,7 +23,7 @@ import {
 import { toast } from "react-toastify";
 import { userService } from "@/services/userService";
 import type { BusinessOwner } from "@/types/auth";
-import "../../../../../styles/business.scss";
+import "../../../../../styles/adminBusiness.scss";
 
 const AdminBusinessOwners = () => {
   const [searchTerm, setSearchTerm] = useState("");

@@ -3,31 +3,28 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import ReactMarkdown from "react-markdown";
 import {
   ArrowLeft,
   Video,
   FileText,
-  Paperclip,
   Play,
   Download,
   Sparkles,
   Loader2,
-  Edit,
-  X,
-  Calendar,
-  User,
   Trash2,
-  Check,
   Edit3,
   Target,
   VoteIcon,
+  CheckCircle,
   Clock,
   Users,
   CalendarDays,
   Milestone,
   UserCircle,
+  Check,
+  Minus,
+  AlertTriangleIcon,
 } from "lucide-react";
 import "@/app/styles/meeting-detail.scss";
 import { useGetCallById } from "@/hooks/useGetCallById";
@@ -124,6 +121,13 @@ export default function MeetingDetailPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentReferenceIds, setCurrentReferenceIds] = useState<string[]>([]);
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
+
+  // Floating Action Bar position state
+  const [fabPosition, setFabPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const fabInitializedRef = useRef(false);
+  const lastMousePosRef = useRef({ x: 0, y: 0 });
 
   const fetchProjectTasks = async (
     projectId: string,
@@ -260,7 +264,7 @@ export default function MeetingDetailPage() {
       // propagate meaningful error
       console.error("uploadRecordingUrlToCloud - error:", err);
       throw new Error(
-        err?.message || "Failed to upload to cloud. Please try again."
+        err?.message || "Unable to upload to cloud. Please try again."
       );
     }
   };
@@ -560,21 +564,17 @@ export default function MeetingDetailPage() {
     return attendee?.fullName || attendee?.email || assigneeId;
   };
 
-  // Helper function to get assignee name from todo (handles both AI and DB formats)
+  // Helper function to get assignee name from todo
   const getTodoAssigneeName = (todo: any): string => {
-    // If todo has assignee object (from DB)
     if (todo.assignee?.fullName) {
       return todo.assignee.fullName;
     }
     if (todo.assignee?.email) {
       return todo.assignee.email;
     }
-
-    // If todo has assigneeId (from AI or manual assignment)
     if (todo.assigneeId) {
       return mapAssigneeIdToName(todo.assigneeId);
     }
-
     return "Unassigned";
   };
 
@@ -625,11 +625,8 @@ export default function MeetingDetailPage() {
   // Helper to validate todo has all required fields
   function isValidTodo(todo: any) {
     return (
-      !!todo.title &&
-      !!todo.description &&
-      !!todo.startDate &&
-      !!todo.endDate &&
-      !!getTodoAssigneeId(todo)
+      todo.status !== 2 && // ConvertedToTask
+      todo.status !== 3 // Deleted
     );
   }
 
@@ -676,13 +673,9 @@ export default function MeetingDetailPage() {
   const handleSelectTask = (taskId: string) => {
     const todo = todoList.find((t) => t.id === taskId);
     if (
-      !isValidTodo(todo) ||
-      todo.status === 2 || // ConvertedToTask
-      todo.status === 3 // Deleted
+      !isValidTodo(todo)
     ) {
-      toast.warning(
-        "This to-do has been converted or is missing required information"
-      );
+      toast.warning("To-do has been converted or missing required information");
       return;
     }
     setSelectedTasks((prev) =>
@@ -694,6 +687,7 @@ export default function MeetingDetailPage() {
 
   // Handle select all tasks
   const handleSelectAllTasks = () => {
+    console.log("handleSelectAllTasks - todoList:", todoList.filter(t => isValidTodo(t)).length);
     const eligibleIds = todoList
       .filter(
         (t) =>
@@ -736,7 +730,7 @@ export default function MeetingDetailPage() {
           }, 600);
         }
       } else {
-        toast.error(result.error || "Không thể chuyển đổi các công việc!");
+        toast.error(result.error || "Unable to convert selected to-dos!");
         setConvertConfirmModal({ isOpen: false, taskCount: 0 });
       }
     } catch (error) {
@@ -744,7 +738,6 @@ export default function MeetingDetailPage() {
       setConvertConfirmModal({ isOpen: false, taskCount: 0 });
     }
 
-    // Close modal and clear selection
     setConvertConfirmModal({ isOpen: false, taskCount: 0 });
     setSelectedTasks([]);
   };
@@ -789,11 +782,11 @@ export default function MeetingDetailPage() {
   const getTodoStatusLabel = (statusDisplay: string) => {
     switch (statusDisplay) {
       case "Generated":
-        return "Generated";
+        return "New";
       case "UnderReview":
         return "Edited";
       case "ConvertedToTask":
-        return "Converted to Task";
+        return "Converted to task";
       case "Deleted":
         return "Deleted";
       default:
@@ -848,10 +841,10 @@ export default function MeetingDetailPage() {
                   assigneeId: newAssigneeId,
                   assignee: newAssignee
                     ? {
-                        id: newAssignee.id,
-                        fullName: newAssignee.fullName,
-                        email: newAssignee.email,
-                      }
+                      id: newAssignee.id,
+                      fullName: newAssignee.fullName,
+                      email: newAssignee.email,
+                    }
                     : null,
                   status: updateResult?.data?.status,
                   statusDisplay: updateResult?.data?.statusDisplay,
@@ -933,8 +926,8 @@ export default function MeetingDetailPage() {
       const extensionFromType = contentType.includes("mp4")
         ? "mp4"
         : contentType.includes("webm")
-        ? "webm"
-        : "mp4";
+          ? "webm"
+          : "mp4";
       const baseName =
         rec.filename
           ?.replace(/\s+/g, "-")
@@ -1014,6 +1007,132 @@ export default function MeetingDetailPage() {
     fetchTodos();
   }, [params.id]);
 
+  // Add new handler for deleting multiple tasks
+  const handleDeleteMultipleTasks = async () => {
+    if (selectedTasks.length === 0) return;
+
+    try {
+      // Delete all selected tasks
+      const deletePromises = selectedTasks.map(taskId =>
+        todoService.deleteTodo(taskId)
+      );
+
+      const results = await Promise.all(deletePromises);
+      const successCount = results.filter(r => r.success).length;
+
+      if (successCount > 0) {
+        setTodoList((prev) =>
+          prev.filter((task) => !selectedTasks.includes(task.id))
+        );
+        setTodosFromDB((prev) =>
+          prev.filter((task) => !selectedTasks.includes(task.id))
+        );
+
+        toast.success(`Successfully deleted ${successCount} task${successCount > 1 ? 's' : ''}`);
+      }
+
+      if (successCount < selectedTasks.length) {
+        toast.warning(`Failed to delete ${selectedTasks.length - successCount} task${selectedTasks.length - successCount > 1 ? 's' : ''}`);
+      }
+
+      setSelectedTasks([]);
+      setDeleteConfirmModal({ isOpen: false, taskId: null });
+    } catch (error) {
+      toast.error("Error deleting tasks");
+      setDeleteConfirmModal({ isOpen: false, taskId: null });
+    }
+  };
+
+  // Track mouse position to position FAB near cursor when first appearing
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // Only track before FAB is initialized
+      if (!fabInitializedRef.current && selectedTasks.length > 0 && !fabPosition) {
+        // Position FAB slightly above and to the right of cursor
+        const x = Math.min(e.clientX + 20, window.innerWidth - 600); // offset right + check bounds
+        const y = Math.max(e.clientY - 100, 20); // offset up + check bounds
+
+        setFabPosition({ x, y });
+        fabInitializedRef.current = true;
+      }
+    };
+
+    if (selectedTasks.length > 0 && !fabPosition) {
+      document.addEventListener('mousemove', handleMouseMove);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [selectedTasks.length, fabPosition]);
+
+  // Set FAB position immediately when first task is selected
+  useEffect(() => {
+    if (selectedTasks.length > 0 && !fabInitializedRef.current && !fabPosition) {
+      const { x: mouseX, y: mouseY } = lastMousePosRef.current;
+
+      // Position FAB slightly above and to the right of last known cursor position
+      const x = Math.min(mouseX + 600, window.innerWidth - 600);
+      const y = mouseY + 200;
+
+      setFabPosition({ x, y });
+      fabInitializedRef.current = true;
+    }
+  }, [selectedTasks.length, fabPosition]);
+
+  // Reset FAB position when all tasks are deselected
+  useEffect(() => {
+    if (selectedTasks.length === 0) {
+      fabInitializedRef.current = false;
+      setFabPosition(null);
+    }
+  }, [selectedTasks.length]);
+
+  // Handle FAB drag start
+  const handleFabMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.fab-btn')) return; // Don't drag when clicking buttons
+
+    setIsDragging(true);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+  };
+
+  // Handle FAB drag
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+
+      const newX = e.clientX - dragOffset.x;
+      const newY = e.clientY - dragOffset.y;
+
+      // Keep within viewport bounds
+      const maxX = window.innerWidth - 500; // FAB width
+      const maxY = window.innerHeight - 100; // FAB height
+
+      setFabPosition({
+        x: Math.max(20, Math.min(newX, maxX)),
+        y: Math.max(20, Math.min(newY, maxY))
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
+
   if (isLoadingCall || isLoadingMeeting) {
     return (
       <div className="meeting-detail-loading">
@@ -1027,9 +1146,9 @@ export default function MeetingDetailPage() {
     return (
       <div className="meeting-detail-error">
         <h3>Meeting Not Found</h3>
-        <p>This meeting does not exist or you do not have access.</p>
+        <p>This meeting does not exist or you do not have permission to access it.</p>
         <Button onClick={() => router.back()}>Go Back</Button>
-      </div>
+      </div >
     );
   }
   const getMilestoneName = (milestoneId: string) => {
@@ -1119,11 +1238,11 @@ export default function MeetingDetailPage() {
         >
           <Video size={16} />
           Recording & Transcript
-        </button>
-      </div>
+        </button >
+      </div >
 
       {/* Content */}
-      <div className="meeting-content">
+      < div className="meeting-content" >
         {activeTab === "overview" && (
           <div className="overview-section">
             <div className="meeting-info">
@@ -1135,17 +1254,17 @@ export default function MeetingDetailPage() {
                 {(meetingInfo?.endTime
                   ? new Date(meetingInfo.endTime) > new Date()
                   : endsAt
-                  ? endsAt > new Date()
-                  : false) && (
-                  <Button
-                    variant="default"
-                    className="join-now-btn"
-                    onClick={() => handleClickJoinMeeting()}
-                  >
-                    <Video size={16} />
-                    Join Meeting
-                  </Button>
-                )}
+                    ? endsAt > new Date()
+                    : false) && (
+                    <Button
+                      variant="default"
+                      className="join-now-btn"
+                      onClick={() => handleClickJoinMeeting()}
+                    >
+                      <Video size={16} />
+                      Join Meeting
+                    </Button>
+                  )}
               </div>
 
               <div className="info-grid">
@@ -1273,293 +1392,298 @@ export default function MeetingDetailPage() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            </div >
+          </div >
+        )
+        }
 
-        {/* Đã bỏ flow MeetingSetup/MeetingRoom khi join trực tiếp */}
-
-        {activeTab === "recording" && (
-          <div className="recording-section">
-            <h3>Meeting Recording & Transcript</h3>
-            <div className="recording-content">
-              <div className="recordings">
-                <h4>
-                  <Video size={18} />
-                  Meeting Recording
-                </h4>
-                <div className="recording-list">
-                  {isLoadingRecordings && (
-                    <div className="recording-loading">
-                      <Loader2 size={20} className="animate-spin" />
-                      Loading recordings...
-                    </div>
-                  )}
-                  {recordingsError && !isLoadingRecordings && (
-                    <div className="recording-error">{recordingsError}</div>
-                  )}
-                  {!isLoadingRecordings &&
-                    !recordingsError &&
-                    (() => {
-                      // Prioritize showing recordUrl from DB
-                      if (meetingInfo?.recordUrl) {
-                        return (
-                          <div className="recording-item" key="db-recording">
-                            <div className="recording-info">
-                              <div className="recording-icon">
-                                <Video size={20} />
+        {
+          activeTab === "recording" && (
+            <div className="recording-section">
+              <h3>Recording & Transcript</h3>
+              <div className="recording-content">
+                <div className="recordings">
+                  <h4>Meeting Recording</h4>
+                  <div className="recording-list">
+                    {isLoadingRecordings && (
+                      <div className="recording-loading">Loading recordings...</div>
+                    )}
+                    {recordingsError && !isLoadingRecordings && (
+                      <div className="recording-error">{recordingsError}</div>
+                    )}
+                    {!isLoadingRecordings &&
+                      !recordingsError &&
+                      (() => {
+                        // Prioritize showing recordUrl from DB
+                        if (meetingInfo?.recordUrl) {
+                          return (
+                            <div className="recording-item" key="db-recording">
+                              <div className="recording-info">
+                                <div className="recording-icon">
+                                  <Video size={20} />
+                                </div>
+                                <div>
+                                  <h5>Meeting Recording</h5>
+                                  <p>
+                                    {meetingInfo.updatedAt
+                                      ? formatDateTime(meetingInfo.updatedAt)
+                                      : "-"}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <h5>Meeting Recording</h5>
-                                <p>
-                                  {meetingInfo.updatedAt
-                                    ? formatDateTime(meetingInfo.updatedAt)
-                                    : "-"}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="recording-actions">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  window.open(meetingInfo.recordUrl, "_blank")
-                                }
-                              >
-                                <Play size={16} />
-                                Watch
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={
-                                  downloadingId === meetingInfo.recordUrl
-                                }
-                                onClick={() => {
-                                  const fakeRec = {
-                                    url: meetingInfo.recordUrl,
-                                    filename: "recording-from-db.mp4",
-                                    start_time:
-                                      meetingInfo.updatedAt ||
-                                      new Date().toISOString(),
-                                    end_time:
-                                      meetingInfo.updatedAt ||
-                                      new Date().toISOString(),
-                                    session_id: "db-recording",
-                                  } as any;
-                                  handleDownload(fakeRec, 0);
-                                }}
-                              >
-                                <Download size={16} />
-                                {downloadingId === meetingInfo.recordUrl
-                                  ? "Downloading..."
-                                  : "Download"}
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      // Fallback to Stream recordings if not in DB
-                      if (recordings.length === 0) {
-                        return (
-                          <div className="recording-empty">
-                            <Video size={40} />
-                            <p>No recordings available for this meeting</p>
-                          </div>
-                        );
-                      }
-
-                      return recordings.map((rec, idx) => {
-                        const displayName =
-                          rec.filename?.substring(0, 80) || "Recording";
-                        const createdAt = rec.start_time
-                          ? formatDateTime(rec.start_time)
-                          : "-";
-                        const duration =
-                          rec.start_time && rec.end_time
-                            ? formatDuration(
-                                new Date(rec.end_time).getTime() -
-                                  new Date(rec.start_time).getTime()
-                              )
-                            : null;
-                        return (
-                          <div className="recording-item" key={rec.url || idx}>
-                            <div className="recording-info">
-                              <div className="recording-icon">
-                                <Video size={20} />
-                              </div>
-                              <div>
-                                <h5>{displayName}</h5>
-                                <p>
-                                  {createdAt}
-                                  {duration && (
-                                    <span className="recording-duration">
-                                      {" "}
-                                      · Duration: {duration}
-                                    </span>
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="recording-actions">
-                              {rec.url && (
+                              <div className="recording-actions">
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() =>
-                                    window.open(rec.url!, "_blank")
+                                    window.open(meetingInfo.recordUrl, "_blank")
                                   }
                                 >
                                   <Play size={16} />
                                   Watch
                                 </Button>
-                              )}
-                              {rec.url && (
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   disabled={
-                                    downloadingId === (rec.url || String(idx))
+                                    downloadingId === meetingInfo.recordUrl
                                   }
-                                  onClick={() => handleDownload(rec, idx)}
+                                  onClick={() => {
+                                    const fakeRec = {
+                                      url: meetingInfo.recordUrl,
+                                      filename: "recording-from-db.mp4",
+                                      start_time:
+                                        meetingInfo.updatedAt ||
+                                        new Date().toISOString(),
+                                      end_time:
+                                        meetingInfo.updatedAt ||
+                                        new Date().toISOString(),
+                                      session_id: "db-recording",
+                                    } as any;
+                                    handleDownload(fakeRec, 0);
+                                  }}
                                 >
                                   <Download size={16} />
-                                  {downloadingId === (rec.url || String(idx))
+                                  {downloadingId === meetingInfo.recordUrl
                                     ? "Downloading..."
                                     : "Download"}
                                 </Button>
-                              )}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      });
-                    })()}
-                </div>
-              </div>
+                          );
+                        }
+                        // Fallback to Stream recordings if not in DB
+                        if (recordings.length === 0) {
+                          return (
+                            <div className="recording-empty">
+                              <Video size={40} />
+                              <p>No recordings available for this meeting</p>
+                            </div>
+                          );
+                        }
 
-              <div className="transcript">
-                <h4>
-                  <FileText size={18} />
-                  Transcript
-                </h4>
-                {isLoadingTranscriptions && (
-                  <div className="transcript-loading">
-                    <Loader2 size={20} className="animate-spin" />
-                    Loading transcript...
+                        return recordings.map((rec, idx) => {
+                          const displayName =
+                            rec.filename?.substring(0, 80) || "Recording";
+                          const createdAt = rec.start_time
+                            ? formatDateTime(rec.start_time)
+                            : "-";
+                          const duration =
+                            rec.start_time && rec.end_time
+                              ? formatDuration(
+                                new Date(rec.end_time).getTime() -
+                                new Date(rec.start_time).getTime()
+                              )
+                              : null;
+                          return (
+                            <div className="recording-item" key={rec.url || idx}>
+                              <div className="recording-info">
+                                <div className="recording-icon">
+                                  <Video size={20} />
+                                </div>
+                                <div>
+                                  <h5>{displayName}</h5>
+                                  <p>
+                                    {createdAt}
+                                    {duration && (
+                                      <span className="recording-duration">
+                                        {" "}
+                                        · Duration: {duration}
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="recording-actions">
+                                {rec.url && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      window.open(rec.url!, "_blank")
+                                    }
+                                  >
+                                    <Play size={16} />
+                                    Watch
+                                  </Button>
+                                )}
+                                {rec.url && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={
+                                      downloadingId === (rec.url || String(idx))
+                                    }
+                                    onClick={() => handleDownload(rec, idx)}
+                                  >
+                                    <Download size={16} />
+                                    {downloadingId === (rec.url || String(idx))
+                                      ? "Downloading..."
+                                      : "Download"}
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
                   </div>
-                )}
-                {!isLoadingTranscriptions &&
-                  originalTranscriptions.length === 0 &&
-                  improvedTranscript.length === 0 && (
-                    <div className="transcript-empty">
-                      <FileText size={40} />
-                      <p>No transcript available for this meeting</p>
+                </div>
+
+                <div className="transcript">
+                  <h4>
+                    <FileText size={18} />
+                    Transcript
+                  </h4>
+                  {isLoadingTranscriptions && (
+                    <div className="transcript-loading">
+                      <Loader2 size={20} className="animate-spin" />
+                      Loading transcript...
                     </div>
                   )}
-                {isProcessingMeetingAI && (
-                  <div className="transcript-processing">
-                    <Loader2 size={50} className="animate-spin" />
-                    <span>Generating meeting transcript...</span>
-                  </div>
-                )}
-                {!isProcessingMeetingAI && improvedTranscript.length > 0 && (
-                  <>
-                    <div
-                      className={`transcript-content ${
-                        isTranscriptExpanded ? "expanded" : ""
-                      } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
-                      style={{
-                        maxHeight:
-                          improvedTranscript.length <= 4
-                            ? "none"
-                            : isTranscriptExpanded
-                            ? "none"
-                            : "200px",
-                      }}
-                    >
-                      <TranscriptPanel
-                        meetingId={params.id as string}
-                        transcriptItems={improvedTranscript}
-                        setTranscriptItems={setImprovedTranscript}
-                        allSpeakers={meetingInfo?.attendees ?? []}
-                        getSpeakerName={getSpeakerName}
-                        formatTimestamp={formatTimestamp}
-                      />
-                    </div>
+                  {!isLoadingTranscriptions &&
+                    originalTranscriptions.length === 0 &&
+                    improvedTranscript.length === 0 && (
+                      <div className="transcript-empty">
+                        <FileText size={40} />
+                        <p>No transcript available for this meeting</p>
+                      </div >
+                    )
+                  }
+                  {
+                    isProcessingMeetingAI && (
+                      <div className="transcript-processing">
+                        <Loader2 size={50} className="animate-spin" />
+                        <span>Generating meeting transcript...</span>
+                      </div>
+                    )
+                  }
+                  {
+                    !isProcessingMeetingAI && improvedTranscript.length > 0 && (
+                      <>
+                        <div
+                          className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
+                            } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
+                          style={{
+                            maxHeight:
+                              improvedTranscript.length <= 4
+                                ? "none"
+                                : isTranscriptExpanded
+                                  ? "none"
+                                  : "200px",
+                          }}
+                        >
+                          <TranscriptPanel
+                            meetingId={params.id as string}
+                            transcriptItems={improvedTranscript}
+                            setTranscriptItems={setImprovedTranscript}
+                            allSpeakers={meetingInfo?.attendees ?? []}
+                            getSpeakerName={getSpeakerName}
+                            formatTimestamp={formatTimestamp}
+                          />
+                        </div>
 
-                    {improvedTranscript.length > 4 && (
-                      <div
-                        className="transcript-expand-hint"
-                        onClick={() =>
-                          setIsTranscriptExpanded(!isTranscriptExpanded)
-                        }
-                      >
-                        {isTranscriptExpanded ? (
-                          <>
-                            <span>Collapse transcript</span>
-                            <ArrowLeft
-                              size={16}
-                              style={{ transform: "rotate(90deg)" }}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <span>
-                              View full transcript ({improvedTranscript.length}{" "}
-                              segments)
-                            </span>
-                            <ArrowLeft
-                              size={16}
-                              style={{ transform: "rotate(-90deg)" }}
-                            />
-                          </>
+                        {improvedTranscript.length > 4 && (
+                          <div
+                            className="transcript-expand-hint"
+                            onClick={() =>
+                              setIsTranscriptExpanded(!isTranscriptExpanded)
+                            }
+                          >
+                            {isTranscriptExpanded ? (
+                              <>
+                                <span>Collapse transcript</span>
+                                <ArrowLeft
+                                  size={16}
+                                  style={{ transform: "rotate(90deg)" }}
+                                />
+                              </>
+                            ) : (
+                              <>
+                                <span>
+                                  View full transcript ({improvedTranscript.length}{" "}
+                                  segments)
+                                </span>
+                                <ArrowLeft
+                                  size={16}
+                                  style={{ transform: "rotate(-90deg)" }}
+                                />
+                              </>
+                            )}
+                          </div>
                         )}
+                      </>
+                    )
+                  }
+                </div >
+
+                <div className="summary">
+                  <div className="summary-header">
+                    <div className="summary-title">
+                      <div className="ai-icon">
+                        <Sparkles size={24} />
+                      </div>
+                      <div className="summary-title-text">
+                        <h4>AI Meeting Summary</h4>
+                        <div className="ai-badge">
+                          <Sparkles size={10} />
+                          <span>Powered by Gemini AI</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="summary-content">
+                    {isProcessingMeetingAI && (
+                      <div className="summary-loading">
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Generating summary...</span>
                       </div>
                     )}
-                  </>
-                )}
-              </div>
-
-              <div className="summary">
-                <div className="summary-header">
-                  <div className="summary-title">
-                    <div className="ai-icon">
-                      <Sparkles size={24} />
-                    </div>
-                    <div className="summary-title-text">
-                      <h4>AI Meeting Summary</h4>
-                      <div className="ai-badge">
-                        <Sparkles size={10} />
-                        <span>Powered by Gemini AI</span>
-                      </div>
-                    </div>
+                    {!isProcessingMeetingAI && summary && (
+                      <ReactMarkdown>{summary}</ReactMarkdown>
+                    )}
                   </div>
                 </div>
-                <div className="summary-content">
-                  {isProcessingMeetingAI && (
-                    <div className="summary-loading">
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Generating summary...</span>
-                    </div>
-                  )}
-                  {!isProcessingMeetingAI && summary && (
-                    <ReactMarkdown>{summary}</ReactMarkdown>
-                  )}
-                </div>
-              </div>
 
-              {/* AI Generated Tasks */}
-              {isProjectManager() &&
-                (todoList.length > 0 || isProcessingMeetingAI) && (
-                  <div className="ai-generated-tasks">
-                    <div className="ai-tasks-header">
-                      <div className="ai-tasks-title">
-                        <div className="ai-icon">
-                          <Sparkles size={18} />
-                        </div>
-                        <div className="title-content">
-                          <h4>AI Generated To-Do List</h4>
+                {/* AI Generated Tasks */}
+                {
+                  isProjectManager() &&
+                  (todoList.length > 0 || isProcessingMeetingAI) && (
+                    <div className="ai-generated-tasks">
+                      <div className="ai-tasks-header">
+                        <div className="ai-tasks-title">
+                          <div className="ai-icon">
+                            <Sparkles size={18} />
+                          </div>
+                          <div className="title-content">
+                            <h4>AI-Generated To-do List</h4>
+                            <p className="draft-notice">
+                              <Edit3 size={12} />
+                              <span>Draft - Needs review and editing</span>
+                            </p>
+                          </div >
+                        </div >
+                        {/* <h4>AI Generated To-Do List</h4>
                           <p className="draft-notice">
                             <Edit3 size={12} />
                             <span>Draft - Review and edit as needed</span>
@@ -1578,115 +1702,255 @@ export default function MeetingDetailPage() {
                             {todoList.length})
                           </span>
                         </label>
-                      )}
-                    </div>
+                      )} */}
+                      </div >
 
-                    {isProcessingMeetingAI && (
-                      <div className="tasks-loading">
-                        <Loader2 size={16} className="animate-spin" />
-                        <span>Generating to-do list...</span>
-                      </div>
-                    )}
+                      {isProcessingMeetingAI && (
+                        <div className="tasks-loading">
+                          <Loader2 size={16} className="animate-spin" />
+                          <span>Generating to-do list...</span>
+                        </div>
+                      )
+                      }
 
-                    <div className="task-list">{memoizedTodoList}</div>
+                      <div className="task-list">{memoizedTodoList}</div>
 
-                    {/* Action buttons for the entire AI task list */}
-                    <div className="ai-tasks-actions">
-                      <Button
-                        onClick={handleOpenConvertModal}
-                        className="convert-all-btn"
-                        variant="default"
-                        disabled={selectedTasks.length === 0}
-                      >
-                        <Target size={16} />
-                        Convert to Official Tasks
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                      {/* Action buttons for the entire AI task list */}
+                      {/* <div className="ai-tasks-actions">
+                        <Button
+                          onClick={handleOpenConvertModal}
+                          className="convert-all-btn"
+                          variant="default"
+                          disabled={selectedTasks.length === 0}
+                        >
+                          <Target size={16} />
+                          Convert to Official Tasks
+                        </Button>
+                      </div> */}
+                    </div >
+                  )
+                }
+              </div >
+            </div >
+          )}
+      </div >
+
+      {/* Floating Action Bar - appears near cursor when first shown */}
+      {
+        selectedTasks.length > 0 && fabPosition && (
+          <div
+            className={`floating-action-bar ${isDragging ? 'dragging' : ''}`}
+            style={{
+              left: `${fabPosition.x}px`,
+              top: `${fabPosition.y}px`,
+              bottom: 'auto',
+              right: 'auto'
+            }}
+            onMouseDown={handleFabMouseDown}
+          >
+            <div className="fab-content">
+              <div className="fab-info">
+                <span className="fab-count">
+                  {selectedTasks.length} {selectedTasks.length === 1 ? 'task' : 'tasks'} selected
+                </span>
+              </div>
+              <div className="fab-actions">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAllTasks}
+                  className="fab-btn fab-btn-select"
+                  title={selectedTasks.length === todoList.filter(t => isValidTodo(t)).length ? "Deselect all" : "Select all"}
+                >
+                  {selectedTasks.length === todoList.filter(t => isValidTodo(t)).length ?
+                    <Minus size={16} /> :
+                    <CheckCircle size={16} />
+                  }
+                  <span className="fab-btn-text">
+                    {selectedTasks.length === todoList.filter(t => isValidTodo(t)).length ?
+                      "Deselect all" :
+                      "Select all"
+                    }
+                  </span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (selectedTasks.length === 1) {
+                      handleOpenDeleteModal(selectedTasks[0]);
+                    } else {
+                      setDeleteConfirmModal({
+                        isOpen: true,
+                        taskId: 'multiple'
+                      });
+                    }
+                  }}
+                  className="fab-btn fab-btn-delete"
+                  title="Delete selected"
+                >
+                  <Trash2 size={16} />
+                  <span className="fab-btn-text">Delete ({selectedTasks.length})</span>
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleOpenConvertModal}
+                  className="fab-btn fab-btn-convert"
+                  title="Convert to official tasks"
+                >
+                  <Target size={16} />
+                  <span className="fab-btn-text">Convert ({selectedTasks.length})</span>
+                </Button>
+              </div>
             </div>
           </div>
-        )}
-      </div>
+        )
+      }
+
+      {/* Delete Confirmation Modal - Updated to handle multiple tasks */}
+      {
+        deleteConfirmModal.isOpen && (
+          <div className="delete-modal-overlay">
+            <div className="delete-modal">
+              <div className="delete-modal-header">
+                <div className="delete-icon">
+                  <Trash2 size={24} />
+                </div>
+                <h3>
+                  {deleteConfirmModal.taskId === 'multiple'
+                    ? `Confirm Delete ${selectedTasks.length} Tasks`
+                    : 'Confirm Delete Task'}
+                </h3>
+              </div >
+              <div className="delete-modal-content">
+                <p>
+                  {deleteConfirmModal.taskId === 'multiple'
+                    ? `Are you sure you want to delete ${selectedTasks.length} selected to-dos?`
+                    : 'Are you sure you want to delete this to-do?'}
+                </p>
+                <p className="delete-warning">
+                  This action cannot be undone.
+                </p>
+              </div>
+              <div className="delete-modal-actions">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelDelete}
+                  className="cancel-btn"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (deleteConfirmModal.taskId === 'multiple') {
+                      handleDeleteMultipleTasks();
+                    } else {
+                      handleDeleteTask();
+                    }
+                  }}
+                  className="confirm-delete-btn"
+                >
+                  <Trash2 size={16} />
+                  Delete {deleteConfirmModal.taskId === 'multiple' ? 'Tasks' : 'Task'}
+                </Button >
+              </div >
+            </div >
+          </div >
+        )
+      }
+
       <RelatedTasksSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         referenceTaskIds={currentReferenceIds}
         todoId={selectedTodoId ?? ""}
       />
-      {/* Delete Confirmation Modal */}
-      {deleteConfirmModal.isOpen && (
-        <div className="delete-modal-overlay">
-          <div className="delete-modal">
-            <div className="delete-modal-header">
-              <div className="delete-icon">
-                <Trash2 size={24} />
-              </div>
-              <h3>Confirm Delete</h3>
-            </div>
-            <div className="delete-modal-content">
-              <p>Are you sure you want to delete this to-do?</p>
-              <p className="delete-warning">This action cannot be undone.</p>
-            </div>
-            <div className="delete-modal-actions">
-              <Button
-                variant="outline"
-                onClick={handleCancelDelete}
-                className="cancel-btn"
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleDeleteTask} className="confirm-delete-btn">
-                <Trash2 size={16} />
-                Delete
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Convert Confirmation Modal */}
-      {convertConfirmModal.isOpen && (
-        <div className="delete-modal-overlay">
-          <div className="delete-modal convert-modal">
-            {/* Icon */}
-            <div className="convert-icon">
-              <VoteIcon color="#10b981" size={60} />
-            </div>
+      {
+        convertConfirmModal.isOpen && (
+          <div className="delete-modal-overlay">
+            <div className="delete-modal flex flex-col items-center text-center">
+              <div className="mb-3 flex items-center justify-center">
+                <VoteIcon color="#10b981" size={60} />
+              </div>
 
-            {/* Title */}
-            <h3>Convert to Official Tasks?</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                Convert to Official Tasks?
+              </h3>
 
-            {/* Content */}
-            <div className="delete-modal-content">
-              <p>
-                You are about to convert{" "}
-                <strong>{convertConfirmModal.taskCount} to-do(s)</strong>{" "}
-                generated by AI into official tasks. These will be added to your
-                project and relevant team members will be notified.
-              </p>
-            </div>
+              <div className="delete-modal-content mb-4">
+                <p>
+                  You are about to convert{" "}
+                  <strong>{convertConfirmModal.taskCount} AI-generated to-dos</strong> into official tasks. These will be added to your project and related team members will be notified.
+                </p>
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800 flex items-start">
+                    <AlertTriangleIcon color="#f59e0b" size={20} className="flex-shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Note:</strong> To-dos without a start date will auto use today's date as the task start date.
+                    </span>
+                  </p>
+                </div>
+              </div>
 
-            {/* Actions */}
-            <div className="delete-modal-actions">
-              <Button
-                variant="outline"
-                onClick={handleCancelConvert}
-                className="cancel-btn"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleConfirmConvert}
-                className="confirm-convert-btn"
-              >
-                <Check size={16} />
-                Confirm
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+              <div className="delete-modal-actions flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelConvert}
+                  className="cancel-btn"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmConvert}
+                  className="confirm-convert-btn"
+                >
+                  {/* <Check size={16} /> */}
+                  Confirm
+                </Button >
+              </div >
+            </div >
+          </div >
+        )
+      }
+    </div >
   );
 }
+
+// Add new handler for deleting multiple tasks
+// const handleDeleteMultipleTasks = async () => {
+//   if (selectedTasks.length === 0) return;
+
+//   try {
+//     // Delete all selected tasks
+//     const deletePromises = selectedTasks.map(taskId =>
+//       todoService.deleteTodo(taskId)
+//     );
+
+//     const results = await Promise.all(deletePromises);
+//     const successCount = results.filter(r => r.success).length;
+
+//     if (successCount > 0) {
+//       setTodoList((prev) =>
+//         prev.filter((task) => !selectedTasks.includes(task.id))
+//       );
+//       setTodosFromDB((prev) =>
+//         prev.filter((task) => !selectedTasks.includes(task.id))
+//       );
+
+//       toast.success(`Successfully deleted ${successCount} task${successCount > 1 ? 's' : ''}`);
+//     }
+
+//     if (successCount < selectedTasks.length) {
+//       toast.warning(`Failed to delete ${selectedTasks.length - successCount} task${selectedTasks.length - successCount > 1 ? 's' : ''}`);
+//     }
+
+//     setSelectedTasks([]);
+//     setDeleteConfirmModal({ isOpen: false, taskId: null });
+//   } catch (error) {
+//     toast.error("Error deleting tasks");
+//     setDeleteConfirmModal({ isOpen: false, taskId: null });
+//   }
+// };

@@ -361,6 +361,7 @@
 
     &.view {
       color: #3b82f6;
+
       &:hover {
         background: #dbeafe;
       }
@@ -368,6 +369,7 @@
 
     &.approve {
       color: #10b981;
+
       &:hover {
         background: #d1fae5;
       }
@@ -375,6 +377,7 @@
 
     &.reject {
       color: #ef4444;
+
       &:hover {
         background: #fee2e2;
       }
@@ -382,6 +385,7 @@
 
     &.deactivate {
       color: #f59e0b;
+
       &:hover {
         background: #fef3c7;
       }
@@ -389,6 +393,7 @@
 
     &.activate {
       color: #10b981;
+
       &:hover {
         background: #d1fae5;
       }
@@ -520,499 +525,502 @@
 
   // Modal Styles
   .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(2px);
-  }
-
-  .modal-content {
-    background: white;
-    border-radius: 14px;
-    max-width: 460px;
-    width: 95%;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-    animation: slideUp 0.2s ease-out;
-
-    &.detail-modal {
-      max-width: 600px;
-    }
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(12px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 18px 22px;
-    border-bottom: 1px solid #e2e8f0;
-
-    h3 {
-      margin: 0;
-      font-size: 17px;
-      font-weight: 600;
-      color: #1a1a2e;
-    }
-
-    .modal-close {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #64748b;
-      padding: 4px;
-      border-radius: 6px;
+    rlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s ease;
+      z-index: 1000;
+      backdrop-filter: blur(2px);
+    }
 
-      &:hover {
-        background: #f1f5f9;
-        color: #334155;
+    .modal-content {
+      background: white;
+      border-radius: 14px;
+      max-width: 460px;
+      width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      animation: slideUp 0.2s ease-out;
+
+      &.detail-modal {
+        max-width: 600px;
       }
     }
-  }
 
-  .modal-body {
-    padding: 22px;
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
 
-    p {
-      margin: 0 0 12px;
-      color: #475569;
-      line-height: 1.5;
-      font-size: 14px;
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    .warning-text {
-      color: #dc2626;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .info-text {
-      color: #059669;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .success-text {
-      color: #059669;
-      font-size: 13px;
-      font-weight: 500;
-    }
-  }
-
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 16px 22px;
-    border-top: 1px solid #e2e8f0;
-  }
-
-  // Modal Buttons
-  .btn-cancel,
-  .btn-delete,
-  .btn-deactivate,
-  .btn-activate,
-  .btn-approve,
-  .btn-reject {
-    padding: 9px 18px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-  }
-
-  .btn-cancel {
-    background: #f1f5f9;
-    color: #475569;
-
-    &:hover {
-      background: #e2e8f0;
-    }
-  }
-
-  .btn-delete {
-    background: #dc2626;
-    color: white;
-
-    &:hover {
-      background: #b91c1c;
-    }
-  }
-
-  .btn-deactivate {
-    background: #f59e0b;
-    color: white;
-
-    &:hover {
-      background: #d97706;
-    }
-  }
-
-  .btn-activate {
-    background: #10b981;
-    color: white;
-
-    &:hover {
-      background: #059669;
-    }
-  }
-
-  .btn-approve {
-    background: #10b981;
-    color: white;
-
-    &:hover {
-      background: #059669;
-    }
-  }
-
-  .btn-reject {
-    background: #ef4444;
-    color: white;
-
-    &:hover {
-      background: #dc2626;
-    }
-  }
-
-  // Detail Modal Grid
-  .detail-modal-grid {
-    display: flex;
-    gap: 24px;
-    align-items: flex-start;
-  }
-
-  .detail-modal-left {
-    min-width: 120px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-
-    .detail-avatar {
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, #ffa463, #ff5e13);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 700;
-      font-size: 26px;
-      box-shadow: 0 4px 12px rgba(255, 94, 19, 0.2);
-    }
-
-    .detail-name {
-      font-size: 16px;
-      font-weight: 600;
-      color: #1a1a2e;
-      text-align: center;
-    }
-
-    .detail-status {
-      margin-top: 2px;
-    }
-  }
-
-  .detail-modal-right {
-    flex: 1;
-    background: #f8fafc;
-    border-radius: 10px;
-    padding: 16px 18px;
-
-    .detail-row {
+    .modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 0;
+      padding: 18px 22px;
       border-bottom: 1px solid #e2e8f0;
 
-      &:last-child {
-        border-bottom: none;
-      }
-
-      &.license-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-      }
-
-      .detail-label {
-        font-size: 13px;
-        font-weight: 500;
-        color: #64748b;
-      }
-
-      .detail-value {
-        font-size: 13px;
+      h3 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 600;
         color: #1a1a2e;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #64748b;
+        padding: 4px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #f1f5f9;
+          color: #334155;
+        }
+      }
+    }
+
+    .modal-body {
+      padding: 22px;
+
+      p {
+        margin: 0 0 12px;
+        color: #475569;
+        line-height: 1.5;
+        font-size: 14px;
+      }
+
+      .warning-text {
+        color: #dc2626;
+        font-size: 13px;
         font-weight: 500;
-        text-align: right;
-      }
-    }
-  }
-
-  // License Display
-  .license-display {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-  }
-
-  .license-thumbnail {
-    width: 56px;
-    height: 56px;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-  }
-
-  .view-license-btn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 7px 12px;
-    background: #ff5e13;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: #e85512;
-    }
-  }
-
-  // License Preview Modal
-  .license-preview-modal {
-    background: white;
-    border-radius: 12px;
-    padding: 16px;
-    max-width: 90vw;
-    max-height: 90vh;
-    overflow: auto;
-    position: relative;
-    animation: slideUp 0.2s ease-out;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  }
-
-  .license-preview-close {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #f1f5f9;
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: #64748b;
-    transition: all 0.2s ease;
-    z-index: 10;
-
-    &:hover {
-      background: #e2e8f0;
-      color: #1a1a2e;
-    }
-  }
-
-  .license-preview-image {
-    max-width: 100%;
-    max-height: 80vh;
-    object-fit: contain;
-    border-radius: 8px;
-    display: block;
-    margin: 0 auto;
-  }
-
-  // Responsive Design
-  @media (max-width: 1200px) {
-    .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .business-table {
-      display: block;
-      overflow-x: auto;
-
-      thead,
-      tbody,
-      tr {
-        display: block;
       }
 
-      thead {
-        display: none;
+      .info-text {
+        color: #059669;
+        font-size: 13px;
+        font-weight: 500;
       }
 
-      tr {
-        margin-bottom: 12px;
-        padding: 14px;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        background: white;
+      .success-text {
+        color: #059669;
+        font-size: 13px;
+        font-weight: 500;
+      }
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 16px 22px;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    // Modal Buttons
+    .btn-cancel,
+    .btn-delete,
+    .btn-deactivate,
+    .btn-activate,
+    .btn-approve,
+    .btn-reject {
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .btn-cancel {
+      background: #f1f5f9;
+      color: #475569;
+
+      &:hover {
+        background: #e2e8f0;
+      }
+    }
+
+    .btn-delete {
+      background: #dc2626;
+      color: white;
+
+      &:hover {
+        background: #b91c1c;
+      }
+    }
+
+    .btn-deactivate {
+      background: #f59e0b;
+      color: white;
+
+      &:hover {
+        background: #d97706;
+      }
+    }
+
+    .btn-activate {
+      background: #10b981;
+      color: white;
+
+      &:hover {
+        background: #059669;
+      }
+    }
+
+    .btn-approve {
+      background: #10b981;
+      color: white;
+
+      &:hover {
+        background: #059669;
+      }
+    }
+
+    .btn-reject {
+      background: #ef4444;
+      color: white;
+
+      &:hover {
+        background: #dc2626;
+      }
+    }
+
+    // Detail Modal Grid
+    .detail-modal-grid {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .detail-modal-left {
+      min-width: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+
+      .detail-avatar {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #ffa463, #ff5e13);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 26px;
+        box-shadow: 0 4px 12px rgba(255, 94, 19, 0.2);
       }
 
-      td {
+      .detail-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1a1a2e;
+        text-align: center;
+      }
+
+      .detail-status {
+        margin-top: 2px;
+      }
+    }
+
+    .detail-modal-right {
+      flex: 1;
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 16px 18px;
+
+      .detail-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 8px 0;
-        border-bottom: 1px solid #f1f5f9;
-
-        &::before {
-          content: attr(data-label);
-          font-weight: 600;
-          color: #64748b;
-          font-size: 12px;
-          min-width: 100px;
-        }
+        border-bottom: 1px solid #e2e8f0;
 
         &:last-child {
           border-bottom: none;
         }
+
+        &.license-row {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        .detail-label {
+          font-size: 13px;
+          font-weight: 500;
+          color: #64748b;
+        }
+
+        .detail-value {
+          font-size: 13px;
+          color: #1a1a2e;
+          font-weight: 500;
+          text-align: right;
+        }
       }
     }
-  }
 
-  @media (max-width: 768px) {
-    padding: 16px;
-
-    .page-header h1 {
-      font-size: 22px;
+    // License Display
+    .license-display {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
     }
 
-    .stats-grid {
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    .license-thumbnail {
+      width: 56px;
+      height: 56px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
     }
 
-    .stat-card {
-      padding: 14px;
+    .view-license-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 12px;
+      background: #ff5e13;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
 
-      .stat-value {
+      &:hover {
+        background: #e85512;
+      }
+    }
+
+    // License Preview Modal
+    .license-preview-modal {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow: auto;
+      position: relative;
+      animation: slideUp 0.2s ease-out;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .license-preview-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #f1f5f9;
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #64748b;
+      transition: all 0.2s ease;
+      z-index: 10;
+
+      &:hover {
+        background: #e2e8f0;
+        color: #1a1a2e;
+      }
+    }
+
+    .license-preview-image {
+      max-width: 100%;
+      max-height: 80vh;
+      object-fit: contain;
+      border-radius: 8px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    // Responsive Design
+    @media (max-width: 1200px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .business-table {
+        display: block;
+        overflow-x: auto;
+
+        thead,
+        tbody,
+        tr {
+          display: block;
+        }
+
+        thead {
+          display: none;
+        }
+
+        tr {
+          margin-bottom: 12px;
+          padding: 14px;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          background: white;
+        }
+
+        td {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 0;
+          border-bottom: 1px solid #f1f5f9;
+
+          &::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #64748b;
+            font-size: 12px;
+            min-width: 100px;
+          }
+
+          &:last-child {
+            border-bottom: none;
+          }
+        }
+      }
+    }
+
+    @media (max-width: 768px) {
+      padding: 16px;
+
+      .page-header h1 {
         font-size: 22px;
       }
-    }
 
-    .filters-card {
-      .filters-row {
-        flex-direction: column;
-        gap: 12px;
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
       }
 
-      .search-box {
-        max-width: none;
-        width: 100%;
-      }
+      .stat-card {
+        padding: 14px;
 
-      .filter-tabs {
-        width: 100%;
-        overflow-x: auto;
-        padding: 3px;
-
-        &::-webkit-scrollbar {
-          display: none;
+        .stat-value {
+          font-size: 22px;
         }
       }
 
-      .filter-tab {
-        padding: 8px 14px;
-        font-size: 13px;
+      .filters-card {
+        .filters-row {
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .search-box {
+          max-width: none;
+          width: 100%;
+        }
+
+        .filter-tabs {
+          width: 100%;
+          overflow-x: auto;
+          padding: 3px;
+
+          &::-webkit-scrollbar {
+            display: none;
+          }
+        }
+
+        .filter-tab {
+          padding: 8px 14px;
+          font-size: 13px;
+        }
+
+        .filter-buttons {
+          width: 100%;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
       }
 
-      .filter-buttons {
+      .detail-modal-grid {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .detail-modal-left {
         width: 100%;
-        flex-wrap: wrap;
-        justify-content: center;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 14px;
+
+        .detail-avatar {
+          width: 48px;
+          height: 48px;
+          font-size: 20px;
+        }
       }
     }
 
-    .detail-modal-grid {
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .detail-modal-left {
-      width: 100%;
-      flex-direction: row;
-      justify-content: flex-start;
-      gap: 14px;
-
-      .detail-avatar {
-        width: 48px;
-        height: 48px;
-        font-size: 20px;
+    @media (max-width: 480px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
       }
-    }
-  }
 
-  @media (max-width: 480px) {
-    .stats-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .filter-btn {
-      padding: 6px 10px;
-      font-size: 12px;
-    }
-
-    .modal-content {
-      width: 98%;
-      margin: 10px;
-    }
-
-    .pagination {
-      flex-direction: column;
-      gap: 12px;
-      padding: 12px;
-
-      .pagination-info {
+      .filter-btn {
+        padding: 6px 10px;
         font-size: 12px;
       }
 
-      .pagination-pages {
-        flex-wrap: wrap;
-        justify-content: center;
+      .modal-content {
+        width: 98%;
+        margin: 10px;
       }
 
-      .pagination-page,
-      .pagination-btn {
-        width: 28px;
-        height: 28px;
-        font-size: 12px;
+      .pagination {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+
+        .pagination-info {
+          font-size: 12px;
+        }
+
+        .pagination-pages {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .pagination-page,
+        .pagination-btn {
+          width: 28px;
+          height: 28px;
+          font-size: 12px;
+        }
       }
     }
   }
