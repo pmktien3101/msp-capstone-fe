@@ -95,7 +95,7 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
     return (
       <div className="milestone-progress">
         <div className="section-header">
-          <div className="section-title">
+          <div className="milestone-section-title">
             <h3>Milestone Progress</h3>
             <p>Track the completion progress of project milestones.</p>
           </div>
@@ -111,8 +111,8 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
   if (isLoading) {
     return (
       <div className="milestone-progress">
-        <div className="section-header">
-          <div className="section-title">
+        <div className="milestone-section-header">
+          <div className="milestone-section-title">
             <h3>Milestone Progress</h3>
             <p>Track the completion progress of project milestones.</p>
           </div>
@@ -161,8 +161,8 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
 
   return (
     <div className="milestone-progress">
-      <div className="section-header">
-        <div className="section-title">
+      <div className="milestone-section-header">
+        <div className="milestone-section-title">
           <h3>Milestone Progress</h3>
           <p>View the progress of key milestones in the project.</p>
         </div>
@@ -261,21 +261,21 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        .section-header {
+        .milestone-section-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
           margin-bottom: 24px;
         }
 
-        .section-title h3 {
+        .milestone-section-title h3 {
           font-size: 16px;
           font-weight: 600;
           color: #1f2937;
           margin: 0 0 4px 0;
         }
 
-        .section-title p {
+        .milestone-section-title p {
           font-size: 14px;
           color: #6b7280;
           margin: 0;

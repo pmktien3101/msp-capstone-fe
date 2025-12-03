@@ -90,8 +90,8 @@ export const TasksList = ({ project }: TasksListProps) => {
   if (!project) {
     return (
       <div className="tasks-list-summary">
-        <div className="section-header">
-          <div className="section-title">
+        <div className="task-section-header">
+          <div className="task-section-title">
             <h3>Upcoming Deadlines</h3>
             <p>Tasks due within 3 days</p>
           </div>
@@ -105,8 +105,8 @@ export const TasksList = ({ project }: TasksListProps) => {
 
   return (
     <div className="tasks-list-summary">
-      <div className="section-header">
-        <div className="section-title">
+      <div className="task-section-header">
+        <div className="task-section-title">
           <h3>Upcoming Deadlines</h3>
           <p>Tasks due within 3 days</p>
         </div>
@@ -207,18 +207,18 @@ export const TasksList = ({ project }: TasksListProps) => {
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        .section-header {
+        .task-section-header {
           margin-bottom: 24px;
         }
 
-        .section-title h3 {
+        .task-section-title h3 {
           font-size: 16px;
           font-weight: 600;
           color: #1f2937;
           margin: 0 0 4px 0;
         }
 
-        .section-title p {
+        .task-section-title p {
           font-size: 14px;
           color: #6b7280;
           margin: 0;

@@ -45,8 +45,8 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
   if (!project) {
     return (
       <div className="upcoming-meetings">
-        <div className="section-header">
-          <div className="section-title">
+        <div className="meetings-section-header">
+          <div className="meetings-section-title">
             <h3>Upcoming Meetings</h3>
             <p>List of scheduled upcoming meetings.</p>
           </div>
@@ -72,8 +72,8 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
 
   return (
     <div className="upcoming-meetings">
-      <div className="section-header">
-        <div className="section-title">
+      <div className="meetings-section-header">
+        <div className="meetings-section-title">
           <h3>Upcoming Meetings</h3>
           <p>List of scheduled meetings.</p>
         </div>
@@ -179,21 +179,21 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
-        .section-header {
+        .meetings-section-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
           margin-bottom: 24px;
         }
 
-        .section-title h3 {
+        .meetings-section-title h3 {
           font-size: 16px;
           font-weight: 600;
           color: #1f2937;
           margin: 0 0 4px 0;
         }
 
-        .section-title p {
+        .meetings-section-title p {
           font-size: 14px;
           color: #6b7280;
           margin: 0;
