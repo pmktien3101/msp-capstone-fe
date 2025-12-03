@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import ReactMarkdown from "react-markdown";
 import {
   ArrowLeft,
@@ -23,6 +22,9 @@ import {
   CalendarDays,
   Milestone,
   UserCircle,
+  Check,
+  Minus,
+  AlertTriangleIcon,
 } from "lucide-react";
 import "@/app/styles/meeting-detail.scss";
 import { useGetCallById } from "@/hooks/useGetCallById";
@@ -623,11 +625,8 @@ export default function MeetingDetailPage() {
   // Helper to validate todo has all required fields
   function isValidTodo(todo: any) {
     return (
-      !!todo.title &&
-      !!todo.description &&
-      !!todo.startDate &&
-      !!todo.endDate &&
-      !!getTodoAssigneeId(todo)
+      todo.status !== 2 || // ConvertedToTask
+      todo.status !== 3 // Deleted
     );
   }
 
@@ -674,9 +673,7 @@ export default function MeetingDetailPage() {
   const handleSelectTask = (taskId: string) => {
     const todo = todoList.find((t) => t.id === taskId);
     if (
-      !isValidTodo(todo) ||
-      todo.status === 2 || // ConvertedToTask
-      todo.status === 3 // Deleted
+      !isValidTodo(todo)
     ) {
       toast.warning("To-do has been converted or missing required information");
       return;
@@ -1760,11 +1757,17 @@ export default function MeetingDetailPage() {
                   size="sm"
                   onClick={handleSelectAllTasks}
                   className="fab-btn fab-btn-select"
-                  title={selectedTasks.length === todoList.filter(t => isValidTodo(t) && t.status !== 2 && t.status !== 3).length ? "Deselect all" : "Select all"}
+                  title={selectedTasks.length === todoList.filter(t => isValidTodo(t)).length ? "Deselect all" : "Select all"}
                 >
-                  <CheckCircle size={16} />
+                  {selectedTasks.length === todoList.filter(t => isValidTodo(t)).length ?
+                    <Minus size={16} /> :
+                    <CheckCircle size={16} />
+                  }
                   <span className="fab-btn-text">
-                    {selectedTasks.length === todoList.filter(t => isValidTodo(t) && t.status !== 2 && t.status !== 3).length ? "Deselect all" : "Select all"}
+                    {selectedTasks.length === todoList.filter(t => isValidTodo(t)).length ?
+                      "Deselect all" :
+                      "Select all"
+                    }
                   </span>
                 </Button>
                 <Button
@@ -1879,6 +1882,14 @@ export default function MeetingDetailPage() {
                   You are about to convert{" "}
                   <strong>{convertConfirmModal.taskCount} AI-generated to-dos</strong> into official tasks. These will be added to your project and related team members will be notified.
                 </p>
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800 flex items-start">
+                    <AlertTriangleIcon color="#f59e0b" size={20} className="flex-shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Note:</strong> To-dos without a start date will auto use today's date as the task start date.
+                    </span>
+                  </p>
+                </div>
               </div>
 
               <div className="delete-modal-actions flex gap-2">
