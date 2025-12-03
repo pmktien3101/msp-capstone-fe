@@ -1,27 +1,31 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
-import { ProjectTabs } from '@/components/projects/ProjectTabs';
-import { DetailTaskModal } from '@/components/tasks/DetailTaskModal';
-import { CreateTaskModal } from '@/components/tasks/CreateTaskModal';
-import { DeleteTaskModal } from '@/components/tasks/DeleteTaskModal';
-import { CreateMilestoneModal } from '@/components/milestones/CreateMilestoneModal';
-import { Project } from '@/types/project';
-import { Task } from '@/types/milestone';
-import { mockTasks, addMilestone } from '@/constants/mockData';
-import { Plus, Calendar, Users, Target } from 'lucide-react';
-import { useUser } from '@/hooks/useUser';
-import { useAuth } from '@/hooks/useAuth';
-import '@/app/styles/project-detail.scss';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { projectService } from '@/services/projectService';
-import { userService } from '@/services/userService';
-import { taskService } from '@/services/taskService';
-import { toast } from 'react-toastify';
-import { useProjectModal } from '@/contexts/ProjectModalContext';
-import { ProjectStatus, TaskStatus, getProjectStatusLabel } from '@/constants/status';
-import { formatDate } from '@/lib/formatDate';
+import { useState, useEffect } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { ProjectTabs } from "@/components/projects/ProjectTabs";
+import { DetailTaskModal } from "@/components/tasks/DetailTaskModal";
+import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
+import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
+import { CreateMilestoneModal } from "@/components/milestones/CreateMilestoneModal";
+import { Project } from "@/types/project";
+import { Task } from "@/types/milestone";
+import { mockTasks, addMilestone } from "@/constants/mockData";
+import { Plus, Calendar, Users, Target } from "lucide-react";
+import { useUser } from "@/hooks/useUser";
+import { useAuth } from "@/hooks/useAuth";
+import "@/app/styles/project-detail.scss";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { projectService } from "@/services/projectService";
+import { userService } from "@/services/userService";
+import { taskService } from "@/services/taskService";
+import { toast } from "react-toastify";
+import { useProjectModal } from "@/contexts/ProjectModalContext";
+import {
+  ProjectStatus,
+  TaskStatus,
+  getProjectStatusLabel,
+} from "@/constants/status";
+import { formatDate } from "@/lib/formatDate";
 
 const ProjectDetailPage = () => {
   const params = useParams();
@@ -32,7 +36,7 @@ const ProjectDetailPage = () => {
   const { user } = useAuth();
   const [project, setProject] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
@@ -40,19 +44,24 @@ const ProjectDetailPage = () => {
   const [activeTab, setActiveTab] = useState("summary");
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
   const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [projectProgress, setProjectProgress] = useState(0);
 
   // Available project managers (kept for compatibility)
-  const availableProjectManagers = allUsers.filter(user => 
-    user.role?.toLowerCase() === 'projectmanager' || user.role?.toLowerCase() === 'project manager'
+  const availableProjectManagers = allUsers.filter(
+    (user) =>
+      user.role?.toLowerCase() === "projectmanager" ||
+      user.role?.toLowerCase() === "project manager"
   );
 
   // Check if user has permission to create milestones
-  const canCreateMilestone = role && role.toLowerCase() !== 'member';
+  const canCreateMilestone = role && role.toLowerCase() !== "member";
 
   // Handlers
   const handleTaskClick = (task: Task) => {
@@ -76,46 +85,46 @@ const ProjectDetailPage = () => {
   const handleSubmitTask = async (taskData: any) => {
     try {
       if (!user?.userId) {
-        toast.error('Không tìm thấy thông tin người dùng');
+        toast.error("Không tìm thấy thông tin người dùng");
         return;
       }
 
       // console.log('Creating new task:', taskData);
-      
+
       // Prepare request data
       const requestData = {
         projectId: projectId,
         userId: taskData.assignee || undefined, // Only include userId if assignee is selected
         actorId: user.userId,
         title: taskData.title,
-        description: taskData.description || '',
+        description: taskData.description || "",
         status: taskData.status || TaskStatus.Todo,
         startDate: taskData.startDate || undefined,
         endDate: taskData.endDate || undefined,
-        milestoneIds: taskData.milestoneIds || []
+        milestoneIds: taskData.milestoneIds || [],
       };
 
       const response = await taskService.createTask(requestData);
-      
+
       if (response.success) {
-        toast.success('Task created successfully!');
+        toast.success("Tạo công việc thành công!");
         setIsCreateTaskModalOpen(false);
         // Trigger refresh
-        setRefreshKey(prev => prev + 1);
+        setRefreshKey((prev) => prev + 1);
       } else {
-        toast.error(`Error: ${response.error || 'Unable to create task'}`);
+        toast.error(`Lỗi: ${response.error || "Không thể tạo công việc"}`);
       }
     } catch (error: any) {
       // console.error('Error creating task:', error);
-      toast.error('An error occurred while creating the task. Please try again!');
+      toast.error("Đã xảy ra lỗi khi tạo công việc. Vui lòng thử lại!");
     }
   };
 
   const handleDeleteTask = (taskId: string, taskTitle?: string) => {
     // Set task to delete for confirmation modal
-    setTaskToDelete({ 
-      id: taskId, 
-      title: taskTitle || 'this task' 
+    setTaskToDelete({
+      id: taskId,
+      title: taskTitle || "this task",
     });
     setIsDeleteTaskModalOpen(true);
   };
@@ -124,22 +133,22 @@ const ProjectDetailPage = () => {
     if (!taskToDelete) return;
 
     try {
-      console.log('Deleting task:', taskToDelete.id);
-      
+      console.log("Deleting task:", taskToDelete.id);
+
       const response = await taskService.deleteTask(taskToDelete.id);
-      
+
       if (response.success) {
-        toast.success(`Task deleted: ${taskToDelete.title}`);
+        toast.success(`Đã xóa công việc: ${taskToDelete.title}`);
         setTaskToDelete(null);
         setIsDeleteTaskModalOpen(false);
         // Trigger refresh to reload task list
-        setRefreshKey(prev => prev + 1);
+        setRefreshKey((prev) => prev + 1);
       } else {
-        toast.error(`Error: ${response.error || 'Unable to delete task'}`);
+        toast.error(`Lỗi: ${response.error || "Không thể xóa công việc"}`);
       }
     } catch (error: any) {
       // console.error('Error deleting task:', error);
-      toast.error('An error occurred while deleting the task. Please try again!');
+      toast.error("Đã xảy ra lỗi khi xóa công việc. Vui lòng thử lại!");
     }
   };
 
@@ -156,18 +165,18 @@ const ProjectDetailPage = () => {
   const handleUpdateTask = async (taskData: any) => {
     try {
       if (!taskToEdit?.id) {
-        toast.error('Task information not found');
+        toast.error("Không tìm thấy thông tin công việc");
         return;
       }
 
       // Ensure we have the current user ID to use as actorId (UpdateTaskRequest requires a string)
       if (!user || !user.userId) {
-        toast.error('User information not found');
+        toast.error("Không tìm thấy thông tin người dùng");
         return;
       }
 
       // console.log('Updating task:', taskData);
-      
+
       // Prepare request data
       const requestData = {
         id: taskToEdit.id,
@@ -175,27 +184,27 @@ const ProjectDetailPage = () => {
         userId: taskData.assignee || undefined, // Only include userId if assignee is selected
         actorId: user.userId,
         title: taskData.title,
-        description: taskData.description || '',
+        description: taskData.description || "",
         status: taskData.status,
         startDate: taskData.startDate || undefined,
         endDate: taskData.endDate || undefined,
-        milestoneIds: taskData.milestoneIds || []
+        milestoneIds: taskData.milestoneIds || [],
       };
 
       const response = await taskService.updateTask(requestData);
-      
+
       if (response.success) {
-        toast.success('Task updated successfully!');
+        toast.success("Cập nhật công việc thành công!");
         setIsEditTaskModalOpen(false);
         setTaskToEdit(null);
         // Trigger refresh
-        setRefreshKey(prev => prev + 1);
+        setRefreshKey((prev) => prev + 1);
       } else {
-        toast.error(`Error: ${response.error || 'Unable to update task'}`);
+        toast.error(`Lỗi: ${response.error || "Không thể cập nhật công việc"}`);
       }
     } catch (error: any) {
       // console.error('Error updating task:', error);
-      toast.error('An error occurred while updating the task. Please try again!');
+      toast.error("Đã xảy ra lỗi khi cập nhật công việc. Vui lòng thử lại!");
     }
   };
 
@@ -213,7 +222,7 @@ const ProjectDetailPage = () => {
 
   const handleProjectUpdate = () => {
     // Trigger refresh by updating refreshKey
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
     // Also trigger sidebar refresh
     triggerProjectRefresh();
   };
@@ -223,15 +232,15 @@ const ProjectDetailPage = () => {
       // Add milestone to mockData
       const newMilestone = addMilestone(milestoneData);
       // console.log('Created new milestone:', newMilestone);
-      
+
       // Trigger UI refresh by updating refreshKey
-      setRefreshKey(prev => prev + 1);
-      
+      setRefreshKey((prev) => prev + 1);
+
       // Milestone created successfully - UI will automatically refresh
       // No need for alert since user can see the new milestone in the list
     } catch (error) {
       // console.error('Error creating milestone:', error);
-      toast.error('An error occurred while creating the milestone. Please try again!');
+      toast.error("Đã xảy ra lỗi khi tạo cột mốc. Vui lòng thử lại!");
     }
   };
 
@@ -239,19 +248,29 @@ const ProjectDetailPage = () => {
   useEffect(() => {
     const fetchProjectData = async () => {
       setLoading(true);
-      setError('');
+      setError("");
 
       // Get tab from URL parameters
-      const tabFromUrl = searchParams.get('tab');
-      if (tabFromUrl && ['summary', 'board', 'list', 'documents', 'meetings', 'settings'].includes(tabFromUrl)) {
+      const tabFromUrl = searchParams.get("tab");
+      if (
+        tabFromUrl &&
+        [
+          "summary",
+          "board",
+          "list",
+          "documents",
+          "meetings",
+          "settings",
+        ].includes(tabFromUrl)
+      ) {
         setActiveTab(tabFromUrl);
       }
 
       try {
         // Validate projectId first
-        if (!projectId || projectId === 'undefined' || projectId === 'null') {
+        if (!projectId || projectId === "undefined" || projectId === "null") {
           // console.error('Invalid projectId:', projectId);
-          setError('Invalid project ID');
+          setError("Invalid project ID");
           setLoading(false);
           return;
         }
@@ -260,20 +279,20 @@ const ProjectDetailPage = () => {
 
         // Check if user is authenticated and has userId
         if (!user || !user.userId) {
-          console.error('User not authenticated');
-          setError('Please login to view the project');
+          console.error("User not authenticated");
+          setError("Please login to view the project");
           setLoading(false);
           return;
         }
 
         // Fetch all users first (for member lookup) - only if user is BusinessOwner
-        if (user.role?.toLowerCase() === 'businessowner') {
+        if (user.role?.toLowerCase() === "businessowner") {
           try {
             const usersResult = await userService.getMembersByBO(user.userId);
             if (usersResult.success && usersResult.data) {
               setAllUsers(usersResult.data);
             } else {
-              console.warn('Failed to fetch members:', usersResult.error);
+              console.warn("Failed to fetch members:", usersResult.error);
               // Continue anyway, just with empty users list
             }
           } catch (err: any) {
@@ -284,55 +303,61 @@ const ProjectDetailPage = () => {
 
         // Fetch project details from API
         const result = await projectService.getProjectById(projectId);
-        
+
         if (result.success && result.data) {
           // console.log('Project fetched successfully:', result.data);
-          
+
           // Fetch project members
           let membersResult;
           try {
             membersResult = await projectService.getProjectMembers(projectId);
-            
+
             if (membersResult.success && membersResult.data) {
               if (membersResult.data.length === 0) {
-                console.log('Project has no members yet (newly created project)');
+                console.log(
+                  "Project has no members yet (newly created project)"
+                );
               } else {
                 // console.log('Members fetched:', membersResult.data);
               }
             } else {
-              console.warn('Failed to fetch members:', membersResult.error);
+              console.warn("Failed to fetch members:", membersResult.error);
             }
           } catch (memberErr: any) {
-            console.error('Error fetching members:', memberErr);
+            console.error("Error fetching members:", memberErr);
             membersResult = { success: true, data: [] };
           }
-          
+
           // Combine project data with members
           const projectWithMembers = {
             ...result.data,
-            members: membersResult.success && membersResult.data 
-              ? membersResult.data.map((memberResponse: any) => ({
-                  userId: memberResponse.id,
-                  fullName: memberResponse.fullName,
-                  email: memberResponse.email,
-                  role: memberResponse.roleName,
-                  image: memberResponse.avatarUrl || ''
-                }))
-              : [],
+            members:
+              membersResult.success && membersResult.data
+                ? membersResult.data.map((memberResponse: any) => ({
+                    userId: memberResponse.id,
+                    fullName: memberResponse.fullName,
+                    email: memberResponse.email,
+                    role: memberResponse.roleName,
+                    image: memberResponse.avatarUrl || "",
+                  }))
+                : [],
             progress: 0, // TODO: Calculate from tasks/milestones
-            manager: result.data.owner?.fullName || result.data.createdBy?.fullName || 'N/A',
+            manager:
+              result.data.owner?.fullName ||
+              result.data.createdBy?.fullName ||
+              "N/A",
             milestones: [], // TODO: Fetch milestones
-            projectManagers: [] // TODO: Fetch project managers if needed
+            projectManagers: [], // TODO: Fetch project managers if needed
           };
-          
+
           setProject(projectWithMembers);
         } else {
-          setError(result.error || 'Unable to load project');
+          setError(result.error || "Unable to load project");
           setProject(null);
         }
       } catch (err) {
-        console.error('Error fetching project:', err);
-        setError('An error occurred while loading the project');
+        console.error("Error fetching project:", err);
+        setError("An error occurred while loading the project");
         setProject(null);
       } finally {
         setLoading(false);
@@ -351,21 +376,24 @@ const ProjectDetailPage = () => {
 
       try {
         const tasksResult = await taskService.getTasksByProjectId(projectId);
-        
+
         if (tasksResult.success && tasksResult.data) {
           const tasks = (tasksResult.data as any).items || tasksResult.data;
           const taskArray = Array.isArray(tasks) ? tasks : [];
-          
+
           const totalTasks = taskArray.length;
-          const completedTasks = taskArray.filter((task: any) => 
-            task.status === TaskStatus.Done
+          const completedTasks = taskArray.filter(
+            (task: any) => task.status === TaskStatus.Done
           ).length;
-          
-          const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+          const progress =
+            totalTasks > 0
+              ? Math.round((completedTasks / totalTasks) * 100)
+              : 0;
           setProjectProgress(progress);
         }
       } catch (error) {
-        console.error('Error fetching tasks for progress:', error);
+        console.error("Error fetching tasks for progress:", error);
         setProjectProgress(0);
       }
     };
@@ -397,13 +425,21 @@ const ProjectDetailPage = () => {
         <div className="project-info">
           <div className="project-title-section">
             <h1 className="project-title">{project.name}</h1>
-            <span className={`status-badge ${
-              project.status === ProjectStatus.InProgress ? 'status-active' :
-              project.status === ProjectStatus.NotStarted ? 'status-planning' :
-              project.status === ProjectStatus.OnHold ? 'status-on-hold' :
-              project.status === ProjectStatus.Completed ? 'status-completed' :
-              project.status === ProjectStatus.Cancelled ? 'status-cancelled' : ''
-            }`}>
+            <span
+              className={`status-badge ${
+                project.status === ProjectStatus.InProgress
+                  ? "status-active"
+                  : project.status === ProjectStatus.NotStarted
+                  ? "status-planning"
+                  : project.status === ProjectStatus.OnHold
+                  ? "status-on-hold"
+                  : project.status === ProjectStatus.Completed
+                  ? "status-completed"
+                  : project.status === ProjectStatus.Cancelled
+                  ? "status-cancelled"
+                  : ""
+              }`}
+            >
               {getProjectStatusLabel(project.status)}
             </span>
           </div>
@@ -412,12 +448,16 @@ const ProjectDetailPage = () => {
             <div className="meta-item">
               <Calendar size={16} />
               <span>
-                {project.startDate ? formatDate(project.startDate) : 'N/A'} - {project.endDate ? formatDate(project.endDate) : 'N/A'}
+                {project.startDate ? formatDate(project.startDate) : "N/A"} -{" "}
+                {project.endDate ? formatDate(project.endDate) : "N/A"}
               </span>
             </div>
             <div className="meta-item">
               <Users size={16} />
-              <span>{project.members?.length || 0} {(project.members?.length || 0) === 1 ? 'member' : 'members'}</span>
+              <span>
+                {project.members?.length || 0}{" "}
+                {(project.members?.length || 0) === 1 ? "member" : "members"}
+              </span>
             </div>
             <div className="meta-item">
               <Target size={16} />
@@ -427,10 +467,10 @@ const ProjectDetailPage = () => {
         </div>
       </div>
 
-      <ProjectTabs 
+      <ProjectTabs
         key={refreshKey}
-        project={project} 
-        onTaskClick={handleTaskClick} 
+        project={project}
+        onTaskClick={handleTaskClick}
         onCreateTask={handleCreateTask}
         onDeleteTask={handleDeleteTask}
         onEditTask={handleEditTask}
@@ -441,7 +481,7 @@ const ProjectDetailPage = () => {
         onProjectUpdate={handleProjectUpdate}
         onCreateMilestone={handleCreateMilestone}
       />
-      
+
       {/* Task Detail Modal */}
       {selectedTask && (
         <DetailTaskModal
@@ -466,7 +506,7 @@ const ProjectDetailPage = () => {
         onClose={handleCloseCreateTaskModal}
         onSuccess={() => {
           handleCloseCreateTaskModal();
-          setRefreshKey(prev => prev + 1);
+          setRefreshKey((prev) => prev + 1);
         }}
         projectId={projectId}
       />

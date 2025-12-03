@@ -29,7 +29,6 @@ export default function SignInPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    rememberMe: false,
   });
 
   // Always call hooks at the top level
@@ -89,10 +88,6 @@ export default function SignInPage() {
 
       if (result.success) {
         console.log("Login successful!");
-
-        if (formData.rememberMe) {
-          localStorage.setItem("rememberedEmail", formData.email);
-        }
 
         // Get redirect URL from query params, default to /dashboard
         const redirectUrl = searchParams.get("redirect") || "/dashboard";
@@ -302,16 +297,6 @@ export default function SignInPage() {
               </div>
 
               <div className="form-options">
-                <label className="checkbox-container">
-                  <input
-                    type="checkbox"
-                    name="rememberMe"
-                    checked={formData.rememberMe}
-                    onChange={handleInputChange}
-                  />
-                  <span className="checkmark"></span>
-                  Remember me
-                </label>
                 <Link href="/forgot-password" className="forgot-password">
                   Forgot password?
                 </Link>

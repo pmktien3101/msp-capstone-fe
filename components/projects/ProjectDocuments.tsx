@@ -1,64 +1,71 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Project } from '@/types/project';
-import { GetDocumentResponse } from '@/types/document';
-import { documentService } from '@/services/documentService';
-import { uploadFileToCloudinary } from '@/services/uploadFileService';
-import { useUser } from '@/hooks/useUser';
-import { toast } from 'react-toastify';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { 
-  Upload, 
-  Search, 
-  Download, 
-  Trash2, 
-  FileText, 
-  FileSpreadsheet, 
-  FileImage, 
-  Archive, 
-  Database, 
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Project } from "@/types/project";
+import { GetDocumentResponse } from "@/types/document";
+import { documentService } from "@/services/documentService";
+import { uploadFileToCloudinary } from "@/services/uploadFileService";
+import { useUser } from "@/hooks/useUser";
+import { toast } from "react-toastify";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Upload,
+  Search,
+  Download,
+  Trash2,
+  FileText,
+  FileSpreadsheet,
+  FileImage,
+  Archive,
+  Database,
   Palette,
   File,
   FolderOpen,
-  Loader2
-} from 'lucide-react';
+  Loader2,
+} from "lucide-react";
 
 interface ProjectDocumentsProps {
   project: Project;
   readOnly?: boolean;
 }
 
-export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocumentsProps) => {
+export const ProjectDocuments = ({
+  project,
+  readOnly = false,
+}: ProjectDocumentsProps) => {
   const userState = useUser();
   const currentUser = {
     id: userState.userId,
     email: userState.email,
     fullName: userState.fullName,
     role: userState.role,
-    avatarUrl: userState.avatarUrl
+    avatarUrl: userState.avatarUrl,
   };
-  
+
   const [documents, setDocuments] = useState<GetDocumentResponse[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadDescription, setUploadDescription] = useState('');
+  const [uploadDescription, setUploadDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editingDocument, setEditingDocument] = useState<GetDocumentResponse | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editDescription, setEditDescription] = useState('');
+  const [editingDocument, setEditingDocument] =
+    useState<GetDocumentResponse | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 5;
-  
+
   // Confirm delete state
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
-  const [documentToDelete, setDocumentToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [documentToDelete, setDocumentToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   // Fetch documents when component mounts
   useEffect(() => {
@@ -70,7 +77,7 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
     try {
       const result = await documentService.getDocumentsByProjectId(project.id, {
         pageIndex: currentPage,
-        pageSize: pageSize
+        pageSize: pageSize,
       });
 
       if (result.success && result.data) {
@@ -85,57 +92,57 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getFileExtension = (filename: string) => {
-    return filename.split('.').pop()?.toLowerCase() || '';
+    return filename.split(".").pop()?.toLowerCase() || "";
   };
 
   const getFileIcon = (filename: string) => {
     const iconProps = { size: 24, className: "text-gray-600" };
     const ext = getFileExtension(filename);
-    
+
     switch (ext) {
-      case 'pdf':
+      case "pdf":
         return <FileText {...iconProps} className="text-red-600" />;
-      case 'doc':
-      case 'docx':
+      case "doc":
+      case "docx":
         return <FileText {...iconProps} className="text-blue-600" />;
-      case 'xls':
-      case 'xlsx':
+      case "xls":
+      case "xlsx":
         return <FileSpreadsheet {...iconProps} className="text-green-600" />;
-      case 'ppt':
-      case 'pptx':
+      case "ppt":
+      case "pptx":
         return <FileText {...iconProps} className="text-orange-600" />;
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif':
-      case 'webp':
+      case "jpg":
+      case "jpeg":
+      case "png":
+      case "gif":
+      case "webp":
         return <FileImage {...iconProps} className="text-purple-600" />;
-      case 'zip':
-      case 'rar':
-      case '7z':
+      case "zip":
+      case "rar":
+      case "7z":
         return <Archive {...iconProps} className="text-yellow-600" />;
-      case 'sql':
+      case "sql":
         return <Database {...iconProps} className="text-indigo-600" />;
-      case 'fig':
-      case 'sketch':
+      case "fig":
+      case "sketch":
         return <Palette {...iconProps} className="text-pink-600" />;
       default:
         return <File {...iconProps} className="text-gray-600" />;
@@ -151,7 +158,7 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
 
   const handleUpload = async () => {
     if (!uploadFile || !currentUser.id) {
-      toast.error('Please select a file and log in');
+      toast.error("Vui lòng chọn tệp và đăng nhập");
       return;
     }
 
@@ -159,9 +166,9 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
     try {
       // 1. Upload file to Cloudinary
       const fileUrl = await uploadFileToCloudinary(uploadFile);
-      
+
       if (!fileUrl) {
-        toast.error('Unable to upload file to Cloudinary');
+        toast.error("Không thể tải tệp lên");
         return;
       }
 
@@ -172,21 +179,21 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
         projectId: project.id,
         fileUrl: fileUrl,
         description: uploadDescription || undefined,
-        size: uploadFile.size
+        size: uploadFile.size,
       });
 
       if (result.success) {
         setUploadFile(null);
-        setUploadDescription('');
+        setUploadDescription("");
         setShowUploadModal(false);
         // Refresh documents list
         fetchDocuments();
       } else {
-        toast.error(`Error: ${result.error}`);
+        toast.error(`Lỗi: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error uploading document:', error);
-      toast.error('An error occurred while uploading document');
+      console.error("Error uploading document:", error);
+      toast.error("Đã xảy ra lỗi khi tải tài liệu lên");
     } finally {
       setIsUploading(false);
     }
@@ -196,32 +203,34 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
     try {
       // For Cloudinary URLs, add fl_attachment parameter to force download
       let downloadUrl = doc.fileUrl;
-      
-      if (downloadUrl.includes('cloudinary.com')) {
+
+      if (downloadUrl.includes("cloudinary.com")) {
         // Check if URL already has parameters
-        const hasParams = downloadUrl.includes('?');
-        const separator = hasParams ? '&' : '?';
-        downloadUrl = `${downloadUrl}${separator}fl_attachment:${encodeURIComponent(doc.name)}`;
+        const hasParams = downloadUrl.includes("?");
+        const separator = hasParams ? "&" : "?";
+        downloadUrl = `${downloadUrl}${separator}fl_attachment:${encodeURIComponent(
+          doc.name
+        )}`;
       }
-      
+
       // Create a temporary link element to trigger download
-      const link = window.document.createElement('a');
+      const link = window.document.createElement("a");
       link.href = downloadUrl;
       link.download = doc.name;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+
       // For cross-origin downloads, we need to fetch and create blob
-      if (downloadUrl.includes('cloudinary.com')) {
+      if (downloadUrl.includes("cloudinary.com")) {
         const response = await fetch(downloadUrl);
         const blob = await response.blob();
         const blobUrl = window.URL.createObjectURL(blob);
         link.href = blobUrl;
-        
+
         window.document.body.appendChild(link);
         link.click();
         window.document.body.removeChild(link);
-        
+
         // Clean up blob URL
         setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
       } else {
@@ -229,10 +238,9 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
         link.click();
         window.document.body.removeChild(link);
       }
-      
     } catch (error) {
-      console.error('Error downloading document:', error);
-      toast.error('Error downloading document');
+      console.error("Error downloading document:", error);
+      toast.error("Lỗi khi tải tài liệu xuống");
     }
   };
 
@@ -246,55 +254,56 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
 
     try {
       const result = await documentService.deleteDocument(documentToDelete.id);
-      
+
       if (result.success) {
-        toast.success('Document deleted successfully!');
+        toast.success("Xóa tài liệu thành công!");
         fetchDocuments();
       } else {
-        toast.error(`Error: ${result.error}`);
+        toast.error(`Lỗi: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error deleting document:', error);
-      toast.error('An error occurred while deleting document');
+      console.error("Error deleting document:", error);
+      toast.error("Đã xảy ra lỗi khi xóa tài liệu");
     } finally {
       setIsConfirmDeleteOpen(false);
       setDocumentToDelete(null);
     }
   };
 
-  const filteredDocuments = documents.filter(doc =>
-    doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredDocuments = documents.filter(
+    (doc) =>
+      doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="project-documents">
       {/* Header */}
-      <div 
+      <div
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px',
-          padding: '0 4px'
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "24px",
+          padding: "0 4px",
         }}
       >
         <div>
-          <h3 
+          <h3
             style={{
-              fontSize: '20px',
+              fontSize: "20px",
               fontWeight: 600,
-              color: '#1f2937',
-              margin: '0 0 8px 0'
+              color: "#1f2937",
+              margin: "0 0 8px 0",
             }}
           >
             Project Documents
           </h3>
-          <p 
+          <p
             style={{
-              fontSize: '14px',
-              color: '#6b7280',
-              margin: 0
+              fontSize: "14px",
+              color: "#6b7280",
+              margin: 0,
             }}
           >
             Manage and share project-related documents
@@ -304,26 +313,26 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
           <Button
             onClick={() => setShowUploadModal(true)}
             style={{
-              background: 'transparent',
-              color: '#FF5E13',
-              border: '1px solid #FF5E13',
-              borderRadius: '8px',
-              padding: '10px 20px',
-              cursor: 'pointer',
-              fontSize: '14px',
+              background: "transparent",
+              color: "#FF5E13",
+              border: "1px solid #FF5E13",
+              borderRadius: "8px",
+              padding: "10px 20px",
+              cursor: "pointer",
+              fontSize: "14px",
               fontWeight: 500,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.2s ease'
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s ease",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#FF5E13';
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.background = "#FF5E13";
+              e.currentTarget.style.color = "white";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = '#FF5E13';
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#FF5E13";
             }}
           >
             <Upload size={16} />
@@ -333,10 +342,10 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
       </div>
 
       {/* Search */}
-      <div 
+      <div
         style={{
-          marginBottom: '24px',
-          position: 'relative'
+          marginBottom: "24px",
+          position: "relative",
         }}
       >
         <Input
@@ -345,20 +354,20 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
-            width: '100%',
-            padding: '12px 16px 12px 40px',
-            border: '1px solid #d1d5db',
-            borderRadius: '8px',
-            fontSize: '14px'
+            width: "100%",
+            padding: "12px 16px 12px 40px",
+            border: "1px solid #d1d5db",
+            borderRadius: "8px",
+            fontSize: "14px",
           }}
         />
         <div
           style={{
-            position: 'absolute',
-            left: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: '#6b7280'
+            position: "absolute",
+            left: "12px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "#6b7280",
           }}
         >
           <Search size={16} />
@@ -366,45 +375,54 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
       </div>
 
       {/* Documents List */}
-      <div 
+      <div
         style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px'
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
         }}
       >
         {isLoading ? (
-          <div 
+          <div
             style={{
-              textAlign: 'center',
-              padding: '48px 24px',
-              color: '#6b7280'
+              textAlign: "center",
+              padding: "48px 24px",
+              color: "#6b7280",
             }}
           >
-            <Loader2 size={48} className="text-gray-400 animate-spin mx-auto mb-4" />
-            <p style={{ margin: 0, fontSize: '16px' }}>
+            <Loader2
+              size={48}
+              className="text-gray-400 animate-spin mx-auto mb-4"
+            />
+            <p style={{ margin: 0, fontSize: "16px" }}>
               Loading document list...
             </p>
           </div>
         ) : filteredDocuments.length === 0 ? (
-          <div 
+          <div
             style={{
-              textAlign: 'center',
-              padding: '48px 24px',
-              color: '#6b7280',
-              background: '#f9fafb',
-              borderRadius: '8px',
-              border: '1px solid #e5e7eb'
+              textAlign: "center",
+              padding: "48px 24px",
+              color: "#6b7280",
+              background: "#f9fafb",
+              borderRadius: "8px",
+              border: "1px solid #e5e7eb",
             }}
           >
-            <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
+            <div
+              style={{
+                marginBottom: "16px",
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
               <FolderOpen size={48} className="text-gray-400" />
             </div>
-            <p style={{ margin: 0, fontSize: '16px' }}>
-              {searchQuery ? 'No documents found' : 'No documents yet'}
+            <p style={{ margin: 0, fontSize: "16px" }}>
+              {searchQuery ? "No documents found" : "No documents yet"}
             </p>
             {!searchQuery && (
-              <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
+              <p style={{ margin: "8px 0 0 0", fontSize: "14px" }}>
                 Upload your first document
               </p>
             )}
@@ -414,34 +432,35 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
             <div
               key={document.id}
               style={{
-                background: 'white',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                padding: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                transition: 'all 0.2s ease'
+                background: "white",
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
+                padding: "16px",
+                display: "flex",
+                alignItems: "center",
+                gap: "16px",
+                transition: "all 0.2s ease",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#FF5E13';
-                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(255, 94, 19, 0.2)';
+                e.currentTarget.style.borderColor = "#FF5E13";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 6px -1px rgba(255, 94, 19, 0.2)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#e5e7eb';
-                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = "#e5e7eb";
+                e.currentTarget.style.boxShadow = "none";
               }}
             >
               {/* File Icon */}
-              <div 
+              <div
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '48px',
-                  height: '48px',
-                  background: '#f3f4f6',
-                  borderRadius: '8px'
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "48px",
+                  height: "48px",
+                  background: "#f3f4f6",
+                  borderRadius: "8px",
                 }}
               >
                 {getFileIcon(document.name)}
@@ -449,92 +468,92 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
 
               {/* File Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h4 
+                <h4
                   style={{
-                    fontSize: '16px',
+                    fontSize: "16px",
                     fontWeight: 600,
-                    color: '#1f2937',
-                    margin: '0 0 4px 0',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    color: "#1f2937",
+                    margin: "0 0 4px 0",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {document.name}
                 </h4>
                 {document.description && (
-                  <p 
+                  <p
                     style={{
-                      fontSize: '14px',
-                      color: '#6b7280',
-                      margin: '0 0 8px 0',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+                      fontSize: "14px",
+                      color: "#6b7280",
+                      margin: "0 0 8px 0",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {document.description}
                   </p>
                 )}
-                <div 
+                <div
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
-                    fontSize: '12px',
-                    color: '#6b7280'
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "16px",
+                    fontSize: "12px",
+                    color: "#6b7280",
                   }}
                 >
                   <span>{formatFileSize(document.size)}</span>
                   <span>•</span>
-                  <span>Uploaded by {document.owner?.fullName || 'N/A'}</span>
+                  <span>Uploaded by {document.owner?.fullName || "N/A"}</span>
                   <span>•</span>
                   <span>{formatDate(document.createdAt)}</span>
                 </div>
               </div>
 
               {/* Actions */}
-              <div 
+              <div
                 style={{
-                  display: 'flex',
-                  gap: '8px'
+                  display: "flex",
+                  gap: "8px",
                 }}
               >
                 <Button
                   onClick={() => handleDownload(document)}
                   style={{
-                    background: '#f3f4f6',
-                    color: '#374151',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    padding: '8px 12px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
+                    background: "#f3f4f6",
+                    color: "#374151",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "6px",
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
                   }}
                 >
                   <Download size={14} />
                   Download
                 </Button>
-                
+
                 {/* Only show Delete and Edit buttons if current user is the owner */}
                 {currentUser.id === document.ownerId && !readOnly && (
                   <>
                     <Button
                       onClick={() => handleDelete(document)}
                       style={{
-                        background: '#fef2f2',
-                        color: '#dc2626',
-                        border: '1px solid #fecaca',
-                        borderRadius: '6px',
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
+                        background: "#fef2f2",
+                        color: "#dc2626",
+                        border: "1px solid #fecaca",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
                       }}
                     >
                       <Trash2 size={14} />
@@ -544,20 +563,20 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
                       onClick={() => {
                         setEditingDocument(document);
                         setEditName(document.name);
-                        setEditDescription(document.description || '');
+                        setEditDescription(document.description || "");
                         setShowEditModal(true);
                       }}
                       style={{
-                        background: '#f3f4f6',
-                        color: '#374151',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
+                        background: "#f3f4f6",
+                        color: "#374151",
+                        border: "1px solid #d1d5db",
+                        borderRadius: "6px",
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
                       }}
                     >
                       <FileText size={14} />
@@ -573,38 +592,39 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
 
       {/* Pagination */}
       {!isLoading && documents.length > 0 && totalPages > 1 && (
-        <div 
+        <div
           style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '8px',
-            marginTop: '24px',
-            padding: '16px 0'
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "8px",
+            marginTop: "24px",
+            padding: "16px 0",
           }}
         >
           <Button
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
             style={{
-              padding: '8px 16px',
-              background: currentPage === 1 ? '#f3f4f6' : 'transparent',
-              color: currentPage === 1 ? '#9ca3af' : '#FF5E13',
-              border: currentPage === 1 ? '1px solid #d1d5db' : '1px solid #FF5E13',
-              borderRadius: '6px',
-              cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-              fontSize: '14px',
-              fontWeight: 500
+              padding: "8px 16px",
+              background: currentPage === 1 ? "#f3f4f6" : "transparent",
+              color: currentPage === 1 ? "#9ca3af" : "#FF5E13",
+              border:
+                currentPage === 1 ? "1px solid #d1d5db" : "1px solid #FF5E13",
+              borderRadius: "6px",
+              cursor: currentPage === 1 ? "not-allowed" : "pointer",
+              fontSize: "14px",
+              fontWeight: 500,
             }}
           >
             Previous
           </Button>
-          
-          <div 
+
+          <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
             }}
           >
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
@@ -612,15 +632,18 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
                 key={page}
                 onClick={() => setCurrentPage(page)}
                 style={{
-                  padding: '8px 12px',
-                  background: page === currentPage ? '#FF5E13' : 'transparent',
-                  color: page === currentPage ? 'white' : '#374151',
-                  border: page === currentPage ? '1px solid #FF5E13' : '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
+                  padding: "8px 12px",
+                  background: page === currentPage ? "#FF5E13" : "transparent",
+                  color: page === currentPage ? "white" : "#374151",
+                  border:
+                    page === currentPage
+                      ? "1px solid #FF5E13"
+                      : "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "14px",
                   fontWeight: page === currentPage ? 600 : 400,
-                  minWidth: '40px'
+                  minWidth: "40px",
                 }}
               >
                 {page}
@@ -629,17 +652,23 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
           </div>
 
           <Button
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+            }
             disabled={currentPage === totalPages}
             style={{
-              padding: '8px 16px',
-              background: currentPage === totalPages ? '#f3f4f6' : 'transparent',
-              color: currentPage === totalPages ? '#9ca3af' : '#FF5E13',
-              border: currentPage === totalPages ? '1px solid #d1d5db' : '1px solid #FF5E13',
-              borderRadius: '6px',
-              cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-              fontSize: '14px',
-              fontWeight: 500
+              padding: "8px 16px",
+              background:
+                currentPage === totalPages ? "#f3f4f6" : "transparent",
+              color: currentPage === totalPages ? "#9ca3af" : "#FF5E13",
+              border:
+                currentPage === totalPages
+                  ? "1px solid #d1d5db"
+                  : "1px solid #FF5E13",
+              borderRadius: "6px",
+              cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+              fontSize: "14px",
+              fontWeight: 500,
             }}
           >
             Next
@@ -651,50 +680,50 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
       {showUploadModal && (
         <div
           style={{
-            position: 'fixed',
+            position: "fixed",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
+            background: "rgba(0, 0, 0, 0.5)",
             zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px'
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
           }}
           onClick={() => setShowUploadModal(false)}
         >
           <div
             style={{
-              background: 'white',
-              borderRadius: '12px',
-              width: '100%',
-              maxWidth: '500px',
-              padding: '24px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+              background: "white",
+              borderRadius: "12px",
+              width: "100%",
+              maxWidth: "500px",
+              padding: "24px",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 
+            <h3
               style={{
-                fontSize: '18px',
+                fontSize: "18px",
                 fontWeight: 600,
-                color: '#1f2937',
-                margin: '0 0 20px 0'
+                color: "#1f2937",
+                margin: "0 0 20px 0",
               }}
             >
               Upload Document
             </h3>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label 
+            <div style={{ marginBottom: "20px" }}>
+              <label
                 style={{
-                  display: 'block',
-                  fontSize: '14px',
+                  display: "block",
+                  fontSize: "14px",
                   fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '8px'
+                  color: "#374151",
+                  marginBottom: "8px",
                 }}
               >
                 Select Document
@@ -703,34 +732,35 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
                 type="file"
                 onChange={handleFileUpload}
                 style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px'
+                  width: "100%",
+                  padding: "12px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  fontSize: "14px",
                 }}
               />
               {uploadFile && (
-                <p 
+                <p
                   style={{
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    margin: '8px 0 0 0'
+                    fontSize: "12px",
+                    color: "#6b7280",
+                    margin: "8px 0 0 0",
                   }}
                 >
-                  Selected: {uploadFile.name} ({formatFileSize(uploadFile.size)})
+                  Selected: {uploadFile.name} ({formatFileSize(uploadFile.size)}
+                  )
                 </p>
               )}
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
-              <label 
+            <div style={{ marginBottom: "24px" }}>
+              <label
                 style={{
-                  display: 'block',
-                  fontSize: '14px',
+                  display: "block",
+                  fontSize: "14px",
                   fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '8px'
+                  color: "#374151",
+                  marginBottom: "8px",
                 }}
               >
                 Description (optional)
@@ -740,34 +770,34 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
                 onChange={(e) => setUploadDescription(e.target.value)}
                 placeholder="Brief description of the document..."
                 style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px'
+                  width: "100%",
+                  padding: "12px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  fontSize: "14px",
                 }}
               />
             </div>
 
-            <div 
+            <div
               style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '12px'
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
               }}
             >
               <Button
                 onClick={() => setShowUploadModal(false)}
                 disabled={isUploading}
                 style={{
-                  padding: '10px 20px',
-                  background: '#f3f4f6',
-                  color: '#374151',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  cursor: isUploading ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  opacity: isUploading ? 0.5 : 1
+                  padding: "10px 20px",
+                  background: "#f3f4f6",
+                  color: "#374151",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  cursor: isUploading ? "not-allowed" : "pointer",
+                  fontSize: "14px",
+                  opacity: isUploading ? 0.5 : 1,
                 }}
               >
                 Cancel
@@ -776,33 +806,38 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
                 onClick={handleUpload}
                 disabled={!uploadFile || isUploading}
                 style={{
-                  padding: '10px 20px',
-                  background: uploadFile && !isUploading ? 'transparent' : '#f3f4f6',
-                  color: uploadFile && !isUploading ? '#FF5E13' : '#9ca3af',
-                  border: uploadFile && !isUploading ? '1px solid #FF5E13' : '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  cursor: uploadFile && !isUploading ? 'pointer' : 'not-allowed',
-                  fontSize: '14px',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
+                  padding: "10px 20px",
+                  background:
+                    uploadFile && !isUploading ? "transparent" : "#f3f4f6",
+                  color: uploadFile && !isUploading ? "#FF5E13" : "#9ca3af",
+                  border:
+                    uploadFile && !isUploading
+                      ? "1px solid #FF5E13"
+                      : "1px solid #d1d5db",
+                  borderRadius: "8px",
+                  cursor:
+                    uploadFile && !isUploading ? "pointer" : "not-allowed",
+                  fontSize: "14px",
+                  transition: "all 0.2s ease",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
                 }}
                 onMouseEnter={(e) => {
                   if (uploadFile && !isUploading) {
-                    e.currentTarget.style.background = '#FF5E13';
-                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.background = "#FF5E13";
+                    e.currentTarget.style.color = "white";
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (uploadFile && !isUploading) {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = '#FF5E13';
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "#FF5E13";
                   }
                 }}
               >
                 {isUploading && <Loader2 size={16} className="animate-spin" />}
-                {isUploading ? 'Uploading...' : 'Upload'}
+                {isUploading ? "Uploading..." : "Upload"}
               </Button>
             </div>
           </div>
@@ -812,67 +847,128 @@ export const ProjectDocuments = ({ project, readOnly = false }: ProjectDocuments
       {showEditModal && editingDocument && (
         <div
           style={{
-            position: 'fixed',
+            position: "fixed",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
+            background: "rgba(0, 0, 0, 0.5)",
             zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px'
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
           }}
           onClick={() => setShowEditModal(false)}
         >
           <div
             style={{
-              background: 'white',
-              borderRadius: '12px',
-              width: '100%',
-              maxWidth: '520px',
-              padding: '24px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+              background: "white",
+              borderRadius: "12px",
+              width: "100%",
+              maxWidth: "520px",
+              padding: "24px",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#1f2937', margin: '0 0 20px 0' }}>
+            <h3
+              style={{
+                fontSize: "18px",
+                fontWeight: 600,
+                color: "#1f2937",
+                margin: "0 0 20px 0",
+              }}
+            >
               Edit Document
             </h3>
 
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Document Name</label>
-              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Document name" />
+            <div style={{ marginBottom: "16px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "#374151",
+                  marginBottom: "8px",
+                }}
+              >
+                Document Name
+              </label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Document name"
+              />
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Description (optional)</label>
-              <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Brief description of the document..." />
+            <div style={{ marginBottom: "24px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "#374151",
+                  marginBottom: "8px",
+                }}
+              >
+                Description (optional)
+              </label>
+              <Input
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Brief description of the document..."
+              />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <Button onClick={() => setShowEditModal(false)} style={{ padding: '10px 20px', background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px' }}>Cancel</Button>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+              }}
+            >
+              <Button
+                onClick={() => setShowEditModal(false)}
+                style={{
+                  padding: "10px 20px",
+                  background: "#f3f4f6",
+                  color: "#374151",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "8px",
+                }}
+              >
+                Cancel
+              </Button>
               <Button
                 onClick={async () => {
                   if (!editingDocument) return;
                   try {
-                    const payload = { id: editingDocument.id, name: editName, description: editDescription || undefined };
+                    const payload = {
+                      id: editingDocument.id,
+                      name: editName,
+                      description: editDescription || undefined,
+                    };
                     const res = await documentService.updateDocument(payload);
                     if (res.success) {
-                      toast.success('Document updated successfully!');
+                      toast.success("Cập nhật tài liệu thành công!");
                       setShowEditModal(false);
                       setEditingDocument(null);
                       fetchDocuments();
                     } else {
-                      toast.error(`Error: ${res.error}`);
+                      toast.error(`Lỗi: ${res.error}`);
                     }
                   } catch (err) {
-                    console.error('Error updating document:', err);
-                    toast.error('An error occurred while updating document');
+                    console.error("Error updating document:", err);
+                    toast.error("Đã xảy ra lỗi khi cập nhật tài liệu");
                   }
                 }}
-                style={{ padding: '10px 20px', background: '#FF5E13', color: 'white', borderRadius: '8px' }}
+                style={{
+                  padding: "10px 20px",
+                  background: "#FF5E13",
+                  color: "white",
+                  borderRadius: "8px",
+                }}
               >
                 Save
               </Button>

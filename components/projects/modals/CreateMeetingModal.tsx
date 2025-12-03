@@ -161,7 +161,7 @@ export default function MeetingForm({
           setParticipants(convertToParticipants(membersResult.data as any));
         } else setParticipants([]);
       } catch {
-        toast.error("Unable to load project members");
+        toast.error("Không thể tải danh sách thành viên");
         setParticipants([]);
       } finally {
         setIsLoadingParticipants(false);
@@ -211,7 +211,7 @@ export default function MeetingForm({
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!client || !userId) {
-      toast.error("Stream client not initialized");
+      toast.error("Stream client chưa được khởi tạo");
       return;
     }
 
@@ -227,7 +227,7 @@ export default function MeetingForm({
       const allParticipants = [...new Set([userId, ...selectedParticipants])];
 
       if (!selectedProjectId) {
-        toast.error("Please select a project");
+        toast.error("Vui lòng chọn một dự án");
         return;
       }
 
@@ -261,9 +261,9 @@ export default function MeetingForm({
 
       setCallDetails(call);
       onCreated?.(call);
-      toast.success("Meeting created successfully!");
+      toast.success("Tạo cuộc họp thành công!");
     } catch (error: any) {
-      toast.error(error.message || "Unable to create meeting");
+      toast.error(error.message || "Không thể tạo cuộc họp");
     } finally {
       setIsCreating(false);
     }
@@ -291,19 +291,19 @@ export default function MeetingForm({
 
         {callDetails ? (
           <div style={styles.successContainer}>
-            <h2 style={styles.successTitle}>Meeting Created!</h2>
-            <p>The meeting has been scheduled successfully.</p>
+            <h2 style={styles.successTitle}>Cuộc họp đã được tạo!</h2>
+            <p>Cuộc họp đã được lên lịch thành công.</p>
             <div style={styles.buttonGroup}>
               <Button
                 onClick={() => {
                   if (meetingLink) {
                     navigator.clipboard.writeText(meetingLink);
-                    toast.success("Link copied!");
+                    toast.success("Đã sao chép liên kết!");
                   }
                 }}
                 style={styles.primaryButton}
               >
-                Copy Meeting Link
+                Sao chép liên kết
               </Button>
               <Button
                 onClick={() =>

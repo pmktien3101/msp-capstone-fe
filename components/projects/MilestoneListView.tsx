@@ -35,22 +35,35 @@ interface MilestoneListViewProps {
   readOnly?: boolean;
 }
 
-export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, readOnly = false }: MilestoneListViewProps) => {
+export const MilestoneListView = ({
+  project,
+  refreshKey,
+  onCreateMilestone,
+  readOnly = false,
+}: MilestoneListViewProps) => {
   const { hasRole } = useAuth();
   const [milestones, setMilestones] = useState<MilestoneBackend[]>([]);
   const [tasks, setTasks] = useState<GetTaskResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(null);
-  const [editedMilestone, setEditedMilestone] = useState<Partial<MilestoneBackend>>({});
+  const [editingMilestoneId, setEditingMilestoneId] = useState<string | null>(
+    null
+  );
+  const [editedMilestone, setEditedMilestone] = useState<
+    Partial<MilestoneBackend>
+  >({});
   const [isSaving, setIsSaving] = useState(false);
 
   // Confirm delete state
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
-  const [milestoneToDelete, setMilestoneToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [milestoneToDelete, setMilestoneToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   // Check if user is Member (read-only mode)
   const isMemberRole = hasRole(UserRole.MEMBER);
-  const canEdit = !readOnly && (hasRole(UserRole.PROJECT_MANAGER) || hasRole(UserRole.ADMIN));
+  const canEdit =
+    !readOnly && (hasRole(UserRole.PROJECT_MANAGER) || hasRole(UserRole.ADMIN));
 
   // Pagination
   const {
@@ -68,12 +81,14 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      
+
       // Fetch milestones
-      const milestonesResponse = await milestoneService.getMilestonesByProjectId(project.id);
+      const milestonesResponse =
+        await milestoneService.getMilestonesByProjectId(project.id);
       if (milestonesResponse.success && milestonesResponse.data) {
-        const items = Array.isArray(milestonesResponse.data) ? milestonesResponse.data : 
-                     (milestonesResponse.data as any).items || [];
+        const items = Array.isArray(milestonesResponse.data)
+          ? milestonesResponse.data
+          : (milestonesResponse.data as any).items || [];
         setMilestones(items);
       } else {
         setMilestones([]);
@@ -82,15 +97,16 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
       // Fetch tasks
       const tasksResponse = await taskService.getTasksByProjectId(project.id);
       if (tasksResponse.success && tasksResponse.data) {
-        const taskItems = Array.isArray(tasksResponse.data) ? tasksResponse.data :
-                         (tasksResponse.data as any).items || [];
+        const taskItems = Array.isArray(tasksResponse.data)
+          ? tasksResponse.data
+          : (tasksResponse.data as any).items || [];
         setTasks(taskItems);
       } else {
         setTasks([]);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Error loading data');
+      console.error("Error fetching data:", error);
+      toast.error("Lỗi khi tải dữ liệu");
       setMilestones([]);
       setTasks([]);
     } finally {
@@ -106,49 +122,52 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
 
   // Calculate milestone progress
   const getMilestoneProgress = (milestoneId: string) => {
-    const milestoneTasks = tasks.filter(task => 
-      task.milestones && task.milestones.some(m => m.id === milestoneId)
+    const milestoneTasks = tasks.filter(
+      (task) =>
+        task.milestones && task.milestones.some((m) => m.id === milestoneId)
     );
-    
+
     if (milestoneTasks.length === 0) {
       return { total: 0, completed: 0, percentage: 0 };
     }
 
-    const completed = milestoneTasks.filter(task => task.status === TaskStatus.Done).length;
+    const completed = milestoneTasks.filter(
+      (task) => task.status === TaskStatus.Done
+    ).length;
     const percentage = Math.round((completed / milestoneTasks.length) * 100);
 
     return {
       total: milestoneTasks.length,
       completed,
-      percentage
+      percentage,
     };
   };
 
   // Format date for display (dd/mm/yyyy)
   const formatDateForDisplay = (dateStr?: string) => {
-    if (!dateStr) return 'No date';
+    if (!dateStr) return "No date";
     try {
       const date = new Date(dateStr);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
       const year = date.getFullYear();
       return `${day}/${month}/${year}`;
     } catch {
-      return 'Invalid';
+      return "Invalid";
     }
   };
 
   // Format date for input field (yyyy-MM-dd)
   const formatDateForInput = (dateStr?: string) => {
-    if (!dateStr) return '';
+    if (!dateStr) return "";
     try {
       const date = new Date(dateStr);
       const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
     } catch {
-      return '';
+      return "";
     }
   };
 
@@ -158,7 +177,7 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
     setEditingMilestoneId(milestone.id);
     setEditedMilestone({
       ...milestone,
-      dueDate: formatDateForInput(milestone.dueDate)
+      dueDate: formatDateForInput(milestone.dueDate),
     });
   };
 
@@ -170,34 +189,38 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
 
   // Save milestone changes
   const handleSaveMilestone = async () => {
-    if (!editingMilestoneId || !editedMilestone.name || !editedMilestone.dueDate) {
-      toast.error('Please fill in all required fields');
+    if (
+      !editingMilestoneId ||
+      !editedMilestone.name ||
+      !editedMilestone.dueDate
+    ) {
+      toast.error("Vui lòng điền đầy đủ các trường bắt buộc");
       return;
     }
 
     try {
       setIsSaving(true);
-      
+
       const updateData = {
         id: editingMilestoneId,
         projectId: project.id,
         name: editedMilestone.name,
-        description: editedMilestone.description || '',
+        description: editedMilestone.description || "",
         dueDate: new Date(editedMilestone.dueDate).toISOString(),
       };
 
       const response = await milestoneService.updateMilestone(updateData);
 
       if (response.success) {
-        toast.success('Milestone updated successfully');
+        toast.success("Cập nhật cột mốc thành công");
         await fetchData();
         handleCancelEdit();
       } else {
-        toast.error(response.error || 'Unable to update milestone');
+        toast.error(response.error || "Không thể cập nhật cột mốc");
       }
     } catch (error) {
-      console.error('Error updating milestone:', error);
-      toast.error('Error updating milestone');
+      console.error("Error updating milestone:", error);
+      toast.error("Lỗi khi cập nhật cột mốc");
     } finally {
       setIsSaving(false);
     }
@@ -206,7 +229,7 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
   // Delete milestone
   const handleDeleteMilestone = (milestone: MilestoneBackend) => {
     if (!canEdit) return;
-    
+
     setMilestoneToDelete({ id: milestone.id, name: milestone.name });
     setIsConfirmDeleteOpen(true);
   };
@@ -215,17 +238,19 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
     if (!milestoneToDelete) return;
 
     try {
-      const response = await milestoneService.deleteMilestone(milestoneToDelete.id);
-      
+      const response = await milestoneService.deleteMilestone(
+        milestoneToDelete.id
+      );
+
       if (response.success) {
-        toast.success('Xóa milestone thành công');
+        toast.success("Xóa milestone thành công");
         await fetchData();
       } else {
-        toast.error(response.error || 'Không thể xóa milestone');
+        toast.error(response.error || "Không thể xóa milestone");
       }
     } catch (error) {
-      console.error('Error deleting milestone:', error);
-      toast.error('Lỗi khi xóa milestone');
+      console.error("Error deleting milestone:", error);
+      toast.error("Lỗi khi xóa milestone");
     } finally {
       setIsConfirmDeleteOpen(false);
       setMilestoneToDelete(null);
@@ -249,31 +274,31 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
   return (
     <div className="milestone-list-view">
       {/* Header */}
-      <div 
+      <div
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px',
-          padding: '0 4px'
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "24px",
+          padding: "0 4px",
         }}
       >
         <div>
-          <h3 
+          <h3
             style={{
-              fontSize: '20px',
+              fontSize: "20px",
               fontWeight: 600,
-              color: '#1f2937',
-              margin: '0 0 8px 0'
+              color: "#1f2937",
+              margin: "0 0 8px 0",
             }}
           >
             Project Milestones
           </h3>
-          <p 
+          <p
             style={{
-              fontSize: '14px',
-              color: '#6b7280',
-              margin: 0
+              fontSize: "14px",
+              color: "#6b7280",
+              margin: 0,
             }}
           >
             Track and manage project milestones and deliverables
@@ -283,26 +308,26 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
           <Button
             onClick={onCreateMilestone}
             style={{
-              background: 'transparent',
-              color: '#FF5E13',
-              border: '1px solid #FF5E13',
-              borderRadius: '8px',
-              padding: '10px 20px',
-              cursor: 'pointer',
-              fontSize: '14px',
+              background: "transparent",
+              color: "#FF5E13",
+              border: "1px solid #FF5E13",
+              borderRadius: "8px",
+              padding: "10px 20px",
+              cursor: "pointer",
+              fontSize: "14px",
               fontWeight: 500,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.2s ease'
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              transition: "all 0.2s ease",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#FF5E13';
-              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.background = "#FF5E13";
+              e.currentTarget.style.color = "white";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = '#FF5E13';
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#FF5E13";
             }}
           >
             <Plus size={16} />
@@ -326,7 +351,10 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
               const progress = getMilestoneProgress(milestone.id);
 
               return (
-                <div key={milestone.id} className={`milestone-card ${isOverdue ? 'overdue' : ''}`}>
+                <div
+                  key={milestone.id}
+                  className={`milestone-card ${isOverdue ? "overdue" : ""}`}
+                >
                   {/* Edit actions */}
                   {canEdit && !isEditing && (
                     <div className="card-actions">
@@ -374,13 +402,18 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
                       <div className="milestone-header">
                         <Target className="milestone-icon" size={24} />
                       </div>
-                      
+
                       <div className="edit-form-group">
                         <label className="form-label">Milestone Name</label>
                         <input
                           type="text"
-                          value={editedMilestone.name || ''}
-                          onChange={(e) => setEditedMilestone({ ...editedMilestone, name: e.target.value })}
+                          value={editedMilestone.name || ""}
+                          onChange={(e) =>
+                            setEditedMilestone({
+                              ...editedMilestone,
+                              name: e.target.value,
+                            })
+                          }
                           className="milestone-name-input"
                           placeholder="Enter milestone name..."
                         />
@@ -389,8 +422,13 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
                       <div className="edit-form-group">
                         <label className="form-label">Description</label>
                         <textarea
-                          value={editedMilestone.description || ''}
-                          onChange={(e) => setEditedMilestone({ ...editedMilestone, description: e.target.value })}
+                          value={editedMilestone.description || ""}
+                          onChange={(e) =>
+                            setEditedMilestone({
+                              ...editedMilestone,
+                              description: e.target.value,
+                            })
+                          }
                           className="milestone-description-input"
                           placeholder="Enter description..."
                           rows={3}
@@ -405,7 +443,9 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
                       </div>
 
                       {milestone.description && (
-                        <p className="milestone-description">Description: {milestone.description}</p>
+                        <p className="milestone-description">
+                          Description: {milestone.description}
+                        </p>
                       )}
                     </>
                   )}
@@ -418,11 +458,13 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
                         <span className="progress-label">
                           Progress: {progress.completed}/{progress.total} tasks
                         </span>
-                        <span className="progress-percentage">{progress.percentage}%</span>
+                        <span className="progress-percentage">
+                          {progress.percentage}%
+                        </span>
                       </div>
                       <div className="progress-bar-container">
-                        <div 
-                          className="progress-bar-fill" 
+                        <div
+                          className="progress-bar-fill"
                           style={{ width: `${progress.percentage}%` }}
                         />
                       </div>
@@ -434,22 +476,29 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
                       <label className="form-label">Due Date</label>
                       <input
                         type="date"
-                        value={editedMilestone.dueDate || ''}
-                        onChange={(e) => setEditedMilestone({ ...editedMilestone, dueDate: e.target.value })}
+                        value={editedMilestone.dueDate || ""}
+                        onChange={(e) =>
+                          setEditedMilestone({
+                            ...editedMilestone,
+                            dueDate: e.target.value,
+                          })
+                        }
                         className="date-input"
                       />
                     </div>
                   ) : (
                     <div className="milestone-meta">
                       <div className="meta-item">
-                        <Calendar size={16} /> Due Date: 
-                        <span className={isOverdue ? 'due-date overdue' : 'due-date'}>
+                        <Calendar size={16} /> Due Date:
+                        <span
+                          className={
+                            isOverdue ? "due-date overdue" : "due-date"
+                          }
+                        >
                           {formatDateForDisplay(milestone.dueDate)}
                         </span>
                         {isOverdue && (
-                          <span className="overdue-badge">
-                            Past
-                          </span>
+                          <span className="overdue-badge">Past</span>
                         )}
                       </div>
                     </div>
@@ -489,4 +538,3 @@ export const MilestoneListView = ({ project, refreshKey, onCreateMilestone, read
     </div>
   );
 };
-

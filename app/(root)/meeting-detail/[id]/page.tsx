@@ -414,7 +414,7 @@ export default function MeetingDetailPage() {
               );
             }
           } catch (todoError) {
-            toast.error("Error creating tasks from AI");
+            toast.error("Lỗi khi tạo công việc từ AI");
           }
         }
       } else {
@@ -654,13 +654,13 @@ export default function MeetingDetailPage() {
           prev.filter((task) => task.id !== deleteConfirmModal.taskId)
         );
 
-        toast.success("Task deleted successfully");
+        toast.success("Xóa công việc thành công");
         setDeleteConfirmModal({ isOpen: false, taskId: null });
       } else {
-        toast.error("Failed to delete task: " + deleteResult.error);
+        toast.error("Không thể xóa công việc: " + deleteResult.error);
       }
     } catch (error) {
-      toast.error("Error deleting task");
+      toast.error("Lỗi khi xóa công việc");
     }
   };
 
@@ -708,7 +708,7 @@ export default function MeetingDetailPage() {
   // Handle confirm convert
   const handleConfirmConvert = async () => {
     if (selectedTasks.length === 0) {
-      toast.warning("You must select at least one to-do to convert!");
+      toast.warning("Vui lòng chọn ít nhất một công việc để chuyển đổi!");
       return;
     }
 
@@ -717,7 +717,7 @@ export default function MeetingDetailPage() {
 
       if (result.success) {
         toast.success(
-          `Successfully converted ${result.data?.length} tasks to project!`
+          `Chuyển đổi thành công ${result.data?.length} công việc sang dự án!`
         );
         // Clear selection and close modal
         setSelectedTasks([]);
@@ -734,7 +734,7 @@ export default function MeetingDetailPage() {
         setConvertConfirmModal({ isOpen: false, taskCount: 0 });
       }
     } catch (error) {
-      toast.error("Connection error while converting tasks!");
+      toast.error("Lỗi kết nối khi chuyển đổi công việc!");
       setConvertConfirmModal({ isOpen: false, taskCount: 0 });
     }
 
@@ -857,7 +857,7 @@ export default function MeetingDetailPage() {
                   prev.map((t) => (t.id === todo.id ? updatedTodo : t))
                 );
 
-                toast.success("Task updated successfully");
+                toast.success("Cập nhật công việc thành công");
 
                 setOriginalTodoCache((prev) => {
                   const copy = { ...prev };
@@ -867,10 +867,12 @@ export default function MeetingDetailPage() {
 
                 setEditMode((prev) => ({ ...prev, [todo.id]: false }));
               } else {
-                toast.error("Failed to update task: " + updateResult.error);
+                toast.error(
+                  "Không thể cập nhật công việc: " + updateResult.error
+                );
               }
             } catch (error) {
-              toast.error("Error updating task");
+              toast.error("Lỗi khi cập nhật công việc");
             }
           }}
           onEditCancel={(todoId) => {
@@ -943,7 +945,7 @@ export default function MeetingDetailPage() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      toast.error("Download failed. Please try again.");
+      toast.error("Tải xuống thất bại. Vui lòng thử lại.");
     } finally {
       setDownloadingId(null);
     }

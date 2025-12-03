@@ -145,15 +145,13 @@ const AdminBusinessOwners = () => {
                 : bo
             )
           );
-          toast.success(
-            result.message || "Active status updated successfully!"
-          );
+          toast.success(result.message || "Cập nhật trạng thái thành công!");
         } else {
-          toast.error(result.error || "Could not update active status");
+          toast.error(result.error || "Không thể cập nhật trạng thái");
         }
       } catch (error) {
         console.error("Error toggling active status:", error);
-        toast.error("An error occurred while updating active status");
+        toast.error("Đã xảy ra lỗi khi cập nhật trạng thái");
       }
       setShowDeactivateModal(false);
       setSelectedBusinessOwner(null);
@@ -174,15 +172,13 @@ const AdminBusinessOwners = () => {
                 : bo
             )
           );
-          toast.success(
-            result.message || "Business account approved successfully!"
-          );
+          toast.success(result.message || "Phê duyệt tài khoản thành công!");
         } else {
-          toast.error(result.error || "Could not approve business account");
+          toast.error(result.error || "Không thể phê duyệt tài khoản");
         }
       } catch (error) {
         console.error("Error approving business owner:", error);
-        toast.error("An error occurred while approving business account");
+        toast.error("Đã xảy ra lỗi khi phê duyệt tài khoản");
       }
       setShowApproveModal(false);
       setSelectedBusinessOwner(null);
@@ -199,15 +195,13 @@ const AdminBusinessOwners = () => {
           setBusinessOwners(
             businessOwners.filter((bo) => bo.id !== selectedBusinessOwner.id)
           );
-          toast.success(
-            result.message || "Business account rejected successfully!"
-          );
+          toast.success(result.message || "Từ chối tài khoản thành công!");
         } else {
-          toast.error(result.error || "Could not reject business account");
+          toast.error(result.error || "Không thể từ chối tài khoản");
         }
       } catch (error) {
         console.error("Error rejecting business owner:", error);
-        toast.error("An error occurred while rejecting business account");
+        toast.error("Đã xảy ra lỗi khi từ chối tài khoản");
       }
       setShowRejectModal(false);
       setSelectedBusinessOwner(null);

@@ -1,16 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { useNotifications } from '@/hooks/useNotifications';
-import { useUser } from '@/hooks/useUser';
-import { Bell, Check, CheckCheck, Trash2, X } from 'lucide-react';
-import type { NotificationResponse } from '@/types/notification';
+import { useState, useRef, useEffect } from "react";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useUser } from "@/hooks/useUser";
+import { Bell, Check, CheckCheck, Trash2, X, BellRing } from "lucide-react";
+import type { NotificationResponse } from "@/types/notification";
 
 export const NotificationBell = () => {
   const userState = useUser();
   const [showDropdown, setShowDropdown] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [filter, setFilter] = useState<"all" | "unread">("all");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const {
     notifications,
@@ -31,24 +32,28 @@ export const NotificationBell = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setShowDropdown(false);
       }
     };
 
     if (showDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showDropdown]);
 
   // Filter notifications
-  const filteredNotifications = filter === 'unread' 
-    ? notifications.filter((n) => !n.isRead)
-    : notifications;
+  const filteredNotifications =
+    filter === "unread"
+      ? notifications.filter((n) => !n.isRead)
+      : notifications;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -58,27 +63,28 @@ export const NotificationBell = () => {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Vừa xong';
-    if (diffMins < 60) return `${diffMins} phút trước`;
-    if (diffHours < 24) return `${diffHours} giờ trước`;
-    if (diffDays < 7) return `${diffDays} ngày trước`;
-    
-    return date.toLocaleDateString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    if (diffDays < 7) return `${diffDays}d`;
+
+    return date.toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "2-digit",
     });
   };
 
-  const handleNotificationClick = async (notification: NotificationResponse) => {
+  const handleNotificationClick = async (
+    notification: NotificationResponse
+  ) => {
     if (!notification.isRead) {
       await markAsRead(notification.id);
     }
-    
+
     // Handle navigation based on notification type/entityId if needed
     if (notification.entityId) {
       // Example: Navigate to related entity
-      console.log('Navigate to:', notification.type, notification.entityId);
+      console.log("Navigate to:", notification.type, notification.entityId);
     }
   };
 
@@ -87,226 +93,261 @@ export const NotificationBell = () => {
   }
 
   return (
-    <div style={{ position: 'relative' }} ref={dropdownRef}>
+    <div style={{ position: "relative" }} ref={dropdownRef}>
       {/* Bell Icon */}
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         style={{
-          position: 'relative',
-          padding: '8px',
-          background: 'transparent',
-          border: 'none',
-          borderRadius: '50%',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'background 0.2s',
+          position: "relative",
+          padding: "10px",
+          background: showDropdown ? "#fff3ed" : "transparent",
+          border: "none",
+          borderRadius: "12px",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "all 0.2s ease",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#f3f4f6';
+          if (!showDropdown) e.currentTarget.style.background = "#f3f4f6";
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
+          if (!showDropdown) e.currentTarget.style.background = "transparent";
         }}
       >
-        <Bell size={20} color="#374151" />
-        
+        <Bell size={22} color={showDropdown ? "#FF5E13" : "#4b5563"} />
+
         {/* Unread Badge */}
         {unreadCount > 0 && (
           <span
             style={{
-              position: 'absolute',
-              top: '4px',
-              right: '4px',
-              background: '#ef4444',
-              color: 'white',
-              fontSize: '10px',
-              fontWeight: 600,
-              borderRadius: '10px',
-              padding: '2px 6px',
-              minWidth: '18px',
-              textAlign: 'center',
+              position: "absolute",
+              top: "2px",
+              right: "2px",
+              background: "linear-gradient(135deg, #FF5E13, #ff8c4a)",
+              color: "white",
+              fontSize: "10px",
+              fontWeight: 700,
+              borderRadius: "10px",
+              padding: "2px 5px",
+              minWidth: "16px",
+              textAlign: "center",
+              boxShadow: "0 2px 4px rgba(255, 94, 19, 0.3)",
             }}
           >
-            {unreadCount > 99 ? '99+' : unreadCount}
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
-
-        {/* Connection Status Indicator */}
-        <span
-          style={{
-            position: 'absolute',
-            bottom: '6px',
-            right: '6px',
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            background: isConnected ? '#10b981' : '#9ca3af',
-            border: '2px solid white',
-          }}
-          title={isConnected ? 'Đã kết nối' : 'Chưa kết nối'}
-        />
       </button>
 
       {/* Dropdown */}
       {showDropdown && (
         <div
           style={{
-            position: 'absolute',
-            top: 'calc(100% + 8px)',
+            position: "absolute",
+            top: "calc(100% + 8px)",
             right: 0,
-            width: '400px',
-            maxHeight: '600px',
-            background: 'white',
-            borderRadius: '12px',
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+            width: "360px",
+            maxHeight: "420px",
+            background: "white",
+            borderRadius: "16px",
+            boxShadow:
+              "0 4px 24px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05)",
             zIndex: 9999,
-            display: 'flex',
-            flexDirection: 'column',
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            animation: "slideDown 0.2s ease",
           }}
         >
           {/* Header */}
           <div
             style={{
-              padding: '16px',
-              borderBottom: '1px solid #e5e7eb',
+              padding: "14px 16px 12px",
+              background: "linear-gradient(to bottom, #fafafa, #ffffff)",
+              borderBottom: "1px solid #f0f0f0",
             }}
           >
             <div
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '12px',
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "10px",
               }}
             >
-              <h3
-                style={{
-                  fontSize: '18px',
-                  fontWeight: 600,
-                  color: '#1f2937',
-                  margin: 0,
-                }}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
               >
-                Thông báo
-              </h3>
-              
+                <h3
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: 700,
+                    color: "#1f2937",
+                    margin: 0,
+                  }}
+                >
+                  Notifications
+                </h3>
+                {isConnected && (
+                  <span
+                    style={{
+                      width: "6px",
+                      height: "6px",
+                      borderRadius: "50%",
+                      background: "#10b981",
+                    }}
+                    title="Connected"
+                  />
+                )}
+              </div>
+
               <button
                 onClick={() => setShowDropdown(false)}
                 style={{
-                  padding: '4px',
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
+                  padding: "6px",
+                  background: "#f3f4f6",
+                  border: "none",
+                  cursor: "pointer",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#e5e7eb";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#f3f4f6";
                 }}
               >
-                <X size={18} color="#6b7280" />
+                <X size={16} color="#6b7280" />
               </button>
             </div>
 
-            {/* Filters */}
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-              }}
-            >
+            {/* Filters & Mark all read */}
+            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
               <button
-                onClick={() => setFilter('all')}
+                onClick={() => setFilter("all")}
                 style={{
-                  flex: 1,
-                  padding: '6px 12px',
-                  background: filter === 'all' ? '#FF5E13' : '#f3f4f6',
-                  color: filter === 'all' ? 'white' : '#374151',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
+                  padding: "5px 12px",
+                  background: filter === "all" ? "#FF5E13" : "transparent",
+                  color: filter === "all" ? "white" : "#6b7280",
+                  border: filter === "all" ? "none" : "1px solid #e5e7eb",
+                  borderRadius: "20px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
                 }}
               >
-                Tất cả
+                All
               </button>
               <button
-                onClick={() => setFilter('unread')}
+                onClick={() => setFilter("unread")}
                 style={{
-                  flex: 1,
-                  padding: '6px 12px',
-                  background: filter === 'unread' ? '#FF5E13' : '#f3f4f6',
-                  color: filter === 'unread' ? 'white' : '#374151',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
+                  padding: "5px 12px",
+                  background: filter === "unread" ? "#FF5E13" : "transparent",
+                  color: filter === "unread" ? "white" : "#6b7280",
+                  border: filter === "unread" ? "none" : "1px solid #e5e7eb",
+                  borderRadius: "20px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
                 }}
               >
-                Chưa đọc ({unreadCount})
+                Unread {unreadCount > 0 && `(${unreadCount})`}
               </button>
-            </div>
 
-            {/* Mark all as read */}
-            {unreadCount > 0 && (
-              <button
-                onClick={markAllAsRead}
-                style={{
-                  marginTop: '8px',
-                  width: '100%',
-                  padding: '6px 12px',
-                  background: 'transparent',
-                  color: '#FF5E13',
-                  border: '1px solid #FF5E13',
-                  borderRadius: '6px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                }}
-              >
-                <CheckCheck size={16} />
-                Đánh dấu tất cả là đã đọc
-              </button>
-            )}
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  style={{
+                    marginLeft: "auto",
+                    padding: "5px 10px",
+                    background: "transparent",
+                    color: "#FF5E13",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#fff3ed";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <CheckCheck size={14} />
+                  Mark all read
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Notifications List */}
           <div
             style={{
               flex: 1,
-              overflowY: 'auto',
-              maxHeight: '500px',
+              overflowY: "auto",
+              maxHeight: "320px",
             }}
           >
             {isLoading ? (
               <div
                 style={{
-                  padding: '48px 24px',
-                  textAlign: 'center',
-                  color: '#6b7280',
+                  padding: "32px 24px",
+                  textAlign: "center",
+                  color: "#9ca3af",
                 }}
               >
-                <p>Đang tải...</p>
+                <div
+                  style={{
+                    width: "24px",
+                    height: "24px",
+                    border: "2px solid #e5e7eb",
+                    borderTopColor: "#FF5E13",
+                    borderRadius: "50%",
+                    animation: "spin 0.8s linear infinite",
+                    margin: "0 auto 8px",
+                  }}
+                />
+                <p style={{ margin: 0, fontSize: "13px" }}>Loading...</p>
               </div>
             ) : filteredNotifications.length === 0 ? (
               <div
                 style={{
-                  padding: '48px 24px',
-                  textAlign: 'center',
-                  color: '#6b7280',
+                  padding: "32px 24px",
+                  textAlign: "center",
+                  color: "#9ca3af",
                 }}
               >
-                <Bell size={48} className="mx-auto mb-4" style={{ color: '#d1d5db' }} />
-                <p style={{ margin: 0, fontSize: '16px' }}>
-                  {filter === 'unread' ? 'Không có thông báo chưa đọc' : 'Chưa có thông báo nào'}
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    background: "#f9fafb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    margin: "0 auto 12px",
+                  }}
+                >
+                  <BellRing size={24} color="#d1d5db" />
+                </div>
+                <p style={{ margin: 0, fontSize: "13px", fontWeight: 500 }}>
+                  {filter === "unread"
+                    ? "No unread notifications"
+                    : "No notifications yet"}
                 </p>
               </div>
             ) : (
@@ -314,73 +355,106 @@ export const NotificationBell = () => {
                 <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
+                  onMouseEnter={() => setHoveredId(notification.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                   style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid #f3f4f6',
-                    background: notification.isRead ? 'white' : '#fef3f2',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    gap: '12px',
-                    alignItems: 'flex-start',
-                    transition: 'background 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = notification.isRead ? '#f9fafb' : '#fee2e2';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = notification.isRead ? 'white' : '#fef3f2';
+                    padding: "10px 14px",
+                    borderBottom: "1px solid #f5f5f5",
+                    background: notification.isRead
+                      ? hoveredId === notification.id
+                        ? "#fafafa"
+                        : "white"
+                      : hoveredId === notification.id
+                      ? "#fff8f5"
+                      : "#fffbf8",
+                    cursor: "pointer",
+                    display: "flex",
+                    gap: "10px",
+                    alignItems: "flex-start",
+                    transition: "background 0.15s",
+                    position: "relative",
                   }}
                 >
                   {/* Unread Indicator */}
-                  <div
-                    style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: notification.isRead ? 'transparent' : '#FF5E13',
-                      marginTop: '6px',
-                      flexShrink: 0,
-                    }}
-                  />
+                  {!notification.isRead && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: "4px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        width: "4px",
+                        height: "32px",
+                        borderRadius: "2px",
+                        background: "linear-gradient(180deg, #FF5E13, #ff8c4a)",
+                      }}
+                    />
+                  )}
 
                   {/* Content */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h4
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      paddingLeft: notification.isRead ? "0" : "6px",
+                    }}
+                  >
+                    <div
                       style={{
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: '#1f2937',
-                        margin: '0 0 4px 0',
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        marginBottom: "2px",
                       }}
                     >
-                      {notification.title}
-                    </h4>
+                      <h4
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: notification.isRead ? 500 : 600,
+                          color: "#1f2937",
+                          margin: 0,
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          flex: 1,
+                        }}
+                      >
+                        {notification.title}
+                      </h4>
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          color: "#9ca3af",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {formatDate(notification.createdAt)}
+                      </span>
+                    </div>
                     <p
                       style={{
-                        fontSize: '13px',
-                        color: '#6b7280',
-                        margin: '0 0 4px 0',
-                        lineHeight: '1.4',
+                        fontSize: "12px",
+                        color: "#6b7280",
+                        margin: 0,
+                        lineHeight: "1.4",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
                       }}
                     >
                       {notification.message}
                     </p>
-                    <span
-                      style={{
-                        fontSize: '12px',
-                        color: '#9ca3af',
-                      }}
-                    >
-                      {formatDate(notification.createdAt)}
-                    </span>
                   </div>
 
                   {/* Actions */}
                   <div
                     style={{
-                      display: 'flex',
-                      gap: '4px',
+                      display: "flex",
+                      gap: "2px",
                       flexShrink: 0,
+                      opacity: hoveredId === notification.id ? 1 : 0,
+                      transition: "opacity 0.15s",
                     }}
                   >
                     {!notification.isRead && (
@@ -390,17 +464,24 @@ export const NotificationBell = () => {
                           markAsRead(notification.id);
                         }}
                         style={{
-                          padding: '4px',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
+                          padding: "6px",
+                          background: "#f0fdf4",
+                          border: "none",
+                          cursor: "pointer",
+                          borderRadius: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          transition: "background 0.15s",
                         }}
-                        title="Đánh dấu đã đọc"
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#dcfce7";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "#f0fdf4";
+                        }}
+                        title="Mark as read"
                       >
-                        <Check size={16} color="#10b981" />
+                        <Check size={14} color="#16a34a" />
                       </button>
                     )}
                     <button
@@ -409,23 +490,51 @@ export const NotificationBell = () => {
                         deleteNotification(notification.id);
                       }}
                       style={{
-                        padding: '4px',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        borderRadius: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
+                        padding: "6px",
+                        background: "#fef2f2",
+                        border: "none",
+                        cursor: "pointer",
+                        borderRadius: "6px",
+                        display: "flex",
+                        alignItems: "center",
+                        transition: "background 0.15s",
                       }}
-                      title="Xóa"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#fee2e2";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#fef2f2";
+                      }}
+                      title="Delete"
                     >
-                      <Trash2 size={16} color="#ef4444" />
+                      <Trash2 size={14} color="#dc2626" />
                     </button>
                   </div>
                 </div>
               ))
             )}
           </div>
+
+          {/* CSS Keyframes */}
+          <style>
+            {`
+              @keyframes slideDown {
+                from {
+                  opacity: 0;
+                  transform: translateY(-8px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+              @keyframes spin {
+                to {
+                  transform: rotate(360deg);
+                }
+              }
+            `}
+          </style>
         </div>
       )}
     </div>
