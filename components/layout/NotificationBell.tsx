@@ -24,7 +24,6 @@ export const NotificationBell = () => {
     fetchUnreadNotifications,
   } = useNotifications({
     userId: userState.userId,
-    accessToken: undefined, // Token được handle bởi axios interceptor
     autoConnect: true,
     showToast: true,
   });
