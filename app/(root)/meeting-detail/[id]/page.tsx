@@ -625,7 +625,7 @@ export default function MeetingDetailPage() {
   // Helper to validate todo has all required fields
   function isValidTodo(todo: any) {
     return (
-      todo.status !== 2 || // ConvertedToTask
+      todo.status !== 2 && // ConvertedToTask
       todo.status !== 3 // Deleted
     );
   }
@@ -687,6 +687,7 @@ export default function MeetingDetailPage() {
 
   // Handle select all tasks
   const handleSelectAllTasks = () => {
+    console.log("handleSelectAllTasks - todoList:", todoList.filter(t => isValidTodo(t)).length);
     const eligibleIds = todoList
       .filter(
         (t) =>
