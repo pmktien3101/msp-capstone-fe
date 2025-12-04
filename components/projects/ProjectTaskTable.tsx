@@ -187,38 +187,77 @@ export const ProjectTaskTable = ({
     
     if (!matchesSearch) return false;
 
-    // For members: apply single-select filters
+    // For members: allow both single-select member filters OR PM-style multi-filters.
     if (isMember) {
-      // Filter by type
-      if (filterType === "my" && task.userId !== userId) {
-        return false;
-      }
-      
-      // Status filter
-      if (filterType === "status" && statusFilter !== "all") {
-        if (task.status !== statusFilter) {
+      // If PM-style filters are used by the header (selectedStatuses/dateRange/quickFilter), prefer them
+      const usingPmStyleFilters = (selectedStatuses && selectedStatuses.length > 0) || dateRangeStart || dateRangeEnd || (quickFilter && quickFilter !== 'all');
+
+      if (usingPmStyleFilters) {
+        // Quick filter (overrides other filters when not null or "all")
+        if (quickFilter && quickFilter !== "all") {
+          if (quickFilter === "overdue") {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const endDate = task.endDate ? new Date(task.endDate) : null;
+            if (!endDate) return false;
+            endDate.setHours(0, 0, 0, 0);
+            if (endDate >= today || task.status === 'Done' || task.status === 'Cancelled') return false;
+          } else if (quickFilter === "readyToReview") {
+            if (task.status !== 'ReadyToReview') return false;
+          }
+        }
+
+        // Status filter (if any selected)
+        if (selectedStatuses && selectedStatuses.length > 0) {
+          if (!selectedStatuses.includes(task.status)) return false;
+        }
+
+        // Date range filter
+        if (dateRangeStart || dateRangeEnd) {
+          const taskEndDate = task.endDate ? new Date(task.endDate) : null;
+          if (!taskEndDate) return false;
+          taskEndDate.setHours(0, 0, 0, 0);
+          if (dateRangeStart) {
+            const startDate = new Date(dateRangeStart);
+            startDate.setHours(0, 0, 0, 0);
+            if (taskEndDate < startDate) return false;
+          }
+          if (dateRangeEnd) {
+            const endDate = new Date(dateRangeEnd);
+            endDate.setHours(0, 0, 0, 0);
+            if (taskEndDate > endDate) return false;
+          }
+        }
+      } else {
+        // Fallback to original single-select member filters
+        // Filter by type
+        if (filterType === "my" && task.userId !== userId) {
           return false;
         }
-      }
-      
-      // Due date filter
-      if (filterType === "dueDate" && dueDateFilter !== "all") {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const endDate = task.endDate ? new Date(task.endDate) : null;
-        
-        if (!endDate) return false;
-        
-        endDate.setHours(0, 0, 0, 0);
-        
-        if (dueDateFilter === "overdue") {
-          if (endDate >= today) return false;
-        } else if (dueDateFilter === "today") {
-          if (endDate.getTime() !== today.getTime()) return false;
-        } else if (dueDateFilter === "week") {
-          const weekFromNow = new Date(today);
-          weekFromNow.setDate(weekFromNow.getDate() + 7);
-          if (endDate > weekFromNow || endDate < today) return false;
+
+        // Status filter
+        if (filterType === "status" && statusFilter !== "all") {
+          if (task.status !== statusFilter) {
+            return false;
+          }
+        }
+
+        // Due date filter
+        if (filterType === "dueDate" && dueDateFilter !== "all") {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const endDate = task.endDate ? new Date(task.endDate) : null;
+          if (!endDate) return false;
+          endDate.setHours(0, 0, 0, 0);
+          if (dueDateFilter === "overdue") {
+            if (endDate >= today) return false;
+          } else if (dueDateFilter === "today") {
+            if (endDate.getTime() !== today.getTime()) return false;
+          } else if (dueDateFilter === "week") {
+            const weekFromNow = new Date(today);
+            weekFromNow.setDate(weekFromNow.getDate() + 7);
+            if (endDate > weekFromNow || endDate < today) return false;
+          }
         }
       }
     } else {

@@ -470,6 +470,12 @@ export const TaskDetailModal = ({
       }
     }
 
+    // Validation 4: If moving to ReadyToReview, reviewer is required
+    if (editedTask.status === 'ReadyToReview' && !editedTask.reviewerId) {
+      toast.error("Vui lòng chọn Reviewer khi chuyển sang Ready To Review");
+      return;
+    }
+
     try {
       const updateData = {
         id: task.id,
@@ -1251,10 +1257,10 @@ export const TaskDetailModal = ({
               setDeletingCommentId(null);
             }}
             onConfirm={confirmDeleteComment}
-            title="Xóa Bình Luận"
-            description="Bạn có chắc muốn xóa bình luận này? Hành động này không thể hoàn tác."
-            confirmText="Xóa"
-            cancelText="Hủy"
+            title="Delete Comment"
+            description="Are you sure you want to delete this comment? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
           />
         </div>
       )}

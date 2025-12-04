@@ -232,9 +232,11 @@
 }
 
   // PM Filters Dropdown
+.task-header-filters-dropdown,
 .pm-filters-dropdown {
   position: relative;
 
+  .task-header-filters-toggle,
   .filters-toggle-btn {
     list-style: none;
     padding: 8px 16px;
@@ -260,6 +262,7 @@
       box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
     }
 
+    .task-header-filter-badge,
     .filter-badge {
       display: inline-flex;
       align-items: center;
@@ -275,10 +278,12 @@
     }
   }
 
+  &[open] .task-header-filters-toggle,
   &[open] .filters-toggle-btn {
     background: #2563eb;
   }
 
+  .task-header-filters-panel,
   .pm-filters-panel {
     position: absolute;
     top: calc(100% + 8px);
@@ -291,7 +296,7 @@
     border: 1px solid #e5e7eb;
     border-radius: 12px;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-    z-index: 50;
+    z-index: 999 !important;
     padding: 16px;
     scroll-behavior: smooth;
 
