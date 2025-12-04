@@ -1,7 +1,7 @@
 'use client';
 
 import { mockTasks, mockProjects, mockMilestones } from '@/constants/mockData';
-import PieChart from './PieChart';
+// import PieChart from './PieChart';
 
 interface TaskStatusChartProps {
   projectId?: string;
@@ -124,11 +124,11 @@ export const TaskStatusChart = ({ projectId = "1" }: TaskStatusChartProps) => {
               ))}
             </div>
           </div>
-          <PieChart 
+          {/* <PieChart 
             title=""
             data={statusChartData}
             height={150}
-          />
+          /> */}
         </div>
 
         {/* Biểu đồ priority */}
@@ -153,11 +153,11 @@ export const TaskStatusChart = ({ projectId = "1" }: TaskStatusChartProps) => {
               ))}
             </div>
           </div>
-          <PieChart 
+          {/* <PieChart 
             title=""
             data={priorityChartData}
             height={150}
-          />
+          /> */}
         </div>
       </div>
 
