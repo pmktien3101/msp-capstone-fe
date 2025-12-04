@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import ReactMarkdown from "react-markdown";
 import {
   ArrowLeft,
@@ -25,6 +26,7 @@ import {
   Check,
   Minus,
   AlertTriangleIcon,
+  X,
 } from "lucide-react";
 import "@/app/styles/meeting-detail.scss";
 import { useGetCallById } from "@/hooks/useGetCallById";
@@ -831,6 +833,7 @@ export default function MeetingDetailPage() {
                 endDate: todo.endDate,
                 assigneeId: newAssigneeId,
               });
+              console.log("Update todo result:", updateResult);
 
               if (updateResult.success) {
                 const newAssignee = meetingInfo?.attendees?.find(
@@ -1681,29 +1684,21 @@ export default function MeetingDetailPage() {
                               <Edit3 size={12} />
                               <span>Draft - Needs review and editing</span>
                             </p>
-                          </div >
-                        </div >
-                        {/* <h4>AI Generated To-Do List</h4>
-                          <p className="draft-notice">
-                            <Edit3 size={12} />
-                            <span>Draft - Review and edit as needed</span>
-                          </p>
+                          </div>
                         </div>
+                        {todoList.length > 0 && (
+                          <label className="select-all-section">
+                            <Checkbox
+                              checked={selectedTasks.length === todoList.filter(t => isValidTodo(t) && t.status !== 2 && t.status !== 3).length && selectedTasks.length > 0}
+                              onCheckedChange={handleSelectAllTasks}
+                              className="select-all-checkbox data-[state=checked]:bg-[#ff5e13] data-[state=checked]:border-[#ff5e13]"
+                            />
+                            <span className="select-all-label">
+                              Select All ({selectedTasks.length}/{todoList.filter(t => isValidTodo(t) && t.status !== 2 && t.status !== 3).length})
+                            </span>
+                          </label>
+                        )}
                       </div>
-                      {todoList.length > 0 && (
-                        <label className="select-all-section">
-                          <Checkbox
-                            checked={selectedTasks.length === todoList.length}
-                            onCheckedChange={handleSelectAllTasks}
-                            className="select-all-checkbox data-[state=checked]:bg-[#ff5e13] data-[state=checked]:border-[#ff5e13]"
-                          />
-                          <span className="select-all-label">
-                            Select All ({selectedTasks.length} /{" "}
-                            {todoList.length})
-                          </span>
-                        </label>
-                      )} */}
-                      </div >
 
                       {isProcessingMeetingAI && (
                         <div className="tasks-loading">
@@ -1758,24 +1753,6 @@ export default function MeetingDetailPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleSelectAllTasks}
-                  className="fab-btn fab-btn-select"
-                  title={selectedTasks.length === todoList.filter(t => isValidTodo(t)).length ? "Deselect all" : "Select all"}
-                >
-                  {selectedTasks.length === todoList.filter(t => isValidTodo(t)).length ?
-                    <Minus size={16} /> :
-                    <CheckCircle size={16} />
-                  }
-                  <span className="fab-btn-text">
-                    {selectedTasks.length === todoList.filter(t => isValidTodo(t)).length ?
-                      "Deselect all" :
-                      "Select all"
-                    }
-                  </span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
                   onClick={() => {
                     if (selectedTasks.length === 1) {
                       handleOpenDeleteModal(selectedTasks[0]);
@@ -1803,6 +1780,17 @@ export default function MeetingDetailPage() {
                   <span className="fab-btn-text">Convert ({selectedTasks.length})</span>
                 </Button>
               </div>
+              <Button
+                className="fab-close-btn"
+                onClick={() => {
+                  setSelectedTasks([]);
+                  setFabPosition(null);
+                  fabInitializedRef.current = false;
+                }}
+                title="Close and deselect all"
+              >
+                <X size={40} />
+              </Button>
             </div>
           </div>
         )
