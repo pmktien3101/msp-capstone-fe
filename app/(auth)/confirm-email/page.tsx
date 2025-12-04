@@ -16,11 +16,13 @@ export default function ConfirmEmailPage() {
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
     const emailParam = searchParams.get("email");
     const tokenParam = searchParams.get("token");
+    const inviteTokenParam = searchParams.get("inviteToken");
 
     if (!emailParam || !tokenParam) {
       setStatus("error");
@@ -30,6 +32,9 @@ export default function ConfirmEmailPage() {
 
     setEmail(emailParam);
     setToken(tokenParam);
+    if (inviteTokenParam) {
+      setInviteToken(inviteTokenParam);
+    }
     setStatus("loading"); // Trạng thái sẵn sàng để xác nhận
   }, [searchParams]);
 
@@ -37,9 +42,9 @@ export default function ConfirmEmailPage() {
     if (!email || !token || isConfirming) return;
 
     setIsConfirming(true);
-    
+
     try {
-      const result = await authService.confirmEmail(email, token);
+      const result = await authService.confirmEmail(email, token, inviteToken ?? undefined);
 
       if (result.success) {
         setStatus("success");
@@ -47,8 +52,8 @@ export default function ConfirmEmailPage() {
         toast.success("Email đã được xác nhận thành công!");
       } else {
         // Kiểm tra nếu token hết hạn
-        if (result.error?.toLowerCase().includes("expired") || 
-            result.error?.toLowerCase().includes("hết hạn")) {
+        if (result.error?.toLowerCase().includes("expired") ||
+          result.error?.toLowerCase().includes("hết hạn")) {
           setStatus("expired");
           setMessage(result.error || "Token xác nhận đã hết hạn.");
         } else {

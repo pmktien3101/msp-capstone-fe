@@ -12,18 +12,18 @@ const processLoginResponse = (loginData: LoginResponse, rememberMe: boolean = fa
     if (!userInfo) {
         throw new Error('Invalid token format');
     }
-    
+
     // Normalize role
     const normalizedRole = normalizeRole(userInfo.role);
-    
+
     // Store tokens
     const tokens: AuthTokens = {
         accessToken: loginData.accessToken,
         refreshToken: loginData.refreshToken
     };
-    
+
     setTokens(tokens, rememberMe);
-    
+
     return {
         user: {
             userId: userInfo.userId,
@@ -43,9 +43,9 @@ const processRefreshResponse = (loginData: LoginResponse) => {
         accessToken: loginData.accessToken,
         refreshToken: loginData.refreshToken
     };
-    
+
     setTokens(tokens, false);
-    
+
     return tokens;
 };
 
@@ -54,13 +54,13 @@ export const authService = {
         try {
             const response = await api.post('/auth/login', credentials);
             console.log('Login response:', response.data);
-            
+
             if (response.data.success && response.data.data) {
                 const loginData = response.data.data as LoginResponse;
-                
+
                 // Process login response using helper function
                 processLoginResponse(loginData, rememberMe);
-                
+
                 return {
                     success: true,
                     data: loginData,
@@ -131,10 +131,10 @@ export const authService = {
             } catch (error) {
                 console.log('Logout endpoint failed, clearing local data anyway');
             }
-            
+
             // Clear all auth data
             clearAllAuthData();
-            
+
             console.log('All user data cleared from storage');
             return { success: true, message: 'Logged out successfully' };
         } catch (error) {
@@ -155,7 +155,7 @@ export const authService = {
 
             // If no user from token, try API call
             const response = await api.get('/auth/me');
-            
+
             if (response.data.success && response.data.data) {
                 return {
                     success: true,
@@ -227,33 +227,67 @@ export const authService = {
         }
     },
 
-    async confirmEmail(email: string, token: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    async confirmEmail(email: string, token: string, inviteToken?: string): Promise<{ success: boolean; message?: string; error?: string }> {
         try {
             console.log('Confirming email with token:', token.substring(0, 10) + '...');
-            
-            const response = await api.get(`/auth/confirm-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`);
-            
+
+            const url = `/auth/confirm-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}${inviteToken ? `&inviteToken=${encodeURIComponent(inviteToken)}` : ''}`;
+            console.log('Confirm email URL:', url);
+
+            const response = await api.get(url);
+            console.log('Confirm email response:', response.data);
+
             if (response.data.success) {
                 console.log('Email confirmed successfully');
                 return {
                     success: true,
-                    message: response.data.message || "Email đã được xác nhận thành công!",
+                    message: response.data.message || "Email has been confirmed successfully!",
                 };
             } else {
                 console.error('Email confirmation failed:', response.data.message);
                 return {
                     success: false,
-                    error: response.data.message || "Xác nhận email thất bại",
+                    error: response.data.message || "Email confirmation failed",
                 };
             }
         } catch (error: any) {
             console.error("Confirm email error:", error);
             console.error("Error response:", error.response?.data);
             console.error("Error status:", error.response?.status);
-            
+
+            // Extract error message properly
+            let errorMessage = "An error occurred while confirming email";
+
+            if (error.response?.data) {
+                const data = error.response.data;
+
+                if (data.message) {
+                    errorMessage = data.message;
+                } else if (data.errors) {
+                    if (Array.isArray(data.errors)) {
+                        errorMessage = data.errors.join(', ');
+                    } else if (typeof data.errors === 'object') {
+                        const errorMessages = Object.entries(data.errors)
+                            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                            .join('; ');
+                        errorMessage = errorMessages || 'Validation error';
+                    } else if (typeof data.errors === 'string') {
+                        errorMessage = data.errors;
+                    }
+                } else if (data.title) {
+                    errorMessage = data.title;
+                } else if (typeof data === 'string') {
+                    errorMessage = data;
+                }
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+
+            console.error('Final error message:', errorMessage);
+
             return {
                 success: false,
-                error: error.response?.data?.message || error.message || "Có lỗi xảy ra khi xác nhận email",
+                error: errorMessage,
             };
         }
     },
@@ -261,10 +295,10 @@ export const authService = {
     async resendConfirmation(email: string): Promise<{ success: boolean; message?: string; error?: string }> {
         try {
             console.log('Resending confirmation email for:', email);
-            
+
             const requestData: ResendConfirmationEmailRequest = { email };
             const response = await api.post('/auth/resend-confirmation-email', requestData);
-            
+
             if (response.data.success) {
                 console.log('Confirmation email resent successfully');
                 return {
@@ -282,7 +316,7 @@ export const authService = {
             console.error("Resend confirmation error:", error);
             console.error("Error response:", error.response?.data);
             console.error("Error status:", error.response?.status);
-            
+
             return {
                 success: false,
                 error: error.response?.data?.message || error.message || "Có lỗi xảy ra khi gửi lại email",
@@ -306,20 +340,20 @@ export const authService = {
 
             console.log('📤 Sending Google login request (with workaround)');
             console.log('🔑 Token length:', idToken.length);
-            console.log('📦 Request body:', JSON.stringify({ 
+            console.log('📦 Request body:', JSON.stringify({
                 IdToken: idToken.substring(0, 50) + '...',
                 Email: "temp@placeholder.com (dummy)"
             }, null, 2));
-            
+
             const response = await api.post('/auth/google-login', googleLoginRequest);
             console.log('✅ Google login response:', response.data);
-            
+
             if (response.data.success && response.data.data) {
                 const loginData = response.data.data as LoginResponse;
-                
+
                 // Process login response using helper function
                 processLoginResponse(loginData, rememberMe);
-                
+
                 return {
                     success: true,
                     data: loginData,
@@ -335,13 +369,13 @@ export const authService = {
             console.error('❌ Google login error:', error.name, error.message);
             console.error('📋 Error response:', error.response?.data);
             console.error('🔢 Status code:', error.response?.status);
-            
+
             // Extract error message with proper handling
             let errorMessage = 'Google login failed';
-            
+
             if (error.response?.data) {
                 const data = error.response.data;
-                
+
                 // Try different error formats
                 if (data.message) {
                     errorMessage = data.message;
@@ -368,9 +402,9 @@ export const authService = {
             } else if (error.message) {
                 errorMessage = error.message;
             }
-            
+
             console.error('💬 Final error message:', errorMessage);
-            
+
             return {
                 success: false,
                 error: errorMessage

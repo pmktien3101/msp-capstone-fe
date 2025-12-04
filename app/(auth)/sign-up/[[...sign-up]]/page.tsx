@@ -3,7 +3,7 @@
 import type React from "react";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import { authService } from "@/services/authService";
@@ -49,6 +49,14 @@ export default function SignUpPage() {
     null
   );
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Lấy email và invitation token từ URL
+  const invitedEmail = searchParams.get("email");
+  const invitationToken = searchParams.get("invitation");
+  // Nếu có invitation, lock email và role
+  const [isInvitedUser, setIsInvitedUser] = useState(false);
+
   const [registerForm, setRegisterForm] = useState<RegisterFormData>({
     fullName: "",
     organization: "",
@@ -58,6 +66,18 @@ export default function SignUpPage() {
     confirmPassword: "",
     businessLicense: "",
   });
+
+  // Set initial values từ URL params
+  useEffect(() => {
+    if (invitedEmail) {
+      setRegisterForm((prev) => ({
+        ...prev,
+        email: decodeURIComponent(invitedEmail),
+      }));
+      setIsInvitedUser(true);
+      setRole("Member"); // Force Member role cho invited users
+    }
+  }, [invitedEmail]);
 
   // Check if user is already authenticated
   useEffect(() => {
@@ -184,6 +204,7 @@ export default function SignUpPage() {
           organization: registerForm.organization,
           businessLicense: finalBusinessLicenseUrl,
         }),
+        inviteToken: invitationToken || undefined,
       };
 
       console.log("Submitting registration:", registrationData);
@@ -192,10 +213,18 @@ export default function SignUpPage() {
 
       if (result.success) {
         console.log("Registration successful:", result.message);
-        setMessage({
-          type: "success",
-          text: result.message || "Registration successful!",
-        });
+        // Nếu là invited user, show message khác và redirect về sign-in
+        if (isInvitedUser) {
+          setMessage({
+            type: "success",
+            text: "Registration successful! Please sign in, then go to the Business page to accept your invitation.",
+          });
+        } else {
+          setMessage({
+            type: "success",
+            text: result.message || "Registration successful!",
+          });
+        }
         setTimeout(() => {
           router.push("/sign-in");
         }, 2000);
@@ -453,28 +482,33 @@ export default function SignUpPage() {
             <div className="logo-icon">
               <User size={32} strokeWidth={2} color="white" />
             </div>
-            <h1>Create Account</h1>
-            <p>Sign up to get started with our platform</p>
+            <h1>{isInvitedUser ? "You've been invited!" : "Create Account"}</h1>
+            <p>{isInvitedUser ? "Complete the form below to create your account, then accept the invitation." : "Sign up to get started with our platform"}</p>
           </div>
         </div>
 
         <div className="account-type-tabs">
-          <button
-            type="button"
-            className={`tab-button ${role === "Member" ? "active" : ""}`}
-            onClick={() => setRole("Member")}
-          >
-            <Users size={20} />
-            <span>Personal Account</span>
-          </button>
-          <button
-            type="button"
-            className={`tab-button ${role === "BusinessOwner" ? "active" : ""}`}
-            onClick={() => setRole("BusinessOwner")}
-          >
-            <Building2 size={20} />
-            <span>Business Account</span>
-          </button>
+          {!isInvitedUser &&
+            <>
+              <button
+                type="button"
+                className={`tab-button ${role === "Member" ? "active" : ""}`}
+                onClick={() => setRole("Member")}
+              >
+                <Users size={20} />
+                <span>Personal Account</span>
+              </button>
+
+              <button
+                type="button"
+                className={`tab-button ${role === "BusinessOwner" ? "active" : ""}`}
+                onClick={() => setRole("BusinessOwner")}
+              >
+                <Building2 size={20} />
+                <span>Business Account</span>
+              </button>
+            </>
+          }
         </div>
 
         <div className="form-and-info-wrapper">
@@ -482,9 +516,8 @@ export default function SignUpPage() {
             {/* Message Display */}
             {message && (
               <div
-                className={`register-message ${
-                  message.type === "success" ? "success" : "error"
-                }`}
+                className={`register-message ${message.type === "success" ? "success" : "error"
+                  }`}
               >
                 <div className="register-message-content">
                   {message.type === "success" ? (

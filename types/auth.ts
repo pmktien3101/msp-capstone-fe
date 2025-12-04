@@ -10,6 +10,7 @@ export interface RegisterData {
     role: string;
     organization?: string;
     businessLicense?: string;
+    inviteToken?: string;
 }
 
 export interface User {
