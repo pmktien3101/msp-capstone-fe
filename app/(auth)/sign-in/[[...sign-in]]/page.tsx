@@ -317,7 +317,7 @@ export default function SignInPage() {
               <div className="social-login">
                 <GoogleLoginButton 
                   text="signin_with"
-                  rememberMe={formData.rememberMe}
+                  // rememberMe={formData.rememberMe}
                   onSuccess={() => {
                     console.log("Google login successful, redirect will be handled by GoogleLoginButton");
                     // Redirect is handled inside GoogleLoginButton

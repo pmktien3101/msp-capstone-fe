@@ -833,7 +833,7 @@ export default function MeetingDetailPage() {
                 endDate: todo.endDate,
                 assigneeId: newAssigneeId,
               });
-              console.log("Update todo result:", updateResult);
+              // console.log("Update todo result:", updateResult);
 
               if (updateResult.success) {
                 const newAssignee = meetingInfo?.attendees?.find(

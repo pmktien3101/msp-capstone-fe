@@ -17,7 +17,7 @@ import {
 } from 'chart.js';
 import { Line, Bar, Pie, Doughnut } from 'react-chartjs-2';
 import TimeFilter, { TimeFilterOption } from './TimeFilter';
-import CustomBarChart from './CustomBarChart';
+// import CustomBarChart from './CustomBarChart';
 
 // Register ChartJS components
 ChartJS.register(
@@ -483,7 +483,7 @@ export default function ProjectOverview({
                   onFilterChange={setTaskTimeFilter}
                 />
               </div>
-              <CustomBarChart
+              {/* <CustomBarChart
                 title=""
                 data={{
                   labels: taskChartData.barLabels,
@@ -491,7 +491,7 @@ export default function ProjectOverview({
                   totalData: taskChartData.barTotalData
                 }}
                 height={200}
-              />
+              /> */}
             </div>
           </div>
         </div>
