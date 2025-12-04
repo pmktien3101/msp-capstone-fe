@@ -23,9 +23,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     return () => clearTimeout(timer);
   }, []);
 
-  if (isLoading) {
-    return <LoadingSkeleton />;
-  }
+  // if (isLoading) {
+  //   return <LoadingSkeleton />;
+  // }
 
   return (
     <div className="main-layout">

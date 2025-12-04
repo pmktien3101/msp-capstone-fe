@@ -183,16 +183,16 @@ export default function MemberDashboardPage() {
     return "Good evening";
   };
 
-  if (loading) {
-    return (
-      <div className="member-dashboard">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading your workspace...</p>
-        </div>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="member-dashboard">
+  //       <div className="loading-container">
+  //         <div className="loading-spinner"></div>
+  //         <p>Loading your workspace...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="member-dashboard">

@@ -84,10 +84,10 @@ const AuthGuard = ({
   if (isLoading) {
     return (
       fallback || (
-        <div className="auth-loading">
-          <div className="loading-spinner"></div>
+        <div className="auth-loading flex flex-col items-center justify-center min-h-screen">
+          <div className="loading-spinner animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500 mb-4"></div>
           <p>Checking for authorization...</p>
-          <style jsx>{`
+          {/* <style jsx>{`
             .auth-loading {
               display: flex;
               flex-direction: column;
@@ -121,7 +121,7 @@ const AuthGuard = ({
               font-size: 14px;
               margin: 0;
             }
-          `}</style>
+          `}</style> */}
         </div>
       )
     );

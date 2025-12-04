@@ -51,51 +51,51 @@ const ProjectManagerGuard = ({
     return () => clearTimeout(timer);
   }, [role, router, allowedRoles]);
 
-  if (isLoading) {
-    return (
-      fallback || (
-        <div className="project-manager-loading">
-          <div className="loading-spinner"></div>
-          <p>Checking for project manager access...</p>
-          <style jsx>{`
-            .project-manager-loading {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              height: 100vh;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            }
+  // if (isLoading) {
+  //   return (
+  //     fallback || (
+  //       <div className="project-manager-loading">
+  //         <div className="loading-spinner"></div>
+  //         <p>Checking for project manager access...</p>
+  //         <style jsx>{`
+  //           .project-manager-loading {
+  //             display: flex;
+  //             flex-direction: column;
+  //             align-items: center;
+  //             justify-content: center;
+  //             height: 100vh;
+  //             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  //           }
 
-            .loading-spinner {
-              width: 40px;
-              height: 40px;
-              border: 4px solid #e5e7eb;
-              border-top: 4px solid #ff5e13;
-              border-radius: 50%;
-              animation: spin 1s linear infinite;
-              margin-bottom: 16px;
-            }
+  //           .loading-spinner {
+  //             width: 40px;
+  //             height: 40px;
+  //             border: 4px solid #e5e7eb;
+  //             border-top: 4px solid #ff5e13;
+  //             border-radius: 50%;
+  //             animation: spin 1s linear infinite;
+  //             margin-bottom: 16px;
+  //           }
 
-            @keyframes spin {
-              0% {
-                transform: rotate(0deg);
-              }
-              100% {
-                transform: rotate(360deg);
-              }
-            }
+  //           @keyframes spin {
+  //             0% {
+  //               transform: rotate(0deg);
+  //             }
+  //             100% {
+  //               transform: rotate(360deg);
+  //             }
+  //           }
 
-            p {
-              color: white;
-              font-size: 14px;
-              margin: 0;
-            }
-          `}</style>
-        </div>
-      )
-    );
-  }
+  //           p {
+  //             color: white;
+  //             font-size: 14px;
+  //             margin: 0;
+  //           }
+  //         `}</style>
+  //       </div>
+  //     )
+  //   );
+  // }
 
   if (!isAuthorized) {
     return null; // Will redirect to appropriate page
