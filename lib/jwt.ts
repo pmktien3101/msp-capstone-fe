@@ -7,18 +7,32 @@ import { JwtPayload } from '@/types/auth';
 export function decodeJwtToken(token: string): JwtPayload | null {
   try {
     if (!token) return null;
-    
-    const parts = token.split('.');
+
+    const parts = token.split(".");
     if (parts.length !== 3) return null;
-    
+
     const payload = parts[1];
-    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-    return JSON.parse(decoded) as JwtPayload;
+
+    // 1. Chuyển base64url -> base64 chuẩn
+    let base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = base64.length % 4;
+    if (pad === 2) base64 += "==";
+    else if (pad === 3) base64 += "=";
+    else if (pad !== 0) return null;
+
+    // 2. atob -> binary string, rồi convert bytes -> UTF‑8 string
+    const binary = atob(base64);
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    const jsonString = new TextDecoder("utf-8").decode(bytes);
+
+    // 3. Parse JSON
+    return JSON.parse(jsonString) as JwtPayload;
   } catch (error) {
-    console.error('Error decoding JWT token:', error);
+    console.error("Error decoding JWT token:", error);
     return null;
   }
 }
+
 
 /**
  * Check if JWT token is expired
@@ -26,7 +40,7 @@ export function decodeJwtToken(token: string): JwtPayload | null {
 export function isTokenExpired(token: string): boolean {
   const payload = decodeJwtToken(token);
   if (!payload) return true;
-  
+
   const currentTime = Math.floor(Date.now() / 1000);
   return payload.exp < currentTime;
 }
@@ -37,7 +51,7 @@ export function isTokenExpired(token: string): boolean {
 export function isTokenUsedBeforeIssued(token: string): boolean {
   const payload = decodeJwtToken(token);
   if (!payload || !payload.iat) return false;
-  
+
   const currentTime = Math.floor(Date.now() / 1000);
   // Add 5 minutes tolerance for clock skew
   const tolerance = 5 * 60; // 5 minutes in seconds
@@ -49,19 +63,19 @@ export function isTokenUsedBeforeIssued(token: string): boolean {
  */
 export function isTokenValid(token: string): boolean {
   if (!token || !isValidJwtFormat(token)) return false;
-  
+
   // Check if token is used before issued
   if (isTokenUsedBeforeIssued(token)) {
     console.log('Token used before issued at (iat)');
     return false;
   }
-  
+
   // Check if token is expired
   if (isTokenExpired(token)) {
     console.log('Token is expired');
     return false;
   }
-  
+
   return true;
 }
 
@@ -71,7 +85,7 @@ export function isTokenValid(token: string): boolean {
 export function getTokenExpirationTime(token: string): number | null {
   const payload = decodeJwtToken(token);
   if (!payload) return null;
-  
+
   return payload.exp * 1000; // Convert to milliseconds
 }
 
@@ -81,10 +95,10 @@ export function getTokenExpirationTime(token: string): number | null {
 export function isTokenExpiringSoon(token: string, minutesThreshold: number = 5): boolean {
   const payload = decodeJwtToken(token);
   if (!payload) return true;
-  
+
   const currentTime = Math.floor(Date.now() / 1000);
   const thresholdTime = currentTime + (minutesThreshold * 60);
-  
+
   return payload.exp < thresholdTime;
 }
 
@@ -94,7 +108,6 @@ export function isTokenExpiringSoon(token: string, minutesThreshold: number = 5)
 export function extractUserFromToken(token: string): { userId: string; email: string; fullName: string; role: string; avatarUrl: string } | null {
   const payload = decodeJwtToken(token);
   if (!payload) return null;
-  
   return {
     userId: payload.userId || payload.sub,
     email: payload.email,
@@ -109,10 +122,10 @@ export function extractUserFromToken(token: string): { userId: string; email: st
  */
 export function isValidJwtFormat(token: string): boolean {
   if (!token || typeof token !== 'string') return false;
-  
+
   const parts = token.split('.');
   if (parts.length !== 3) return false;
-  
+
   try {
     // Try to decode to check if it's valid base64
     atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
