@@ -90,12 +90,10 @@ const AdminPackages = () => {
       try {
         const res = await packageService.getPackages();
         if (res.success && mounted && res.data) {
-          // If backend returns an array or paged response, try to map to the UI shape
           const items: any[] = Array.isArray(res.data)
             ? res.data
             : res.data.items ?? res.data;
 
-          // Map API package model to local plan structure when possible
           const mapped = items.map((p: any, idx: number) => ({
             id: (p.id ?? p.ID) || idx + 1,
             name: p.name ?? p.title ?? `Package ${idx + 1}`,
@@ -110,8 +108,6 @@ const AdminPackages = () => {
               p.period ??
               (p.billingCycle === 0
                 ? "month"
-                : p.billingCycle === 1
-                ? "quarter"
                 : p.billingCycle === 2
                 ? "year"
                 : "month"),
@@ -171,10 +167,8 @@ const AdminPackages = () => {
   const handleAddPlan = () => {
     if (newPlan.name && newPlan.price) {
       (async () => {
-        // Map UI period to API billingCycle enum (0-based): month=0, quarter=1, year=2
         const billingCycleMap: Record<string, number> = {
           month: 0,
-          quarter: 1,
           year: 2,
         };
 
@@ -225,14 +219,7 @@ const AdminPackages = () => {
               currency: "VND",
               period: newPlan.period,
               description: newPlan.description,
-              billingCycle: (function () {
-                const map: Record<string, number> = {
-                  month: 0,
-                  quarter: 1,
-                  year: 2,
-                };
-                return map[newPlan.period] ?? 0;
-              })(),
+              billingCycle: billingCycleMap[newPlan.period] ?? 0,
               features: newPlan.features,
               limitations: newPlan.limitations || [],
               activeSubscriptions: 0,
@@ -301,14 +288,37 @@ const AdminPackages = () => {
       const features = prev.features || [];
       const limitationsSel = prev.limitations || [];
       const hasFeature = features.includes(lim.name);
+      
+      // Nếu đang chọn limitation này, bỏ chọn
+      if (hasFeature) {
+        return {
+          ...prev,
+          features: features.filter((f: any) => f !== lim.name),
+          limitations: limitationsSel.filter((id: any) => id !== lim.id),
+        };
+      }
+      
+      // Nếu chưa chọn, kiểm tra xem có limitation nào cùng type không
+      // Tìm tất cả limitations cùng type với limitation đang chọn
+      const sameLimitationType = lim.limitationType ?? lim.LimitationType ?? lim.type ?? lim.Type;
+      const limitationsToRemove = limitations.filter((l: any) => {
+        const lType = l.limitationType ?? l.LimitationType ?? l.type ?? l.Type;
+        return lType === sameLimitationType && l.id !== lim.id;
+      });
+      
+      // Lọc bỏ các limitations cùng type
+      const filteredFeatures = features.filter((fname: any) => 
+        !limitationsToRemove.some((l: any) => l.name === fname)
+      );
+      const filteredLimitations = limitationsSel.filter((id: any) => 
+        !limitationsToRemove.some((l: any) => l.id === id)
+      );
+      
+      // Thêm limitation mới
       return {
         ...prev,
-        features: hasFeature
-          ? features.filter((f: any) => f !== lim.name)
-          : [...features, lim.name],
-        limitations: limitationsSel.includes(lim.id)
-          ? limitationsSel.filter((id: any) => id !== lim.id)
-          : [...limitationsSel, lim.id],
+        features: [...filteredFeatures, lim.name],
+        limitations: [...filteredLimitations, lim.id],
       };
     });
   };
@@ -325,17 +335,9 @@ const AdminPackages = () => {
     return lim.name;
   };
 
-  const formatPeriodLabel = (period?: string, billingCycle?: number) => {
-    if (billingCycle === 0) return "Month";
-    if (billingCycle === 1) return "Quarter";
-    if (billingCycle === 2) return "Year";
-    if (!period) return "";
-    const p = String(period).toLowerCase();
-    if (p === "month" || p === "tháng") return "Month";
-    if (p === "quarter" || p === "quý") return "Quarter";
-    if (p === "year" || p === "năm" || p === "nam") return "Year";
-    return period;
-  };
+  // const formatPeriodLabel = (period?: string, billingCycle?: number) => {
+  //   return billingCycle + pe;
+  // };
 
   const handleEditPlan = async (plan: any) => {
     setSelectedPlan(plan);
@@ -454,7 +456,6 @@ const AdminPackages = () => {
       (async () => {
         const billingCycleMap: Record<string, number> = {
           month: 0,
-          quarter: 1,
           year: 2,
         };
 
@@ -629,17 +630,21 @@ const AdminPackages = () => {
             name: String(limItem),
           };
         }
+        
+        // Format: "limitValue Name" (no unit, no dash)
+        let displayName = "";
+        if (lim.isUnlimited || lim.IsUnlimited) {
+          displayName = `Unlimited ${lim.name ?? lim.Name}`;
+        } else if ((lim.limitValue ?? lim.LimitValue) !== null && (lim.limitValue ?? lim.LimitValue) !== undefined) {
+          const value = lim.limitValue ?? lim.LimitValue;
+          displayName = `${value} ${lim.name ?? lim.Name}`;
+        } else {
+          displayName = lim.name ?? lim.Name;
+        }
+        
         return {
-          name: lim.name ?? lim.Name,
+          name: displayName,
           isUnlimited: lim.isUnlimited || lim.IsUnlimited,
-          value:
-            lim.limitValue ?? lim.LimitValue
-              ? `${lim.limitValue ?? lim.LimitValue}${
-                  lim.limitUnit ?? lim.LimitUnit
-                    ? ` ${lim.limitUnit ?? lim.LimitUnit}`
-                    : ""
-                }`
-              : undefined,
         };
       }
     );
@@ -1208,11 +1213,7 @@ const AdminPackages = () => {
                     <DollarSign size={16} />
                     <span className="label">Price</span>
                     <span className="value">
-                      {formatPrice(selectedPlan.price)}₫/
-                      {formatPeriodLabel(
-                        selectedPlan.period,
-                        selectedPlan.billingCycle
-                      )}
+                      {formatPrice(selectedPlan.price)}₫/month
                     </span>
                   </div>
                   <div className="summary-item">
@@ -1302,41 +1303,55 @@ const AdminPackages = () => {
               {limitations && limitations.length > 0 ? (
                 <div className="feature-group">
                   <div className="features-grid modern">
-                    {limitations.map((lim: any) => (
-                      <div
-                        key={lim.id}
-                        className={`feature-card ${
-                          newPlan.features.includes(lim.name) ? "selected" : ""
-                        }`}
-                        onClick={() => handleToggleLimFeature(lim)}
-                      >
-                        <div className="feature-card-check">
-                          {newPlan.features.includes(lim.name) && (
-                            <Check size={14} />
-                          )}
-                        </div>
-                        <div className="feature-card-body">
-                          <div className="feature-title-row">
-                            <h5 className="feature-title">{lim.name}</h5>
+                    {limitations.map((lim: any) => {
+                      // Kiểm tra xem limitation này có cùng type với limitation đã chọn không
+                      const sameLimitationType = lim.limitationType ?? lim.LimitationType ?? lim.type ?? lim.Type;
+                      const hasSelectedSameType = limitations.some((l: any) => {
+                        const lType = l.limitationType ?? l.LimitationType ?? l.type ?? l.Type;
+                        return lType === sameLimitationType && 
+                               newPlan.features.includes(l.name) && 
+                               l.id !== lim.id;
+                      });
+                      
+                      return (
+                        <div
+                          key={lim.id}
+                          className={`feature-card ${
+                            newPlan.features.includes(lim.name) ? "selected" : ""
+                          } ${hasSelectedSameType ? "disabled-same-type" : ""}`}
+                          onClick={() => handleToggleLimFeature(lim)}
+                        >
+                          <div className="feature-card-check">
+                            {newPlan.features.includes(lim.name) && (
+                              <Check size={14} />
+                            )}
                           </div>
-                          <span className="feature-meta">
-                            {lim.isUnlimited
-                              ? "Unlimited"
-                              : lim.limitValue !== null &&
-                                lim.limitValue !== undefined
-                              ? `${lim.limitValue}${
-                                  lim.limitUnit ? ` ${lim.limitUnit}` : ""
-                                }`
-                              : ""}
-                          </span>
-                          {lim.description && (
-                            <p className="feature-description">
-                              {lim.description}
-                            </p>
-                          )}
+                          <div className="feature-card-body">
+                            <div className="feature-title-row">
+                              <h5 className="feature-title">{lim.name}</h5>
+                              {hasSelectedSameType && (
+                                <span className="type-hint">Same type already selected</span>
+                              )}
+                            </div>
+                            <span className="feature-meta">
+                              {lim.isUnlimited
+                                ? "Unlimited"
+                                : lim.limitValue !== null &&
+                                  lim.limitValue !== undefined
+                                ? `${lim.limitValue}${
+                                    lim.limitUnit ? ` ${lim.limitUnit}` : ""
+                                  }`
+                                : ""}
+                            </span>
+                            {lim.description && (
+                              <p className="feature-description">
+                                {lim.description}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ) : (

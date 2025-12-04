@@ -971,8 +971,7 @@ textarea.form-input {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(4px);
+  background: transparent;
   z-index: 2000;
   display: flex;
   justify-content: flex-end;
@@ -1140,7 +1139,7 @@ textarea.form-input {
   align-items: flex-start;
   gap: 14px;
 
-  &:hover {
+  &:hover:not(.disabled-same-type) {
     border-color: $secondary-orange;
     background: $light-orange;
   }
@@ -1153,6 +1152,47 @@ textarea.form-input {
       background: $primary-orange;
       border-color: $primary-orange;
       color: white;
+    }
+  }
+
+  &.disabled-same-type {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    border-style: dashed;
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(203, 213, 225, 0.1) 10px,
+        rgba(203, 213, 225, 0.1) 20px
+      );
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    &:hover {
+      border-color: #cbd5e1;
+      background: #f1f5f9;
+    }
+
+    .feature-card-check {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    .feature-card-body {
+      opacity: 0.6;
     }
   }
 
@@ -1174,6 +1214,10 @@ textarea.form-input {
 
     .feature-title-row {
       margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
     .feature-title {
@@ -1181,6 +1225,24 @@ textarea.form-input {
       font-size: 14px;
       font-weight: 600;
       color: #1e293b;
+    }
+
+    .type-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #d97706;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      padding: 4px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      border: 1px solid #fcd34d;
+      box-shadow: 0 2px 4px rgba(217, 119, 6, 0.1);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
     .feature-meta {
