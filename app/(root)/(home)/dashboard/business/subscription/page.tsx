@@ -154,6 +154,12 @@ const SubscriptionBillingPage = () => {
     });
   };
 
+  const formatPrice = (price: number | string): string => {
+    const numPrice = typeof price === "string" ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return "0";
+    return numPrice.toLocaleString("de-DE");
+  };
+
   const displayBillingHistory = billingHistory.length > 0 ? billingHistory : [];
 
   const currentPackage = currentSubscription?.package;
@@ -178,8 +184,7 @@ const SubscriptionBillingPage = () => {
               <div className="plan-info">
                 <h3>{currentPackage.name}</h3>
                 <div className="plan-price">
-                  <span className="price">{currentSubscription.totalPrice ?? currentPackage.price}{" " + currentPackage.currency}</span>
-                  {/* <span className="period">/{formatBillingCycle(currentPackage.billingCycle)}</span> */}
+                  <span className="price">{formatPrice(currentSubscription.totalPrice ?? currentPackage.price)}{" " + currentPackage.currency}</span>
                   <span className="period">/{currentPackage.billingCycle} months</span>
 
                 </div>
@@ -247,7 +252,7 @@ const SubscriptionBillingPage = () => {
                   <div className="plan-header">
                     <h3>{pkg.name}</h3>
                     <div className="plan-price">
-                      <span className="price">{pkg.price} {" " + pkg.currency}</span>
+                      <span className="price">{formatPrice(pkg.price)} {" " + pkg.currency}</span>
                       <span className="period">/{pkg.billingCycle} months</span>
                     </div>
                   </div>
@@ -329,7 +334,7 @@ const SubscriptionBillingPage = () => {
             <div key={bill.id} className="table-row">
               <div className="col-date"><span className="date">{formatDateVN(bill.date)}</span></div>
               <div className="col-description"><span className="description">{bill.description}</span></div>
-              <div className="col-amount"><span className="amount">{bill.amount} {" " + bill.currency}</span></div>
+              <div className="col-amount"><span className="amount">{formatPrice(bill.amount)} {" " + bill.currency}</span></div>
               <div className="col-status"><span className="status-badge paid">{bill.status}</span></div>
               {/* <div className="col-action">
                 <button className="download-btn">
@@ -376,7 +381,7 @@ const SubscriptionBillingPage = () => {
                 <div className="price-info">
                   <div className="price-row">
                     <span>Price new plan:</span>
-                    <strong>{selectedPackage.price} {" " + selectedPackage.currency} / {selectedPackage.billingCycle} months</strong>
+                    <strong>{formatPrice(selectedPackage.price)} {" " + selectedPackage.currency} / {selectedPackage.billingCycle} months</strong>
                   </div>
                 </div>
               </div>
