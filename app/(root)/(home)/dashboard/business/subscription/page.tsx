@@ -201,8 +201,11 @@ const SubscriptionBillingPage = () => {
                         <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       <span>
-                        {limitation.name}
-                        {limitation.isUnlimited ? " (No limitations)" : limitation.limitValue !== null && limitation.limitValue !== undefined ? `: ${limitation.limitValue}${limitation.limitUnit ? ` ${limitation.limitUnit}` : ""}` : ""}
+                        {limitation.isUnlimited 
+                          ? `Unlimited ${limitation.name}` 
+                          : limitation.limitValue !== null && limitation.limitValue !== undefined 
+                          ? `${limitation.limitValue} ${limitation.name}` 
+                          : limitation.name}
                       </span>
                     </li>
                   ))
@@ -262,8 +265,11 @@ const SubscriptionBillingPage = () => {
                               <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             <span>
-                              {limitation.name}
-                              {limitation.isUnlimited ? " (No limitations)" : limitation.limitValue !== null && limitation.limitValue !== undefined ? `: ${limitation.limitValue}${limitation.limitUnit ? ` ${limitation.limitUnit}` : ""}` : ""}
+                              {limitation.isUnlimited 
+                                ? `Unlimited ${limitation.name}` 
+                                : limitation.limitValue !== null && limitation.limitValue !== undefined 
+                                ? `${limitation.limitValue} ${limitation.name}` 
+                                : limitation.name}
                             </span>
                           </li>
                         ))
