@@ -163,11 +163,11 @@ export const TaskListHeader = ({
       </div>
 
       <div className="header-right">
-        <details ref={dropdownRef} className="pm-filters-dropdown">
-          <summary className="filters-toggle-btn">
+        <details ref={dropdownRef} className="task-header-filters-dropdown pm-filters-dropdown">
+          <summary className="task-header-filters-toggle filters-toggle-btn">
             <Filter size={16} />
             Filters 
-            {hasActiveFilters && <span className="filter-badge">{
+            {hasActiveFilters && <span className="task-header-filter-badge filter-badge">{
               (selectedMemberIds.length > 0 ? 1 : 0) +
               (selectedStatuses.length > 0 ? 1 : 0) +
               (dateRangeStart || dateRangeEnd ? 1 : 0) +
@@ -175,7 +175,7 @@ export const TaskListHeader = ({
             }</span>}
           </summary>
             
-            <div className="pm-filters-panel">
+            <div className="task-header-filters-panel pm-filters-panel">
               {/* Quick Preset Filters */}
               <div className="filter-section">
                 <div className="filter-section-title">Quick Filters</div>

@@ -5,6 +5,7 @@ import { Project } from '@/types/project';
 import { GetTaskResponse } from '@/types/task';
 import { taskService } from '@/services/taskService';
 import { projectService } from '@/services/projectService';
+import { normalizeRole, UserRole } from '@/lib/rbac';
 
 interface TeamWorkloadProps {
   project: Project;
@@ -37,7 +38,24 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
         }
 
         if (membersRes.success && membersRes.data) {
-          setMembers(membersRes.data);
+          // Normalize member list to a simple shape: { id: string, name, email, role }
+          const transformedMembers = (membersRes.data || [])
+            .map((pm: any) => (pm.member || pm))
+            .filter((src: any) => src && (src.id || src.userId))
+            .map((src: any) => {
+              const roleRaw = src.role || src.roleName || '';
+              const normalizedRole = normalizeRole(roleRaw);
+              return {
+                id: src.id ? src.id.toString() : (src.userId ? src.userId.toString() : ''),
+                name: src.fullName || src.name || src.email || 'Unknown',
+                email: src.email || '',
+                role: normalizedRole
+              };
+            })
+            // Keep only users with Member role
+            .filter((m: any) => m.role === UserRole.MEMBER);
+
+          setMembers(transformedMembers);
         } else {
           setMembers([]);
         }
@@ -68,11 +86,13 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
       'linear-gradient(135deg, #ff6e7f 0%, #bfe9ff 100%)',
     ];
     
+    if (!name) return gradients[0];
     let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    const safeName = String(name);
+    for (let i = 0; i < safeName.length; i++) {
+      hash = safeName.charCodeAt(i) + ((hash << 5) - hash);
     }
-    
+
     return gradients[Math.abs(hash) % gradients.length];
   };
 
@@ -110,14 +130,29 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
     );
   }
 
-  // Calculate workload by user
+  // Calculate workload by user — include all project members (even if they have 0 tasks)
   const assigneeCounts: Record<string, number> = {};
   const assigneeMap: Record<string, any> = {}; // Map userId to user info
-  
+
+  // Initialize counts for every project member (members state contains normalized members)
+  members.forEach((m) => {
+    if (m && m.id) {
+      assigneeCounts[m.id] = 0;
+      assigneeMap[m.id] = { fullName: m.name, email: m.email, role: m.role };
+    }
+  });
+
+  // Count tasks per assignee (prefer task.userId, fallback to task.user?.id)
   tasks.forEach(task => {
-    if (task.user && task.userId) {
-      assigneeCounts[task.userId] = (assigneeCounts[task.userId] || 0) + 1;
-      assigneeMap[task.userId] = task.user;
+    const assignedId = task.userId ? task.userId.toString() : (task.user && task.user.id ? task.user.id.toString() : null);
+    if (assignedId) {
+      if (assigneeCounts.hasOwnProperty(assignedId)) {
+        assigneeCounts[assignedId] = (assigneeCounts[assignedId] || 0) + 1;
+      } else {
+        // Task assigned to a user not in the project members list — include them too
+        assigneeCounts[assignedId] = (assigneeCounts[assignedId] || 0) + 1;
+        assigneeMap[assignedId] = task.user || { fullName: assignedId };
+      }
     } else {
       // Unassigned tasks
       assigneeCounts['unassigned'] = (assigneeCounts['unassigned'] || 0) + 1;
@@ -125,30 +160,54 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
   });
 
   const totalTasks = tasks.length;
-  
-  const workloadData = Object.entries(assigneeCounts).map(([userId, count]) => {
-    if (userId === 'unassigned') {
-      return {
-        assignee: 'Unassigned',
-        percentage: totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0,
-        color: '#6b7280',
-        gradient: null,
-        avatar: null,
-        taskCount: count
-      };
-    }
 
+  // Build workload data — ensure all members are present (even zero tasks), then include any other assignees and unassigned bucket
+  const workloadEntries: Array<{ assignee: string; taskCount: number; color?: string; gradient?: string | null; avatar?: string | null } > = [];
+
+  // Members first
+  members.forEach((m) => {
+    const count = assigneeCounts[m.id] || 0;
+    workloadEntries.push({
+      assignee: m.name,
+      taskCount: count,
+      color: '#fb923c',
+      gradient: getAvatarColor(m.name),
+      avatar: m.name ? m.name.charAt(0).toUpperCase() : null
+    });
+  });
+
+  // Other assignees not in members
+  Object.keys(assigneeCounts).forEach((userId) => {
+    if (userId === 'unassigned') return;
+    if (members.find((m) => m.id === userId)) return; // already added
     const user = assigneeMap[userId];
-    const fullName = user?.fullName || 'Unknown';
-    return {
+    const fullName = user?.fullName || user?.name || userId;
+    workloadEntries.push({
       assignee: fullName,
-      percentage: totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0,
+      taskCount: assigneeCounts[userId] || 0,
       color: '#fb923c',
       gradient: getAvatarColor(fullName),
-      avatar: fullName.charAt(0).toUpperCase(),
-      taskCount: count
-    };
-  }).sort((a, b) => b.taskCount - a.taskCount); // Sort by task count descending
+      avatar: fullName ? String(fullName).charAt(0).toUpperCase() : null
+    });
+  });
+
+  // Unassigned bucket
+  if (assigneeCounts['unassigned']) {
+    workloadEntries.push({
+      assignee: 'Unassigned',
+      taskCount: assigneeCounts['unassigned'] || 0,
+      color: '#6b7280',
+      gradient: null,
+      avatar: null
+    });
+  }
+
+  const workloadData = workloadEntries
+    .map(item => ({
+      ...item,
+      percentage: totalTasks > 0 ? Math.round((item.taskCount / totalTasks) * 100) : 0
+    }))
+    .sort((a, b) => b.taskCount - a.taskCount);
 
   return (
     <div className="team-workload">

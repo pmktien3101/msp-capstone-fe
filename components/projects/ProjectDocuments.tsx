@@ -152,6 +152,29 @@ export const ProjectDocuments = ({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file type
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg", 
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "application/pdf",
+        "application/msword", // .doc
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+      ];
+
+      const allowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", ".doc", ".docx"];
+      const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
+
+      if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+        toast.error(
+          "Định dạng file không được hỗ trợ. Chỉ cho phép: Hình ảnh (JPG, PNG, GIF, WebP), PDF, và Word (DOC, DOCX)"
+        );
+        e.target.value = ""; // Reset input
+        return;
+      }
+
       setUploadFile(file);
     }
   };
@@ -730,6 +753,7 @@ export const ProjectDocuments = ({
               </label>
               <input
                 type="file"
+                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 onChange={handleFileUpload}
                 style={{
                   width: "100%",
@@ -739,15 +763,25 @@ export const ProjectDocuments = ({
                   fontSize: "14px",
                 }}
               />
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "#6b7280",
+                  margin: "8px 0 0 0",
+                }}
+              >
+                Allowed: Images (JPG, PNG, GIF, WebP), PDF, Word (DOC, DOCX)
+              </p>
               {uploadFile && (
                 <p
                   style={{
                     fontSize: "12px",
-                    color: "#6b7280",
-                    margin: "8px 0 0 0",
+                    color: "#10b981",
+                    margin: "4px 0 0 0",
+                    fontWeight: 500,
                   }}
                 >
-                  Selected: {uploadFile.name} ({formatFileSize(uploadFile.size)}
+                  ✓ Selected: {uploadFile.name} ({formatFileSize(uploadFile.size)}
                   )
                 </p>
               )}
