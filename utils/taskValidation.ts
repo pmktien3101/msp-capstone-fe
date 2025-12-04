@@ -20,7 +20,7 @@ export const isValidStatusTransition = (
     Todo: ['ReadyToReview', 'Done', 'ReOpened'],
     InProgress: ['Done', 'ReOpened'],
     ReadyToReview: ['Todo'], // PM can change to InProgress for fixes, but not back to Todo
-    ReOpened: ['ReadyToReview', 'Done', 'Todo'],
+    ReOpened: ['Done', 'Todo'],
   };
 
   const notAllowed = invalidTransitions[currentStatus];

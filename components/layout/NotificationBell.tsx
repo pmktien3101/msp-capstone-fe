@@ -28,7 +28,7 @@ export const NotificationBell = () => {
   } = useNotifications({
     userId: userState.userId,
     autoConnect: true,
-    showToast: true,
+    showToast: false,
   });
 
   // Close dropdown when clicking outside
