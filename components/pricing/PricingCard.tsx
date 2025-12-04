@@ -41,17 +41,17 @@ export interface PricingCardProps {
   className?: string;
 }
 
-const formatPeriodLabel = (period?: string, billingCycle?: number): string => {
-  if (billingCycle === 0) return "month";
-  if (billingCycle === 1) return "quarter";
-  if (billingCycle === 2) return "year";
-  if (!period) return "month";
-  const p = String(period).toLowerCase();
-  if (p === "month" || p === "tháng") return "month";
-  if (p === "quarter" || p === "quý") return "quarter";
-  if (p === "year" || p === "năm" || p === "nam") return "year";
-  return period;
-};
+// const formatPeriodLabel = (period?: string, billingCycle?: number): string => {
+//   if (billingCycle === 0) return "month";
+//   if (billingCycle === 1) return "quarter";
+//   if (billingCycle === 2) return "year";
+//   if (!period) return "month";
+//   const p = String(period).toLowerCase();
+//   if (p === "month" || p === "tháng") return "month";
+//   if (p === "quarter" || p === "quý") return "quarter";
+//   if (p === "year" || p === "năm" || p === "nam") return "year";
+//   return period;
+// };
 
 const getCurrencySymbol = (currency?: string): string => {
   return "₫"; // VND only
@@ -81,7 +81,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
   const isFeatured =
     plan.featured || (plan.activeSubscriptions && plan.activeSubscriptions > 5);
 
-  const periodLabel = formatPeriodLabel(plan.period, plan.billingCycle);
+  // const periodLabel = formatPeriodLabel(plan.period, plan.billingCycle);
   const currencySymbol = getCurrencySymbol(plan.currency);
 
   const defaultActionLabel = isFeatured ? "Get Started" : "Subscribe";
@@ -170,7 +170,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
         <div className="plan-price">
           <span className="amount">{formatPrice(plan.price)}</span>
           <span className="currency">{currencySymbol}</span>
-          <span className="period">/{periodLabel}</span>
+          <span className="period">/{plan.billingCycle + " month"}</span>
         </div>
         {plan.description && (
           <p className="plan-description">{plan.description}</p>
