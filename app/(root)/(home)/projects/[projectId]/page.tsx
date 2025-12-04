@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ProjectTabs } from "@/components/projects/ProjectTabs";
-import { DetailTaskModal } from "@/components/tasks/DetailTaskModal";
+import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { DeleteTaskModal } from "@/components/tasks/DeleteTaskModal";
 import { CreateMilestoneModal } from "@/components/milestones/CreateMilestoneModal";
 import { Project } from "@/types/project";
 import { Task } from "@/types/milestone";
+import { GetTaskResponse } from "@/types/task";
 import { mockTasks, addMilestone } from "@/constants/mockData";
 import { Plus, Calendar, Users, Target } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
@@ -37,7 +38,7 @@ const ProjectDetailPage = () => {
   const [project, setProject] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<GetTaskResponse | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -64,8 +65,8 @@ const ProjectDetailPage = () => {
   const canCreateMilestone = role && role.toLowerCase() !== "member";
 
   // Handlers
-  const handleTaskClick = (task: Task) => {
-    setSelectedTask(task);
+  const handleTaskClick = (task: Task | GetTaskResponse) => {
+    setSelectedTask(task as GetTaskResponse);
     setIsTaskModalOpen(true);
   };
 
@@ -401,6 +402,38 @@ const ProjectDetailPage = () => {
     fetchProgress();
   }, [projectId, refreshKey]); // Re-fetch when refreshKey changes
 
+  // Handle deep linking from notifications (e.g., taskId in query params)
+  useEffect(() => {
+    const taskIdFromUrl = searchParams.get("taskId");
+    const tabFromUrl = searchParams.get("tab");
+
+    if (taskIdFromUrl && !loading && project) {
+      // Auto-switch to tasks tab if specified
+      if (tabFromUrl === "tasks") {
+        setActiveTab("tasks");
+      }
+
+      // Fetch and open the task modal
+      const fetchAndOpenTask = async () => {
+        try {
+          const taskResult = await taskService.getTaskById(taskIdFromUrl);
+          if (taskResult.success && taskResult.data) {
+            setSelectedTask(taskResult.data as GetTaskResponse);
+            setIsTaskModalOpen(true);
+          } else {
+            console.warn("Task not found:", taskIdFromUrl);
+            toast.error("Không tìm thấy task này");
+          }
+        } catch (error) {
+          console.error("Error fetching task from notification:", error);
+          toast.error("Lỗi khi tải thông tin task");
+        }
+      };
+
+      fetchAndOpenTask();
+    }
+  }, [searchParams, loading, project]);
+
   if (loading) {
     return (
       <div className="project-detail-loading">
@@ -484,11 +517,14 @@ const ProjectDetailPage = () => {
 
       {/* Task Detail Modal */}
       {selectedTask && (
-        <DetailTaskModal
+        <TaskDetailModal
           isOpen={isTaskModalOpen}
           onClose={handleCloseTaskModal}
           task={selectedTask as any}
-          projectId={projectId}
+          mode="view"
+          onSave={() => {
+            setRefreshKey((prev) => prev + 1);
+          }}
         />
       )}
 
@@ -513,11 +549,15 @@ const ProjectDetailPage = () => {
 
       {/* Edit Task Modal */}
       {taskToEdit && (
-        <DetailTaskModal
+        <TaskDetailModal
           isOpen={isEditTaskModalOpen}
           onClose={handleCloseEditTaskModal}
           task={taskToEdit as any}
-          projectId={projectId}
+          mode="edit"
+          onSave={() => {
+            handleCloseEditTaskModal();
+            setRefreshKey((prev) => prev + 1);
+          }}
         />
       )}
 

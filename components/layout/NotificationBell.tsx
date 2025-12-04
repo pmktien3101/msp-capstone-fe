@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useUser } from "@/hooks/useUser";
 import { Bell, Check, CheckCheck, Trash2, X, BellRing } from "lucide-react";
@@ -8,6 +9,7 @@ import type { NotificationResponse } from "@/types/notification";
 
 export const NotificationBell = () => {
   const userState = useUser();
+  const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -81,10 +83,90 @@ export const NotificationBell = () => {
       await markAsRead(notification.id);
     }
 
-    // Handle navigation based on notification type/entityId if needed
-    if (notification.entityId) {
-      // Example: Navigate to related entity
-      console.log("Navigate to:", notification.type, notification.entityId);
+    // Parse notification data to determine navigation
+    try {
+      let parsedData: any = null;
+      if (notification.data) {
+        try {
+          parsedData = JSON.parse(notification.data);
+        } catch (e) {
+          console.warn("Failed to parse notification data:", e);
+        }
+      }
+
+      // Handle navigation based on notification type
+      const notifType = notification.type?.toLowerCase() || "";
+      const eventType = parsedData?.eventType?.toLowerCase() || parsedData?.EventType?.toLowerCase() || "";
+
+      // Task-related notifications
+      if (
+        notifType.includes("task") ||
+        eventType.includes("task") ||
+        parsedData?.taskId ||
+        parsedData?.TaskId
+      ) {
+        const projectId = parsedData?.projectId || parsedData?.ProjectId;
+        const taskId = parsedData?.taskId || parsedData?.TaskId;
+
+        if (projectId && taskId) {
+          // Navigate to project page with task modal open
+          setShowDropdown(false);
+          router.push(`/projects/${projectId}?tab=tasks&taskId=${taskId}`);
+          return;
+        }
+      }
+
+      // Project-related notifications (deadline, completion, status)
+      if (
+        notifType.includes("project") ||
+        eventType.includes("project") ||
+        parsedData?.projectId ||
+        parsedData?.ProjectId
+      ) {
+        const projectId =
+          parsedData?.projectId ||
+          parsedData?.ProjectId ||
+          notification.entityId;
+
+        if (projectId) {
+          setShowDropdown(false);
+          router.push(`/projects/${projectId}`);
+          return;
+        }
+      }
+
+      // Meeting-related notifications
+      if (
+        notifType.includes("meeting") ||
+        eventType.includes("meeting") ||
+        parsedData?.meetingId ||
+        parsedData?.MeetingId
+      ) {
+        const meetingId = parsedData?.meetingId || parsedData?.MeetingId;
+        const projectId = parsedData?.projectId || parsedData?.ProjectId;
+
+        if (meetingId) {
+          setShowDropdown(false);
+          // Navigate to meeting detail or project meetings tab
+          if (projectId) {
+            router.push(`/projects/${projectId}?tab=meetings&meetingId=${meetingId}`);
+          } else {
+            router.push(`/meeting/${meetingId}`);
+          }
+          return;
+        }
+      }
+
+      // Fallback: if entityId exists but no specific handler
+      if (notification.entityId) {
+        console.log("Unhandled notification navigation:", {
+          type: notification.type,
+          entityId: notification.entityId,
+          data: parsedData,
+        });
+      }
+    } catch (error) {
+      console.error("Error handling notification click:", error);
     }
   };
 
