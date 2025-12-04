@@ -136,14 +136,14 @@ export const UpdateMilestoneModal = ({
           onSuccess();
         }
         
-        toast.success('Cập nhật cột mốc thành công!');
+        toast.success('Milestone updated successfully!');
         onClose();
       } else {
-        toast.error(`Lỗi: ${response.error}`);
+        toast.error(`Error: ${response.error}`);
       }
     } catch (error) {
       console.error('Error updating milestone:', error);
-      toast.error('Có lỗi xảy ra khi cập nhật cột mốc');
+      toast.error('An error occurred while updating milestone');
     } finally {
       setIsSubmitting(false);
     }

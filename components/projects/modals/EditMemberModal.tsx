@@ -39,7 +39,7 @@ export function EditMemberModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.role) {
-      toast.error('Vui lòng điền đầy đủ thông tin!');
+      toast.error('Please fill in all information!');
       return;
     }
 

@@ -123,13 +123,13 @@ const ProjectsPage = () => {
         );
         setShowEditProjectModal(false);
         setSelectedProject(null);
-        toast.success("Cập nhật dự án thành công!");
+        toast.success("Project updated successfully!");
       } else {
-        toast.error(result.error || "Không thể cập nhật dự án");
+        toast.error(result.error || "Unable to update project");
       }
     } catch (error) {
       console.error("Update project error:", error);
-      toast.error("Đã xảy ra lỗi khi cập nhật dự án");
+      toast.error("An error occurred while updating project");
     }
   };
 

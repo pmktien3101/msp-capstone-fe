@@ -106,7 +106,7 @@ export const MilestoneListView = ({
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast.error("Lỗi khi tải dữ liệu");
+      toast.error("Error loading data");
       setMilestones([]);
       setTasks([]);
     } finally {
@@ -194,7 +194,7 @@ export const MilestoneListView = ({
       !editedMilestone.name ||
       !editedMilestone.dueDate
     ) {
-      toast.error("Vui lòng điền đầy đủ các trường bắt buộc");
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -212,15 +212,15 @@ export const MilestoneListView = ({
       const response = await milestoneService.updateMilestone(updateData);
 
       if (response.success) {
-        toast.success("Cập nhật cột mốc thành công");
+        toast.success("Milestone updated successfully");
         await fetchData();
         handleCancelEdit();
       } else {
-        toast.error(response.error || "Không thể cập nhật cột mốc");
+        toast.error(response.error || "Unable to update milestone");
       }
     } catch (error) {
       console.error("Error updating milestone:", error);
-      toast.error("Lỗi khi cập nhật cột mốc");
+      toast.error("Error updating milestone");
     } finally {
       setIsSaving(false);
     }
@@ -243,14 +243,14 @@ export const MilestoneListView = ({
       );
 
       if (response.success) {
-        toast.success("Xóa milestone thành công");
+        toast.success("Milestone deleted successfully");
         await fetchData();
       } else {
-        toast.error(response.error || "Không thể xóa milestone");
+        toast.error(response.error || "Unable to delete milestone");
       }
     } catch (error) {
       console.error("Error deleting milestone:", error);
-      toast.error("Lỗi khi xóa milestone");
+      toast.error("Error deleting milestone");
     } finally {
       setIsConfirmDeleteOpen(false);
       setMilestoneToDelete(null);

@@ -302,7 +302,7 @@ export const TaskDetailModal = ({
     if (!commentText.trim()) return;
 
     if (!user?.userId || !task?.id) {
-      toast.error("Không thể tạo bình luận");
+      toast.error("Unable to create comment");
       return;
     }
 
@@ -315,15 +315,15 @@ export const TaskDetailModal = ({
       });
 
       if (response.success) {
-        toast.success("Bình luận thành công");
+        toast.success("Comment posted successfully");
         setCommentText("");
         await fetchComments(); // Refresh comments list
       } else {
-        toast.error(response.error || "Không thể đăng bình luận");
+        toast.error(response.error || "Failed to post comment");
       }
     } catch (error) {
       console.error("Error posting comment:", error);
-      toast.error("Đã xảy ra lỗi khi đăng bình luận");
+      toast.error("An error occurred while posting comment");
     } finally {
       setIsSubmittingComment(false);
     }
@@ -341,7 +341,7 @@ export const TaskDetailModal = ({
 
   const handleSaveEditComment = async (commentId: string) => {
     if (!editingCommentText.trim()) {
-      toast.error("Bình luận không thể bị trống");
+      toast.error("Comment cannot be empty");
       return;
     }
 
@@ -352,22 +352,22 @@ export const TaskDetailModal = ({
       });
 
       if (response.success) {
-        toast.success("Cập nhật bình luận thành công");
+        toast.success("Comment updated successfully");
         setEditingCommentId(null);
         setEditingCommentText("");
         await fetchComments(); // Refresh comments list
       } else {
-        toast.error(response.error || "Lỗi khi cập nhật bình luận");
+        toast.error(response.error || "Failed to update comment");
       }
     } catch (error) {
       console.error("Error updating comment:", error);
-      toast.error("Đã xảy ra lỗi khi cập nhật bình luận");
+      toast.error("An error occurred while updating comment");
     }
   };
 
   const handleDeleteComment = (commentId: string) => {
     if (!user?.userId) {
-      toast.error("Không thể xóa bình luận");
+      toast.error("Unable to delete comment");
       return;
     }
 
@@ -385,14 +385,14 @@ export const TaskDetailModal = ({
       );
 
       if (response.success) {
-        toast.success("Xóa bình luận thành công");
+        toast.success("Comment deleted successfully");
         await fetchComments(); // Refresh comments list
       } else {
-        toast.error(response.error || "Xóa bình luận thất bại");
+        toast.error(response.error || "Failed to delete comment");
       }
     } catch (error) {
       console.error("Error deleting comment:", error);
-      toast.error("Đã xảy ra lỗi khi xóa bình luận");
+      toast.error("An error occurred while deleting comment");
     } finally {
       setIsConfirmDeleteCommentOpen(false);
       setDeletingCommentId(null);
@@ -405,7 +405,7 @@ export const TaskDetailModal = ({
       const statusValidation = isValidStatusTransition(task.status, value);
       if (!statusValidation.valid) {
         toast.warning(
-          statusValidation.message || "Không được phép thay đổi trạng thái này"
+          statusValidation.message || "This status change is not allowed"
         );
         return; // Don't update if invalid
       }
@@ -426,18 +426,18 @@ export const TaskDetailModal = ({
 
   const handleSaveTask = async () => {
     if (!editedTask.title.trim()) {
-      toast.error("Tiêu đề công việc là bắt buộc");
+      toast.error("Task title is required");
       return;
     }
 
     if (!user?.userId) {
-      toast.error("Người dùng chưa đăng nhập");
+      toast.error("User is not logged in");
       return;
     }
 
     // Validation 1: Member cannot change assignee
     if (isMember && editedTask.userId !== task.userId) {
-      toast.error("Thành viên không được phép thay đổi người thực hiện");
+      toast.error("Members are not allowed to change the assignee");
       return;
     }
 
@@ -449,7 +449,7 @@ export const TaskDetailModal = ({
       );
       if (!statusValidation.valid) {
         toast.error(
-          statusValidation.message || "Thay đổi trạng thái không hợp lệ"
+          statusValidation.message || "Invalid status change"
         );
         return;
       }
@@ -465,14 +465,14 @@ export const TaskDetailModal = ({
       );
 
       if (!dateValidation.valid) {
-        toast.error(dateValidation.message || "Ngày không hợp lệ");
+        toast.error(dateValidation.message || "Invalid date");
         return;
       }
     }
 
     // Validation 4: If moving to ReadyToReview, reviewer is required
     if (editedTask.status === 'ReadyToReview' && !editedTask.reviewerId) {
-      toast.error("Vui lòng chọn Reviewer khi chuyển sang Ready To Review");
+      toast.error("Please select a reviewer when moving to Ready To Review");
       return;
     }
 
@@ -501,7 +501,7 @@ export const TaskDetailModal = ({
       const response = await taskService.updateTask(updateData);
 
       if (response.success) {
-        toast.success("Cập nhật công việc thành công");
+        toast.success("Task updated successfully");
 
         // Refresh history to show the update action
         await fetchHistory();
@@ -511,11 +511,11 @@ export const TaskDetailModal = ({
         }
         onClose();
       } else {
-        toast.error(response.error || "Cập nhật công việc thất bại");
+        toast.error(response.error || "Failed to update task");
       }
     } catch (error) {
       console.error("Error updating task:", error);
-      toast.error("Đã xảy ra lỗi khi cập nhật công việc");
+      toast.error("An error occurred while updating task");
     }
   };
 

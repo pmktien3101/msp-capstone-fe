@@ -122,7 +122,7 @@ export const UpdateMeetingModal = ({
           );
         }
       } catch (error: any) {
-        toast.error("Không thể tải danh sách dự án");
+        toast.error("Unable to load project list");
         setProjects([]);
       }
     };
@@ -154,7 +154,7 @@ export const UpdateMeetingModal = ({
           setParticipants([]);
         }
       } catch (error: any) {
-        toast.error("Không thể tải danh sách thành viên");
+        toast.error("Unable to load member list");
         setParticipants([]);
       } finally {
         setIsLoadingParticipants(false);
@@ -240,12 +240,12 @@ export const UpdateMeetingModal = ({
           role: "call_member",
         })),
       });
-      toast.success("Cập nhật cuộc họp thành công");
+      toast.success("Meeting updated successfully");
       onUpdated?.();
       onClose();
     } catch (err: any) {
-      setError(err?.message || "Cập nhật thất bại");
-      toast.error(err?.message || "Cập nhật thất bại");
+      setError(err?.message || "Update failed");
+      toast.error(err?.message || "Update failed");
     } finally {
       setSaving(false);
     }

@@ -92,7 +92,7 @@ export const CreateMilestoneModal = ({
       if (!user || !user.userId) {
         console.error("No user found from useAuth");
         toast.error(
-          "Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại."
+          "User information not found. Please login again."
         );
         setIsSubmitting(false);
         return;
@@ -122,7 +122,7 @@ export const CreateMilestoneModal = ({
           onSuccess();
         }
 
-        toast.success("Tạo cột mốc thành công!");
+        toast.success("Milestone created successfully!");
 
         // Reset form
         setFormData({
@@ -133,11 +133,11 @@ export const CreateMilestoneModal = ({
         setErrors({});
         onClose();
       } else {
-        toast.error(`Lỗi: ${response.error}`);
+        toast.error(`Error: ${response.error}`);
       }
     } catch (error) {
       console.error("Error creating milestone:", error);
-      toast.error("Đã xảy ra lỗi khi tạo cột mốc");
+      toast.error("An error occurred while creating milestone");
     } finally {
       setIsSubmitting(false);
     }

@@ -169,7 +169,7 @@ export const ProjectDocuments = ({
 
       if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
         toast.error(
-          "Định dạng file không được hỗ trợ. Chỉ cho phép: Hình ảnh (JPG, PNG, GIF, WebP), PDF, và Word (DOC, DOCX)"
+          "File format not supported. Only allowed: Images (JPG, PNG, GIF, WebP), PDF, and Word (DOC, DOCX)"
         );
         e.target.value = ""; // Reset input
         return;
@@ -181,7 +181,7 @@ export const ProjectDocuments = ({
 
   const handleUpload = async () => {
     if (!uploadFile || !currentUser.id) {
-      toast.error("Vui lòng chọn tệp và đăng nhập");
+      toast.error("Please select a file and login");
       return;
     }
 
@@ -191,7 +191,7 @@ export const ProjectDocuments = ({
       const fileUrl = await uploadFileToCloudinary(uploadFile);
 
       if (!fileUrl) {
-        toast.error("Không thể tải tệp lên");
+        toast.error("Unable to upload file");
         return;
       }
 
@@ -212,11 +212,11 @@ export const ProjectDocuments = ({
         // Refresh documents list
         fetchDocuments();
       } else {
-        toast.error(`Lỗi: ${result.error}`);
+        toast.error(`Error: ${result.error}`);
       }
     } catch (error) {
       console.error("Error uploading document:", error);
-      toast.error("Đã xảy ra lỗi khi tải tài liệu lên");
+      toast.error("An error occurred while uploading document");
     } finally {
       setIsUploading(false);
     }
@@ -263,7 +263,7 @@ export const ProjectDocuments = ({
       }
     } catch (error) {
       console.error("Error downloading document:", error);
-      toast.error("Lỗi khi tải tài liệu xuống");
+      toast.error("Error downloading document");
     }
   };
 
@@ -279,14 +279,14 @@ export const ProjectDocuments = ({
       const result = await documentService.deleteDocument(documentToDelete.id);
 
       if (result.success) {
-        toast.success("Xóa tài liệu thành công!");
+        toast.success("Document deleted successfully!");
         fetchDocuments();
       } else {
-        toast.error(`Lỗi: ${result.error}`);
+        toast.error(`Error: ${result.error}`);
       }
     } catch (error) {
       console.error("Error deleting document:", error);
-      toast.error("Đã xảy ra lỗi khi xóa tài liệu");
+      toast.error("An error occurred while deleting document");
     } finally {
       setIsConfirmDeleteOpen(false);
       setDocumentToDelete(null);
@@ -985,16 +985,16 @@ export const ProjectDocuments = ({
                     };
                     const res = await documentService.updateDocument(payload);
                     if (res.success) {
-                      toast.success("Cập nhật tài liệu thành công!");
+                      toast.success("Document updated successfully!");
                       setShowEditModal(false);
                       setEditingDocument(null);
                       fetchDocuments();
                     } else {
-                      toast.error(`Lỗi: ${res.error}`);
+                      toast.error(`Error: ${res.error}`);
                     }
                   } catch (err) {
                     console.error("Error updating document:", err);
-                    toast.error("Đã xảy ra lỗi khi cập nhật tài liệu");
+                    toast.error("An error occurred while updating document");
                   }
                 }}
                 style={{

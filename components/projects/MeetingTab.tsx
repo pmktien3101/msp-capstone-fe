@@ -184,13 +184,13 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
 
       if (res?.success) {
         await refetchCalls();
-        toast.success("Hủy cuộc họp thành công");
+        toast.success("Meeting cancelled successfully");
       } else {
-        toast.error(res?.error || res?.message || "Không thể hủy cuộc họp");
+        toast.error(res?.error || res?.message || "Unable to cancel meeting");
       }
     } catch (e: any) {
       console.error("Cancel meeting failed", e);
-      toast.error(e?.message || "Không thể hủy cuộc họp");
+      toast.error(e?.message || "Unable to cancel meeting");
     }
   };
 

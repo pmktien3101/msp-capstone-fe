@@ -266,14 +266,14 @@ export const ProjectSettings = ({
         setMembers((prev) =>
           prev.filter((m) => (m.pmId || m.id) !== memberToDelete.id)
         );
-        toast.success("Xóa thành viên thành công!");
+        toast.success("Member removed successfully!");
       } else {
         toast.error(
-          `Lỗi khi xóa thành viên: ${result.error || "Lỗi không xác định"}`
+          `Error removing member: ${result.error || "Unknown error"}`
         );
       }
     } catch (error) {
-      toast.error("Đã xảy ra lỗi khi xóa thành viên");
+      toast.error("An error occurred while removing member");
     } finally {
       setMemberToDelete(null);
       setIsConfirmDeleteMemberOpen(false);
@@ -292,7 +292,7 @@ export const ProjectSettings = ({
 
   const handleSaveBasicInfo = async () => {
     if (!project.id) {
-      toast.error("Không tìm thấy thông tin dự án");
+      toast.error("Project information not found");
       return;
     }
 
@@ -330,7 +330,7 @@ export const ProjectSettings = ({
         );
         setSettings(tempSettings);
         setIsEditingBasicInfo(false);
-        toast.success("Cập nhật thông tin dự án thành công!");
+        toast.success("Project information updated successfully!");
 
         // Trigger parent component to refetch data
         if (onProjectUpdate) {
@@ -338,11 +338,11 @@ export const ProjectSettings = ({
         }
       } else {
         toast.error(
-          `Lỗi: ${result.error || "Không thể cập nhật thông tin dự án"}`
+          `Error: ${result.error || "Unable to update project information"}`
         );
       }
     } catch (error) {
-      toast.error("Đã xảy ra lỗi khi cập nhật thông tin dự án");
+      toast.error("An error occurred while updating project information");
     }
   };
 

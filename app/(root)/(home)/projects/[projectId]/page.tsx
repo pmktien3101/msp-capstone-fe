@@ -86,7 +86,7 @@ const ProjectDetailPage = () => {
   const handleSubmitTask = async (taskData: any) => {
     try {
       if (!user?.userId) {
-        toast.error("Không tìm thấy thông tin người dùng");
+        toast.error("User information not found");
         return;
       }
 
@@ -108,16 +108,16 @@ const ProjectDetailPage = () => {
       const response = await taskService.createTask(requestData);
 
       if (response.success) {
-        toast.success("Tạo công việc thành công!");
+        toast.success("Task created successfully!");
         setIsCreateTaskModalOpen(false);
         // Trigger refresh
         setRefreshKey((prev) => prev + 1);
       } else {
-        toast.error(`Lỗi: ${response.error || "Không thể tạo công việc"}`);
+        toast.error(`Error: ${response.error || "Unable to create task"}`);
       }
     } catch (error: any) {
       // console.error('Error creating task:', error);
-      toast.error("Đã xảy ra lỗi khi tạo công việc. Vui lòng thử lại!");
+      toast.error("An error occurred while creating task. Please try again!");
     }
   };
 
@@ -139,17 +139,17 @@ const ProjectDetailPage = () => {
       const response = await taskService.deleteTask(taskToDelete.id);
 
       if (response.success) {
-        toast.success(`Đã xóa công việc: ${taskToDelete.title}`);
+        toast.success(`Task deleted: ${taskToDelete.title}`);
         setTaskToDelete(null);
         setIsDeleteTaskModalOpen(false);
         // Trigger refresh to reload task list
         setRefreshKey((prev) => prev + 1);
       } else {
-        toast.error(`Lỗi: ${response.error || "Không thể xóa công việc"}`);
+        toast.error(`Error: ${response.error || "Unable to delete task"}`);
       }
     } catch (error: any) {
       // console.error('Error deleting task:', error);
-      toast.error("Đã xảy ra lỗi khi xóa công việc. Vui lòng thử lại!");
+      toast.error("An error occurred while deleting task. Please try again!");
     }
   };
 
@@ -166,13 +166,13 @@ const ProjectDetailPage = () => {
   const handleUpdateTask = async (taskData: any) => {
     try {
       if (!taskToEdit?.id) {
-        toast.error("Không tìm thấy thông tin công việc");
+        toast.error("Task information not found");
         return;
       }
 
       // Ensure we have the current user ID to use as actorId (UpdateTaskRequest requires a string)
       if (!user || !user.userId) {
-        toast.error("Không tìm thấy thông tin người dùng");
+        toast.error("User information not found");
         return;
       }
 
@@ -195,17 +195,17 @@ const ProjectDetailPage = () => {
       const response = await taskService.updateTask(requestData);
 
       if (response.success) {
-        toast.success("Cập nhật công việc thành công!");
+        toast.success("Task updated successfully!");
         setIsEditTaskModalOpen(false);
         setTaskToEdit(null);
         // Trigger refresh
         setRefreshKey((prev) => prev + 1);
       } else {
-        toast.error(`Lỗi: ${response.error || "Không thể cập nhật công việc"}`);
+        toast.error(`Error: ${response.error || "Unable to update task"}`);
       }
     } catch (error: any) {
       // console.error('Error updating task:', error);
-      toast.error("Đã xảy ra lỗi khi cập nhật công việc. Vui lòng thử lại!");
+      toast.error("An error occurred while updating task. Please try again!");
     }
   };
 
@@ -241,7 +241,7 @@ const ProjectDetailPage = () => {
       // No need for alert since user can see the new milestone in the list
     } catch (error) {
       // console.error('Error creating milestone:', error);
-      toast.error("Đã xảy ra lỗi khi tạo cột mốc. Vui lòng thử lại!");
+      toast.error("An error occurred while creating milestone. Please try again!");
     }
   };
 
@@ -422,11 +422,11 @@ const ProjectDetailPage = () => {
             setIsTaskModalOpen(true);
           } else {
             console.warn("Task not found:", taskIdFromUrl);
-            toast.error("Không tìm thấy task này");
+            toast.error("Task not found");
           }
         } catch (error) {
           console.error("Error fetching task from notification:", error);
-          toast.error("Lỗi khi tải thông tin task");
+          toast.error("Error loading task information");
         }
       };
 
