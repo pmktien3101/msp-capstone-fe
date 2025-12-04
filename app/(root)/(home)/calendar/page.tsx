@@ -11,8 +11,7 @@ import {
   Clock,
   Users,
   MapPin,
-  ArrowRight,
-  Phone,
+  Video,
 } from "lucide-react";
 import { DetailTaskModal } from "@/components/tasks/DetailTaskModal";
 import { meetingService } from "@/services/meetingService";
@@ -56,7 +55,9 @@ export default function CalendarPage() {
       setLoading(true);
       try {
         // Get user's projects
-        const projectsResult = await projectService.getProjectsByMemberId(userId);
+        const projectsResult = await projectService.getProjectsByMemberId(
+          userId
+        );
         if (!projectsResult.success || !projectsResult.data) {
           setEvents([]);
           setLoading(false);
@@ -79,7 +80,9 @@ export default function CalendarPage() {
             result.data.forEach((meeting: MeetingItem) => {
               if (meeting.startTime) {
                 const startDate = new Date(meeting.startTime);
-                const endDate = meeting.endTime ? new Date(meeting.endTime) : undefined;
+                const endDate = meeting.endTime
+                  ? new Date(meeting.endTime)
+                  : undefined;
 
                 allMeetings.push({
                   id: meeting.id,
@@ -97,8 +100,10 @@ export default function CalendarPage() {
                     : undefined,
                   date: startDate.toISOString().split("T")[0],
                   description: meeting.description || "",
-                  location: meeting.recordUrl || meeting.projectName || "Online",
-                  attendees: meeting.attendees?.map((a) => a.fullName || a.email) || [],
+                  location:
+                    meeting.recordUrl || meeting.projectName || "Online",
+                  attendees:
+                    meeting.attendees?.map((a) => a.fullName || a.email) || [],
                   status: meeting.status,
                   projectName: meeting.projectName || projects[index]?.name,
                 });
@@ -219,14 +224,48 @@ export default function CalendarPage() {
     ? selectedDateEvents
     : selectedDateEvents.slice(0, 3);
 
+  // Get stats for current month
+  const totalMeetingsThisMonth = filteredEvents.length;
+  const upcomingMeetings = filteredEvents.filter(
+    (e) => new Date(e.date) >= new Date()
+  ).length;
+
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentDate(today);
+    setSelectedDate(today);
+  };
+
   if (loading) {
     return (
       <div className="calendar-page">
         <div className="calendar-header">
           <div className="header-content">
+            <div className="header-icon">
+              <Calendar size={20} />
+            </div>
             <div className="title-section">
               <h1>Meeting Calendar</h1>
-              <p>Loading meetings...</p>
+              <p>Loading your meetings...</p>
+            </div>
+          </div>
+        </div>
+        <div className="calendar-container">
+          <div className="calendar-section">
+            <div className="loading-skeleton">
+              <div className="skeleton-header"></div>
+              <div className="skeleton-grid">
+                {Array.from({ length: 35 }).map((_, i) => (
+                  <div key={i} className="skeleton-day"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="events-panel">
+            <div className="loading-skeleton">
+              <div className="skeleton-header"></div>
+              <div className="skeleton-card"></div>
+              <div className="skeleton-card"></div>
             </div>
           </div>
         </div>
@@ -239,9 +278,32 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="calendar-header">
         <div className="header-content">
+          <div className="header-icon">
+            <Calendar size={20} />
+          </div>
           <div className="title-section">
             <h1>Meeting Calendar</h1>
             <p>Your schedule, all your meetings in one place</p>
+          </div>
+        </div>
+        <div className="header-stats">
+          <div className="stat-item">
+            <div className="stat-icon total">
+              <Video size={16} />
+            </div>
+            <div className="stat-info">
+              <span className="stat-value">{totalMeetingsThisMonth}</span>
+              <span className="stat-label">This Month</span>
+            </div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-icon upcoming">
+              <Calendar size={16} />
+            </div>
+            <div className="stat-info">
+              <span className="stat-value">{upcomingMeetings}</span>
+              <span className="stat-label">Upcoming</span>
+            </div>
           </div>
         </div>
       </div>
@@ -250,12 +312,18 @@ export default function CalendarPage() {
         {/* Calendar */}
         <div className="calendar-section">
           <div className="calendar-header-nav">
-            <button className="nav-btn" onClick={() => navigateMonth("prev")}>
-              <ChevronLeft size={20} />
-            </button>
-            <h2 className="month-year">{formatDate(currentDate)}</h2>
-            <button className="nav-btn" onClick={() => navigateMonth("next")}>
-              <ChevronRight size={20} />
+            <div className="nav-left">
+              <button className="nav-btn" onClick={() => navigateMonth("prev")}>
+                <ChevronLeft size={20} />
+              </button>
+              <h2 className="month-year">{formatDate(currentDate)}</h2>
+              <button className="nav-btn" onClick={() => navigateMonth("next")}>
+                <ChevronRight size={20} />
+              </button>
+            </div>
+            <button className="today-btn" onClick={goToToday}>
+              <Calendar size={16} />
+              <span>Today</span>
             </button>
           </div>
 
@@ -331,7 +399,8 @@ export default function CalendarPage() {
               })}
             </h3>
             <span className="events-count">
-              {selectedDateEvents.length} {selectedDateEvents.length === 1 ? "meeting" : "meetings"}
+              {selectedDateEvents.length}{" "}
+              {selectedDateEvents.length === 1 ? "meeting" : "meetings"}
             </span>
           </div>
 
@@ -345,11 +414,15 @@ export default function CalendarPage() {
             ) : (
               <>
                 {displayedEvents.map((event) => (
-                  <div key={event.id} className="event-card" onClick={() => handleEventCardClick(event)}>
+                  <div
+                    key={event.id}
+                    className="event-card"
+                    onClick={() => handleEventCardClick(event)}
+                  >
                     <div className="event-header">
                       <div className="event-type">
                         <div className={`type-icon ${event.type}`}>
-                          <Users size={16} />
+                          <Video size={16} />
                         </div>
                         <span className="type-label">Meeting</span>
                       </div>
@@ -377,7 +450,10 @@ export default function CalendarPage() {
                       )}
                       {event.projectName && (
                         <p className="event-project">
-                          <span style={{ color: "#ff5e13", fontWeight: 600 }}>Project:</span> {event.projectName}
+                          <span style={{ color: "#ff5e13", fontWeight: 600 }}>
+                            Project:
+                          </span>{" "}
+                          {event.projectName}
                         </p>
                       )}
                     </div>
@@ -401,8 +477,10 @@ export default function CalendarPage() {
                       {event.attendees && event.attendees.length > 0 && (
                         <div className="attendees-info">
                           <Users size={14} />
-                          <span>{event.attendees.slice(0, 3).join(", ")}
-                            {event.attendees.length > 3 && ` +${event.attendees.length - 3}`}
+                          <span>
+                            {event.attendees.slice(0, 3).join(", ")}
+                            {event.attendees.length > 3 &&
+                              ` +${event.attendees.length - 3}`}
                           </span>
                         </div>
                       )}
@@ -418,7 +496,7 @@ export default function CalendarPage() {
                         }}
                       >
                         <span>Join Meeting</span>
-                        <Phone size={16} />
+                        <Video size={14} />
                       </button>
                     </div>
                   </div>
@@ -432,7 +510,10 @@ export default function CalendarPage() {
                       onClick={() => setShowAllEvents(true)}
                     >
                       <span>
-                        View {selectedDateEvents.length - 3} more {selectedDateEvents.length - 3 === 1 ? "meeting" : "meetings"}
+                        View {selectedDateEvents.length - 3} more{" "}
+                        {selectedDateEvents.length - 3 === 1
+                          ? "meeting"
+                          : "meetings"}
                       </span>
                       <ChevronDown size={16} />
                     </button>

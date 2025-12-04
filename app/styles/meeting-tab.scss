@@ -300,6 +300,7 @@
       text-transform: uppercase;
       letter-spacing: 0.3px;
       border-bottom: 1px solid #e5e7eb;
+      text-align: left;
 
       > div {
         padding: 0 8px;
@@ -330,7 +331,7 @@
     .col-stt {
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
 
       .stt-number {
         width: 30px;
@@ -410,7 +411,9 @@
     }
 
     .col-room {
-      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
 
       .join-btn {
         display: inline-flex;
@@ -445,7 +448,9 @@
     }
 
     .col-status {
-      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
 
       .status-badge {
         display: inline-flex;

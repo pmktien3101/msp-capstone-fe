@@ -13,24 +13,15 @@ import {
   TrendingUp,
   Calendar,
   Loader2,
-  MinusCircle,
-  Hourglass,
-  BadgeCheck,
+  Clock,
+  CheckCircle2,
   XCircle,
-  CheckCircle,
+  AlertCircle,
+  ArrowRight,
+  Sparkles,
+  LogOut,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import "../../../styles/memberBusiness.scss";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "react-toastify";
 import { useUserDetail } from "@/contexts/UserContext";
 import { BusinessResponse } from "@/types/user";
@@ -38,13 +29,6 @@ import { userService } from "@/services/userService";
 import { OrganizationInvitationResponse } from "@/types/organizeInvitation";
 import { organizeInvitationService } from "@/services/organizeInvitationService";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export default function BusinessDashboard() {
   const { userDetail, isLoading, error, refreshUserDetail } = useUserDetail();
@@ -83,16 +67,15 @@ export default function BusinessDashboard() {
   const [leavingLoading, setLeavingLoading] = useState(false);
 
   // Filter for sent requests States
-  const [requestStatusFilter, setRequestStatusFilter] =
-    useState<string>("Pending");
+  const [requestStatusFilter, setRequestStatusFilter] = useState<string>("All");
 
   // Simplified status options - plain text only
   const statusOptions = [
-    { value: "All", label: "All" },
-    { value: "Pending", label: "Pending" },
-    { value: "Accepted", label: "Accepted" },
-    { value: "Rejected", label: "Rejected" },
-    { value: "Canceled", label: "Canceled" },
+    { value: "All", label: "All", icon: null },
+    { value: "Pending", label: "Pending", icon: Clock },
+    { value: "Accepted", label: "Accepted", icon: CheckCircle2 },
+    { value: "Rejected", label: "Rejected", icon: XCircle },
+    { value: "Canceled", label: "Canceled", icon: AlertCircle },
   ];
 
   // Filtered requests based on status
@@ -310,7 +293,7 @@ export default function BusinessDashboard() {
           business.businessName &&
           business.id == i.businessOwnerId &&
           i.organizationName.trim().toLowerCase() ===
-          business.businessName.trim().toLowerCase() &&
+            business.businessName.trim().toLowerCase() &&
           i.statusDisplay === "Pending"
       ) ||
       sentJoinRequests.some(
@@ -319,7 +302,7 @@ export default function BusinessDashboard() {
           business.businessName &&
           business.id == r.businessOwnerId &&
           r.organizationName.trim().toLowerCase() ===
-          business.businessName.trim().toLowerCase() &&
+            business.businessName.trim().toLowerCase() &&
           r.statusDisplay === "Pending"
       )
     );
@@ -327,283 +310,308 @@ export default function BusinessDashboard() {
 
   if (isLoadingBusiness || isLoading) {
     return (
-      <div className="loading-state">
-        <div className="text-center">
-          <Loader2 className="loader-large spinner centered mb-4" />
-          <p className="muted-foreground">Loading information...</p>
+      <div className="biz-loading">
+        <div className="biz-loading__content">
+          <div className="biz-loading__spinner">
+            <Loader2 className="biz-loading__icon" />
+          </div>
+          <p className="biz-loading__text">Loading information...</p>
         </div>
       </div>
     );
   }
 
+  const getRoleDisplay = (role: string | undefined) => {
+    switch (role) {
+      case "Member":
+        return "Member";
+      case "ProjectManager":
+        return "Project Manager";
+      case "BusinessOwner":
+        return "Business Owner";
+      default:
+        return role || "";
+    }
+  };
+
+  const getStatusIcon = (status: string | undefined) => {
+    switch (status) {
+      case "Pending":
+        return <Clock size={14} />;
+      case "Accepted":
+        return <CheckCircle2 size={14} />;
+      case "Rejected":
+        return <XCircle size={14} />;
+      case "Canceled":
+        return <AlertCircle size={14} />;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="business-page">
-      <div className="business-container">
-        {/* Header */}
-        <div className="header-wrap">
-          <div className="business-header">
-            <div className="business-avatar-small">
-              <Building2 className="icon-md icon-white" />
-            </div>
-            <div>
-              <h1 className="business-title">
-                {userDetail?.organization || "Search Business"}
-              </h1>
-              <p className="business-subtitle">
-                {currentBusiness
-                  ? "Business information"
-                  : "Discover and join businesses"}
-              </p>
-            </div>
-          </div>
+    <div className="biz-page">
+      {/* Page Header */}
+      <div className="biz-header">
+        <div className="biz-header__icon">
+          <Building2 size={24} />
         </div>
-
-        {/* Tabs */}
-        <div className="tabs">
-          <button
-            className={
-              activeTab === "my-business" ? "tab active" : "tab"
-            }
-            onClick={() => setActiveTab("my-business")}
-          >
-            {/* <Building2 className="icon-xs" /> */}
-            {currentBusiness ? "Business" : "Search"}
-          </button>
-          <button
-            className={
-              activeTab === "invitations" ? "tab active" : "tab"
-            }
-            onClick={() => setActiveTab("invitations")}
-          >
-            {/* <Mail className="icon-xs" /> */}
-            Invitations ({invitations.length})
-          </button>
-          <button
-            className={
-              activeTab === "send-join-request" ? "tab active" : "tab"
-            }
-            onClick={() => setActiveTab("send-join-request")}
-          >
-            {/* <Send className="icon-xs" /> */}
-            Sent Requests ({sentJoinRequests.length})
-          </button>
+        <div className="biz-header__text">
+          <h1 className="biz-header__title">
+            {userDetail?.organization || "Business Hub"}
+          </h1>
+          <p className="biz-header__subtitle">
+            {currentBusiness
+              ? "Manage your business membership"
+              : "Discover and connect with businesses"}
+          </p>
         </div>
+      </div>
 
+      {/* Tabs Navigation */}
+      <div className="biz-tabs">
+        <button
+          className={`biz-tabs__item ${
+            activeTab === "my-business" ? "biz-tabs__item--active" : ""
+          }`}
+          onClick={() => setActiveTab("my-business")}
+        >
+          <Building2 size={18} />
+          <span>{currentBusiness ? "My Business" : "Explore"}</span>
+        </button>
+        <button
+          className={`biz-tabs__item ${
+            activeTab === "invitations" ? "biz-tabs__item--active" : ""
+          }`}
+          onClick={() => setActiveTab("invitations")}
+        >
+          <Mail size={18} />
+          <span>Invitations</span>
+          {invitations.length > 0 && (
+            <span className="biz-tabs__badge">{invitations.length}</span>
+          )}
+        </button>
+        <button
+          className={`biz-tabs__item ${
+            activeTab === "send-join-request" ? "biz-tabs__item--active" : ""
+          }`}
+          onClick={() => setActiveTab("send-join-request")}
+        >
+          <Send size={18} />
+          <span>Requests</span>
+          {sentJoinRequests.length > 0 && (
+            <span className="biz-tabs__badge">{sentJoinRequests.length}</span>
+          )}
+        </button>
+      </div>
+
+      {/* Content Area */}
+      <div className="biz-content">
         {/* My Business Tab */}
         {activeTab === "my-business" && (
-          <div className="tabs-section stack-lg">
+          <div className="biz-section">
             {currentBusiness ? (
-              // User has organization -> Show business detail
               <>
-                <Card className="card">
-                  <div className="card-overlay" />
-                  <CardHeader className="card-header">
-                    <div className="card-top">
-                      <div className="card-main-row">
-                        <div className="avatar-gradient-lg">
-                          <Building2 className="icon-lg icon-white" />
-                        </div>
-                        <div>
-                          <CardTitle className="card-title">
-                            {currentBusiness.businessName}
-                          </CardTitle>
-                          <p className="info-row">
-                            <Users className="icon-xs" />
-                            Business Owner:{" "}
-                            <strong>{currentBusiness.businessOwnerName}</strong>
-                          </p>
-                          <p className="small-info">
-                            <Calendar className="icon-xs" />
-                            Created on:{" "}
-                            {new Date(
-                              currentBusiness.createdAt
-                            ).toLocaleDateString("vi-VN")}
-                          </p>
-                        </div>
+                {/* Business Card */}
+                <div className="biz-card biz-card--featured">
+                  <div className="biz-card__ribbon"></div>
+                  <div className="biz-card__header">
+                    <div className="biz-card__avatar">
+                      <Building2 size={32} />
+                    </div>
+                    <div className="biz-card__info">
+                      <h2 className="biz-card__name">
+                        {currentBusiness.businessName}
+                      </h2>
+                      <div className="biz-card__meta">
+                        <Users size={14} />
+                        <span>
+                          Owner:{" "}
+                          <strong>{currentBusiness.businessOwnerName}</strong>
+                        </span>
                       </div>
-                      <div className="info-actions">
-                        <Badge className="badge badge-role">
-                          <div className="status-dot mr-1" />
-                          {userDetail?.roleName === "Member"
-                            ? "Member"
-                            : userDetail?.roleName === "ProjectManager"
-                              ? "Project Manager"
-                              : userDetail?.roleName === "BusinessOwner"
-                                ? "Business Owner"
-                                : userDetail?.roleName}
-                        </Badge>
-                        {userDetail?.roleName !== "BusinessOwner" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="btn-outline btn-sm"
-                            onClick={() => setShowLeaveModal(true)}
-                          >
-                            <X className="icon-xs mr-1" />
-                            Leave Business
-                          </Button>
-                        )}
+                      <div className="biz-card__meta">
+                        <Calendar size={14} />
+                        <span>
+                          Created{" "}
+                          {new Date(
+                            currentBusiness.createdAt
+                          ).toLocaleDateString("vi-VN")}
+                        </span>
                       </div>
                     </div>
-                  </CardHeader>
-                </Card>
+                    <div className="biz-card__actions">
+                      <span className="biz-role-badge">
+                        <span className="biz-role-badge__dot"></span>
+                        {getRoleDisplay(userDetail?.roleName)}
+                      </span>
+                      {userDetail?.roleName !== "BusinessOwner" && (
+                        <button
+                          className="biz-btn biz-btn--outline-danger"
+                          onClick={() => setShowLeaveModal(true)}
+                        >
+                          <LogOut size={16} />
+                          Leave
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
                 {/* Stats Grid */}
-                <div className="grid-responsive">
-                  <Card className="card card--hover-shadow">
-                    <div className="card-top-bar card-top-bar--blue" />
-                    <CardHeader className="card-header--pb">
-                      <CardDescription className="card-description">
-                        <div className="icon-wrap icon-wrap--blue">
-                          <Users className="icon-sm icon-blue" />
-                        </div>
-                        Total Members
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="stat-number">
+                <div className="biz-stats">
+                  <div className="biz-stat biz-stat--blue">
+                    <div className="biz-stat__icon">
+                      <Users size={22} />
+                    </div>
+                    <div className="biz-stat__content">
+                      <span className="biz-stat__value">
                         {currentBusiness.memberCount}
-                      </div>
-                      <p className="small-info muted-foreground">
-                        <TrendingUp className="icon-xs icon-green" /> Active
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="card card--hover-shadow">
-                    <div className="card-top-bar card-top-bar--orange" />
-                    <CardHeader className="card-header--pb">
-                      <CardDescription className="card-description">
-                        <div className="icon-wrap icon-wrap--orange">
-                          <FolderKanban className="icon-sm icon-orange" />
-                        </div>
-                        Projects
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="stat-number">
+                      </span>
+                      <span className="biz-stat__label">Team Members</span>
+                    </div>
+                    <div className="biz-stat__trend">
+                      <TrendingUp size={14} />
+                      <span>Active</span>
+                    </div>
+                  </div>
+                  <div className="biz-stat biz-stat--orange">
+                    <div className="biz-stat__icon">
+                      <FolderKanban size={22} />
+                    </div>
+                    <div className="biz-stat__content">
+                      <span className="biz-stat__value">
                         {currentBusiness.projectCount}
-                      </div>
-                      <p className="small-info muted-foreground">
-                        In progress
-                      </p>
-                    </CardContent>
-                  </Card>
+                      </span>
+                      <span className="biz-stat__label">Projects</span>
+                    </div>
+                    <div className="biz-stat__trend biz-stat__trend--muted">
+                      <span>In progress</span>
+                    </div>
+                  </div>
                 </div>
               </>
             ) : (
-              // User doesn't have organization -> Show search
               <>
-                <Card className="card">
-                  <CardHeader>
-                    <CardTitle className="section-title">
-                      <Search className="icon-sm icon-orange" /> Search Business
-                    </CardTitle>
-                    <CardDescription className="text-base">
-                      You haven't joined any business yet. Search and send join requests.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="search-row">
-                      <div className="search-input-wrap">
-                        <Search className="search-icon" />
-                        <Input
-                          placeholder="Enter business name to search..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                          className="input-search"
-                          disabled={isSearching}
-                        />
-                      </div>
-                      <Button
-                        onClick={handleSearch}
+                {/* Search Section */}
+                <div className="biz-search-card">
+                  <div className="biz-search-card__header">
+                    <Search className="biz-search-card__icon" size={20} />
+                    <h3 className="biz-search-card__title">
+                      Find Your Business
+                    </h3>
+                  </div>
+                  <p className="biz-search-card__desc">
+                    You haven't joined any business yet. Search and send join
+                    requests to get started.
+                  </p>
+                  <div className="biz-search">
+                    <div className="biz-search__input-wrap">
+                      <Search className="biz-search__icon" size={18} />
+                      <input
+                        type="text"
+                        placeholder="Search by business name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                        className="biz-search__input"
                         disabled={isSearching}
-                        className="btn btn-gradient btn-lg"
-                      >
-                        {isSearching ? (
-                          <>
-                            <Loader2 className="spinner icon-sm mr-1" />
-                            Searching...
-                          </>
-                        ) : (
-                          <>
-                            <Search className="icon-sm mr-1" />
-                            Search
-                          </>
-                        )}
-                      </Button>
+                      />
                     </div>
-                  </CardContent>
-                </Card>
+                    <button
+                      onClick={handleSearch}
+                      disabled={isSearching}
+                      className="biz-btn biz-btn--primary"
+                    >
+                      {isSearching ? (
+                        <>
+                          <Loader2 className="biz-btn__spinner" size={18} />
+                          <span>Searching...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Search size={18} />
+                          <span>Search</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
 
-                {/* All Businesses Display hoặc Search Results */}
-                <div className="stack-md">
-                  <h3 className="section-title">
-                    <Building2 className="icon-sm icon-orange" />
-                    {(searchQuery
-                      ? "Search Results"
-                      : "All Businesses") +
-                      " (" +
-                      (searchQuery
+                {/* Business List */}
+                <div className="biz-list-section">
+                  <h3 className="biz-list-section__title">
+                    <Building2 size={18} />
+                    {searchQuery ? "Search Results" : "Available Businesses"}
+                    <span className="biz-list-section__count">
+                      {searchQuery
                         ? searchResults.length
-                        : allBusinesses.length) +
-                      ")"}
+                        : allBusinesses.length}
+                    </span>
                   </h3>
-                  <div className="grid-responsive">
+
+                  <div className="biz-grid">
                     {(searchQuery ? searchResults : allBusinesses).map(
-                      (business, index) => (
-                        <Card
-                          key={business.id}
-                          className="card card--hover-shadow"
-                        >
-                          <CardContent className="card-content--pt6">
-                            <div className="list-row">
-                              <div className="avatar-gradient-sm">
-                                <Building2 className="icon-md icon-white" />
-                              </div>
-                              <div className="list-body">
-                                <h4 className="card-item-title">
-                                  {business.businessName}
-                                </h4>
-                                <p className="muted-foreground">
-                                  Business Owner: {business.businessOwnerName}
-                                </p>
-                                <div className="list-stats muted-foreground">
-                                  <span className="stat-item">
-                                    <Users className="icon-sm" />
-                                    {business.memberCount} members
-                                  </span>
-                                  <span className="stat-item">
-                                    <FolderKanban className="icon-sm" />
-                                    {business.projectCount} projects
-                                  </span>
-                                </div>
-                                <Button
-                                  onClick={() =>
-                                    handleJoinBusiness(business.id)
-                                  }
-                                  size="sm"
-                                  className={
-                                    `btn btn-full btn-elevated ` +
-                                    (isPendingRequestOrInvite(business)
-                                      ? "btn-disabled"
-                                      : "btn-gradient")
-                                  }
-                                  disabled={isPendingRequestOrInvite(business)}
-                                >
-                                  <Send className="icon-sm mr-1" />
-                                  {isPendingRequestOrInvite(business)
-                                    ? "Cannot send request"
-                                    : "Send Join Request"}
-                                </Button>
-                              </div>
+                      (business) => (
+                        <div key={business.id} className="biz-item">
+                          <div className="biz-item__avatar">
+                            <Building2 size={24} />
+                          </div>
+                          <div className="biz-item__content">
+                            <h4 className="biz-item__name">
+                              {business.businessName}
+                            </h4>
+                            <p className="biz-item__owner">
+                              Owner: {business.businessOwnerName}
+                            </p>
+                            <div className="biz-item__stats">
+                              <span className="biz-item__stat">
+                                <Users size={14} />
+                                {business.memberCount} members
+                              </span>
+                              <span className="biz-item__stat">
+                                <FolderKanban size={14} />
+                                {business.projectCount} projects
+                              </span>
                             </div>
-                          </CardContent>
-                        </Card>
+                          </div>
+                          <button
+                            onClick={() => handleJoinBusiness(business.id)}
+                            className={`biz-btn biz-btn--full ${
+                              isPendingRequestOrInvite(business)
+                                ? "biz-btn--disabled"
+                                : "biz-btn--gradient"
+                            }`}
+                            disabled={isPendingRequestOrInvite(business)}
+                          >
+                            {isPendingRequestOrInvite(business) ? (
+                              <>
+                                <Clock size={16} />
+                                <span>Pending</span>
+                              </>
+                            ) : (
+                              <>
+                                <Send size={16} />
+                                <span>Request to Join</span>
+                                <ArrowRight
+                                  size={16}
+                                  className="biz-btn__arrow"
+                                />
+                              </>
+                            )}
+                          </button>
+                        </div>
                       )
                     )}
                   </div>
+
+                  {(searchQuery ? searchResults : allBusinesses).length ===
+                    0 && (
+                    <div className="biz-empty">
+                      <Building2 size={48} className="biz-empty__icon" />
+                      <p className="biz-empty__text">No businesses found</p>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -612,263 +620,173 @@ export default function BusinessDashboard() {
 
         {/* Invitations Tab */}
         {activeTab === "invitations" && (
-          <div className="stack-md mt-lg">
+          <div className="biz-section">
             {isLoadingInvitations ? (
-              <div className="text-center padded-xxl">
-                <Loader2 className="loader-medium spinner centered mb-4" />
-                <p className="muted-foreground">Loading invitations...</p>
+              <div className="biz-loading biz-loading--inline">
+                <Loader2 className="biz-loading__icon" />
+                <p>Loading invitations...</p>
               </div>
             ) : invitations.length === 0 ? (
-              <Card className="card card--dashed">
-                <CardContent className="padded-xxl text-center">
-                  <Mail className="icon-xl muted-foreground centered mb-4 opacity-50" />
-                  <p className="text-lg muted-foreground">
-                    You have no invitations yet
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="biz-empty-state">
+                <div className="biz-empty-state__icon">
+                  <Mail size={40} />
+                </div>
+                <h3 className="biz-empty-state__title">No Invitations</h3>
+                <p className="biz-empty-state__desc">
+                  You don't have any pending invitations at the moment.
+                </p>
+              </div>
             ) : (
-              invitations.map((invitation) => (
-                <Card key={invitation.id} className="card card--hover-shadow">
-                  <CardContent className="invite-row">
-                    {/* Tổ chức + Avatar chủ doanh nghiệp */}
-                    <div className="invite-left">
-                      <div className="invite-avatar">
-                        {invitation.businessOwnerAvatar ? (
-                          <img
-                            src={invitation.businessOwnerAvatar}
-                            alt="avatar"
-                            className="avatar-img"
-                          />
-                        ) : (
-                          <Mail className="icon-md icon-white" />
+              <div className="biz-invitations">
+                {invitations.map((invitation) => (
+                  <div key={invitation.id} className="biz-invite">
+                    <div className="biz-invite__avatar">
+                      {invitation.businessOwnerAvatar ? (
+                        <img src={invitation.businessOwnerAvatar} alt="" />
+                      ) : (
+                        <Mail size={22} />
+                      )}
+                    </div>
+                    <div className="biz-invite__content">
+                      <h4 className="biz-invite__org">
+                        {invitation.organizationName}
+                      </h4>
+                      <p className="biz-invite__from">
+                        From: <strong>{invitation.businessOwnerName}</strong>
+                      </p>
+                      <p className="biz-invite__email">
+                        {invitation.businessOwnerEmail}
+                      </p>
+                      <p className="biz-invite__date">
+                        <Calendar size={12} />
+                        {new Date(invitation.createdAt).toLocaleDateString(
+                          "vi-VN"
                         )}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-lg">
-                          {invitation.organizationName}
-                        </h4>
-                        <div className="meta-row">
-                          Invited by Business Owner:{" "}
-                          <span className="font-semibold ml-1">
-                            {invitation.businessOwnerName}
-                          </span>
-                        </div>
-                        <div className="meta-row muted-foreground">
-                          {invitation.businessOwnerEmail}
-                        </div>
-                      </div>
+                      </p>
                     </div>
-                    {/* Thông tin chi tiết và trạng thái */}
-                    <div className="invite-body">
-                      <div className="meta-row small-info">
-                        <span className="muted-foreground mr-3">Sent to: </span>
-                        <span className="font-semibold">
-                          {invitation.memberEmail}
-                        </span>
-                      </div>
-                      <div className="meta-row muted-foreground small-info">
-                        <span>
-                          Invitation date:{" "}
-                          {new Date(invitation.createdAt).toLocaleDateString(
-                            "vi-VN"
-                          )}
-                        </span>
-                        {invitation.statusDisplay === "Accepted" &&
-                          invitation.respondedAt && (
-                            <span>
-                              - Accepted on:{" "}
-                              {new Date(
-                                invitation.respondedAt
-                              ).toLocaleDateString("vi-VN")}
-                            </span>
-                          )}
-                      </div>
-                    </div>
-                    {/* Phản hồi */}
-                    <div className="response-col">
-                      <Badge
-                        className={
-                          invitation.statusDisplay === "Pending"
-                            ? "badge badge-pending"
-                            : invitation.statusDisplay === "Accepted"
-                              ? "badge badge-accepted"
-                              : "badge badge-rejected"
-                        }
+                    <div className="biz-invite__actions">
+                      <span
+                        className={`biz-status biz-status--${invitation.statusDisplay?.toLowerCase()}`}
                       >
+                        {getStatusIcon(invitation.statusDisplay)}
                         {invitation.statusDisplay === "Pending"
-                          ? "Awaiting response"
-                          : invitation.statusDisplay === "Accepted"
-                            ? "Accepted"
-                            : invitation.statusDisplay === "Rejected"
-                              ? "Rejected"
-                              : "Auto-canceled"}
-                      </Badge>
-                      {/* Chỉ show button khi đang chờ, có thể tuỳ chỉnh logic */}
+                          ? "Awaiting Response"
+                          : invitation.statusDisplay}
+                      </span>
                       {invitation.statusDisplay === "Pending" && (
-                        <div className="action-row">
-                          <Button
+                        <div className="biz-invite__buttons">
+                          <button
                             onClick={() =>
                               handleAcceptInvitation(invitation.id)
                             }
-                            className="btn btn-accept btn-sm"
-                            size="sm"
+                            className="biz-btn biz-btn--success"
                           >
-                            <Check className="icon-sm mr-1" /> Accept
-                          </Button>
-                          <Button
-                            variant="outline"
+                            <Check size={16} />
+                            Accept
+                          </button>
+                          <button
                             onClick={() => {
                               setRejectingId(invitation.id);
                               setShowRejectModal(true);
                             }}
-                            size="sm"
-                            className="btn btn-outline-danger btn-sm"
+                            className="biz-btn biz-btn--outline-danger"
                           >
-                            <X className="icon-sm mr-1" /> Reject
-                          </Button>
+                            <X size={16} />
+                            Decline
+                          </button>
                         </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
 
         {/* Sent Requests Tab */}
         {activeTab === "send-join-request" && (
-          <div className="stack-md mt-lg">
-            {/* Filter Section */}
-            <div className="filter-row">
-              <h3 className="text-lg font-semibold"></h3>
-              <div className="filter-controls">
-                <span className="text-sm text-muted-foreground">Filter by:</span>
-                <Select
-                  value={requestStatusFilter}
-                  onValueChange={setRequestStatusFilter}
-                >
-                  <SelectTrigger className="select-trigger">
-                    <SelectValue placeholder="Select status">
-                      {statusOptions.find((o) => o.value === requestStatusFilter)?.label}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                        className="select-item"
-                      >
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <div className="biz-section">
+            {/* Filter */}
+            <div className="biz-filter">
+              <span className="biz-filter__label">Filter by status:</span>
+              <div className="biz-filter__tabs">
+                {statusOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    className={`biz-filter__tab ${
+                      requestStatusFilter === option.value
+                        ? "biz-filter__tab--active"
+                        : ""
+                    }`}
+                    onClick={() => setRequestStatusFilter(option.value)}
+                  >
+                    {option.icon && <option.icon size={14} />}
+                    {option.label}
+                  </button>
+                ))}
               </div>
             </div>
 
             {isLoadingRequests ? (
-              <div className="text-center padded-xxl">
-                <Loader2 className="loader-medium spinner centered mb-4" />
-                <p className="muted-foreground">Loading requests...</p>
+              <div className="biz-loading biz-loading--inline">
+                <Loader2 className="biz-loading__icon" />
+                <p>Loading requests...</p>
               </div>
             ) : filteredSentRequests.length === 0 ? (
-              <Card className="card card--dashed">
-                <CardContent className="padded-xxl text-center">
-                  <Send className="icon-xl muted-foreground centered mb-4 opacity-50" />
-                  <p className="text-lg muted-foreground">
-                    {requestStatusFilter === "All"
-                      ? "You haven't sent any requests yet"
-                      : `No requests with status "${statusOptions.find(
-                        (o) => o.value === requestStatusFilter
-                      )?.label || requestStatusFilter
-                      }"`}
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="biz-empty-state">
+                <div className="biz-empty-state__icon">
+                  <Send size={40} />
+                </div>
+                <h3 className="biz-empty-state__title">No Requests</h3>
+                <p className="biz-empty-state__desc">
+                  {requestStatusFilter === "All"
+                    ? "You haven't sent any join requests yet."
+                    : `No requests with status "${requestStatusFilter}".`}
+                </p>
+              </div>
             ) : (
-              filteredSentRequests.map((request) => (
-                <Card key={request.id} className="card card--hover-shadow">
-                  <CardContent className="card-content list-row-compact">
-                    {/* Avatar, tên tổ chức */}
-                    <div className="list-left">
-                      <div className="avatar-gradient-lg">
-                        {request.businessOwnerAvatar ? (
-                          <img
-                            src={request.businessOwnerAvatar}
-                            alt="avatar"
-                            className="avatar-img"
-                          />
-                        ) : (
-                          <Send className="icon-md icon-white" />
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-lg">
-                          {request.organizationName}
-                        </h4>
-                        <div className="meta-row">
-                          Business Owner:{" "}
-                          <span className="font-semibold ml-1">
-                            {request.businessOwnerName}
-                          </span>
-                        </div>
-                        <div className="meta-row muted-foreground">
-                          {request.businessOwnerEmail}
-                        </div>
-                      </div>
+              <div className="biz-requests">
+                {filteredSentRequests.map((request) => (
+                  <div key={request.id} className="biz-request">
+                    <div className="biz-request__avatar">
+                      {request.businessOwnerAvatar ? (
+                        <img src={request.businessOwnerAvatar} alt="" />
+                      ) : (
+                        <Send size={22} />
+                      )}
                     </div>
-                    {/* trạng thái */}
-                    <div className="list-body-compact">
-                      <div className="meta-row muted-foreground">
-                        Sent on:{" "}
+                    <div className="biz-request__content">
+                      <h4 className="biz-request__org">
+                        {request.organizationName}
+                      </h4>
+                      <p className="biz-request__owner">
+                        Owner: <strong>{request.businessOwnerName}</strong>
+                      </p>
+                      <p className="biz-request__email">
+                        {request.businessOwnerEmail}
+                      </p>
+                      <p className="biz-request__date">
+                        <Calendar size={12} />
+                        Sent on{" "}
                         {new Date(request.createdAt).toLocaleDateString(
                           "vi-VN"
                         )}
-                      </div>
-                      {request.statusDisplay === "Accepted" && (
-                        <div className="text-xs text-success">
-                          Approved on:{" "}
-                          {request.respondedAt
-                            ? new Date(request.respondedAt).toLocaleDateString(
-                              "vi-VN"
-                            )
-                            : null}
-                        </div>
-                      )}
-                      {request.statusDisplay === "Rejected" && (
-                        <div className="text-xs text-error">Rejected</div>
-                      )}
-                      {request.statusDisplay === "Canceled" && (
-                        <div className="text-xs text-muted">Canceled</div>
-                      )}
+                      </p>
                     </div>
-                    <Badge
-                      className={
-                        request.statusDisplay === "Pending"
-                          ? "badge badge-pending"
-                          : request.statusDisplay === "Accepted"
-                            ? "badge badge-accepted"
-                            : request.statusDisplay === "Rejected"
-                              ? "badge badge-rejected"
-                              : "badge badge-canceled"
-                      }
+                    <span
+                      className={`biz-status biz-status--${request.statusDisplay?.toLowerCase()}`}
                     >
+                      {getStatusIcon(request.statusDisplay)}
                       {request.statusDisplay === "Pending"
-                        ? "Pending approval"
-                        : request.statusDisplay === "Accepted"
-                          ? "Accepted"
-                          : request.statusDisplay === "Rejected"
-                            ? "Rejected"
-                            : request.statusDisplay === "Canceled"
-                              ? "Auto-canceled"
-                              : request.statusDisplay}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              ))
+                        ? "Pending Approval"
+                        : request.statusDisplay === "Canceled"
+                        ? "Auto-canceled"
+                        : request.statusDisplay}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -876,8 +794,8 @@ export default function BusinessDashboard() {
 
       <ConfirmModal
         open={showLeaveModal}
-        title="Are you sure you want to leave the business?"
-        content="After leaving, you will lose access to the business's resources and projects."
+        title="Leave this business?"
+        content="You will lose access to all business resources and projects. This action cannot be undone."
         loading={leavingLoading}
         onCancel={() => setShowLeaveModal(false)}
         onConfirm={handleLeaveBusiness}
@@ -888,15 +806,15 @@ export default function BusinessDashboard() {
 
       <ConfirmModal
         open={showRejectModal}
-        title="Are you sure you want to reject this invitation?"
-        content="After rejecting, you won't be able to join this business unless invited again."
+        title="Decline invitation?"
+        content="You won't be able to join this business unless you receive a new invitation."
         loading={loadingReject}
         onCancel={() => {
           setShowRejectModal(false);
           setRejectingId(null);
         }}
         onConfirm={handleRejectInvitation}
-        confirmText="Reject"
+        confirmText="Decline"
         cancelText="Cancel"
         destructive
       />

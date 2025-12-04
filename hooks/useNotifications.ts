@@ -159,11 +159,11 @@ export const useNotifications = ({
         setNotifications(result.data);
       } else {
         console.error("❌ Fetch notifications failed:", result.error);
-        toast.error("Không thể tải thông báo");
+        toast.error("Failed to load notifications");
       }
     } catch (error) {
       console.error("❌ Fetch notifications error:", error);
-      toast.error("Lỗi khi tải thông báo");
+      toast.error("Error loading notifications");
     } finally {
       setIsLoading(false);
     }
@@ -221,11 +221,11 @@ export const useNotifications = ({
           }
         }
       } else {
-        toast.error("Không thể đánh dấu đã đọc");
+        toast.error("Failed to mark as read");
       }
     } catch (error) {
       console.error("❌ Mark read error:", error);
-      toast.error("Lỗi khi đánh dấu đã đọc");
+      toast.error("Error marking as read");
     }
   }, []);
 
@@ -243,13 +243,13 @@ export const useNotifications = ({
           }))
         );
         setUnreadCount(0);
-        toast.success("Đã đánh dấu tất cả là đã đọc");
+        toast.success("All notifications marked as read");
       } else {
-        toast.error("Không thể đánh dấu tất cả");
+        toast.error("Failed to mark all as read");
       }
     } catch (error) {
       console.error("❌ Mark all error:", error);
-      toast.error("Lỗi khi đánh dấu tất cả");
+      toast.error("Error marking all as read");
     }
   }, [userId]);
 
@@ -271,13 +271,13 @@ export const useNotifications = ({
             prev.filter((n) => n.id !== notificationId)
           );
 
-          toast.success("Đã xóa thông báo");
+          toast.success("Notification deleted");
         } else {
-          toast.error("Không thể xóa thông báo");
+          toast.error("Failed to delete notification");
         }
       } catch (error) {
         console.error("❌ Delete error:", error);
-        toast.error("Lỗi khi xóa thông báo");
+        toast.error("Error deleting notification");
       }
     },
     [notifications]

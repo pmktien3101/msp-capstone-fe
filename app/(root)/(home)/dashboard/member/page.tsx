@@ -8,8 +8,24 @@ import { MemberTaskCard } from "@/components/tasks/MemberTaskCard";
 import { projectService } from "@/services/projectService";
 import { taskService } from "@/services/taskService";
 import { meetingService } from "@/services/meetingService";
-import { getProjectStatusLabel, getProjectStatusColor } from '@/constants/status';
-import { CheckCircle, Layers, Clock, FolderOpen, ChevronRight, ChevronLeft, MapPin, Users, Phone } from 'lucide-react';
+import {
+  getProjectStatusLabel,
+  getProjectStatusColor,
+} from "@/constants/status";
+import {
+  CheckCircle,
+  Layers,
+  Clock,
+  FolderOpen,
+  ChevronRight,
+  ChevronLeft,
+  MapPin,
+  Users,
+  Video,
+  Calendar,
+  ArrowRight,
+  Briefcase,
+} from "lucide-react";
 import "@/app/styles/member-dashboard.scss";
 import { formatDate } from "@/lib/formatDate";
 
@@ -38,7 +54,8 @@ export default function MemberDashboardPage() {
         }
 
         const projRes = await projectService.getProjectsByMemberId(userId);
-        const projects: Project[] = projRes.success && projRes.data ? projRes.data.items : [];
+        const projects: Project[] =
+          projRes.success && projRes.data ? projRes.data.items : [];
 
         if (mounted) setAssignedProjects(projects);
 
@@ -60,7 +77,9 @@ export default function MemberDashboardPage() {
           id: t.id,
           title: t.title,
           // find project name from fetched projects, fallback to projectId
-          project: (projects.find((p) => p.id === t.projectId) as any)?.name || t.projectId,
+          project:
+            (projects.find((p) => p.id === t.projectId) as any)?.name ||
+            t.projectId,
           status: t.status,
           dueDate: t.endDate || t.startDate,
           priority: (t.priority as any) || undefined,
@@ -69,7 +88,9 @@ export default function MemberDashboardPage() {
         if (mounted) setMyTasks(cleanedTasks);
 
         // 3. For meetings, fetch meetings for each project and pick upcoming ones
-        const meetingPromises = projects.map((p) => meetingService.getMeetingsByProjectId(p.id));
+        const meetingPromises = projects.map((p) =>
+          meetingService.getMeetingsByProjectId(p.id)
+        );
         const meetingResults = await Promise.all(meetingPromises);
         const allMeetings: any[] = meetingResults.reduce((acc, res) => {
           if (res.success && Array.isArray(res.data)) {
@@ -85,10 +106,12 @@ export default function MemberDashboardPage() {
             // Only show scheduled/ongoing meetings with valid startTime
             if (!m || !m.startTime) return false;
             const status = m.status?.toLowerCase();
-            if (status === 'finished' || status === 'cancel') return false;
-            
+            if (status === "finished" || status === "cancel") return false;
+
             // Filter meetings where current user is an attendee
-            const isAttendee = m.attendees?.some((a: any) => a.id === userId || a.email === email);
+            const isAttendee = m.attendees?.some(
+              (a: any) => a.id === userId || a.email === email
+            );
             return isAttendee;
           })
           .map((m) => {
@@ -99,14 +122,27 @@ export default function MemberDashboardPage() {
               title: m.title,
               date: start.toISOString(),
               time: end
-                ? `${start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}`
-                : start.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+                ? `${start.toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })} - ${end.toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}`
+                : start.toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
               location: m.recordUrl || m.projectName || "Online",
-              attendees: (m.attendees || []).map((a: any) => a.fullName || a.email || a.id),
+              attendees: (m.attendees || []).map(
+                (a: any) => a.fullName || a.email || a.id
+              ),
             };
           })
           .filter((m) => new Date(m.date) >= now)
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          .sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+          );
 
         if (mounted) setUpcomingMeetings(upcoming);
       } catch (err) {
@@ -134,16 +170,25 @@ export default function MemberDashboardPage() {
   const now = new Date();
   const overdueTasks = myTasks.filter(
     (task) =>
-      task.dueDate && new Date(task.dueDate) < now &&
+      task.dueDate &&
+      new Date(task.dueDate) < now &&
       !(task.status === "Done" || task.status === "Cancelled")
   ).length;
+
+  // Get current hour for greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
 
   if (loading) {
     return (
       <div className="member-dashboard">
         <div className="loading-container">
           <div className="loading-spinner"></div>
-          <p>Loading data...</p>
+          <p>Loading your workspace...</p>
         </div>
       </div>
     );
@@ -155,114 +200,115 @@ export default function MemberDashboardPage() {
       <div className="dashboard-header">
         <div className="header-content">
           <div className="welcome-section">
-            <h1>Welcome, {fullName}!</h1>
-            <p>Here's an overview of your work</p>
+            <span className="greeting-text">{getGreeting()}</span>
+            <h1>{fullName}</h1>
+            <p>Here's what's happening with your projects today</p>
           </div>
           <button
-            className="view-all-projects-link"
+            className="view-all-projects-btn"
             onClick={() => router.push("/projects")}
           >
-            View All Projects
+            <Briefcase size={18} />
+            <span>All Projects</span>
+            <ArrowRight size={16} />
           </button>
         </div>
       </div>
 
       {/* Statistics Cards */}
       <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#10b981 0%,#059669 100%)', color: '#fff' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M9 12L11 14L15 10"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+        <div className="stat-card completed">
+          <div className="stat-icon">
+            <CheckCircle size={22} />
           </div>
           <div className="stat-content">
             <div className="stat-number">{completedTasks}</div>
-            <div className="stat-label">Done</div>
+            <div className="stat-label">Completed</div>
           </div>
+          <div className="stat-decoration"></div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#3b82f6 0%,#2563eb 100%)', color: '#fff' }}>
-            <Layers size={24} />
+        <div className="stat-card in-progress">
+          <div className="stat-icon">
+            <Layers size={22} />
           </div>
           <div className="stat-content">
             <div className="stat-number">{inProgressTasks}</div>
             <div className="stat-label">In Progress</div>
           </div>
+          <div className="stat-decoration"></div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#f59e0b 0%,#d97706 100%)', color: '#fff' }}>
-            <Clock size={24} />
+        <div className="stat-card overdue">
+          <div className="stat-icon">
+            <Clock size={22} />
           </div>
           <div className="stat-content">
             <div className="stat-number">{overdueTasks}</div>
             <div className="stat-label">Overdue</div>
           </div>
+          <div className="stat-decoration"></div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'linear-gradient(135deg,#ff7c3a 0%,#ff5e13 100%)', color: '#fff' }}>
-            <FolderOpen size={24} />
+        <div className="stat-card projects">
+          <div className="stat-icon">
+            <FolderOpen size={22} />
           </div>
           <div className="stat-content">
             <div className="stat-number">{assignedProjects.length}</div>
-            <div className="stat-label">Projects Joined</div>
+            <div className="stat-label">Projects</div>
           </div>
+          <div className="stat-decoration"></div>
         </div>
       </div>
 
       {/* Content Grid */}
       <div className="content-grid">
         {/* My Tasks */}
-        <div className="content-card">
+        <div className="content-card tasks-card">
           <div className="card-header">
-            <h3>Assigned Tasks</h3>
-            <span className="task-count">{totalTasks} tasks</span>
+            <div className="header-left">
+              <div className="header-icon">
+                <Layers size={18} />
+              </div>
+              <h3>My Tasks</h3>
+            </div>
+            <span className="badge">{totalTasks}</span>
           </div>
           <div className="card-content">
             {myTasks.length === 0 ? (
               <div className="empty-state">
-                <p>You don't have any tasks yet</p>
+                <div className="empty-icon">
+                  <CheckCircle size={40} />
+                </div>
+                <p>No tasks assigned yet</p>
+                <span>Tasks will appear here once assigned</span>
               </div>
             ) : (
               <div className="tasks-list">
-                {(showAllTasks ? myTasks : myTasks.slice(0, 3)).map(
+                {(showAllTasks ? myTasks : myTasks.slice(0, 4)).map(
                   (task, index) => (
                     <MemberTaskCard key={task.id} task={task} index={index} />
                   )
                 )}
-                {myTasks.length > 3 && !showAllTasks && (
+                {myTasks.length > 4 && !showAllTasks && (
                   <div className="view-more">
                     <button
                       className="view-more-button"
                       onClick={() => setShowAllTasks(true)}
                     >
-                      <span>View {myTasks.length - 3} more tasks</span>
+                      <span>Show {myTasks.length - 4} more</span>
                       <ChevronRight size={16} />
                     </button>
                   </div>
                 )}
-                {showAllTasks && myTasks.length > 3 && (
+                {showAllTasks && myTasks.length > 4 && (
                   <div className="view-more">
                     <button
                       className="view-less-button"
                       onClick={() => setShowAllTasks(false)}
                     >
-                      <span>Collapse</span>
+                      <span>Show less</span>
                       <ChevronLeft size={16} />
                     </button>
                   </div>
@@ -275,21 +321,28 @@ export default function MemberDashboardPage() {
         {/* Right Column - Projects and Meetings */}
         <div className="right-column">
           {/* Assigned Projects */}
-          <div className="content-card">
+          <div className="content-card projects-card">
             <div className="card-header">
-              <h3>Recent Projects</h3>
-              <span className="project-count">
-                {assignedProjects.length} projects
-              </span>
+              <div className="header-left">
+                <div className="header-icon">
+                  <Briefcase size={18} />
+                </div>
+                <h3>My Projects</h3>
+              </div>
+              <span className="badge">{assignedProjects.length}</span>
             </div>
             <div className="card-content">
               {assignedProjects.length === 0 ? (
                 <div className="empty-state">
-                  <p>You haven't been assigned to any projects yet</p>
+                  <div className="empty-icon">
+                    <FolderOpen size={40} />
+                  </div>
+                  <p>No projects yet</p>
+                  <span>You'll see projects here once assigned</span>
                 </div>
               ) : (
                 <div className="projects-list">
-                  {assignedProjects.map((project) => (
+                  {assignedProjects.slice(0, 3).map((project) => (
                     <div
                       key={project.id}
                       className="project-item"
@@ -297,111 +350,115 @@ export default function MemberDashboardPage() {
                       tabIndex={0}
                       onClick={() => router.push(`/projects/${project.id}`)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
+                        if (e.key === "Enter" || e.key === " ") {
                           router.push(`/projects/${project.id}`);
                         }
                       }}
                     >
-                      <div className="project-left">
-                        <div className="project-meta">
-                          <div className="project-name">{project.name}</div>
-                          {project.endDate && (
-                            <div className="project-deadline">Due: {formatDate(project.endDate)}</div>
-                          )}
-                        </div>
+                      <div className="project-info">
+                        <div className="project-name">{project.name}</div>
+                        {project.endDate && (
+                          <div className="project-deadline">
+                            <Calendar size={12} />
+                            <span>{formatDate(project.endDate)}</span>
+                          </div>
+                        )}
                       </div>
-
-                      <div className="project-actions">
-                        <span className="project-status" style={{background: getProjectStatusColor(project.status)}}>
-                          {getProjectStatusLabel(project.status)}
-                        </span>
+                      <div
+                        className="project-status-badge"
+                        style={{
+                          background: getProjectStatusColor(project.status),
+                        }}
+                      >
+                        {getProjectStatusLabel(project.status)}
                       </div>
                     </div>
                   ))}
+                  {assignedProjects.length > 3 && (
+                    <div className="view-more">
+                      <button
+                        className="view-more-button"
+                        onClick={() => router.push("/projects")}
+                      >
+                        <span>View all projects</span>
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
 
           {/* Upcoming Meetings */}
-          <div className="content-card">
+          <div className="content-card meetings-card">
             <div className="card-header">
-              <h3>Upcoming Meetings</h3>
-              <span className="meeting-count">
-                {upcomingMeetings.length} meetings
-              </span>
+              <div className="header-left">
+                <div className="header-icon">
+                  <Video size={18} />
+                </div>
+                <h3>Upcoming Meetings</h3>
+              </div>
+              <span className="badge">{upcomingMeetings.length}</span>
             </div>
             <div className="card-content">
               {upcomingMeetings.length === 0 ? (
                 <div className="empty-state">
-                  <p>You don't have any upcoming meetings</p>
+                  <div className="empty-icon">
+                    <Calendar size={40} />
+                  </div>
+                  <p>No upcoming meetings</p>
+                  <span>Your schedule is clear</span>
                 </div>
               ) : (
                 <div className="meetings-list">
-                  {upcomingMeetings.slice(0, 3).map((meeting, index) => (
+                  {upcomingMeetings.slice(0, 3).map((meeting) => (
                     <div
                       key={meeting.id}
                       className="meeting-item"
                       role="button"
                       tabIndex={0}
-                      onClick={() => router.push(`/meetings/${meeting.id}`)}
+                      onClick={() => router.push(`/meeting/${meeting.id}`)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') router.push(`/meetings/${meeting.id}`);
+                        if (e.key === "Enter" || e.key === " ")
+                          router.push(`/meeting/${meeting.id}`);
                       }}
                     >
-                      <div className="meeting-header">
-                        <div className="meeting-type">
-                          <div className={`type-icon`}>
-                            <Phone size={16} />
-                          </div>
-                          <span className="type-label">Meeting</span>
+                      <div className="meeting-left">
+                        <div className="meeting-date-box">
+                          <span className="day">
+                            {new Date(meeting.date).getDate()}
+                          </span>
+                          <span className="month">
+                            {new Date(meeting.date).toLocaleString("en-US", {
+                              month: "short",
+                            })}
+                          </span>
                         </div>
-                        <div className="meeting-date">
-                          {formatDate(meeting.date)}
-                        </div>
-                      </div>
-
-                      <div className="meeting-content">
-                        <h4 className="meeting-title">{meeting.title}</h4>
-                        <div className="meeting-details">
-                          <div className="meeting-time">
-                            <Clock size={14} />
-                            <span>{meeting.time}</span>
-                          </div>
-                          <div className="meeting-location">
-                            <MapPin size={14} />
-                            <span>{meeting.location}</span>
-                          </div>
-                          <div className="meeting-attendees">
-                            <Users size={14} />
-                            <span>
-                              {meeting.attendees.length} attendees
+                        <div className="meeting-info">
+                          <h4 className="meeting-title">{meeting.title}</h4>
+                          <div className="meeting-meta">
+                            <span className="meeting-time">
+                              <Clock size={12} />
+                              {meeting.time}
+                            </span>
+                            <span className="meeting-attendees">
+                              <Users size={12} />
+                              {meeting.attendees.length}
                             </span>
                           </div>
                         </div>
-
-                        {/* Join Button */}
-                        <div className="meeting-action">
-                          <button
-                            className="join-meeting-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (meeting.location?.includes("Online")) {
-                                alert(
-                                  `Join meeting: ${meeting.title}\nTime: ${meeting.time}\nLocation: ${meeting.location}`
-                                );
-                              } else {
-                                alert(
-                                  `Join meeting: ${meeting.title}\nTime: ${meeting.time}\nLocation: ${meeting.location}`
-                                );
-                              }
-                            }}
-                          >
-                            <span>Join</span>
-                            <Phone size={16} />
-                          </button>
-                        </div>
                       </div>
+                      <button
+                        className="join-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/meeting/${meeting.id}`);
+                        }}
+                      >
+                        <Video size={14} />
+                        <span>Join</span>
+                      </button>
                     </div>
                   ))}
 
@@ -411,8 +468,8 @@ export default function MemberDashboardPage() {
                         className="view-more-button"
                         onClick={() => router.push("/calendar")}
                       >
-                        <span>View All Meetings</span>
-                        <ChevronRight size={16} />
+                        <span>View all meetings</span>
+                        <ArrowRight size={14} />
                       </button>
                     </div>
                   )}

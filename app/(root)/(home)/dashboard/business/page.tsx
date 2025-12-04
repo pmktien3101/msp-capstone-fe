@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Chart, registerables } from "chart.js";
 import {
   LineChart,
@@ -11,8 +12,26 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useUser } from "@/hooks/useUser";
+import { projectService } from "@/services/projectService";
+import { meetingService } from "@/services/meetingService";
+import { userService } from "@/services/userService";
+import { Project } from "@/types/project";
+import { MeetingItem } from "@/types/meeting";
+import { GetUserResponse } from "@/types/user";
+import "../../../../styles/business-dashboard.scss";
 
 const BusinessDashboard = () => {
+  const router = useRouter();
+  const { userId } = useUser();
+
+  // Data states
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [meetings, setMeetings] = useState<MeetingItem[]>([]);
+  const [employees, setEmployees] = useState<GetUserResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // UI states
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [hoveredStat, setHoveredStat] = useState<string | null>(null);
   const [showAllMeetings, setShowAllMeetings] = useState(false);
@@ -25,21 +44,394 @@ const BusinessDashboard = () => {
   const meetingChartRef = useRef<HTMLCanvasElement>(null);
   const meetingChartInstance = useRef<Chart | null>(null);
 
-  // Project data for Recharts
-  const projectData = [
-    { month: "Jan", projects: 8 },
-    { month: "Feb", projects: 12 },
-    { month: "Mar", projects: 10 },
-    { month: "Apr", projects: 15 },
-    { month: "May", projects: 13 },
-    { month: "Jun", projects: 18 },
-    { month: "Jul", projects: 20 },
-    { month: "Aug", projects: 17 },
-    { month: "Sep", projects: 22 },
-  ];
+  // Helper function to get date range based on selected period
+  const getDateRange = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let startDate: Date;
+    let endDate: Date = new Date(today);
+    endDate.setHours(23, 59, 59, 999);
 
+    switch (selectedPeriod) {
+      case "week":
+        // This week (Monday to Sunday)
+        const dayOfWeek = today.getDay();
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - diffToMonday);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case "month":
+        // This month
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case "quarter":
+        // This quarter
+        const currentQuarter = Math.floor(now.getMonth() / 3);
+        startDate = new Date(now.getFullYear(), currentQuarter * 3, 1);
+        endDate = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case "year":
+        // This year
+        startDate = new Date(now.getFullYear(), 0, 1);
+        endDate = new Date(now.getFullYear(), 11, 31);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case "last-week":
+        // Last week
+        const lastWeekDay = today.getDay();
+        const diffToLastMonday = lastWeekDay === 0 ? 13 : lastWeekDay + 6;
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - diffToLastMonday);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case "last-month":
+        // Last month
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case "last-quarter":
+        // Last quarter
+        const lastQuarter = Math.floor(now.getMonth() / 3) - 1;
+        const lastQuarterYear =
+          lastQuarter < 0 ? now.getFullYear() - 1 : now.getFullYear();
+        const adjustedLastQuarter = lastQuarter < 0 ? 3 : lastQuarter;
+        startDate = new Date(lastQuarterYear, adjustedLastQuarter * 3, 1);
+        endDate = new Date(lastQuarterYear, (adjustedLastQuarter + 1) * 3, 0);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case "last-year":
+        // Last year
+        startDate = new Date(now.getFullYear() - 1, 0, 1);
+        endDate = new Date(now.getFullYear() - 1, 11, 31);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case "custom":
+        // Custom date range
+        if (customDateRange.startDate && customDateRange.endDate) {
+          startDate = new Date(customDateRange.startDate);
+          endDate = new Date(customDateRange.endDate);
+          endDate.setHours(23, 59, 59, 999);
+        } else {
+          // Default to this month if custom dates not set
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+          endDate.setHours(23, 59, 59, 999);
+        }
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        endDate.setHours(23, 59, 59, 999);
+    }
+
+    return { startDate, endDate };
+  }, [selectedPeriod, customDateRange]);
+
+  // Filter projects by date range
+  const filteredProjects = useMemo(() => {
+    const { startDate, endDate } = getDateRange;
+    return projects.filter((p) => {
+      const createdAt = new Date(p.createdAt);
+      return createdAt >= startDate && createdAt <= endDate;
+    });
+  }, [projects, getDateRange]);
+
+  // Filter meetings by date range
+  const filteredMeetings = useMemo(() => {
+    const { startDate, endDate } = getDateRange;
+    return meetings.filter((m) => {
+      if (!m.startTime) return false;
+      const meetingDate = new Date(m.startTime);
+      return meetingDate >= startDate && meetingDate <= endDate;
+    });
+  }, [meetings, getDateRange]);
+
+  // Fetch real data
   useEffect(() => {
-    if (chartRef.current) {
+    let mounted = true;
+
+    const loadData = async () => {
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        // 1. Fetch projects owned by this business owner
+        const projectRes = await projectService.getProjectsByBOId(userId);
+        const projectList: Project[] =
+          projectRes.success && projectRes.data ? projectRes.data.items : [];
+
+        if (mounted) setProjects(projectList);
+
+        // 2. Fetch employees managed by this business owner
+        const employeeRes = await userService.getMembersByBO(userId);
+        const employeeList: GetUserResponse[] =
+          employeeRes.success && employeeRes.data ? employeeRes.data : [];
+
+        if (mounted) setEmployees(employeeList);
+
+        // 3. Fetch meetings for each project
+        const meetingPromises = projectList.map((p) =>
+          meetingService.getMeetingsByProjectId(p.id)
+        );
+        const meetingResults = await Promise.all(meetingPromises);
+        const allMeetings: MeetingItem[] = meetingResults.reduce((acc, res) => {
+          if (res.success && Array.isArray(res.data)) {
+            return acc.concat(res.data);
+          }
+          return acc;
+        }, [] as MeetingItem[]);
+
+        if (mounted) setMeetings(allMeetings);
+      } catch (err) {
+        console.error("Error loading business dashboard data:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
+
+  // Calculate statistics from filtered data
+  const stats = useMemo(() => {
+    const totalProjects = filteredProjects.length;
+    const activeProjects = filteredProjects.filter(
+      (p) => p.status === "InProgress" || p.status === "Active"
+    ).length;
+    const completedProjects = filteredProjects.filter(
+      (p) => p.status === "Done" || p.status === "Completed"
+    ).length;
+    const pendingProjects = filteredProjects.filter(
+      (p) => p.status === "NotStarted" || p.status === "Pending"
+    ).length;
+    const totalEmployees = employees.length;
+    const totalMeetings = filteredMeetings.length;
+
+    return {
+      totalProjects,
+      activeProjects,
+      completedProjects,
+      pendingProjects,
+      totalEmployees,
+      totalMeetings,
+    };
+  }, [filteredProjects, employees, filteredMeetings]);
+
+  // Calculate project trend data based on selected period
+  const projectTrendData = useMemo(() => {
+    const { startDate, endDate } = getDateRange;
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    // For week-based periods, show daily data
+    if (selectedPeriod === "week" || selectedPeriod === "last-week") {
+      const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const trendData = [];
+      const currentDate = new Date(startDate);
+
+      for (let i = 0; i < 7; i++) {
+        const dayStart = new Date(currentDate);
+        const dayEnd = new Date(currentDate);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const projectsOnDay = projects.filter((p) => {
+          const createdAt = new Date(p.createdAt);
+          return createdAt >= dayStart && createdAt <= dayEnd;
+        }).length;
+
+        trendData.push({
+          month: days[i],
+          projects: projectsOnDay,
+        });
+
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      return trendData;
+    }
+
+    // For month-based periods, show weekly data
+    if (selectedPeriod === "month" || selectedPeriod === "last-month") {
+      const trendData = [];
+      const currentDate = new Date(startDate);
+      let weekNum = 1;
+
+      while (currentDate <= endDate) {
+        const weekStart = new Date(currentDate);
+        const weekEnd = new Date(currentDate);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        if (weekEnd > endDate) weekEnd.setTime(endDate.getTime());
+        weekEnd.setHours(23, 59, 59, 999);
+
+        const projectsInWeek = projects.filter((p) => {
+          const createdAt = new Date(p.createdAt);
+          return createdAt >= weekStart && createdAt <= weekEnd;
+        }).length;
+
+        trendData.push({
+          month: `Week ${weekNum}`,
+          projects: projectsInWeek,
+        });
+
+        currentDate.setDate(currentDate.getDate() + 7);
+        weekNum++;
+      }
+      return trendData;
+    }
+
+    // For quarter/year periods, show monthly data
+    const trendData = [];
+    const currentDate = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      1
+    );
+
+    while (currentDate <= endDate) {
+      const monthStart = new Date(currentDate);
+      const monthEnd = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        0
+      );
+      monthEnd.setHours(23, 59, 59, 999);
+
+      const projectsInMonth = projects.filter((p) => {
+        const createdAt = new Date(p.createdAt);
+        return createdAt >= monthStart && createdAt <= monthEnd;
+      }).length;
+
+      trendData.push({
+        month: months[currentDate.getMonth()],
+        projects: projectsInMonth,
+      });
+
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+
+    return trendData;
+  }, [projects, getDateRange, selectedPeriod]);
+
+  // Filter upcoming meetings
+  const upcomingMeetings = useMemo(() => {
+    const now = new Date();
+    return meetings
+      .filter((m) => {
+        if (!m.startTime) return false;
+        const status = m.status?.toLowerCase();
+        if (status === "finished" || status === "cancel") return false;
+        return new Date(m.startTime) >= now;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.startTime!).getTime() - new Date(b.startTime!).getTime()
+      )
+      .map((m) => {
+        const start = new Date(m.startTime!);
+        const end = m.endTime ? new Date(m.endTime) : undefined;
+        return {
+          id: m.id,
+          title: m.title,
+          time: end
+            ? `${start.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })} - ${end.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`
+            : start.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+          date: formatMeetingDate(start),
+          participants: m.attendees?.length || 0,
+          projectName: m.projectName,
+        };
+      });
+  }, [meetings]);
+
+  // Meeting time distribution for chart (filtered)
+  const meetingTimeDistribution = useMemo(() => {
+    const distribution = { morning: 0, afternoon: 0, evening: 0, other: 0 };
+
+    filteredMeetings.forEach((m) => {
+      if (!m.startTime) return;
+      const hour = new Date(m.startTime).getHours();
+      if (hour >= 9 && hour < 12) distribution.morning++;
+      else if (hour >= 13 && hour < 17) distribution.afternoon++;
+      else if (hour >= 18 && hour < 20) distribution.evening++;
+      else distribution.other++;
+    });
+
+    return [
+      distribution.morning,
+      distribution.afternoon,
+      distribution.evening,
+      distribution.other,
+    ];
+  }, [filteredMeetings]);
+
+  // Completed meetings count (filtered)
+  const completedMeetingsCount = useMemo(() => {
+    return filteredMeetings.filter(
+      (m) => m.status?.toLowerCase() === "finished"
+    ).length;
+  }, [filteredMeetings]);
+
+  // Helper function to format meeting date
+  function formatMeetingDate(date: Date): string {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const meetingDay = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+
+    if (meetingDay.getTime() === today.getTime()) return "Today";
+    if (meetingDay.getTime() === tomorrow.getTime()) return "Tomorrow";
+
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  // Project status chart
+  useEffect(() => {
+    if (chartRef.current && !loading) {
       // Register Chart.js components
       Chart.register(...registerables);
 
@@ -56,7 +448,11 @@ const BusinessDashboard = () => {
             labels: ["Completed", "In Progress", "Pending"],
             datasets: [
               {
-                data: [18, 6, 3],
+                data: [
+                  stats.completedProjects,
+                  stats.activeProjects,
+                  stats.pendingProjects,
+                ],
                 backgroundColor: [
                   "#10b981", // Green for completed
                   "#f59e0b", // Orange for in-progress
@@ -124,10 +520,16 @@ const BusinessDashboard = () => {
         chartInstance.current.destroy();
       }
     };
-  }, []);
+  }, [
+    loading,
+    stats.completedProjects,
+    stats.activeProjects,
+    stats.pendingProjects,
+  ]);
 
+  // Meeting time distribution chart
   useEffect(() => {
-    if (meetingChartRef.current) {
+    if (meetingChartRef.current && !loading) {
       // Register Chart.js components
       Chart.register(...registerables);
 
@@ -145,7 +547,7 @@ const BusinessDashboard = () => {
             datasets: [
               {
                 label: "Number of meetings",
-                data: [55, 44, 34, 23],
+                data: meetingTimeDistribution,
                 backgroundColor: ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"],
                 borderColor: ["#FF5252", "#26A69A", "#2196F3", "#66BB6A"],
                 borderWidth: 2,
@@ -219,15 +621,14 @@ const BusinessDashboard = () => {
         meetingChartInstance.current.destroy();
       }
     };
-  }, []);
+  }, [loading, meetingTimeDistribution]);
 
-  const stats = [
+  // Stats cards data
+  const statsCards = [
     {
       id: "revenue",
       title: "Total Projects",
-      value: "27",
-      change: "+3",
-      changeType: "positive",
+      value: stats.totalProjects.toString(),
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path
@@ -244,9 +645,7 @@ const BusinessDashboard = () => {
     {
       id: "projects",
       title: "Active Projects",
-      value: "8",
-      change: "+2",
-      changeType: "positive",
+      value: stats.activeProjects.toString(),
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path
@@ -263,9 +662,7 @@ const BusinessDashboard = () => {
     {
       id: "members",
       title: "Employees",
-      value: "45",
-      change: "+5",
-      changeType: "positive",
+      value: stats.totalEmployees.toString(),
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path
@@ -290,10 +687,8 @@ const BusinessDashboard = () => {
     },
     {
       id: "meetings",
-      title: "Monthly Meetings",
-      value: "156",
-      change: "+23",
-      changeType: "positive",
+      title: "Total Meetings",
+      value: stats.totalMeetings.toString(),
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
           <path
@@ -330,78 +725,35 @@ const BusinessDashboard = () => {
     },
   ];
 
-  const upcomingMeetings = [
-    {
-      id: 1,
-      title: "Monthly Review Meeting",
-      time: "14:00 - 15:30",
-      date: "Today",
-      participants: 8,
-    },
-    {
-      id: 2,
-      title: "Website Project Review",
-      time: "10:00 - 11:00",
-      date: "Tomorrow",
-      participants: 5,
-    },
-    {
-      id: 3,
-      title: "Q3 Planning Meeting",
-      time: "09:00 - 10:30",
-      date: "Friday",
-      participants: 12,
-    },
-    {
-      id: 4,
-      title: "Financial Report Meeting",
-      time: "15:00 - 16:00",
-      date: "Monday",
-      participants: 6,
-    },
-    {
-      id: 5,
-      title: "Employee Evaluation Meeting",
-      time: "11:00 - 12:00",
-      date: "Tuesday",
-      participants: 4,
-    },
-    {
-      id: 6,
-      title: "Marketing Strategy Meeting",
-      time: "13:30 - 14:30",
-      date: "Wednesday",
-      participants: 7,
-    },
-    {
-      id: 7,
-      title: "Project Evaluation Meeting",
-      time: "16:00 - 17:00",
-      date: "Thursday",
-      participants: 9,
-    },
-  ];
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      active: { color: "#D1FAE5", textColor: "#065F46", text: "Active" },
-      completed: { color: "#DBEAFE", textColor: "#1E40AF", text: "Completed" },
-      pending: { color: "#FEF3C7", textColor: "#92400E", text: "Pending" },
-    };
-
-    const config = statusConfig[status as keyof typeof statusConfig];
+  // Loading state
+  if (loading) {
     return (
-      <span
-        className="status-badge"
-        style={{
-          backgroundColor: config.color,
-          color: config.textColor,
-        }}
-      >
-        {config.text}
-      </span>
+      <div className="business-dashboard">
+        <div
+          className="loading-container"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "50vh",
+          }}
+        >
+          <div
+            className="loading-spinner"
+            style={{
+              width: "40px",
+              height: "40px",
+              border: "4px solid #f3f3f3",
+              borderTop: "4px solid #FF5E13",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+            }}
+          ></div>
+          <p style={{ marginLeft: "16px" }}>Loading dashboard...</p>
+        </div>
+      </div>
     );
-  };
+  }
 
   return (
     <div className="business-dashboard">
@@ -479,7 +831,7 @@ const BusinessDashboard = () => {
 
       {/* Stats Cards */}
       <div className="stats-container">
-        {stats.map((stat) => (
+        {statsCards.map((stat) => (
           <div
             key={stat.id}
             className={`stat-card ${stat.color} interactive`}
@@ -491,34 +843,7 @@ const BusinessDashboard = () => {
             </div>
             <div className="stat-content">
               <div className="stat-value">{stat.value}</div>
-              <div className="stat-change">
-                <span className="change-text positive">{stat.change}</span>
-                <div className="change-icon up">↗</div>
-              </div>
             </div>
-            {hoveredStat === stat.id && (
-              <div className="tooltip">
-                <div className="tooltip-content">
-                  <strong>{stat.title}</strong>
-                  <br />
-                  {stat.id === "revenue"
-                    ? `Increased by ${stat.change} projects compared to ${
-                        selectedPeriod === "week"
-                          ? "last week"
-                          : selectedPeriod === "month"
-                          ? "last month"
-                          : "last quarter"
-                      }`
-                    : `Increased by ${stat.change} compared to ${
-                        selectedPeriod === "week"
-                          ? "last week"
-                          : selectedPeriod === "month"
-                          ? "last month"
-                          : "last quarter"
-                      }`}
-                </div>
-              </div>
-            )}
           </div>
         ))}
       </div>
@@ -552,7 +877,9 @@ const BusinessDashboard = () => {
                   </svg>
                 </div>
                 <div className="status-info">
-                  <span className="status-count">18</span>
+                  <span className="status-count">
+                    {stats.completedProjects}
+                  </span>
                   <span className="status-label">Completed</span>
                 </div>
               </div>
@@ -576,7 +903,7 @@ const BusinessDashboard = () => {
                   </svg>
                 </div>
                 <div className="status-info">
-                  <span className="status-count">6</span>
+                  <span className="status-count">{stats.activeProjects}</span>
                   <span className="status-label">In Progress</span>
                 </div>
               </div>
@@ -642,7 +969,7 @@ const BusinessDashboard = () => {
                   </svg>
                 </div>
                 <div className="status-info">
-                  <span className="status-count">3</span>
+                  <span className="status-count">{stats.pendingProjects}</span>
                   <span className="status-label">Pending</span>
                 </div>
               </div>
@@ -656,22 +983,24 @@ const BusinessDashboard = () => {
         {/* Project Trend Chart */}
         <div className="revenue-trend-section">
           <div className="section-header">
-            <h3>Project Trend 2025</h3>
+            <h3>Project Trend</h3>
             <div className="revenue-stats">
               <div className="revenue-stat">
-                <span className="stat-label">This Month</span>
-                <span className="stat-value">27</span>
+                <span className="stat-label">Total</span>
+                <span className="stat-value">{stats.totalProjects}</span>
               </div>
               <div className="revenue-stat">
-                <span className="stat-label">Growth</span>
-                <span className="stat-value positive">+17.4%</span>
+                <span className="stat-label">Active</span>
+                <span className="stat-value positive">
+                  {stats.activeProjects}
+                </span>
               </div>
             </div>
           </div>
 
           <div className="revenue-chart-wrapper">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={projectData}>
+              <LineChart data={projectTrendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                 <XAxis dataKey="month" stroke="#6b7280" fontSize={10} />
                 <YAxis
@@ -719,35 +1048,55 @@ const BusinessDashboard = () => {
         <div className="upcoming-meetings">
           <div className="section-header">
             <h3>Upcoming Meetings</h3>
-            <button
-              className="create-btn"
-              onClick={() => setShowAllMeetings(!showAllMeetings)}
-            >
-              {showAllMeetings ? "Collapse" : "View All"}
-            </button>
+            {upcomingMeetings.length > 4 && (
+              <button
+                className="create-btn"
+                onClick={() => setShowAllMeetings(!showAllMeetings)}
+              >
+                {showAllMeetings ? "Collapse" : "View All"}
+              </button>
+            )}
           </div>
 
           <div className="meetings-list">
-            {(showAllMeetings
-              ? upcomingMeetings
-              : upcomingMeetings.slice(0, 4)
-            ).map((meeting) => (
-              <div key={meeting.id} className="meeting-item">
-                <div className="meeting-time">
-                  <span className="time">{meeting.time}</span>
-                  <span className="date">{meeting.date}</span>
-                </div>
-
-                <div className="meeting-info">
-                  <h4>{meeting.title}</h4>
-                  <span className="participants">
-                    {meeting.participants} participants
-                  </span>
-                </div>
-
-                <button className="join-btn">Join</button>
+            {upcomingMeetings.length === 0 ? (
+              <div
+                className="empty-state"
+                style={{
+                  textAlign: "center",
+                  padding: "24px",
+                  color: "#6b7280",
+                }}
+              >
+                <p>No upcoming meetings</p>
               </div>
-            ))}
+            ) : (
+              (showAllMeetings
+                ? upcomingMeetings
+                : upcomingMeetings.slice(0, 4)
+              ).map((meeting) => (
+                <div key={meeting.id} className="meeting-item">
+                  <div className="meeting-time">
+                    <span className="time">{meeting.time}</span>
+                    <span className="date">{meeting.date}</span>
+                  </div>
+
+                  <div className="meeting-info">
+                    <h4>{meeting.title}</h4>
+                    <span className="participants">
+                      {meeting.participants} participants
+                    </span>
+                  </div>
+
+                  <button
+                    className="join-btn"
+                    onClick={() => router.push(`/meeting/${meeting.id}`)}
+                  >
+                    Join
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -794,7 +1143,7 @@ const BusinessDashboard = () => {
                 </div>
                 <div className="stat-info">
                   <span className="stat-label">Total Meetings</span>
-                  <span className="stat-value">156</span>
+                  <span className="stat-value">{stats.totalMeetings}</span>
                 </div>
               </div>
               <div className="meeting-stat-item">
@@ -818,7 +1167,7 @@ const BusinessDashboard = () => {
                 </div>
                 <div className="stat-info">
                   <span className="stat-label">Completed</span>
-                  <span className="stat-value">142</span>
+                  <span className="stat-value">{completedMeetingsCount}</span>
                 </div>
               </div>
               <div className="meeting-stat-item">
@@ -842,7 +1191,7 @@ const BusinessDashboard = () => {
                 </div>
                 <div className="stat-info">
                   <span className="stat-label">Upcoming</span>
-                  <span className="stat-value">14</span>
+                  <span className="stat-value">{upcomingMeetings.length}</span>
                 </div>
               </div>
             </div>
@@ -853,859 +1202,6 @@ const BusinessDashboard = () => {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .business-dashboard {
-          width: 100%;
-          min-height: calc(100vh - 90px - 48px);
-          display: flex;
-          flex-direction: column;
-          gap: 28px;
-          padding: 24px;
-          background: #f7f9fb;
-          box-sizing: border-box;
-          margin-y: -24px;
-        }
-
-        /* Time Filter */
-        .time-filter-container {
-          background: white;
-          border-radius: 12px;
-          padding: 20px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .time-filter-header {
-          margin-bottom: 16px;
-        }
-
-        .time-filter-header h3 {
-          margin: 0;
-          font-size: 18px;
-          font-weight: 600;
-          color: #1c1c1c;
-        }
-
-        .time-filter-select {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .time-filter-dropdown {
-          width: 200px;
-          padding: 12px 16px;
-          border: 2px solid #e5e7eb;
-          border-radius: 8px;
-          background: white;
-          color: #1c1c1c;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          appearance: none;
-          background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
-          background-repeat: no-repeat;
-          background-position: right 12px center;
-          background-size: 16px;
-          padding-right: 40px;
-        }
-
-        .time-filter-dropdown:hover {
-          border-color: #ff8c42;
-        }
-
-        .time-filter-dropdown:focus {
-          outline: none;
-          border-color: #ff8c42;
-          box-shadow: 0 0 0 3px rgba(255, 140, 66, 0.1);
-        }
-
-        .custom-date-range {
-          display: flex;
-          align-items: end;
-          gap: 16px;
-          padding: 16px;
-          background: #f9fafb;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-        }
-
-        .date-input-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .date-input-group label {
-          font-size: 12px;
-          font-weight: 500;
-          color: #6b7280;
-        }
-
-        .date-input {
-          padding: 8px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          background: white;
-          color: #1c1c1c;
-          font-size: 14px;
-          transition: all 0.2s ease;
-        }
-
-        .date-input:focus {
-          outline: none;
-          border-color: #ff8c42;
-          box-shadow: 0 0 0 2px rgba(255, 140, 66, 0.1);
-        }
-
-        .apply-date-btn {
-          padding: 8px 16px;
-          background: #ff8c42;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          height: fit-content;
-        }
-
-        .apply-date-btn:hover:not(:disabled) {
-          background: #ff7a2e;
-          transform: translateY(-1px);
-        }
-
-        .apply-date-btn:disabled {
-          background: #d1d5db;
-          color: #9ca3af;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        /* Stats Container */
-        .stats-container {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 28px;
-          align-content: flex-start;
-        }
-
-        .stat-card {
-          flex: 1 1 0;
-          min-width: 200px;
-          padding: 24px;
-          border-radius: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .stat-card.blue {
-          background: #e3f5ff;
-        }
-
-        .stat-card.purple {
-          background: #e5ecf6;
-        }
-
-        .stat-card.interactive {
-          cursor: pointer;
-          transition: all 0.3s ease;
-          position: relative;
-        }
-
-        .stat-card.interactive:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        .stat-header {
-          align-self: stretch;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .stat-label {
-          color: #1c1c1c;
-          font-size: 14px;
-          font-family: "Inter", sans-serif;
-          font-weight: 600;
-          line-height: 20px;
-        }
-
-        .stat-content {
-          align-self: stretch;
-          border-radius: 8px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .stat-value {
-          color: #1c1c1c;
-          font-size: 24px;
-          font-family: "Inter", sans-serif;
-          font-weight: 600;
-          line-height: 36px;
-        }
-
-        .stat-change {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .change-text {
-          font-size: 12px;
-          font-family: "Inter", sans-serif;
-          font-weight: 400;
-          line-height: 18px;
-        }
-
-        .change-text.positive {
-          color: #1c1c1c;
-        }
-
-        .change-icon {
-          width: 16px;
-          height: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 12px;
-        }
-
-        /* Charts Rows */
-        .charts-row {
-          display: flex;
-          gap: 28px;
-          align-items: flex-start;
-        }
-
-        /* Main Chart */
-        .main-chart-container {
-          flex: 1 1 0;
-          height: 450px;
-          min-width: 500px;
-          padding: 24px;
-          background: linear-gradient(135deg, #f7f9fb 0%, #e8f2ff 100%);
-          border-radius: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.8);
-        }
-
-        .chart-header h3 {
-          color: #1c1c1c;
-          font-size: 14px;
-          font-family: "Inter", sans-serif;
-          font-weight: 600;
-          line-height: 20px;
-          margin: 0;
-        }
-
-        .chart-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .project-stats {
-          display: flex;
-          justify-content: space-between;
-          gap: 16px;
-        }
-
-        .project-stats .status-item {
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px;
-          background: white;
-          border-radius: 8px;
-          border: 1px solid #f3f4f6;
-        }
-
-        .status-item.completed .status-icon {
-          background: #dcfce7;
-          color: #16a34a;
-        }
-
-        .status-item.in-progress .status-icon {
-          background: #fef3c7;
-          color: #d97706;
-        }
-
-        .status-item.pending .status-icon {
-          background: #fee2e2;
-          color: #dc2626;
-        }
-
-        .status-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .status-info {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-
-        .status-count {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1c1c1c;
-        }
-
-        .status-label {
-          font-size: 10px;
-          color: #787486;
-          font-weight: 500;
-        }
-
-        .project-stat-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex: 1;
-        }
-
-        .project-stat-item .stat-icon {
-          width: 40px;
-          height: 40px;
-          background: #f9f4ee;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #ff5e13;
-        }
-
-        .stat-info {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .stat-info .stat-label {
-          font-size: 12px;
-          color: #787486;
-          font-weight: 500;
-        }
-
-        .stat-info .stat-value {
-          font-size: 20px;
-          font-weight: 700;
-          color: #1c1c1c;
-        }
-
-        .chart-wrapper {
-          flex: 1;
-          background: white;
-          border-radius: 8px;
-          padding: 20px;
-          border: 1px solid #f3f4f6;
-          position: relative;
-          height: 280px;
-          overflow: hidden;
-        }
-
-        .chart-wrapper canvas {
-          max-width: 100% !important;
-          max-height: 100% !important;
-          width: auto !important;
-          height: auto !important;
-        }
-
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .section-header h3 {
-          color: #1c1c1c;
-          font-size: 14px;
-          font-family: "Inter", sans-serif;
-          font-weight: 600;
-          line-height: 20px;
-          margin: 0;
-        }
-
-        .create-btn {
-          background: none;
-          border: none;
-          color: #ff5e13;
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: color 0.3s ease;
-        }
-
-        .create-btn:hover {
-          color: #ffa463;
-        }
-
-        /* Upcoming Meetings */
-        .upcoming-meetings {
-          flex: 1 1 0;
-          height: 450px;
-          min-width: 500px;
-          padding: 24px;
-          background: linear-gradient(135deg, #f7f9fb 0%, #f0f8ff 100%);
-          border-radius: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.8);
-        }
-
-        .meetings-list {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          overflow-y: auto;
-        }
-
-        .meeting-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px;
-          border: 1px solid #f3f4f6;
-          border-radius: 8px;
-          transition: all 0.3s ease;
-          background: white;
-        }
-
-        .meeting-item:hover {
-          border-color: #ffdbbd;
-          background: #f9f4ee;
-        }
-
-        .meeting-time {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          min-width: 60px;
-        }
-
-        .meeting-time .time {
-          font-size: 12px;
-          font-weight: 600;
-          color: #1c1c1c;
-        }
-
-        .meeting-time .date {
-          font-size: 10px;
-          color: #787486;
-        }
-
-        .meeting-info {
-          flex: 1;
-        }
-
-        .meeting-info h4 {
-          font-size: 12px;
-          font-weight: 600;
-          color: #1c1c1c;
-          margin: 0 0 2px 0;
-        }
-
-        .participants {
-          font-size: 10px;
-          color: #787486;
-        }
-
-        .join-btn {
-          background: #ff5e13;
-          color: white;
-          border: none;
-          padding: 6px 12px;
-          border-radius: 6px;
-          font-size: 10px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .join-btn:hover {
-          background: #ffa463;
-          transform: translateY(-1px);
-        }
-
-        /* Meeting Statistics */
-        .meeting-stats-section {
-          flex: 1 1 0;
-          height: 450px;
-          min-width: 400px;
-          padding: 24px;
-          background: linear-gradient(135deg, #f7f9fb 0%, #f5f0ff 100%);
-          border-radius: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.8);
-        }
-
-        .meeting-stats-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          overflow: hidden;
-        }
-
-        .meeting-stats-overview {
-          display: flex;
-          justify-content: space-between;
-          gap: 8px;
-        }
-
-        .meeting-stat-item {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          flex: 1;
-          padding: 6px;
-          background: white;
-          border-radius: 6px;
-          border: 1px solid #f3f4f6;
-          min-width: 0;
-        }
-
-        .meeting-stat-item .stat-icon {
-          width: 24px;
-          height: 24px;
-          background: #f9f4ee;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #ff5e13;
-          flex-shrink: 0;
-        }
-
-        .meeting-stat-item .stat-info {
-          display: flex;
-          flex-direction: column;
-          gap: 1px;
-          min-width: 0;
-          flex: 1;
-        }
-
-        .meeting-stat-item .stat-label {
-          font-size: 9px;
-          color: #787486;
-          font-weight: 500;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .meeting-stat-item .stat-value {
-          font-size: 14px;
-          font-weight: 700;
-          color: #1c1c1c;
-        }
-
-        .meeting-chart {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          flex: 1;
-        }
-
-        .meeting-chart .chart-bars {
-          display: flex;
-          align-items: end;
-          justify-content: center;
-          gap: 16px;
-          height: 40px;
-        }
-
-        .meeting-chart .bar {
-          width: 24px;
-          border-radius: 3px 3px 0 0;
-          transition: all 0.3s ease;
-        }
-
-        .meeting-chart .bar.completed {
-          background: #10b981;
-        }
-
-        .meeting-chart .bar.upcoming {
-          background: #f59e0b;
-        }
-
-        .meeting-chart .chart-labels {
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-          font-size: 9px;
-          color: #6b7280;
-        }
-
-        .meeting-chart-wrapper {
-          flex: 1;
-          background: white;
-          border-radius: 8px;
-          padding: 20px;
-          border: 1px solid #f3f4f6;
-          position: relative;
-          height: 250px;
-          overflow: hidden;
-        }
-
-        .meeting-chart-wrapper canvas {
-          max-width: 100% !important;
-          max-height: 100% !important;
-          width: auto !important;
-          height: auto !important;
-        }
-
-        .revenue-stats {
-          display: flex;
-          gap: 20px;
-        }
-
-        .revenue-stat {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .revenue-stat .stat-label {
-          font-size: 11px;
-          color: #6b7280;
-          font-weight: 500;
-        }
-
-        .revenue-stat .stat-value {
-          font-size: 16px;
-          font-weight: 700;
-          color: #1c1c1c;
-        }
-
-        .revenue-stat .stat-value.positive {
-          color: #10b981;
-        }
-
-        .revenue-chart-wrapper {
-          flex: 1;
-          background: white;
-          border-radius: 8px;
-          padding: 20px;
-          border: 1px solid #f3f4f6;
-          position: relative;
-          height: 450px;
-          overflow: hidden;
-        }
-
-        /* Revenue Trend Chart */
-        .revenue-trend-section {
-          flex: 1 1 0;
-          height: 450px;
-          min-width: 500px;
-          padding: 24px;
-          background: linear-gradient(135deg, #f7f9fb 0%, #e8f2ff 100%);
-          border-radius: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.8);
-        }
-
-        /* Tooltips */
-        .tooltip {
-          position: absolute;
-          top: -60px;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 1000;
-        }
-
-        .tooltip-content {
-          background: rgba(28, 28, 28, 0.9);
-          color: white;
-          padding: 8px 12px;
-          border-radius: 6px;
-          font-size: 12px;
-          line-height: 1.4;
-          white-space: nowrap;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-          .stats-container {
-            flex-direction: column;
-          }
-
-          .charts-row {
-            flex-direction: column;
-          }
-
-          .main-chart-container,
-          .upcoming-meetings,
-          .meeting-stats-section,
-          .revenue-trend-section {
-            min-width: auto;
-            width: 100%;
-            height: auto;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .business-dashboard {
-            padding: 16px;
-            gap: 16px;
-            margin: -16px;
-          }
-
-          .time-filter-container {
-            padding: 16px;
-          }
-
-          .time-filter-select {
-            width: 100%;
-          }
-
-          .time-filter-dropdown {
-            width: 100%;
-          }
-
-          .custom-date-range {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 12px;
-          }
-
-          .date-input-group {
-            width: 100%;
-          }
-
-          .project-stats {
-            flex-direction: column;
-            gap: 12px;
-          }
-
-          .chart-bars {
-            gap: 8px;
-          }
-
-          .bar {
-            width: 30px;
-          }
-
-          .chart-labels {
-            gap: 8px;
-          }
-
-          .chart-wrapper {
-            height: 220px;
-            padding: 16px;
-            overflow: hidden;
-          }
-
-          .chart-wrapper canvas {
-            max-width: 100% !important;
-            max-height: 100% !important;
-          }
-
-          .meeting-chart-wrapper {
-            height: 220px;
-            padding: 16px;
-            overflow: hidden;
-          }
-
-          .meeting-chart-wrapper canvas {
-            max-width: 100% !important;
-            max-height: 100% !important;
-          }
-
-          .revenue-chart-wrapper {
-            height: 500px;
-            padding: 16px;
-            overflow: hidden;
-          }
-
-          .meeting-stats-overview {
-            flex-direction: column;
-            gap: 6px;
-          }
-
-          .meeting-stat-item {
-            padding: 4px;
-            gap: 4px;
-          }
-
-          .meeting-stat-item .stat-icon {
-            width: 20px;
-            height: 20px;
-          }
-
-          .meeting-stat-item .stat-label {
-            font-size: 8px;
-          }
-
-          .meeting-stat-item .stat-value {
-            font-size: 12px;
-          }
-
-          .meeting-chart .chart-bars {
-            gap: 10px;
-            height: 30px;
-          }
-
-          .meeting-chart .bar {
-            width: 20px;
-          }
-
-          .meeting-chart .chart-labels {
-            gap: 10px;
-            font-size: 8px;
-          }
-
-          .meeting-time-distribution h4 {
-            font-size: 10px;
-            margin-bottom: 4px;
-          }
-
-          .time-slots {
-            gap: 3px;
-          }
-
-          .slot-label {
-            font-size: 8px;
-            min-width: 40px;
-          }
-
-          .slot-count {
-            font-size: 8px;
-            min-width: 15px;
-          }
-        }
-      `}</style>
     </div>
   );
 };
