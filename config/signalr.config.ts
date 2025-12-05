@@ -11,11 +11,21 @@ export const signalRConfig = {
       console.error('❌ NEXT_PUBLIC_BASE_URL is not defined in environment variables');
       return 'https://localhost:7129';
     }
-    // Remove /api/v1 suffix if present
-    return apiUrl.replace('/api/v1', '');
+    
+    // For production (api.msp.audivia.vn), keep /api/v1
+    // For localhost, remove /api/v1 because SignalR hub is at root
+    if (apiUrl.includes('localhost')) {
+      // Localhost: SignalR at https://localhost:7129/notificationHub
+      return apiUrl.replace('/api/v1', '');
+    } else {
+      // Production: SignalR at https://api.msp.audivia.vn/api/v1/notificationHub
+      return apiUrl;
+    }
   },
 
   // Hub endpoint path (must match backend MapHub configuration)
+  // Localhost: /notificationHub
+  // Production: /notificationHub (but base URL includes /api/v1)
   hubPath: '/notificationHub',
 
   // Connection settings
