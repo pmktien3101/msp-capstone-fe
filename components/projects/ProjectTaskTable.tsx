@@ -14,6 +14,7 @@ import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import "@/app/styles/project-task-table.scss";
 import { formatDate } from "@/lib/formatDate";
+import { toast } from "react-toastify";
 
 interface ProjectTaskTableProps {
   project: Project;
@@ -435,12 +436,25 @@ export const ProjectTaskTable = ({
     setIsConfirmDeleteOpen(true);
   };
 
-  const confirmDeleteTask = () => {
-    if (taskToDelete && onDeleteTask) {
-      onDeleteTask(taskToDelete.id, taskToDelete.title);
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return;
+
+    try {
+      const response = await taskService.deleteTask(taskToDelete.id);
+
+      if (response.success) {
+        toast.success(`Task deleted: ${taskToDelete.title}`);
+        // Refresh task list after successful deletion
+        await fetchTasks();
+        setIsConfirmDeleteOpen(false);
+        setTaskToDelete(null);
+      } else {
+        toast.error(`Error: ${response.error || "Unable to delete task"}`);
+      }
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      toast.error("An error occurred while deleting task. Please try again!");
     }
-    setIsConfirmDeleteOpen(false);
-    setTaskToDelete(null);
   };
 
   const handleRowClick = (task: any) => {
@@ -666,10 +680,10 @@ export const ProjectTaskTable = ({
           setTaskToDelete(null);
         }}
         onConfirm={confirmDeleteTask}
-        title="Xóa Công Việc"
-        description={`Bạn có chắc muốn xóa công việc "${taskToDelete?.title}"? Hành động này không thể hoàn tác.`}
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title="Delete task"
+        description={`Are you sure to delete task "${taskToDelete?.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
       />
     </div>
   );
