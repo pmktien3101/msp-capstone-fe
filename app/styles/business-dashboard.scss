@@ -11,7 +11,7 @@
   padding: 24px;
   background: #f7f9fb;
   box-sizing: border-box;
-  margin-y: -24px;
+  margin: -24px 0;
 
   // Time Filter
   .time-filter-container {
@@ -854,6 +854,146 @@
     .slot-count {
       font-size: 8px;
       min-width: 15px;
+    }
+  }
+
+  // Packages Section
+  .packages-section {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+
+      h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #1c1c1c;
+      }
+
+      .create-btn {
+        padding: 8px 16px;
+        background: #ff5e13;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #e55a10;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.3);
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
+      }
+    }
+
+    .packages-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .packages-controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+
+      .search-box {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        flex: 1;
+        min-width: 200px;
+        color: #6b7280;
+
+        svg {
+          flex-shrink: 0;
+        }
+
+        input {
+          border: none;
+          background: transparent;
+          outline: none;
+          flex: 1;
+          font-size: 14px;
+          color: #1c1c1c;
+
+          &::placeholder {
+            color: #9ca3af;
+          }
+        }
+      }
+
+      .view-toggle {
+        display: flex;
+        gap: 4px;
+        background: #f3f4f6;
+        padding: 4px;
+        border-radius: 8px;
+
+        .toggle-btn {
+          padding: 8px 12px;
+          background: transparent;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          color: #6b7280;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:hover {
+            color: #ff5e13;
+          }
+
+          &.active {
+            background: white;
+            color: #ff5e13;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          }
+        }
+      }
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+
+      &.list-view {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 40px 20px;
+      color: #9ca3af;
+
+      p {
+        margin: 0;
+        font-size: 16px;
+      }
     }
   }
 }

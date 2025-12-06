@@ -95,7 +95,7 @@ const SubscriptionBillingPage = () => {
 
   const confirmUpgrade = async () => {
     if (!selectedPackage || !userId) return;
-    
+
     setUpgrading(true);
     try {
       const payload = {
@@ -106,7 +106,7 @@ const SubscriptionBillingPage = () => {
       };
 
       const result = await subscriptionService.createSubscription(payload);
-      
+
       if (result.success) {
         // Reload data to reflect new subscription
         window.location.href = result.data.paymentUrl;
@@ -191,8 +191,8 @@ const SubscriptionBillingPage = () => {
               </div>
               <div className="plan-status">
                 <span className="status-active">{currentSubscription.isActive ? "Active" : "Inactive"}</span>
-                  {currentSubscription.endDate && (
-                    <span className="next-billing">End date: {formatDateVN(currentSubscription.endDate)}</span>
+                {currentSubscription.endDate && (
+                  <span className="next-billing">End date: {formatDateVN(currentSubscription.endDate)}</span>
                 )}
               </div>
             </div>
@@ -206,11 +206,17 @@ const SubscriptionBillingPage = () => {
                         <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       <span>
-                        {limitation.isUnlimited 
-                          ? `Unlimited ${limitation.name}` 
-                          : limitation.limitValue !== null && limitation.limitValue !== undefined 
-                          ? `${limitation.limitValue} ${limitation.name}` 
-                          : limitation.name}
+                        {limitation.isUnlimited ? (
+                          <>
+                            <span className="text-orange-500 font-bold">Unlimited</span> {limitation.name}
+                          </>
+                        ) : limitation.limitValue !== null && limitation.limitValue !== undefined ? (
+                          <>
+                            <span className="text-orange-500 font-bold">{limitation.limitValue}</span> {limitation.name}
+                          </>
+                        ) : (
+                          limitation.name
+                        )}
                       </span>
                     </li>
                   ))
@@ -229,7 +235,7 @@ const SubscriptionBillingPage = () => {
         )}
       </div>
 
- {/*       {/* Billing Period Toggle */}
+      {/*       {/* Billing Period Toggle */}
 
       {/* <div className="billing-toggle-section" style={{ marginBottom: 32 }}>
         <div className="billing-toggle">
@@ -270,11 +276,17 @@ const SubscriptionBillingPage = () => {
                               <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             <span>
-                              {limitation.isUnlimited 
-                                ? `Unlimited ${limitation.name}` 
-                                : limitation.limitValue !== null && limitation.limitValue !== undefined 
-                                ? `${limitation.limitValue} ${limitation.name}` 
-                                : limitation.name}
+                              {limitation.isUnlimited ? (
+                                <>
+                                  <span className="text-orange-500">Unlimited</span> {limitation.name}
+                                </>
+                              ) : limitation.limitValue !== null && limitation.limitValue !== undefined ? (
+                                <>
+                                  <span className="text-orange-500 font-bold">{limitation.limitValue}</span> {limitation.name}
+                                </>
+                              ) : (
+                                limitation.name
+                              )}
                             </span>
                           </li>
                         ))
@@ -293,14 +305,14 @@ const SubscriptionBillingPage = () => {
                       const currentPrice = currentPackage?.price ?? 0;
                       const selectedPrice = pkg.price ?? 0;
                       const isDowngrade = currentPrice >= selectedPrice;
-                      
+
                       if (isDowngrade) {
                         return null; // Hide button for downgrade
                       }
-                      
+
                       return (
-                        <button 
-                          className="upgrade-btn" 
+                        <button
+                          className="upgrade-btn"
                           onClick={() => handleUpgrade(pkg)}
                         >
                           {currentSubscription ? "Upgrade" : "Select plan"}

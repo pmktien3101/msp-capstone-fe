@@ -40,6 +40,7 @@ const AdminPackages = () => {
     name: "",
     price: "",
     period: "month",
+    billingCycle: "",
     currency: "VND",
     description: "",
     features: [] as string[],
@@ -165,20 +166,17 @@ const AdminPackages = () => {
 
   // Handler functions for adding new plan
   const handleAddPlan = () => {
-    if (newPlan.name && newPlan.price) {
+    if (newPlan.name && newPlan.price && newPlan.billingCycle) {
       (async () => {
-        const billingCycleMap: Record<string, number> = {
-          month: 0,
-          year: 2,
-        };
+        const billingCycleValue = Number(newPlan.billingCycle) || 0;
 
         const payload: any = {
           Name: newPlan.name,
           Description: newPlan.description || undefined,
           Price: Number(newPlan.price) || 0,
           Currency: newPlan.currency || "USD",
-          BillingCycle: billingCycleMap[newPlan.period] ?? 0,
-          billingCycle: billingCycleMap[newPlan.period] ?? 0,
+          BillingCycle: billingCycleValue,
+          billingCycle: billingCycleValue,
           CreatedById: userId || null,
           LimitationIds: newPlan.limitations || [],
         };
@@ -219,7 +217,7 @@ const AdminPackages = () => {
               currency: "VND",
               period: newPlan.period,
               description: newPlan.description,
-              billingCycle: billingCycleMap[newPlan.period] ?? 0,
+              billingCycle: billingCycleValue,
               features: newPlan.features,
               limitations: newPlan.limitations || [],
               activeSubscriptions: 0,
@@ -235,6 +233,7 @@ const AdminPackages = () => {
             price: parseInt(newPlan.price),
             currency: newPlan.currency || "USD",
             period: newPlan.period,
+            billingCycle: billingCycleValue,
             features: newPlan.features,
             activeSubscriptions: 0,
             revenue: "$0",
@@ -247,6 +246,7 @@ const AdminPackages = () => {
           name: "",
           price: "",
           period: "month",
+          billingCycle: "",
           currency: "VND",
           description: "",
           features: [],
@@ -373,6 +373,7 @@ const AdminPackages = () => {
           name: packageData.name ?? packageData.Name ?? plan.name,
           price: String(packageData.price ?? packageData.Price ?? plan.price),
           period: packageData.period ?? plan.period ?? "month",
+          billingCycle: String(packageData.billingCycle ?? packageData.BillingCycle ?? plan.billingCycle ?? ""),
           currency:
             packageData.currency ??
             packageData.Currency ??
@@ -392,6 +393,7 @@ const AdminPackages = () => {
           name: plan.name,
           price: plan.price.toString(),
           period: plan.period,
+          billingCycle: String(plan.billingCycle ?? ""),
           currency: plan.Currency ?? plan.currency ?? "USD",
           description: plan.Description ?? plan.description ?? "",
           features: plan.features || [],
@@ -404,14 +406,13 @@ const AdminPackages = () => {
       // Fallback nếu có lỗi
       setNewPlan({
         name: plan.name,
-        price: plan.price.toString(),
+        price: String(plan.price),
         period: plan.period,
-        currency: plan.Currency ?? plan.currency ?? "USD",
-        description: plan.Description ?? plan.description ?? "",
-        features: plan.features || [],
-        limitations: (plan.limitations || []).map((lim: any) =>
-          typeof lim === "object" ? lim.id ?? lim.Id : lim
-        ),
+        billingCycle: String(plan.billingCycle),
+        currency: plan.currency,
+        description: plan.description,
+        features: plan.features,
+        limitations: plan.limitations,
       });
     }
 
@@ -452,20 +453,17 @@ const AdminPackages = () => {
   };
 
   const handleUpdatePlan = () => {
-    if (selectedPlan && newPlan.name && newPlan.price) {
+    if (selectedPlan && newPlan.name && newPlan.price && newPlan.billingCycle) {
       (async () => {
-        const billingCycleMap: Record<string, number> = {
-          month: 0,
-          year: 2,
-        };
+        const billingCycleValue = Number(newPlan.billingCycle) || 0;
 
         const payload: any = {
           Name: newPlan.name,
           Description: newPlan.description || undefined,
           Price: Number(newPlan.price) || 0,
           Currency: "VND",
-          BillingCycle: billingCycleMap[newPlan.period] ?? 0,
-          billingCycle: billingCycleMap[newPlan.period] ?? 0,
+          BillingCycle: billingCycleValue,
+          billingCycle: billingCycleValue,
           CreatedById: userId || null,
           LimitationIds: newPlan.limitations || [],
         };
@@ -494,7 +492,7 @@ const AdminPackages = () => {
               billingCycle:
                 res.data?.billingCycle ??
                 res.data?.BillingCycle ??
-                billingCycleMap[newPlan.period],
+                billingCycleValue,
               description: res.data?.description ?? newPlan.description,
               features: selectedFeatureNames,
               limitations: res.data?.limitations ?? newPlan.limitations,
@@ -530,6 +528,7 @@ const AdminPackages = () => {
               price: parseInt(newPlan.price),
               currency: "VND",
               period: newPlan.period,
+              billingCycle: billingCycleValue,
               description: newPlan.description,
               features: selectedFeatureNames,
               limitations: newPlan.limitations,
@@ -560,6 +559,7 @@ const AdminPackages = () => {
             name: newPlan.name,
             price: parseInt(newPlan.price),
             period: newPlan.period,
+            billingCycle: billingCycleValue,
             description: newPlan.description,
             features: selectedFeatureNames,
             limitations: newPlan.limitations,
@@ -574,6 +574,7 @@ const AdminPackages = () => {
             name: "",
             price: "",
             period: "month",
+            billingCycle: "",
             currency: "VND",
             description: "",
             features: [],
@@ -631,19 +632,10 @@ const AdminPackages = () => {
           };
         }
         
-        // Format: "limitValue Name" (no unit, no dash)
-        let displayName = "";
-        if (lim.isUnlimited || lim.IsUnlimited) {
-          displayName = `Unlimited ${lim.name ?? lim.Name}`;
-        } else if ((lim.limitValue ?? lim.LimitValue) !== null && (lim.limitValue ?? lim.LimitValue) !== undefined) {
-          const value = lim.limitValue ?? lim.LimitValue;
-          displayName = `${value} ${lim.name ?? lim.Name}`;
-        } else {
-          displayName = lim.name ?? lim.Name;
-        }
-        
+        // Keep limitValue and name separate
         return {
-          name: displayName,
+          name: lim.name ?? lim.Name,
+          limitValue: (lim.limitValue ?? lim.LimitValue) ?? null,
           isUnlimited: lim.isUnlimited || lim.IsUnlimited,
         };
       }
@@ -876,17 +868,19 @@ const AdminPackages = () => {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>Billing Cycle</label>
-                    <select
-                      value={newPlan.period}
+                    <label>
+                      Billing Cycle (months) <span className="required">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={newPlan.billingCycle}
                       onChange={(e) =>
-                        handleNewPlanChange("period", e.target.value)
+                        handleNewPlanChange("billingCycle", e.target.value)
                       }
-                      className="form-select"
-                    >
-                      <option value="month">Monthly</option>
-                      <option value="year">Yearly</option>
-                    </select>
+                      placeholder="e.g., 1, 3, 12..."
+                      className="form-input"
+                      min="1"
+                    />
                   </div>
                 </div>
               </div>
@@ -961,6 +955,7 @@ const AdminPackages = () => {
                 disabled={
                   !newPlan.name ||
                   !newPlan.price ||
+                  !newPlan.billingCycle ||
                   Number(newPlan.price) < 0 ||
                   newPlan.limitations.length === 0
                 }
@@ -1073,17 +1068,19 @@ const AdminPackages = () => {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label>Billing Cycle</label>
-                    <select
-                      value={newPlan.period}
+                    <label>
+                      Billing Cycle (months) <span className="required">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={newPlan.billingCycle}
                       onChange={(e) =>
-                        handleNewPlanChange("period", e.target.value)
+                        handleNewPlanChange("billingCycle", e.target.value)
                       }
-                      className="form-select"
-                    >
-                      <option value="month">Monthly</option>
-                      <option value="year">Yearly</option>
-                    </select>
+                      placeholder="e.g., 1, 3, 12..."
+                      className="form-input"
+                      min="1"
+                    />
                   </div>
                 </div>
               </div>
@@ -1152,6 +1149,7 @@ const AdminPackages = () => {
                 disabled={
                   !newPlan.name ||
                   !newPlan.price ||
+                  !newPlan.billingCycle ||
                   Number(newPlan.price) < 0 ||
                   newPlan.limitations.length === 0
                 }
@@ -1306,31 +1304,39 @@ const AdminPackages = () => {
                     {limitations.map((lim: any) => {
                       // Kiểm tra xem limitation này có cùng type với limitation đã chọn không
                       const sameLimitationType = lim.limitationType ?? lim.LimitationType ?? lim.type ?? lim.Type;
+                      const isCurrentSelected = newPlan.features.includes(lim.name);
+
+                      // Kiểm tra xem có limitation nào cùng type đã được chọn không (và không phải limitation hiện tại)
                       const hasSelectedSameType = limitations.some((l: any) => {
                         const lType = l.limitationType ?? l.LimitationType ?? l.type ?? l.Type;
                         return lType === sameLimitationType && 
                                newPlan.features.includes(l.name) && 
                                l.id !== lim.id;
                       });
-                      
+
+                      // Disable nếu có limitation cùng type đã chọn và limitation hiện tại chưa được chọn
+                      const isDisabled = hasSelectedSameType && !isCurrentSelected;
+
                       return (
                         <div
                           key={lim.id}
                           className={`feature-card ${
-                            newPlan.features.includes(lim.name) ? "selected" : ""
-                          } ${hasSelectedSameType ? "disabled-same-type" : ""}`}
-                          onClick={() => handleToggleLimFeature(lim)}
+                            isCurrentSelected ? "selected" : ""
+                          } ${isDisabled ? "disabled-same-type" : ""}`}
+                          onClick={() => !isDisabled && handleToggleLimFeature(lim)}
                         >
                           <div className="feature-card-check">
-                            {newPlan.features.includes(lim.name) && (
+                            {isCurrentSelected && (
                               <Check size={14} />
                             )}
                           </div>
                           <div className="feature-card-body">
                             <div className="feature-title-row">
                               <h5 className="feature-title">{lim.name}</h5>
-                              {hasSelectedSameType && (
-                                <span className="type-hint">Same type already selected</span>
+                              {isDisabled && (
+                                <span className="type-hint">
+                                  🔒 Locked
+                                </span>
                               )}
                             </div>
                             <span className="feature-meta">
