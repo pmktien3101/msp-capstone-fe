@@ -242,6 +242,12 @@ $gradient-orange: linear-gradient(135deg, #ff5e13 0%, #ff8a4c 100%);
         font-weight: 600;
       }
 
+      .feature-limit-value {
+        color: $primary-orange;
+        font-weight: 700;
+        font-size: 1.05rem;
+      }
+
       .feature-unlimited {
         background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
         color: #92400e;

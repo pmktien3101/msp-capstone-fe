@@ -95,7 +95,7 @@ const SubscriptionBillingPage = () => {
 
   const confirmUpgrade = async () => {
     if (!selectedPackage || !userId) return;
-    
+
     setUpgrading(true);
     try {
       const payload = {
@@ -106,7 +106,7 @@ const SubscriptionBillingPage = () => {
       };
 
       const result = await subscriptionService.createSubscription(payload);
-      
+
       if (result.success) {
         // Reload data to reflect new subscription
         window.location.href = result.data.paymentUrl;
@@ -154,6 +154,12 @@ const SubscriptionBillingPage = () => {
     });
   };
 
+  const formatPrice = (price: number | string): string => {
+    const numPrice = typeof price === "string" ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return "0";
+    return numPrice.toLocaleString("de-DE");
+  };
+
   const displayBillingHistory = billingHistory.length > 0 ? billingHistory : [];
 
   const currentPackage = currentSubscription?.package;
@@ -178,16 +184,15 @@ const SubscriptionBillingPage = () => {
               <div className="plan-info">
                 <h3>{currentPackage.name}</h3>
                 <div className="plan-price">
-                  <span className="price">{currentSubscription.totalPrice ?? currentPackage.price}{" " + currentPackage.currency}</span>
-                  {/* <span className="period">/{formatBillingCycle(currentPackage.billingCycle)}</span> */}
+                  <span className="price">{formatPrice(currentSubscription.totalPrice ?? currentPackage.price)}{" " + currentPackage.currency}</span>
                   <span className="period">/{currentPackage.billingCycle} months</span>
 
                 </div>
               </div>
               <div className="plan-status">
                 <span className="status-active">{currentSubscription.isActive ? "Active" : "Inactive"}</span>
-                  {currentSubscription.endDate && (
-                    <span className="next-billing">End date: {formatDateVN(currentSubscription.endDate)}</span>
+                {currentSubscription.endDate && (
+                  <span className="next-billing">End date: {formatDateVN(currentSubscription.endDate)}</span>
                 )}
               </div>
             </div>
@@ -201,11 +206,17 @@ const SubscriptionBillingPage = () => {
                         <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                       <span>
-                        {limitation.isUnlimited 
-                          ? `Unlimited ${limitation.name}` 
-                          : limitation.limitValue !== null && limitation.limitValue !== undefined 
-                          ? `${limitation.limitValue} ${limitation.name}` 
-                          : limitation.name}
+                        {limitation.isUnlimited ? (
+                          <>
+                            <span className="text-orange-500 font-bold">Unlimited</span> {limitation.name}
+                          </>
+                        ) : limitation.limitValue !== null && limitation.limitValue !== undefined ? (
+                          <>
+                            <span className="text-orange-500 font-bold">{limitation.limitValue}</span> {limitation.name}
+                          </>
+                        ) : (
+                          limitation.name
+                        )}
                       </span>
                     </li>
                   ))
@@ -224,7 +235,7 @@ const SubscriptionBillingPage = () => {
         )}
       </div>
 
- {/*       {/* Billing Period Toggle */}
+      {/*       {/* Billing Period Toggle */}
 
       {/* <div className="billing-toggle-section" style={{ marginBottom: 32 }}>
         <div className="billing-toggle">
@@ -247,7 +258,7 @@ const SubscriptionBillingPage = () => {
                   <div className="plan-header">
                     <h3>{pkg.name}</h3>
                     <div className="plan-price">
-                      <span className="price">{pkg.price} {" " + pkg.currency}</span>
+                      <span className="price">{formatPrice(pkg.price)} {" " + pkg.currency}</span>
                       <span className="period">/{pkg.billingCycle} months</span>
                     </div>
                   </div>
@@ -265,11 +276,17 @@ const SubscriptionBillingPage = () => {
                               <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                             <span>
-                              {limitation.isUnlimited 
-                                ? `Unlimited ${limitation.name}` 
-                                : limitation.limitValue !== null && limitation.limitValue !== undefined 
-                                ? `${limitation.limitValue} ${limitation.name}` 
-                                : limitation.name}
+                              {limitation.isUnlimited ? (
+                                <>
+                                  <span className="text-orange-500">Unlimited</span> {limitation.name}
+                                </>
+                              ) : limitation.limitValue !== null && limitation.limitValue !== undefined ? (
+                                <>
+                                  <span className="text-orange-500 font-bold">{limitation.limitValue}</span> {limitation.name}
+                                </>
+                              ) : (
+                                limitation.name
+                              )}
                             </span>
                           </li>
                         ))
@@ -288,14 +305,14 @@ const SubscriptionBillingPage = () => {
                       const currentPrice = currentPackage?.price ?? 0;
                       const selectedPrice = pkg.price ?? 0;
                       const isDowngrade = currentPrice >= selectedPrice;
-                      
+
                       if (isDowngrade) {
                         return null; // Hide button for downgrade
                       }
-                      
+
                       return (
-                        <button 
-                          className="upgrade-btn" 
+                        <button
+                          className="upgrade-btn"
                           onClick={() => handleUpgrade(pkg)}
                         >
                           {currentSubscription ? "Upgrade" : "Select plan"}
@@ -329,7 +346,7 @@ const SubscriptionBillingPage = () => {
             <div key={bill.id} className="table-row">
               <div className="col-date"><span className="date">{formatDateVN(bill.date)}</span></div>
               <div className="col-description"><span className="description">{bill.description}</span></div>
-              <div className="col-amount"><span className="amount">{bill.amount} {" " + bill.currency}</span></div>
+              <div className="col-amount"><span className="amount">{formatPrice(bill.amount)} {" " + bill.currency}</span></div>
               <div className="col-status"><span className="status-badge paid">{bill.status}</span></div>
               {/* <div className="col-action">
                 <button className="download-btn">
@@ -376,7 +393,7 @@ const SubscriptionBillingPage = () => {
                 <div className="price-info">
                   <div className="price-row">
                     <span>Price new plan:</span>
-                    <strong>{selectedPackage.price} {" " + selectedPackage.currency} / {selectedPackage.billingCycle} months</strong>
+                    <strong>{formatPrice(selectedPackage.price)} {" " + selectedPackage.currency} / {selectedPackage.billingCycle} months</strong>
                   </div>
                 </div>
               </div>

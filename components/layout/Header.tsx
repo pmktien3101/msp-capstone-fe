@@ -9,8 +9,10 @@ import { UserRole } from "@/lib/rbac";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserDetail } from "@/contexts/UserContext";
 import { NotificationBell } from "@/components/layout/NotificationBell";
-import { User, LogOut, ChevronDown, Settings } from "lucide-react";
+import { User, LogOut, ChevronDown, Settings, LucideKeyRound } from "lucide-react";
 import "@/app/styles/header.scss";
+import { MdOutlinePassword, MdPassword } from "react-icons/md";
+import { RiLockPasswordLine } from "react-icons/ri";
 
 const Header = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -148,7 +150,7 @@ const Header = () => {
                   <User size={18} />
                   <span>My Profile</span>
                 </div>
-                <div
+                {/* <div
                   className="dropdown-item"
                   onClick={() => {
                     setShowUserMenu(false);
@@ -157,6 +159,16 @@ const Header = () => {
                 >
                   <Settings size={18} />
                   <span>Settings</span>
+                </div> */}
+                <div
+                  className="dropdown-item"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    router.push("/change-password");
+                  }}
+                >
+                  <LucideKeyRound size={18} /> 
+                  <span>Change Password</span>
                 </div>
               </div>
               <div className="dropdown-divider" />

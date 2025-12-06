@@ -16,9 +16,16 @@ import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
 import { meetingService } from "@/services/meetingService";
 import { userService } from "@/services/userService";
+import packageService from "@/services/packageService";
+import limitationService from "@/services/limitationService";
 import { Project } from "@/types/project";
 import { MeetingItem } from "@/types/meeting";
 import { GetUserResponse } from "@/types/user";
+import {
+  PricingCard,
+  PricingPlan,
+  PricingPlanFeature,
+} from "@/components/pricing";
 import "../../../../styles/business-dashboard.scss";
 
 const BusinessDashboard = () => {
@@ -29,12 +36,17 @@ const BusinessDashboard = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [meetings, setMeetings] = useState<MeetingItem[]>([]);
   const [employees, setEmployees] = useState<GetUserResponse[]>([]);
+  const [packages, setPackages] = useState<any[]>([]);
+  const [limitations, setLimitations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // UI states
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [hoveredStat, setHoveredStat] = useState<string | null>(null);
   const [showAllMeetings, setShowAllMeetings] = useState(false);
+  const [showPackages, setShowPackages] = useState(false);
+  const [packageViewMode, setPackageViewMode] = useState<"grid" | "list">("grid");
+  const [packageSearchQuery, setPackageSearchQuery] = useState("");
   const [customDateRange, setCustomDateRange] = useState({
     startDate: "",
     endDate: "",
@@ -195,6 +207,57 @@ const BusinessDashboard = () => {
         }, [] as MeetingItem[]);
 
         if (mounted) setMeetings(allMeetings);
+
+        // 4. Fetch packages
+        const pkgRes = await packageService.getPackages();
+        if (pkgRes.success && pkgRes.data && mounted) {
+          const items: any[] = Array.isArray(pkgRes.data)
+            ? pkgRes.data
+            : pkgRes.data.items ?? pkgRes.data;
+
+          const mapped = items.map((p: any, idx: number) => ({
+            id: (p.id ?? p.ID) || idx + 1,
+            name: p.name ?? p.title ?? `Package ${idx + 1}`,
+            price: p.price ?? 0,
+            currency: p.currency ?? p.Currency ?? "VND",
+            period:
+              p.period ??
+              (p.billingCycle === 0
+                ? "month"
+                : p.billingCycle === 2
+                ? "year"
+                : "month"),
+            billingCycle: p.billingCycle ?? p.BillingCycle,
+            features: p.features ?? [],
+            limitations: p.limitations ?? p.Limitations ?? [],
+            description: p.description ?? p.Description ?? "",
+            status: p.status ?? "active",
+            isDeleted: !!(p.isDeleted ?? p.IsDeleted),
+          }));
+
+          setPackages(mapped.filter((p) => !p.isDeleted));
+        }
+
+        // 5. Fetch limitations
+        const limRes = await limitationService.getLimitations();
+        if (limRes.success && limRes.data && mounted) {
+          const items: any[] = Array.isArray(limRes.data)
+            ? limRes.data
+            : limRes.data.items ?? limRes.data;
+
+          const mapped = items.map((it: any) => ({
+            id: it.Id ?? it.id,
+            name: it.Name ?? it.name,
+            description: it.Description ?? it.description,
+            isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
+            limitValue: it.LimitValue ?? it.limitValue ?? null,
+            limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
+            isDeleted: it.IsDeleted ?? it.isDeleted ?? false,
+            ...it,
+          }));
+
+          setLimitations(mapped.filter((x: any) => !x.isDeleted));
+        }
       } catch (err) {
         console.error("Error loading business dashboard data:", err);
       } finally {
@@ -208,6 +271,57 @@ const BusinessDashboard = () => {
       mounted = false;
     };
   }, [userId]);
+
+  // Helper: Get limitation from item
+  const getLimFromItem = (item: any) => {
+    if (!item) return null;
+    if (typeof item === "object") return item;
+    return limitations.find((l: any) => l.id === item || l.Id === item) || null;
+  };
+
+  // Helper: Convert to pricing plan
+  const convertToPricingPlan = (plan: any): PricingPlan => {
+    const planLimitations: PricingPlanFeature[] = (plan.limitations || []).map(
+      (limItem: any) => {
+        const lim = getLimFromItem(limItem);
+        if (!lim) {
+          return {
+            name: String(limItem),
+          };
+        }
+
+        // Keep limitValue and name separate
+        return {
+          name: lim.name ?? lim.Name,
+          limitValue: (lim.limitValue ?? lim.LimitValue) ?? null,
+          isUnlimited: lim.isUnlimited || lim.IsUnlimited,
+        };
+      }
+    );
+
+    return {
+      id: plan.id,
+      name: plan.name,
+      price: plan.price,
+      currency: plan.currency,
+      period: plan.period,
+      description: plan.description,
+      limitations: planLimitations,
+    };
+  };
+
+  // Helper: Render feature label
+  const renderFeatureLabel = (featureName: string) => {
+    const lim = limitations.find((l: any) => l.name === featureName);
+    if (!lim) return featureName;
+    if (lim.isUnlimited) return `${lim.name} (Unlimited)`;
+    if (lim.limitValue !== null && lim.limitValue !== undefined) {
+      return `${lim.name}: ${lim.limitValue}${
+        lim.limitUnit ? ` ${lim.limitUnit}` : ""
+      }`;
+    }
+    return lim.name;
+  };
 
   // Calculate statistics from filtered data
   const stats = useMemo(() => {
@@ -1040,6 +1154,145 @@ const BusinessDashboard = () => {
             </ResponsiveContainer>
           </div>
         </div>
+      </div>
+
+      {/* Packages Section */}
+      <div className="packages-section">
+        <div className="section-header">
+          <h3>Available Packages</h3>
+          <button
+            className="create-btn"
+            onClick={() => setShowPackages(!showPackages)}
+          >
+            {showPackages ? "Hide" : "View Packages"}
+          </button>
+        </div>
+
+        {showPackages && (
+          <div className="packages-content">
+            {/* Search and View Toggle */}
+            <div className="packages-controls">
+              <div className="search-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M21 21L16.65 16.65"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search packages..."
+                  value={packageSearchQuery}
+                  onChange={(e) => setPackageSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="view-toggle">
+                <button
+                  className={`toggle-btn ${
+                    packageViewMode === "grid" ? "active" : ""
+                  }`}
+                  onClick={() => setPackageViewMode("grid")}
+                  title="Grid view"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <rect
+                      x="3"
+                      y="3"
+                      width="7"
+                      height="7"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                    <rect
+                      x="14"
+                      y="3"
+                      width="7"
+                      height="7"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                    <rect
+                      x="3"
+                      y="14"
+                      width="7"
+                      height="7"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                    <rect
+                      x="14"
+                      y="14"
+                      width="7"
+                      height="7"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </button>
+                <button
+                  className={`toggle-btn ${
+                    packageViewMode === "list" ? "active" : ""
+                  }`}
+                  onClick={() => setPackageViewMode("list")}
+                  title="List view"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Packages Grid/List */}
+            <div
+              className={`pricing-grid ${
+                packageViewMode === "list" ? "list-view" : ""
+              }`}
+            >
+              {packages.length > 0 ? (
+                packages
+                  .filter(
+                    (pkg) =>
+                      pkg.name
+                        .toLowerCase()
+                        .includes(packageSearchQuery.toLowerCase()) ||
+                      (pkg.description &&
+                        pkg.description
+                          .toLowerCase()
+                          .includes(packageSearchQuery.toLowerCase()))
+                  )
+                  .map((plan: any) => (
+                    <PricingCard
+                      key={plan.id}
+                      plan={convertToPricingPlan(plan)}
+                      showDelete={false}
+                    />
+                  ))
+              ) : (
+                <div className="empty-state">
+                  <p>No packages available</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Charts Row 2 */}
