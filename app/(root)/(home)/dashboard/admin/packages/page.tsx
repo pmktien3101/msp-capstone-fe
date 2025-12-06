@@ -43,8 +43,8 @@ const AdminPackages = () => {
     billingCycle: "",
     currency: "VND",
     description: "",
-    features: [] as string[],
-    limitations: [] as (object | string | number)[],
+    features: [] as string[], // Store limitation IDs
+    limitations: [] as (object | string | number)[], // Store limitation IDs
   });
 
   // Format price with dot separator (e.g., 20.000)
@@ -146,6 +146,7 @@ const AdminPackages = () => {
             isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
             limitValue: it.LimitValue ?? it.limitValue ?? null,
             limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
+            limitationType: it.LimitationType ?? it.limitationType,
             isDeleted: it.IsDeleted ?? it.isDeleted ?? false,
             ...it,
           }));
@@ -264,68 +265,61 @@ const AdminPackages = () => {
     }));
   };
 
-  const handleSelectAllFeatures = () => {
-    if (limitations && limitations.length > 0) {
-      setNewPlan((prev: any) => ({
-        ...prev,
-        features: limitations.map((l: any) => l.name),
-        limitations: limitations.map((l: any) => l.id),
-      }));
-      return;
-    }
-  };
+  // Handle toggle limitation selection
+  const handleToggleLimitation = (limitation: any) => {
+    setNewPlan((prev) => {
+      const currentLimIds = prev.limitations || [];
+      const currentFeatureIds = prev.features || [];
+      const limId = limitation.id;
+      const limType = limitation.limitationType;
 
-  const handleClearAllFeatures = () => {
-    setNewPlan((prev: any) => ({
-      ...prev,
-      features: [],
-      limitations: [],
-    }));
-  };
+      // Check if this limitation is already selected
+      const isSelected = currentLimIds.includes(limId);
 
-  const handleToggleLimFeature = (lim: any) => {
-    setNewPlan((prev: any) => {
-      const features = prev.features || [];
-      const limitationsSel = prev.limitations || [];
-      const hasFeature = features.includes(lim.name);
-      
-      // Nếu đang chọn limitation này, bỏ chọn
-      if (hasFeature) {
+      if (isSelected) {
+        // Remove if already selected
         return {
           ...prev,
-          features: features.filter((f: any) => f !== lim.name),
-          limitations: limitationsSel.filter((id: any) => id !== lim.id),
+          limitations: currentLimIds.filter((id: any) => id !== limId),
+          features: currentFeatureIds.filter((id: any) => id !== limId),
         };
       }
-      
-      // Nếu chưa chọn, kiểm tra xem có limitation nào cùng type không
-      // Tìm tất cả limitations cùng type với limitation đang chọn
-      const sameLimitationType = lim.limitationType ?? lim.LimitationType ?? lim.type ?? lim.Type;
-      const limitationsToRemove = limitations.filter((l: any) => {
-        const lType = l.limitationType ?? l.LimitationType ?? l.type ?? l.Type;
-        return lType === sameLimitationType && l.id !== lim.id;
-      });
-      
-      // Lọc bỏ các limitations cùng type
-      const filteredFeatures = features.filter((fname: any) => 
-        !limitationsToRemove.some((l: any) => l.name === fname)
+
+      // Find if there's already a limitation of the same type selected
+      const sameTypeLimit = limitations.find((l: any) => 
+        l.limitationType === limType && currentLimIds.includes(l.id)
       );
-      const filteredLimitations = limitationsSel.filter((id: any) => 
-        !limitationsToRemove.some((l: any) => l.id === id)
-      );
-      
-      // Thêm limitation mới
+
+      let newLimIds = currentLimIds;
+      let newFeatureIds = currentFeatureIds;
+
+      // If same type exists, remove it first
+      if (sameTypeLimit) {
+        newLimIds = currentLimIds.filter((id: any) => id !== sameTypeLimit.id);
+        newFeatureIds = currentFeatureIds.filter((id: any) => id !== sameTypeLimit.id);
+      }
+
+      // Add the new limitation
       return {
         ...prev,
-        features: [...filteredFeatures, lim.name],
-        limitations: [...filteredLimitations, lim.id],
+        limitations: [...newLimIds, limId],
+        features: [...newFeatureIds, limId],
       };
     });
   };
 
-  const renderFeatureLabel = (featureName: string) => {
-    const lim = limitations.find((l: any) => l.name === featureName);
-    if (!lim) return featureName;
+  // Clear all limitations
+  const handleClearAllLimitations = () => {
+    setNewPlan((prev) => ({
+      ...prev,
+      limitations: [],
+      features: [],
+    }));
+  };
+
+  const renderFeatureLabel = (featureId: string) => {
+    const lim = limitations.find((l: any) => l.id === featureId);
+    if (!lim) return featureId;
     if (lim.isUnlimited) return `${lim.name} (Unlimited)`;
     if (lim.limitValue !== null && lim.limitValue !== undefined) {
       return `${lim.name}: ${lim.limitValue}${
@@ -342,68 +336,51 @@ const AdminPackages = () => {
   const handleEditPlan = async (plan: any) => {
     setSelectedPlan(plan);
 
-    // Lấy dữ liệu chi tiết từ API để có đầy đủ thông tin limitations
     try {
       const res = await packageService.getPackageById(String(plan.id));
       if (res.success && res.data) {
         const packageData = res.data;
-
-        // Map limitations từ API response
-        const limitationIds = (
-          packageData.limitations ||
-          packageData.Limitations ||
-          []
-        ).map((lim: any) => {
-          if (typeof lim === "object") return lim.id ?? lim.Id;
+        const apiLimitations = packageData.limitations || packageData.Limitations || [];
+        
+        // Convert API limitations to limitation IDs
+        const limitationIds = apiLimitations.map((lim: any) => {
+          if (typeof lim === "object") return lim.id;
           return lim;
         });
-
-        const featureNames = (
-          packageData.limitations ||
-          packageData.Limitations ||
-          []
-        )
-          .map((lim: any) => {
-            if (typeof lim === "object") return lim.name ?? lim.Name;
-            return limitations.find((l: any) => l.id === lim)?.name || "";
-          })
-          .filter(Boolean);
 
         setNewPlan({
           name: packageData.name ?? packageData.Name ?? plan.name,
           price: String(packageData.price ?? packageData.Price ?? plan.price),
           period: packageData.period ?? plan.period ?? "month",
           billingCycle: String(packageData.billingCycle ?? packageData.BillingCycle ?? plan.billingCycle ?? ""),
-          currency:
-            packageData.currency ??
-            packageData.Currency ??
-            plan.currency ??
-            "USD",
-          description:
-            packageData.description ??
-            packageData.Description ??
-            plan.description ??
-            "",
-          features: featureNames,
+          currency: packageData.currency ?? packageData.Currency ?? plan.currency ?? "USD",
+          description: packageData.description ?? packageData.Description ?? plan.description ?? "",
+          features: limitationIds,
           limitations: limitationIds,
         });
       } else {
-        // Fallback nếu API không trả về
+        // Fallback
+        const limitationIds = (plan.limitations || []).map((lim: any) =>
+          typeof lim === "object" ? lim.id : lim
+        );
+
         setNewPlan({
           name: plan.name,
           price: plan.price.toString(),
           period: plan.period,
           billingCycle: String(plan.billingCycle ?? ""),
-          currency: plan.Currency ?? plan.currency ?? "USD",
-          description: plan.Description ?? plan.description ?? "",
-          features: plan.features || [],
-          limitations: (plan.limitations || []).map((lim: any) =>
-            typeof lim === "object" ? lim.id ?? lim.Id : lim
-          ),
+          currency: plan.currency ?? "USD",
+          description: plan.description ?? "",
+          features: limitationIds,
+          limitations: limitationIds,
         });
       }
     } catch (err) {
-      // Fallback nếu có lỗi
+      // Fallback on error
+      const limitationIds = (plan.limitations || []).map((lim: any) =>
+        typeof lim === "object" ? lim.id : lim
+      );
+
       setNewPlan({
         name: plan.name,
         price: String(plan.price),
@@ -411,8 +388,8 @@ const AdminPackages = () => {
         billingCycle: String(plan.billingCycle),
         currency: plan.currency,
         description: plan.description,
-        features: plan.features,
-        limitations: plan.limitations,
+        features: limitationIds,
+        limitations: limitationIds,
       });
     }
 
@@ -1254,7 +1231,7 @@ const AdminPackages = () => {
         </div>
       )}
 
-      {/* Feature Selection Sidebar */}
+      {/* Limitation Selection Sidebar */}
       {showFeatureSidebar && (
         <div
           className="sidebar-overlay"
@@ -1269,7 +1246,7 @@ const AdminPackages = () => {
                 <Sparkles size={20} className="sidebar-icon" />
                 <div>
                   <h3>Select Limitations</h3>
-                  <p>Choose the features to include in this package</p>
+                  <p>Choose one limitation per type</p>
                 </div>
               </div>
               <button
@@ -1282,15 +1259,8 @@ const AdminPackages = () => {
 
             <div className="sidebar-actions">
               <button
-                className="action-btn select-all"
-                onClick={handleSelectAllFeatures}
-              >
-                <Check size={14} />
-                Select All
-              </button>
-              <button
                 className="action-btn clear-all"
-                onClick={handleClearAllFeatures}
+                onClick={handleClearAllLimitations}
               >
                 <X size={14} />
                 Clear All
@@ -1302,37 +1272,39 @@ const AdminPackages = () => {
                 <div className="feature-group">
                   <div className="features-grid modern">
                     {limitations.map((lim: any) => {
-                      // Kiểm tra xem limitation này có cùng type với limitation đã chọn không
-                      const sameLimitationType = lim.limitationType ?? lim.LimitationType ?? lim.type ?? lim.Type;
-                      const isCurrentSelected = newPlan.features.includes(lim.name);
-
-                      // Kiểm tra xem có limitation nào cùng type đã được chọn không (và không phải limitation hiện tại)
-                      const hasSelectedSameType = limitations.some((l: any) => {
-                        const lType = l.limitationType ?? l.LimitationType ?? l.type ?? l.Type;
-                        return lType === sameLimitationType && 
-                               newPlan.features.includes(l.name) && 
-                               l.id !== lim.id;
+                      const limId = lim.id ?? lim.Id;
+                      const limName = lim.name ?? lim.Name;
+                      const limType = lim.limitationType ?? lim.LimitationType;
+                      
+                      // Check if this limitation is selected
+                      const isSelected = newPlan.limitations.includes(limId);
+                      
+                      // Check if there's another limitation of the same type selected
+                      const sameTypeSelected = limitations.find((l: any) => {
+                        const lType = l.limitationType ?? l.LimitationType;
+                        const lId = l.id ?? l.Id;
+                        return lType === limType && 
+                               newPlan.limitations.includes(lId) && 
+                               lId !== limId;
                       });
-
-                      // Disable nếu có limitation cùng type đã chọn và limitation hiện tại chưa được chọn
-                      const isDisabled = hasSelectedSameType && !isCurrentSelected;
+                      
+                      // Disable if same type is selected and this one is not
+                      const isDisabled = sameTypeSelected && !isSelected;
 
                       return (
                         <div
-                          key={lim.id}
+                          key={limId}
                           className={`feature-card ${
-                            isCurrentSelected ? "selected" : ""
+                            isSelected ? "selected" : ""
                           } ${isDisabled ? "disabled-same-type" : ""}`}
-                          onClick={() => !isDisabled && handleToggleLimFeature(lim)}
+                          onClick={() => !isDisabled && handleToggleLimitation(lim)}
                         >
                           <div className="feature-card-check">
-                            {isCurrentSelected && (
-                              <Check size={14} />
-                            )}
+                            {isSelected && <Check size={14} />}
                           </div>
                           <div className="feature-card-body">
                             <div className="feature-title-row">
-                              <h5 className="feature-title">{lim.name}</h5>
+                              <h5 className="feature-title">{limName}</h5>
                               {isDisabled && (
                                 <span className="type-hint">
                                   🔒 Locked
@@ -1371,7 +1343,7 @@ const AdminPackages = () => {
             <div className="sidebar-footer">
               <div className="selected-summary">
                 <Check size={16} />
-                <span>{newPlan.features.length} limitation(s) selected</span>
+                <span>{newPlan.limitations.length} limitation(s) selected</span>
               </div>
               <button
                 className="confirm-btn"
@@ -1384,6 +1356,7 @@ const AdminPackages = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };
