@@ -1,3 +1,6 @@
+// Import Sass color module
+@use "sass:color";
+
 // Color variables
 $primary-orange: #ff5e13;
 $secondary-orange: #ffa463;
@@ -5,7 +8,7 @@ $light-orange: #fff5f0;
 $off-white: #f9f4ee;
 
 // Import shared pricing styles
-@import "@/components/pricing/pricing-card.scss";
+@use "@/components/pricing/pricing-card.scss" as pricing;
 
 .admin-packages {
   max-width: 1400px;
@@ -123,7 +126,7 @@ $off-white: #f9f4ee;
     padding: 12px 24px;
 
     &:hover {
-      background: darken($primary-orange, 8%);
+      background: color.adjust($primary-orange, $lightness: -8%);
     }
   }
 }
