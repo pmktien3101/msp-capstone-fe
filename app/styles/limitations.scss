@@ -1,3 +1,6 @@
+// Import Sass color module
+@use "sass:color";
+
 // Color variables
 $primary-orange: #ff5e13;
 $secondary-orange: #ffa463;
@@ -120,7 +123,7 @@ $off-white: #f9f4ee;
     padding: 12px 24px;
 
     &:hover {
-      background: darken($primary-orange, 8%);
+      background: color.adjust($primary-orange, $lightness: -8%);
     }
   }
 }

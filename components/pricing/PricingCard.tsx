@@ -8,6 +8,8 @@ export interface PricingPlanFeature {
   name: string;
   value?: string | number;
   isUnlimited?: boolean;
+  limitValue?: number | null;
+  id?: string;
 }
 
 export interface PricingPlan {
@@ -118,12 +120,16 @@ const PricingCard: React.FC<PricingCardProps> = ({
             </svg>
           </div>
           <span>
-            {lim.name}
-            {lim.isUnlimited && (
-              <span className="feature-unlimited">Unlimited</span>
-            )}
-            {!lim.isUnlimited && lim.value && (
-              <span className="feature-value">: {lim.value}</span>
+            {lim.isUnlimited ? (
+              <>
+                <span className="feature-unlimited">Unlimited</span> {lim.name}
+              </>
+            ) : lim.limitValue !== null && lim.limitValue !== undefined ? (
+              <>
+                <span className="feature-limit-value">{lim.limitValue}</span> {lim.name}
+              </>
+            ) : (
+              lim.name
             )}
           </span>
         </div>

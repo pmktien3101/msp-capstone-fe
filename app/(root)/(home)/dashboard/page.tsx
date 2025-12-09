@@ -75,7 +75,7 @@ export default function DashboardPage() {
   return (
     <div className="dashboard-loading">
       <div className="loading-spinner"></div>
-      <p>Đang chuyển hướng đến dashboard phù hợp...</p>
+      <p>Redirecting to dashboard...</p>
       <style jsx>{`
         .dashboard-loading {
           display: flex;

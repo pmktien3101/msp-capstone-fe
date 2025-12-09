@@ -297,6 +297,54 @@ export const userService = {
                 error: error.response?.data?.message || error.message || 'Failed to update profile'
             };
         }
+    },
+
+    async checkOldPassword(userId: string, oldPassword: string): Promise<{ success: boolean; message?: string; error?: string }> {
+        try {
+            const response = await api.post(`/users/check-old-password/${userId}`, { oldPassword });
+            
+            if (response.data.success) {
+                return {
+                    success: true,
+                    message: response.data.message || 'Old password is correct'
+                };
+            } else {
+                return {
+                    success: false,
+                    error: response.data.message || 'Old password is incorrect'
+                };
+            }
+        } catch (error: any) {
+            console.error('Check old password error:', error);
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Failed to verify old password'
+            };
+        }
+    },
+
+    async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<{ success: boolean; message?: string; error?: string }> {
+        try {
+            const response = await api.post(`/users/change-password/${userId}`, { oldPassword, newPassword });
+            
+            if (response.data.success) {
+                return {
+                    success: true,
+                    message: response.data.message || 'Password changed successfully'
+                };
+            } else {
+                return {
+                    success: false,
+                    error: response.data.message || 'Failed to change password'
+                };
+            }
+        } catch (error: any) {
+            console.error('Change password error:', error);
+            return {
+                success: false,
+                error: error.response?.data?.message || error.message || 'Failed to change password'
+            };
+        }
     }
 
 };
