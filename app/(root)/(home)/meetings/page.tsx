@@ -156,6 +156,13 @@ const MeetingsPage = () => {
       });
     }
 
+    // Sort by startTime (newest first)
+    filtered.sort((a: any, b: any) => {
+      const dateA = new Date(a.startTime);
+      const dateB = new Date(b.startTime);
+      return dateB.getTime() - dateA.getTime();
+    });
+
     return filtered;
   }, [
     meetings,
