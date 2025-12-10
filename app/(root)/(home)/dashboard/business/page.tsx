@@ -14,12 +14,10 @@ import {
 } from "recharts";
 import { useUser } from "@/hooks/useUser";
 import { projectService } from "@/services/projectService";
-import { meetingService } from "@/services/meetingService";
 import { userService } from "@/services/userService";
 import packageService from "@/services/packageService";
 import limitationService from "@/services/limitationService";
 import { Project } from "@/types/project";
-import { MeetingItem } from "@/types/meeting";
 import { GetUserResponse } from "@/types/user";
 import {
   PricingCard,
@@ -34,7 +32,6 @@ const BusinessDashboard = () => {
 
   // Data states
   const [projects, setProjects] = useState<Project[]>([]);
-  const [meetings, setMeetings] = useState<MeetingItem[]>([]);
   const [employees, setEmployees] = useState<GetUserResponse[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
   const [limitations, setLimitations] = useState<any[]>([]);
@@ -43,9 +40,10 @@ const BusinessDashboard = () => {
   // UI states
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [hoveredStat, setHoveredStat] = useState<string | null>(null);
-  const [showAllMeetings, setShowAllMeetings] = useState(false);
   const [showPackages, setShowPackages] = useState(false);
-  const [packageViewMode, setPackageViewMode] = useState<"grid" | "list">("grid");
+  const [packageViewMode, setPackageViewMode] = useState<"grid" | "list">(
+    "grid"
+  );
   const [packageSearchQuery, setPackageSearchQuery] = useState("");
   const [customDateRange, setCustomDateRange] = useState({
     startDate: "",
@@ -53,8 +51,6 @@ const BusinessDashboard = () => {
   });
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
-  const meetingChartRef = useRef<HTMLCanvasElement>(null);
-  const meetingChartInstance = useRef<Chart | null>(null);
 
   // Helper function to get date range based on selected period
   const getDateRange = useMemo(() => {
@@ -157,16 +153,6 @@ const BusinessDashboard = () => {
     });
   }, [projects, getDateRange]);
 
-  // Filter meetings by date range
-  const filteredMeetings = useMemo(() => {
-    const { startDate, endDate } = getDateRange;
-    return meetings.filter((m) => {
-      if (!m.startTime) return false;
-      const meetingDate = new Date(m.startTime);
-      return meetingDate >= startDate && meetingDate <= endDate;
-    });
-  }, [meetings, getDateRange]);
-
   // Fetch real data
   useEffect(() => {
     let mounted = true;
@@ -194,21 +180,7 @@ const BusinessDashboard = () => {
 
         if (mounted) setEmployees(employeeList);
 
-        // 3. Fetch meetings for each project
-        const meetingPromises = projectList.map((p) =>
-          meetingService.getMeetingsByProjectId(p.id)
-        );
-        const meetingResults = await Promise.all(meetingPromises);
-        const allMeetings: MeetingItem[] = meetingResults.reduce((acc, res) => {
-          if (res.success && Array.isArray(res.data)) {
-            return acc.concat(res.data);
-          }
-          return acc;
-        }, [] as MeetingItem[]);
-
-        if (mounted) setMeetings(allMeetings);
-
-        // 4. Fetch packages
+        // 3. Fetch packages
         const pkgRes = await packageService.getPackages();
         if (pkgRes.success && pkgRes.data && mounted) {
           const items: any[] = Array.isArray(pkgRes.data)
@@ -238,7 +210,7 @@ const BusinessDashboard = () => {
           setPackages(mapped.filter((p) => !p.isDeleted));
         }
 
-        // 5. Fetch limitations
+        // 4. Fetch limitations
         const limRes = await limitationService.getLimitations();
         if (limRes.success && limRes.data && mounted) {
           const items: any[] = Array.isArray(limRes.data)
@@ -293,7 +265,7 @@ const BusinessDashboard = () => {
         // Keep limitValue and name separate
         return {
           name: lim.name ?? lim.Name,
-          limitValue: (lim.limitValue ?? lim.LimitValue) ?? null,
+          limitValue: lim.limitValue ?? lim.LimitValue ?? null,
           isUnlimited: lim.isUnlimited || lim.IsUnlimited,
         };
       }
@@ -336,7 +308,6 @@ const BusinessDashboard = () => {
       (p) => p.status === "NotStarted" || p.status === "Pending"
     ).length;
     const totalEmployees = employees.length;
-    const totalMeetings = filteredMeetings.length;
 
     return {
       totalProjects,
@@ -344,9 +315,8 @@ const BusinessDashboard = () => {
       completedProjects,
       pendingProjects,
       totalEmployees,
-      totalMeetings,
     };
-  }, [filteredProjects, employees, filteredMeetings]);
+  }, [filteredProjects, employees]);
 
   // Calculate project trend data based on selected period
   const projectTrendData = useMemo(() => {
@@ -454,95 +424,6 @@ const BusinessDashboard = () => {
     return trendData;
   }, [projects, getDateRange, selectedPeriod]);
 
-  // Filter upcoming meetings
-  const upcomingMeetings = useMemo(() => {
-    const now = new Date();
-    return meetings
-      .filter((m) => {
-        if (!m.startTime) return false;
-        const status = m.status?.toLowerCase();
-        if (status === "finished" || status === "cancel") return false;
-        return new Date(m.startTime) >= now;
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.startTime!).getTime() - new Date(b.startTime!).getTime()
-      )
-      .map((m) => {
-        const start = new Date(m.startTime!);
-        const end = m.endTime ? new Date(m.endTime) : undefined;
-        return {
-          id: m.id,
-          title: m.title,
-          time: end
-            ? `${start.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })} - ${end.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}`
-            : start.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-          date: formatMeetingDate(start),
-          participants: m.attendees?.length || 0,
-          projectName: m.projectName,
-        };
-      });
-  }, [meetings]);
-
-  // Meeting time distribution for chart (filtered)
-  const meetingTimeDistribution = useMemo(() => {
-    const distribution = { morning: 0, afternoon: 0, evening: 0, other: 0 };
-
-    filteredMeetings.forEach((m) => {
-      if (!m.startTime) return;
-      const hour = new Date(m.startTime).getHours();
-      if (hour >= 9 && hour < 12) distribution.morning++;
-      else if (hour >= 13 && hour < 17) distribution.afternoon++;
-      else if (hour >= 18 && hour < 20) distribution.evening++;
-      else distribution.other++;
-    });
-
-    return [
-      distribution.morning,
-      distribution.afternoon,
-      distribution.evening,
-      distribution.other,
-    ];
-  }, [filteredMeetings]);
-
-  // Completed meetings count (filtered)
-  const completedMeetingsCount = useMemo(() => {
-    return filteredMeetings.filter(
-      (m) => m.status?.toLowerCase() === "finished"
-    ).length;
-  }, [filteredMeetings]);
-
-  // Helper function to format meeting date
-  function formatMeetingDate(date: Date): string {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const meetingDay = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    );
-
-    if (meetingDay.getTime() === today.getTime()) return "Today";
-    if (meetingDay.getTime() === tomorrow.getTime()) return "Tomorrow";
-
-    return date.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-  }
-
   // Project status chart
   useEffect(() => {
     if (chartRef.current && !loading) {
@@ -641,102 +522,6 @@ const BusinessDashboard = () => {
     stats.pendingProjects,
   ]);
 
-  // Meeting time distribution chart
-  useEffect(() => {
-    if (meetingChartRef.current && !loading) {
-      // Register Chart.js components
-      Chart.register(...registerables);
-
-      // Destroy existing chart if it exists
-      if (meetingChartInstance.current) {
-        meetingChartInstance.current.destroy();
-      }
-
-      const ctx = meetingChartRef.current.getContext("2d");
-      if (ctx) {
-        meetingChartInstance.current = new Chart(ctx, {
-          type: "bar",
-          data: {
-            labels: ["9:00-12:00", "13:00-17:00", "18:00-20:00", "Other"],
-            datasets: [
-              {
-                label: "Number of meetings",
-                data: meetingTimeDistribution,
-                backgroundColor: ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"],
-                borderColor: ["#FF5252", "#26A69A", "#2196F3", "#66BB6A"],
-                borderWidth: 2,
-                borderRadius: 4,
-                borderSkipped: false,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: {
-              padding: {
-                top: 10,
-                bottom: 10,
-                left: 10,
-                right: 10,
-              },
-            },
-            plugins: {
-              legend: {
-                display: false,
-              },
-              tooltip: {
-                backgroundColor: "rgba(0, 0, 0, 0.8)",
-                titleColor: "white",
-                bodyColor: "white",
-                borderColor: "#FF5E13",
-                borderWidth: 1,
-                cornerRadius: 8,
-                displayColors: true,
-                callbacks: {
-                  label: function (context) {
-                    return `${context.label}: ${context.parsed.y} meetings`;
-                  },
-                },
-              },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                grid: {
-                  color: "#F3F4F6",
-                },
-                ticks: {
-                  color: "#6b7280",
-                  font: {
-                    size: 10,
-                  },
-                },
-              },
-              x: {
-                grid: {
-                  display: false,
-                },
-                ticks: {
-                  color: "#6b7280",
-                  font: {
-                    size: 10,
-                  },
-                },
-              },
-            },
-          },
-        });
-      }
-    }
-
-    return () => {
-      if (meetingChartInstance.current) {
-        meetingChartInstance.current.destroy();
-      }
-    };
-  }, [loading, meetingTimeDistribution]);
-
   // Stats cards data
   const statsCards = [
     {
@@ -798,44 +583,6 @@ const BusinessDashboard = () => {
         </svg>
       ),
       color: "blue",
-    },
-    {
-      id: "meetings",
-      title: "Total Meetings",
-      value: stats.totalMeetings.toString(),
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M8 7V3"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M16 7V3"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M3 9H21"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V7C3 6.46957 3.21071 5.96086 3.58579 5.58579C3.96086 5.21071 4.46957 5 5 5H19C19.5304 5 20.0391 5.21071 20.4142 5.58579C20.7893 5.96086 21 6.46957 21 7V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      ),
-      color: "purple",
     },
   ];
 
@@ -1293,167 +1040,6 @@ const BusinessDashboard = () => {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Charts Row 2 */}
-      <div className="charts-row">
-        {/* Upcoming Meetings */}
-        <div className="upcoming-meetings">
-          <div className="section-header">
-            <h3>Upcoming Meetings</h3>
-            {upcomingMeetings.length > 4 && (
-              <button
-                className="create-btn"
-                onClick={() => setShowAllMeetings(!showAllMeetings)}
-              >
-                {showAllMeetings ? "Collapse" : "View All"}
-              </button>
-            )}
-          </div>
-
-          <div className="meetings-list">
-            {upcomingMeetings.length === 0 ? (
-              <div
-                className="empty-state"
-                style={{
-                  textAlign: "center",
-                  padding: "24px",
-                  color: "#6b7280",
-                }}
-              >
-                <p>No upcoming meetings</p>
-              </div>
-            ) : (
-              (showAllMeetings
-                ? upcomingMeetings
-                : upcomingMeetings.slice(0, 4)
-              ).map((meeting) => (
-                <div key={meeting.id} className="meeting-item">
-                  <div className="meeting-time">
-                    <span className="time">{meeting.time}</span>
-                    <span className="date">{meeting.date}</span>
-                  </div>
-
-                  <div className="meeting-info">
-                    <h4>{meeting.title}</h4>
-                    <span className="participants">
-                      {meeting.participants} participants
-                    </span>
-                  </div>
-
-                  <button
-                    className="join-btn"
-                    onClick={() => router.push(`/meeting/${meeting.id}`)}
-                  >
-                    Join
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Meeting Statistics Chart */}
-        <div className="meeting-stats-section">
-          <div className="section-header">
-            <h3>Meeting Statistics</h3>
-          </div>
-
-          <div className="meeting-stats-content">
-            <div className="meeting-stats-overview">
-              <div className="meeting-stat-item">
-                <div className="stat-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M8 7V3"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M16 7V3"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M3 9H21"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V7C3 6.46957 3.21071 5.96086 3.58579 5.58579C3.96086 5.21071 4.46957 5 5 5H19C19.5304 5 20.0391 5.21071 20.4142 5.58579C20.7893 5.96086 21 6.46957 21 7V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <div className="stat-info">
-                  <span className="stat-label">Total Meetings</span>
-                  <span className="stat-value">{stats.totalMeetings}</span>
-                </div>
-              </div>
-              <div className="meeting-stat-item">
-                <div className="stat-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M9 12L11 14L15 10"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <div className="stat-info">
-                  <span className="stat-label">Completed</span>
-                  <span className="stat-value">{completedMeetingsCount}</span>
-                </div>
-              </div>
-              <div className="meeting-stat-item">
-                <div className="stat-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M12 8V12L15 15"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
-                <div className="stat-info">
-                  <span className="stat-label">Upcoming</span>
-                  <span className="stat-value">{upcomingMeetings.length}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="meeting-chart-wrapper">
-              <canvas ref={meetingChartRef} width="400" height="200"></canvas>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
