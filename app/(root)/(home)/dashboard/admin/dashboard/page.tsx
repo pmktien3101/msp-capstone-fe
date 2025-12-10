@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Building2,
@@ -16,6 +16,59 @@ import { userService } from "@/services/userService";
 import { projectService } from "@/services/projectService";
 import { meetingService } from "@/services/meetingService";
 import "../../../../../styles/admin-dashboard.scss";
+
+// Helper function to get date range based on filter
+const getDateRange = (filter: string): { start: Date; end: Date } => {
+  const now = new Date();
+  let end = new Date(now);
+  let start = new Date(now);
+
+  switch (filter) {
+    case "Today":
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "This Week":
+    case "Week":
+      const dayOfWeek = now.getDay();
+      start.setDate(now.getDate() - dayOfWeek);
+      start.setHours(0, 0, 0, 0);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "This Month":
+    case "Month":
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      break;
+    case "This Quarter":
+    case "Quarter":
+      const quarter = Math.floor(now.getMonth() / 3);
+      start = new Date(now.getFullYear(), quarter * 3, 1);
+      end = new Date(now.getFullYear(), quarter * 3 + 3, 0, 23, 59, 59, 999);
+      break;
+    case "This Year":
+    case "Year":
+      start = new Date(now.getFullYear(), 0, 1);
+      end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      break;
+    case "All Time":
+    default:
+      start = new Date(0); // Beginning of time
+      end = new Date(now.getFullYear() + 100, 11, 31); // Far future
+      break;
+  }
+
+  return { start, end };
+};
+
+// Helper function to check if a date is within range
+const isDateInRange = (dateStr: string, filter: string): boolean => {
+  if (!dateStr) return false;
+  const date = new Date(dateStr);
+  const { start, end } = getDateRange(filter);
+  return date >= start && date <= end;
+};
 
 interface PackageInfo {
   id: string;
@@ -41,6 +94,7 @@ interface SubscriptionInfo {
   totalPrice: number;
   paidAt: string;
   status: string;
+  currency: string;
 }
 
 interface MonthlyRevenue {
@@ -54,7 +108,7 @@ interface MonthlyBusinessReg {
 }
 
 const AdminDashboard = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState("Month");
+  const [selectedPeriod, setSelectedPeriod] = useState("Year");
   const [timeFilter, setTimeFilter] = useState("This Year");
   const [businessRegPeriod, setBusinessRegPeriod] = useState("Year");
   const [packages, setPackages] = useState<PackageInfo[]>([]);
@@ -62,21 +116,278 @@ const AdminDashboard = () => {
     PackageDistribution[]
   >([]);
   const [isLoadingPackages, setIsLoadingPackages] = useState(true);
-  const [recentSubscriptions, setRecentSubscriptions] = useState<
-    SubscriptionInfo[]
-  >([]);
   const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState(true);
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [monthlyRevenueData, setMonthlyRevenueData] = useState<
-    MonthlyRevenue[]
-  >([]);
-  const [monthlyBusinessRegData, setMonthlyBusinessRegData] = useState<
-    MonthlyBusinessReg[]
-  >([]);
-  const [totalBusinesses, setTotalBusinesses] = useState(0);
   const [isLoadingBusinesses, setIsLoadingBusinesses] = useState(true);
-  const [totalProjects, setTotalProjects] = useState(0);
-  const [totalMeetings, setTotalMeetings] = useState(0);
+
+  // Raw data from API (unfiltered)
+  const [allSubscriptions, setAllSubscriptions] = useState<any[]>([]);
+  const [allBusinessOwners, setAllBusinessOwners] = useState<any[]>([]);
+  const [allProjects, setAllProjects] = useState<any[]>([]);
+  const [allMeetings, setAllMeetings] = useState<any[]>([]);
+
+  // Filtered subscriptions based on timeFilter
+  const filteredSubscriptions = useMemo(() => {
+    return allSubscriptions.filter((sub) =>
+      isDateInRange(sub.paidAt || sub.startDate, timeFilter)
+    );
+  }, [allSubscriptions, timeFilter]);
+
+  // Filtered projects based on timeFilter
+  const totalProjects = useMemo(() => {
+    const filtered = allProjects.filter((project) =>
+      isDateInRange(project.createdAt, timeFilter)
+    );
+    return filtered.length;
+  }, [allProjects, timeFilter]);
+
+  // Filtered meetings based on timeFilter
+  const totalMeetings = useMemo(() => {
+    const filtered = allMeetings.filter((meeting) =>
+      isDateInRange(meeting.startTime || meeting.createdAt, timeFilter)
+    );
+    return filtered.length;
+  }, [allMeetings, timeFilter]);
+
+  // Total revenue based on filtered subscriptions
+  const totalRevenue = useMemo(() => {
+    return filteredSubscriptions.reduce(
+      (sum, sub) => sum + (sub.totalPrice || 0),
+      0
+    );
+  }, [filteredSubscriptions]);
+
+  // Recent subscriptions (filtered, sorted, sliced)
+  const recentSubscriptions = useMemo(() => {
+    return filteredSubscriptions
+      .map((sub: any) => ({
+        id: sub.id,
+        packageName: sub.package?.name || "Unknown Package",
+        userName: sub.user?.fullName || "Unknown User",
+        userEmail: sub.user?.email || "",
+        totalPrice: sub.totalPrice || 0,
+        paidAt: sub.paidAt || sub.startDate || "",
+        status: sub.status || "unknown",
+        currency: sub.package?.currency || "VND",
+      }))
+      .sort(
+        (a: SubscriptionInfo, b: SubscriptionInfo) =>
+          new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime()
+      )
+      .slice(0, 6);
+  }, [filteredSubscriptions]);
+
+  // Monthly revenue data for chart based on selectedPeriod
+  const monthlyRevenueData = useMemo(() => {
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    // Filter subscriptions based on selectedPeriod
+    const periodFilteredSubs = allSubscriptions.filter((sub) =>
+      isDateInRange(
+        sub.paidAt || sub.startDate,
+        selectedPeriod === "Week"
+          ? "This Week"
+          : selectedPeriod === "Month"
+          ? "This Month"
+          : "This Year"
+      )
+    );
+
+    if (selectedPeriod === "Week") {
+      // Show daily data for the week
+      const { start } = getDateRange("This Week");
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const dailyRevenue: { [key: string]: number } = {};
+      dayNames.forEach((day) => {
+        dailyRevenue[day] = 0;
+      });
+
+      periodFilteredSubs.forEach((sub: any) => {
+        const paidDate = sub.paidAt ? new Date(sub.paidAt) : null;
+        if (paidDate) {
+          const dayName = dayNames[paidDate.getDay()];
+          dailyRevenue[dayName] += sub.totalPrice || 0;
+        }
+      });
+
+      return dayNames.map((day) => ({
+        month: day,
+        revenue: dailyRevenue[day],
+      }));
+    } else if (selectedPeriod === "Month") {
+      // Show weekly data for the month
+      const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"];
+      const weeklyRevenue: { [key: string]: number } = {};
+      weeks.forEach((week) => {
+        weeklyRevenue[week] = 0;
+      });
+
+      periodFilteredSubs.forEach((sub: any) => {
+        const paidDate = sub.paidAt ? new Date(sub.paidAt) : null;
+        if (paidDate) {
+          const weekOfMonth = Math.ceil(paidDate.getDate() / 7);
+          const weekKey = `Week ${Math.min(weekOfMonth, 4)}`;
+          weeklyRevenue[weekKey] += sub.totalPrice || 0;
+        }
+      });
+
+      return weeks.map((week) => ({
+        month: week,
+        revenue: weeklyRevenue[week],
+      }));
+    } else {
+      // Year - show monthly data
+      const monthlyRevenue: { [key: string]: number } = {};
+      monthNames.forEach((month) => {
+        monthlyRevenue[month] = 0;
+      });
+
+      periodFilteredSubs.forEach((sub: any) => {
+        const paidDate = sub.paidAt ? new Date(sub.paidAt) : null;
+        if (paidDate) {
+          const monthName = monthNames[paidDate.getMonth()];
+          monthlyRevenue[monthName] += sub.totalPrice || 0;
+        }
+      });
+
+      return monthNames.map((month) => ({
+        month,
+        revenue: monthlyRevenue[month],
+      }));
+    }
+  }, [allSubscriptions, selectedPeriod]);
+
+  // Filtered business owners based on timeFilter
+  const filteredBusinessOwners = useMemo(() => {
+    return allBusinessOwners.filter((owner) =>
+      isDateInRange(owner.createdAt, timeFilter)
+    );
+  }, [allBusinessOwners, timeFilter]);
+
+  // Total businesses count
+  const totalBusinesses = useMemo(() => {
+    return filteredBusinessOwners.length;
+  }, [filteredBusinessOwners]);
+
+  // Monthly business registration data based on businessRegPeriod
+  const monthlyBusinessRegData = useMemo(() => {
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    // Filter business owners based on businessRegPeriod
+    const periodFilteredOwners = allBusinessOwners.filter((owner) =>
+      isDateInRange(
+        owner.createdAt,
+        businessRegPeriod === "Week"
+          ? "This Week"
+          : businessRegPeriod === "Month"
+          ? "This Month"
+          : businessRegPeriod === "Quarter"
+          ? "This Quarter"
+          : "This Year"
+      )
+    );
+
+    if (businessRegPeriod === "Week") {
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const dailyReg: { [key: string]: number } = {};
+      dayNames.forEach((day) => {
+        dailyReg[day] = 0;
+      });
+
+      periodFilteredOwners.forEach((owner: any) => {
+        const createdDate = owner.createdAt ? new Date(owner.createdAt) : null;
+        if (createdDate) {
+          const dayName = dayNames[createdDate.getDay()];
+          dailyReg[dayName]++;
+        }
+      });
+
+      return dayNames.map((day) => ({ month: day, count: dailyReg[day] }));
+    } else if (businessRegPeriod === "Month") {
+      const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"];
+      const weeklyReg: { [key: string]: number } = {};
+      weeks.forEach((week) => {
+        weeklyReg[week] = 0;
+      });
+
+      periodFilteredOwners.forEach((owner: any) => {
+        const createdDate = owner.createdAt ? new Date(owner.createdAt) : null;
+        if (createdDate) {
+          const weekOfMonth = Math.ceil(createdDate.getDate() / 7);
+          const weekKey = `Week ${Math.min(weekOfMonth, 4)}`;
+          weeklyReg[weekKey]++;
+        }
+      });
+
+      return weeks.map((week) => ({ month: week, count: weeklyReg[week] }));
+    } else if (businessRegPeriod === "Quarter") {
+      const currentQuarter = Math.floor(new Date().getMonth() / 3);
+      const quarterMonths = monthNames.slice(
+        currentQuarter * 3,
+        currentQuarter * 3 + 3
+      );
+      const monthlyReg: { [key: string]: number } = {};
+      quarterMonths.forEach((month) => {
+        monthlyReg[month] = 0;
+      });
+
+      periodFilteredOwners.forEach((owner: any) => {
+        const createdDate = owner.createdAt ? new Date(owner.createdAt) : null;
+        if (createdDate) {
+          const monthName = monthNames[createdDate.getMonth()];
+          if (quarterMonths.includes(monthName)) {
+            monthlyReg[monthName]++;
+          }
+        }
+      });
+
+      return quarterMonths.map((month) => ({
+        month,
+        count: monthlyReg[month],
+      }));
+    } else {
+      // Year
+      const monthlyReg: { [key: string]: number } = {};
+      monthNames.forEach((month) => {
+        monthlyReg[month] = 0;
+      });
+
+      periodFilteredOwners.forEach((owner: any) => {
+        const createdDate = owner.createdAt ? new Date(owner.createdAt) : null;
+        if (createdDate) {
+          const monthName = monthNames[createdDate.getMonth()];
+          monthlyReg[monthName]++;
+        }
+      });
+
+      return monthNames.map((month) => ({ month, count: monthlyReg[month] }));
+    }
+  }, [allBusinessOwners, businessRegPeriod]);
 
   // Fetch packages from API
   useEffect(() => {
@@ -143,70 +454,8 @@ const AdminDashboard = () => {
             ? response.data
             : [];
 
-          // Calculate total revenue from all subscriptions
-          const total = subscriptionsData.reduce(
-            (sum: number, sub: any) => sum + (sub.totalPrice || 0),
-            0
-          );
-          setTotalRevenue(total);
-
-          // Calculate monthly revenue for the chart
-          const monthNames = [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-          ];
-          const currentYear = new Date().getFullYear();
-          const monthlyRevenue: { [key: string]: number } = {};
-
-          // Initialize all months with 0
-          monthNames.forEach((month) => {
-            monthlyRevenue[month] = 0;
-          });
-
-          // Sum up revenue by month
-          subscriptionsData.forEach((sub: any) => {
-            const paidDate = sub.paidAt ? new Date(sub.paidAt) : null;
-            if (paidDate && paidDate.getFullYear() === currentYear) {
-              const monthName = monthNames[paidDate.getMonth()];
-              monthlyRevenue[monthName] += sub.totalPrice || 0;
-            }
-          });
-
-          // Convert to array format
-          const revenueArray = monthNames.map((month) => ({
-            month,
-            revenue: monthlyRevenue[month],
-          }));
-          setMonthlyRevenueData(revenueArray);
-
-          // Map and sort by paidAt date (most recent first), take top 6
-          const mappedSubscriptions: SubscriptionInfo[] = subscriptionsData
-            .map((sub: any) => ({
-              id: sub.id,
-              packageName: sub.package?.name || "Unknown Package",
-              userName: sub.user?.fullName || "Unknown User",
-              userEmail: sub.user?.email || "",
-              totalPrice: sub.totalPrice || 0,
-              paidAt: sub.paidAt || sub.startDate || "",
-              status: sub.status || "unknown",
-            }))
-            .sort(
-              (a: SubscriptionInfo, b: SubscriptionInfo) =>
-                new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime()
-            )
-            .slice(0, 6);
-
-          setRecentSubscriptions(mappedSubscriptions);
+          // Store raw subscriptions data
+          setAllSubscriptions(subscriptionsData);
         }
       } catch (error) {
         console.error("Error fetching subscriptions:", error);
@@ -229,49 +478,8 @@ const AdminDashboard = () => {
             ? response.data
             : [];
 
-          // Set total businesses count
-          setTotalBusinesses(businessOwners.length);
-
-          // Calculate monthly registrations
-          const monthNames = [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
-          ];
-          const currentYear = new Date().getFullYear();
-          const monthlyReg: { [key: string]: number } = {};
-
-          // Initialize all months with 0
-          monthNames.forEach((month) => {
-            monthlyReg[month] = 0;
-          });
-
-          // Count registrations by month
-          businessOwners.forEach((owner: any) => {
-            const createdDate = owner.createdAt
-              ? new Date(owner.createdAt)
-              : null;
-            if (createdDate && createdDate.getFullYear() === currentYear) {
-              const monthName = monthNames[createdDate.getMonth()];
-              monthlyReg[monthName]++;
-            }
-          });
-
-          // Convert to array format
-          const regArray = monthNames.map((month) => ({
-            month,
-            count: monthlyReg[month],
-          }));
-          setMonthlyBusinessRegData(regArray);
+          // Store raw business owners data
+          setAllBusinessOwners(businessOwners);
         }
       } catch (error) {
         console.error("Error fetching business owners:", error);
@@ -283,14 +491,14 @@ const AdminDashboard = () => {
     fetchBusinessOwners();
   }, []);
 
-  // Fetch total projects from API
+  // Fetch all projects from API
   useEffect(() => {
     const fetchProjects = async () => {
       try {
         const response = await projectService.getAllProjects();
         if (response.success && response.data) {
           const projects = response.data.items || [];
-          setTotalProjects(projects.length);
+          setAllProjects(projects);
         }
       } catch (error) {
         console.error("Error fetching projects:", error);
@@ -300,7 +508,7 @@ const AdminDashboard = () => {
     fetchProjects();
   }, []);
 
-  // Fetch total meetings from API
+  // Fetch all meetings from API
   useEffect(() => {
     const fetchMeetings = async () => {
       try {
@@ -308,7 +516,7 @@ const AdminDashboard = () => {
         const projectsResponse = await projectService.getAllProjects();
         if (projectsResponse.success && projectsResponse.data) {
           const projects = projectsResponse.data.items || [];
-          let totalMeetingsCount = 0;
+          const allMeetingsList: any[] = [];
 
           // Fetch meetings for each project
           const meetingsPromises = projects.map((project: any) =>
@@ -318,11 +526,11 @@ const AdminDashboard = () => {
 
           meetingsResults.forEach((result) => {
             if (result.success && result.data) {
-              totalMeetingsCount += result.data.length;
+              allMeetingsList.push(...result.data);
             }
           });
 
-          setTotalMeetings(totalMeetingsCount);
+          setAllMeetings(allMeetingsList);
         }
       } catch (error) {
         console.error("Error fetching meetings:", error);
@@ -360,6 +568,52 @@ const AdminDashboard = () => {
     labels: monthlyBusinessRegData.map((item) => item.month),
     values: monthlyBusinessRegData.map((item) => item.count),
   };
+
+  // Calculate max value for bar chart scale
+  const barChartMaxValue = useMemo(() => {
+    const maxVal = Math.max(...businessRegData.values, 1);
+    // Round up to nearest nice number
+    if (maxVal <= 5) return 5;
+    if (maxVal <= 10) return 10;
+    if (maxVal <= 20) return 20;
+    if (maxVal <= 40) return 40;
+    if (maxVal <= 50) return 50;
+    if (maxVal <= 100) return 100;
+    return Math.ceil(maxVal / 50) * 50;
+  }, [businessRegData.values]);
+
+  // Generate y-axis labels for bar chart
+  const barChartYLabels = useMemo(() => {
+    const step = barChartMaxValue / 4;
+    return [barChartMaxValue, step * 3, step * 2, step, 0].map((v) =>
+      Math.round(v)
+    );
+  }, [barChartMaxValue]);
+
+  // Calculate max value for revenue chart scale
+  const revenueChartMaxValue = useMemo(() => {
+    const maxVal = Math.max(...revenueData.values, 1);
+    // Round up to nearest nice number
+    if (maxVal <= 1000) return 1000;
+    if (maxVal <= 5000) return 5000;
+    if (maxVal <= 10000) return 10000;
+    if (maxVal <= 25000) return 25000;
+    if (maxVal <= 50000) return 50000;
+    return Math.ceil(maxVal / 10000) * 10000;
+  }, [revenueData.values]);
+
+  // Generate y-axis labels for revenue chart
+  const revenueChartYLabels = useMemo(() => {
+    const formatValue = (v: number) => {
+      if (v >= 1000000) return `${(v / 1000000).toFixed(0)}M`;
+      if (v >= 1000) return `${(v / 1000).toFixed(0)}k`;
+      return `${v}`;
+    };
+    const step = revenueChartMaxValue / 2;
+    return [revenueChartMaxValue, step, 0].map((v) =>
+      formatValue(Math.round(v))
+    );
+  }, [revenueChartMaxValue]);
 
   // Helper function to get icon based on package name
   const getPackageIcon = (packageName: string) => {
@@ -494,9 +748,9 @@ const AdminDashboard = () => {
             </div>
             <div className="chart-container">
               <div className="y-axis-labels">
-                <span>$50k</span>
-                <span>$25k</span>
-                <span>$10k</span>
+                {revenueChartYLabels.map((label, idx) => (
+                  <span key={idx}>{label}</span>
+                ))}
               </div>
               <svg viewBox="0 0 500 150" className="line-chart">
                 <defs>
@@ -552,11 +806,9 @@ const AdminDashboard = () => {
               </div>
               <div className="bar-chart-container">
                 <div className="bar-chart-y-axis">
-                  <span>40</span>
-                  <span>30</span>
-                  <span>20</span>
-                  <span>10</span>
-                  <span>0</span>
+                  {barChartYLabels.map((label, idx) => (
+                    <span key={idx}>{label}</span>
+                  ))}
                 </div>
                 <div className="bar-chart-content">
                   <div className="bar-chart-grid">
@@ -569,7 +821,9 @@ const AdminDashboard = () => {
                       <div key={index} className="bar-wrapper">
                         <div
                           className="bar"
-                          style={{ height: `${(value / 40) * 100}%` }}
+                          style={{
+                            height: `${(value / barChartMaxValue) * 100}%`,
+                          }}
                           title={`${businessRegData.labels[index]}: ${value} businesses`}
                         >
                           <span className="bar-tooltip">{value}</span>
@@ -660,8 +914,9 @@ const AdminDashboard = () => {
               <span>Total Revenue</span>
             </div>
             <div className="wallet-balance">
-              <span className="currency">$</span>
-              <span className="amount">{totalRevenue.toLocaleString()}</span>
+              <span className="amount">
+                {totalRevenue.toLocaleString()} VND
+              </span>
             </div>
             <div className="revenue-period">
               <span>{timeFilter}</span>
@@ -705,7 +960,8 @@ const AdminDashboard = () => {
                         </span>
                       </div>
                       <span className="transaction-amount">
-                        +${subscription.totalPrice}
+                        +{subscription.totalPrice.toLocaleString()}{" "}
+                        {subscription.currency}
                       </span>
                     </div>
                   );
