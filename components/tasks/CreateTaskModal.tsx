@@ -112,7 +112,7 @@ export const CreateTaskModal = ({
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error("Lỗi khi tải dữ liệu");
+        toast.error("Error loading data");
       } finally {
         setIsLoadingData(false);
       }
@@ -144,19 +144,15 @@ export const CreateTaskModal = ({
 
   const handleSave = async () => {
     if (!user?.userId) {
-      toast.error("Người dùng chưa đăng nhập");
+      toast.error("User not logged in");
       return;
     }
     if (!taskData.title.trim()) {
-      toast.error("Vui lòng nhập tiêu đề công việc");
-      return;
-    }
-    if (!taskData.userId) {
-      toast.error("Vui lòng chọn người thực hiện");
+      toast.error("Please enter task title");
       return;
     }
     if (!taskData.startDate || !taskData.endDate) {
-      toast.error("Vui lòng chọn ngày bắt đầu và kết thúc");
+      toast.error("Please select start and end dates");
       return;
     }
 
@@ -169,7 +165,7 @@ export const CreateTaskModal = ({
     );
 
     if (!dateValidation.valid) {
-      toast.error(dateValidation.message || "Ngày không hợp lệ");
+      toast.error(dateValidation.message || "Invalid dates");
       return;
     }
 
@@ -182,7 +178,7 @@ export const CreateTaskModal = ({
         description: taskData.description.trim(),
         status: taskData.status,
         actorId: user.userId,
-        userId: taskData.userId,
+        userId: taskData.userId || undefined,
         reviewerId: taskData.reviewerId || undefined,
         startDate: new Date(taskData.startDate).toISOString(),
         endDate: new Date(taskData.endDate).toISOString(),
@@ -192,15 +188,15 @@ export const CreateTaskModal = ({
       const response = await taskService.createTask(createData);
 
       if (response.success) {
-        toast.success("Tạo công việc thành công");
+        toast.success("Task created successfully");
         onSuccess?.();
         onClose();
       } else {
-        toast.error(response.error || "Không thể tạo công việc");
+        toast.error(response.error || "Failed to create task");
       }
     } catch (error) {
       console.error("Error creating task:", error);
-      toast.error("Lỗi khi tạo công việc");
+      toast.error("Error creating task");
     } finally {
       setIsSaving(false);
     }
@@ -336,7 +332,6 @@ export const CreateTaskModal = ({
                   <label className="form-label">
                     <User size={16} />
                     <span className="label-text">Assignee</span>
-                    <span className="required-mark">*</span>
                   </label>
                   <select
                     className="form-select"
@@ -346,7 +341,7 @@ export const CreateTaskModal = ({
                     }
                     disabled={isSaving}
                   >
-                    <option value="">Select assignee</option>
+                    <option value="">Select assignee (optional)</option>
                     {members.map((member) => (
                       <option key={member.id} value={member.id}>
                         {member.name}
@@ -369,13 +364,13 @@ export const CreateTaskModal = ({
                       setTaskData({ ...taskData, startDate: e.target.value })
                     }
                     min={
-                      project?.startDate
-                        ? new Date(project.startDate)
-                            .toISOString()
-                            .split("T")[0]
+                      new Date().toISOString().split("T")[0]
+                    }
+                    max={
+                      project?.endDate
+                        ? new Date(project.endDate).toISOString().split("T")[0]
                         : undefined
                     }
-                    max={new Date().toISOString().split("T")[0]}
                     disabled={isSaving}
                   />
                   {project?.startDate && (

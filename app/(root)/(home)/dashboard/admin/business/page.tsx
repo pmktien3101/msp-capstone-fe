@@ -145,13 +145,13 @@ const AdminBusinessOwners = () => {
                 : bo
             )
           );
-          toast.success(result.message || "Cập nhật trạng thái thành công!");
+          toast.success(result.message || "Status updated successfully!");
         } else {
-          toast.error(result.error || "Không thể cập nhật trạng thái");
+          toast.error(result.error || "Unable to update status");
         }
       } catch (error) {
         console.error("Error toggling active status:", error);
-        toast.error("Đã xảy ra lỗi khi cập nhật trạng thái");
+        toast.error("An error occurred while updating status");
       }
       setShowDeactivateModal(false);
       setSelectedBusinessOwner(null);
@@ -172,13 +172,13 @@ const AdminBusinessOwners = () => {
                 : bo
             )
           );
-          toast.success(result.message || "Phê duyệt tài khoản thành công!");
+          toast.success(result.message || "Account approved successfully!");
         } else {
-          toast.error(result.error || "Không thể phê duyệt tài khoản");
+          toast.error(result.error || "Unable to approve account");
         }
       } catch (error) {
         console.error("Error approving business owner:", error);
-        toast.error("Đã xảy ra lỗi khi phê duyệt tài khoản");
+        toast.error("An error occurred while approving account");
       }
       setShowApproveModal(false);
       setSelectedBusinessOwner(null);
@@ -195,13 +195,13 @@ const AdminBusinessOwners = () => {
           setBusinessOwners(
             businessOwners.filter((bo) => bo.id !== selectedBusinessOwner.id)
           );
-          toast.success(result.message || "Từ chối tài khoản thành công!");
+          toast.success(result.message || "Account rejected successfully!");
         } else {
-          toast.error(result.error || "Không thể từ chối tài khoản");
+          toast.error(result.error || "Unable to reject account");
         }
       } catch (error) {
         console.error("Error rejecting business owner:", error);
-        toast.error("Đã xảy ra lỗi khi từ chối tài khoản");
+        toast.error("An error occurred while rejecting account");
       }
       setShowRejectModal(false);
       setSelectedBusinessOwner(null);
@@ -511,8 +511,8 @@ const AdminBusinessOwners = () => {
 
       {/* Deactivate/Activate Confirmation Modal */}
       {showDeactivateModal && selectedBusinessOwner && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowDeactivateModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>
                 {selectedBusinessOwner.isActive
@@ -567,8 +567,8 @@ const AdminBusinessOwners = () => {
 
       {/* Approve Confirmation Modal */}
       {showApproveModal && selectedBusinessOwner && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowApproveModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Confirm Approval of Business Owner</h3>
               <button
@@ -605,8 +605,8 @@ const AdminBusinessOwners = () => {
 
       {/* Reject Confirmation Modal */}
       {showRejectModal && selectedBusinessOwner && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowRejectModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Confirm Rejection of Business Owner</h3>
               <button
@@ -643,8 +643,8 @@ const AdminBusinessOwners = () => {
 
       {/* Detail Modal */}
       {showDetailModal && selectedBusinessOwner && (
-        <div className="modal-overlay">
-          <div className="modal-content detail-modal">
+        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+          <div className="modal-content detail-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Business Owner Details</h3>
               <button

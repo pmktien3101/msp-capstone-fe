@@ -15,6 +15,7 @@ import type {
   Project as ProjectType,
   ProjectMemberResponse,
 } from "@/types/project";
+import "@/app/styles/businessProjects.scss";
 
 interface ProjectStats {
   memberCount: number;
@@ -28,7 +29,6 @@ const BusinessProjectsPage = () => {
   const { user } = useAuth();
   const [projects, setProjects] = useState<ProjectType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>("");
   const [projectManagers, setProjectManagers] = useState<
     Array<{ id: string; name: string; email: string }>
   >([]);
@@ -48,8 +48,6 @@ const BusinessProjectsPage = () => {
 
     try {
       setLoading(true);
-      setError("");
-
       const result = await projectService.getProjectsByBOId(user.userId);
 
       if (result.success && result.data) {
@@ -129,11 +127,9 @@ const BusinessProjectsPage = () => {
         setProjectPMs(projectPMMap);
         setProjectStats(statsMap);
       } else {
-        setError(result.error || "Unable to load project list");
       }
     } catch (err) {
       console.error("[BusinessProjects] Error:", err);
-      setError("An error occurred while loading data");
     } finally {
       setLoading(false);
     }
@@ -229,19 +225,6 @@ const BusinessProjectsPage = () => {
         <div className="loading-container">
           <div className="loading-spinner"></div>
           <p>Loading data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="business-projects-page">
-        <div className="error-container">
-          <h2>An error occurred</h2>
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()}>Try again</button>
         </div>
       </div>
     );
@@ -435,29 +418,96 @@ const BusinessProjectsPage = () => {
         </div>
       </div>
 
-      {/* Projects Table */}
-      <div className="projects-table-container">
-        <div className="table-header">
-          <div className="header-left">
-            <h3>Project List</h3>
-            <span className="project-count">
-              {filteredProjects.length} projects
-            </span>
+      {/* Projects Table or Empty State */}
+      {filteredProjects.length === 0 && projects.length === 0 ? (
+        <div className="projects-table-container">
+          <div className="empty-state">
+            <div className="empty-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M9 22V12H15V22"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <p className="empty-text">No Projects Yet</p>
+            <p className="empty-description">
+              Your organization hasn't created any projects yet. Get started by
+              creating your first project to organize your team's work.
+            </p>
           </div>
         </div>
-
-        <div className="projects-table">
-          <div className="table-header-row">
-            <div className="col-project">Project</div>
-            <div className="col-pm">Project Managers</div>
-            <div className="col-status">Status</div>
-            <div className="col-progress">Progress</div>
-            <div className="col-members">Members</div>
-            <div className="col-tasks">Tasks</div>
-            <div className="col-dates">Timeline</div>
+      ) : filteredProjects.length === 0 ? (
+        <div className="projects-table-container">
+          <div className="empty-state">
+            <div className="empty-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                <circle
+                  cx="11"
+                  cy="11"
+                  r="8"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                <path
+                  d="M21 21L16.65 16.65"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <p className="empty-text">No Projects Found</p>
+            <p className="empty-description">
+              No projects match your current filters. Try adjusting your search
+              criteria or clear filters to see all projects.
+            </p>
+            <button
+              className="create-project-button"
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("all");
+                setPmFilter("all");
+              }}
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="projects-table-container">
+          <div className="table-header">
+            <div className="header-left">
+              <h3>Project List</h3>
+              <span className="project-count">
+                {filteredProjects.length} projects
+              </span>
+            </div>
           </div>
 
-          {filteredProjects.map((project) => (
+          <div className="projects-table">
+            <div className="table-header-row">
+              <div className="col-project">Project</div>
+              <div className="col-pm">Project Managers</div>
+              <div className="col-status">Status</div>
+              <div className="col-progress">Progress</div>
+              <div className="col-members">Members</div>
+              <div className="col-tasks">Tasks</div>
+              <div className="col-dates">Timeline</div>
+            </div>
+
+            {filteredProjects.map((project) => (
             <div
               key={project.id}
               className="table-row"
@@ -567,625 +617,8 @@ const BusinessProjectsPage = () => {
             </div>
           ))}
         </div>
-      </div>
-
-      <style jsx>{`
-        .business-projects-page {
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: 32px;
-          background: #fafafa;
-          min-height: 100vh;
-        }
-
-        .page-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 40px;
-          padding: 24px 32px;
-          background: linear-gradient(135deg, #fff4ed 0%, #ffe8d9 100%);
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          border: 1px solid #ffd4b8;
-        }
-
-        .header-content h1 {
-          font-size: 32px;
-          font-weight: 700;
-          color: #0d062d;
-          margin: 0 0 8px 0;
-        }
-
-        .header-content p {
-          font-size: 16px;
-          color: #787486;
-          margin: 0;
-        }
-
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 20px;
-          margin-bottom: 40px;
-        }
-
-        .stat-card {
-          background: white;
-          border-radius: 16px;
-          padding: 24px;
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          border: 1px solid #f1f1f1;
-        }
-
-        .stat-icon {
-          width: 56px;
-          height: 56px;
-          background: #fff4ed;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #ff5e13;
-        }
-
-        .stat-content h3 {
-          font-size: 13px;
-          color: #787486;
-          margin: 0 0 6px 0;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .stat-number {
-          font-size: 32px;
-          font-weight: 800;
-          color: #ff5e13;
-          margin: 0;
-        }
-
-        .filters-section {
-          display: flex;
-          gap: 16px;
-          margin-bottom: 32px;
-          flex-wrap: wrap;
-        }
-
-        .search-box {
-          position: relative;
-          flex: 1;
-          min-width: 300px;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          transition: all 0.3s ease;
-        }
-
-        .search-box:focus-within {
-          box-shadow: 0 4px 16px rgba(255, 94, 19, 0.1);
-        }
-
-        .search-box svg {
-          position: absolute;
-          left: 16px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #787486;
-          transition: color 0.3s ease;
-        }
-
-        .search-box:focus-within svg {
-          color: #ff5e13;
-        }
-
-        .search-box input {
-          width: 100%;
-          padding: 14px 16px 14px 48px;
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          font-size: 14px;
-          font-weight: 500;
-          transition: all 0.3s ease;
-          background: transparent;
-        }
-
-        .search-box input:focus {
-          outline: none;
-          border-color: #ff5e13;
-        }
-
-        .search-box input::placeholder {
-          color: #a0aec0;
-        }
-
-        .filter-group select {
-          padding: 14px 20px;
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          font-size: 14px;
-          font-weight: 600;
-          background: white;
-          color: #0d062d;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          min-width: 180px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .filter-group select:hover {
-          border-color: #ffd4b8;
-          box-shadow: 0 4px 12px rgba(255, 94, 19, 0.08);
-        }
-
-        .filter-group select:focus {
-          outline: none;
-          border-color: #ff5e13;
-          box-shadow: 0 4px 16px rgba(255, 94, 19, 0.15);
-        }
-
-        .projects-table-container {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-          overflow: hidden;
-          border: 1px solid #f1f1f1;
-          position: relative;
-        }
-
-        .projects-table-container::before {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, #ff5e13, #ff8c42, #ffa463);
-        }
-
-        .table-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 24px 32px;
-          border-bottom: 2px solid #f8f9fa;
-          background: #fafbfc;
-        }
-
-        .header-left {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .table-header h3 {
-          font-size: 20px;
-          font-weight: 700;
-          color: #0d062d;
-          margin: 0;
-        }
-
-        .project-count {
-          font-size: 14px;
-          color: #787486;
-          font-weight: 600;
-        }
-
-        .projects-table {
-          overflow-x: auto;
-        }
-
-        .table-header-row {
-          display: grid;
-          grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 1fr 1.5fr;
-          gap: 20px;
-          padding: 18px 32px;
-          background: #fff4ed;
-          font-size: 12px;
-          font-weight: 700;
-          color: #ff5e13;
-          text-transform: uppercase;
-          letter-spacing: 0.8px;
-          border-bottom: 1px solid #ffe8d9;
-        }
-
-        .table-row {
-          display: grid;
-          grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 1fr 1.5fr;
-          gap: 20px;
-          padding: 24px 32px;
-          border-bottom: 1px solid #f8f9fa;
-          align-items: start;
-          transition: all 0.3s ease;
-          background: white;
-          cursor: pointer;
-          position: relative;
-        }
-
-        .table-row::before {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 0;
-          background: #ff5e13;
-          transition: width 0.3s ease;
-        }
-
-        .table-row:hover {
-          background: #fffbf8;
-          transform: translateX(4px);
-        }
-
-        .table-row:hover::before {
-          width: 3px;
-        }
-
-        .col-project {
-          display: flex;
-          align-items: center;
-          min-height: 40px;
-        }
-
-        .project-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          width: 100%;
-        }
-
-        .project-details {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .project-name {
-          font-size: 15px;
-          font-weight: 700;
-          color: #0d062d;
-          transition: color 0.3s ease;
-        }
-
-        .table-row:hover .project-name {
-          color: #ff5e13;
-        }
-
-        .project-description {
-          font-size: 13px;
-          color: #64748b;
-          font-weight: 500;
-          line-height: 1.4;
-        }
-
-        .col-pm {
-          display: flex;
-          align-items: center;
-          min-height: 40px;
-        }
-
-        .pm-list {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          width: 100%;
-        }
-
-        .pm-item {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .pm-avatar {
-          width: 32px;
-          height: 32px;
-          background: #fff4ed;
-          color: #ff5e13;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 13px;
-          border: 2px solid #ffe8d9;
-          flex-shrink: 0;
-        }
-
-        .pm-details {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          min-width: 0;
-        }
-
-        .pm-name {
-          font-size: 13px;
-          font-weight: 600;
-          color: #0d062d;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .pm-email {
-          font-size: 11px;
-          color: #94a3b8;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .pm-more {
-          font-size: 11px;
-          color: #ff5e13;
-          font-weight: 600;
-          padding: 6px 10px;
-          background: #fff4ed;
-          border-radius: 6px;
-          display: inline-block;
-          margin-top: 4px;
-          border: 1px solid #ffe8d9;
-        }
-
-        .col-status {
-          display: flex;
-          align-items: center;
-          min-height: 40px;
-        }
-
-        .status-badge {
-          font-size: 11px;
-          font-weight: 600;
-          padding: 6px 12px;
-          border-radius: 8px;
-          display: inline-block;
-          white-space: nowrap;
-          line-height: 1.2;
-          max-width: 100%;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .col-progress {
-          display: flex;
-          align-items: center;
-          min-height: 40px;
-        }
-
-        .progress-container {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          width: 100%;
-        }
-
-        .progress-bar {
-          flex: 1;
-          height: 8px;
-          background: #e5e7eb;
-          border-radius: 8px;
-          overflow: hidden;
-        }
-
-        .progress-fill {
-          height: 100%;
-          border-radius: 8px;
-          transition: width 0.3s ease;
-        }
-
-        .progress-text {
-          font-size: 13px;
-          font-weight: 600;
-          color: #475569;
-          min-width: 40px;
-        }
-
-        .col-members {
-          display: flex;
-          align-items: center;
-          min-height: 40px;
-        }
-
-        .member-count {
-          font-size: 13px;
-          color: #475569;
-          font-weight: 600;
-        }
-
-        .col-tasks {
-          display: flex;
-          align-items: center;
-          min-height: 40px;
-        }
-
-        .task-stats {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 14px;
-          font-weight: 600;
-        }
-
-        .task-completed {
-          color: #10b981;
-        }
-
-        .task-separator {
-          color: #94a3b8;
-        }
-
-        .task-total {
-          color: #64748b;
-        }
-
-        .col-dates {
-          display: flex;
-          align-items: center;
-          min-height: 40px;
-        }
-
-        .date-info {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          width: 100%;
-        }
-
-        .start-date,
-        .end-date {
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 600;
-        }
-
-        @media (max-width: 1200px) {
-          .table-header-row,
-          .table-row {
-            grid-template-columns: 1fr;
-            gap: 12px;
-          }
-
-          .col-project,
-          .col-pm,
-          .col-status,
-          .col-progress,
-          .col-members,
-          .col-tasks,
-          .col-dates {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #f3f4f6;
-          }
-
-          .col-project::before {
-            content: "Project: ";
-            font-weight: 700;
-            color: #ff5e13;
-          }
-          .col-pm::before {
-            content: "PMs: ";
-            font-weight: 700;
-            color: #ff5e13;
-          }
-          .col-status::before {
-            content: "Status: ";
-            font-weight: 700;
-            color: #ff5e13;
-          }
-          .col-progress::before {
-            content: "Progress: ";
-            font-weight: 700;
-            color: #ff5e13;
-          }
-          .col-members::before {
-            content: "Members: ";
-            font-weight: 700;
-            color: #ff5e13;
-          }
-          .col-tasks::before {
-            content: "Tasks: ";
-            font-weight: 700;
-            color: #ff5e13;
-          }
-          .col-dates::before {
-            content: "Timeline: ";
-            font-weight: 700;
-            color: #ff5e13;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .business-projects-page {
-            padding: 16px;
-          }
-
-          .page-header {
-            padding: 20px;
-          }
-
-          .header-content h1 {
-            font-size: 28px;
-          }
-
-          .filters-section {
-            flex-direction: column;
-          }
-
-          .search-box {
-            min-width: auto;
-          }
-
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .table-header,
-          .table-row {
-            padding: 16px 20px;
-          }
-        }
-
-        .loading-container,
-        .error-container {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 20px;
-        }
-
-        .loading-spinner {
-          width: 50px;
-          height: 50px;
-          border: 4px solid #f3f4f6;
-          border-top-color: #ff5e13;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .error-container h2 {
-          color: #ef4444;
-          font-size: 24px;
-          margin: 0;
-        }
-
-        .error-container p {
-          color: #6b7280;
-          font-size: 16px;
-          margin: 0;
-        }
-
-        .error-container button {
-          padding: 10px 24px;
-          background: #ff5e13;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .error-container button:hover {
-          background: #e54d0f;
-          transform: translateY(-1px);
-        }
-      `}</style>
+        </div>
+      )}
     </div>
   );
 };

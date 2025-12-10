@@ -48,6 +48,8 @@ export default function SignUpPage() {
   const [businessLicenseFile, setBusinessLicenseFile] = useState<File | null>(
     null
   );
+  const [phoneNumberError, setPhoneNumberError] = useState<string | null>(null);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -172,6 +174,32 @@ export default function SignUpPage() {
       return;
     }
 
+    // Check if phone number has error
+    if (phoneNumberError) {
+      setMessage({
+        type: "error",
+        text: phoneNumberError,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    // Final check phone number before submitting
+    try {
+      const phoneCheckResult = await authService.checkPhoneNumber(registerForm.phoneNumber);
+      if (phoneCheckResult.success && !phoneCheckResult.isAvailable) {
+        setPhoneNumberError("This phone number is already registered");
+        setMessage({
+          type: "error",
+          text: "This phone number is already registered",
+        });
+        setIsLoading(false);
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking phone number before submit:", error);
+    }
+
     try {
       let finalBusinessLicenseUrl = businessLicenseUrl;
 
@@ -245,6 +273,28 @@ export default function SignUpPage() {
     }
   };
 
+  // Check phone number availability with debounce
+  const checkPhoneAvailability = async (phoneNumber: string) => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      setPhoneNumberError(null);
+      return;
+    }
+
+    setIsCheckingPhone(true);
+    setPhoneNumberError(null);
+
+    try {
+      const result = await authService.checkPhoneNumber(phoneNumber);
+      if (result.success && !result.isAvailable) {
+        setPhoneNumberError("This phone number is already registered");
+      }
+    } catch (error) {
+      console.error("Error checking phone number:", error);
+    } finally {
+      setIsCheckingPhone(false);
+    }
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -254,6 +304,16 @@ export default function SignUpPage() {
       [name]:
         type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
+
+    // Check phone number when it changes
+    if (name === "phoneNumber") {
+      setPhoneNumberError(null);
+      // Debounce phone check
+      const timeoutId = setTimeout(() => {
+        checkPhoneAvailability(value);
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
 
     if (message) {
       setMessage(null);
@@ -575,9 +635,22 @@ export default function SignUpPage() {
                     placeholder="Enter your phone number"
                     value={registerForm.phoneNumber}
                     onChange={handleInputChange}
+                    className={phoneNumberError ? "error" : ""}
                     required
                   />
+                  {isCheckingPhone && (
+                    <span className="checking-indicator">Checking...</span>
+                  )}
+                  {phoneNumberError && (
+                    <XCircle className="error-icon" size={20} />
+                  )}
+                  {registerForm.phoneNumber && !phoneNumberError && !isCheckingPhone && (
+                    <CheckCircle className="success-icon" size={20} />
+                  )}
                 </div>
+                {phoneNumberError && (
+                  <span className="error-message">{phoneNumberError}</span>
+                )}
               </div>
 
               <div className="form-group">
