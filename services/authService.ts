@@ -412,5 +412,30 @@ export const authService = {
         }
     },
 
+    async checkPhoneNumber(phoneNumber: string): Promise<{ success: boolean; isAvailable: boolean; message?: string; error?: string }> {
+        try {
+            const response = await api.get(`/auth/check-phone?phoneNumber=${encodeURIComponent(phoneNumber)}`);
+            return {
+                success: true,
+                isAvailable: response.data.data?.isAvailable || false,
+                message: response.data.message
+            };
+        } catch (error: any) {
+            console.error('Check phone number error:', error);
+            // If endpoint doesn't exist, assume phone is available
+            if (error.response?.status === 404) {
+                return {
+                    success: true,
+                    isAvailable: true
+                };
+            }
+            return {
+                success: false,
+                isAvailable: false,
+                error: error.response?.data?.message || error.message || 'Failed to check phone number'
+            };
+        }
+    },
+
 };
 

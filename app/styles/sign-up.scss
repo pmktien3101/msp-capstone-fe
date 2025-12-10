@@ -199,6 +199,45 @@ $light-gray: #f1f5f9;
           transform: scale(1.1);
         }
       }
+
+      .error-icon {
+        position: absolute;
+        right: 16px;
+        color: #dc2626;
+        z-index: 2;
+      }
+
+      .success-icon {
+        position: absolute;
+        right: 16px;
+        color: #16a34a;
+        z-index: 2;
+      }
+
+      .checking-indicator {
+        position: absolute;
+        right: 16px;
+        font-size: 13px;
+        color: $primary-orange;
+        z-index: 2;
+        font-weight: 500;
+      }
+
+      input.error {
+        border-color: #dc2626 !important;
+        
+        &:focus {
+          box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+      }
+    }
+
+    .error-message {
+      display: block;
+      margin-top: 6px;
+      font-size: 13px;
+      color: #dc2626;
+      font-weight: 500;
     }
   }
 
