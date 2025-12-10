@@ -108,26 +108,62 @@ export const ProjectTaskTable = ({
 
     setIsLoadingTasks(true);
     try {
-      let response;
+      let allTasks: GetTaskResponse[] = [];
+      
       // ProjectManager & BusinessOwner: Get all tasks in project
       // Member: Get only tasks assigned to this user in project
       if (userRole === UserRole.PROJECT_MANAGER || userRole === 'ProjectManager' || 
           userRole === UserRole.BUSINESS_OWNER || userRole === 'BusinessOwner') {
-        // console.log(`[ProjectBoard] ✅ Fetching ALL tasks for ${userRole} in project: ${projectId}`);
-        response = await taskService.getTasksByProjectId(projectId);
+        // Fetch all pages from API
+        let currentPage = 1;
+        let hasMorePages = true;
+        
+        while (hasMorePages) {
+          const response = await taskService.getTasksByProjectId(projectId, {
+            pageIndex: currentPage,
+            pageSize: 100
+          });
+          
+          if (response.success && response.data) {
+            const items = response.data.items || [];
+            allTasks = [...allTasks, ...items];
+            
+            // Check if there are more pages
+            const totalItems = response.data.totalItems || 0;
+            hasMorePages = allTasks.length < totalItems;
+            currentPage++;
+          } else {
+            hasMorePages = false;
+          }
+        }
       } else {
-        // console.log(`[ProjectBoard] ✅ Fetching ASSIGNED tasks for ${userRole} (user: ${userId}) in project: ${projectId}`);
-        response = await taskService.getTasksByUserIdAndProjectId(userId, projectId);
+        // For members, fetch their assigned tasks with pagination
+        let currentPage = 1;
+        let hasMorePages = true;
+        
+        while (hasMorePages) {
+          const response = await taskService.getTasksByUserIdAndProjectId(userId, projectId, {
+            pageIndex: currentPage,
+            pageSize: 100
+          });
+          
+          if (response.success && response.data) {
+            const items = response.data.items || [];
+            allTasks = [...allTasks, ...items];
+            
+            // Check if there are more pages
+            const totalItems = response.data.totalItems || 0;
+            hasMorePages = allTasks.length < totalItems;
+            currentPage++;
+          } else {
+            hasMorePages = false;
+          }
+        }
       }
       
-      if (response.success && response.data) {
-        // Extract items from PagingResponse
-        const taskList = response.data.items || [];
-        setTasks(taskList);
-      } else {
-        setTasks([]);
-      }
+      setTasks(allTasks);
     } catch (error) {
+      console.error("Error fetching tasks:", error);
       setTasks([]);
     } finally {
       setIsLoadingTasks(false);
