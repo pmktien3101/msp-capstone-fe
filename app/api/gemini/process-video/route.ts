@@ -187,24 +187,6 @@ const parseImprovedTranscript = (
       }));
 };
 
-// Hàm để cập nhật speakerIds trong improvedTranscript dựa trên originalTranscriptions
-function updateSpeakerIds(originalTrans: any[], improvedTrans: any[]) {
-  // 1. Lấy unique speakerId theo thứ tự xuất hiện
-  const speakerMap: string[] = [];
-  const seen = new Set();
-  for (const seg of originalTrans) {
-    if (!seen.has(seg.speakerId)) {
-      speakerMap.push(seg.speakerId);
-      seen.add(seg.speakerId);
-    }
-  }
-  // 2. Gán lại speakerId cho improved transcript (cứ lặp lại đúng thứ tự speakerMap)
-  return improvedTrans.map((seg, i) => ({
-    ...seg,
-    speakerId: speakerMap[i % speakerMap.length],
-  }));
-}
-
 // ===== API ROUTE HANDLER =====
 export async function POST(request: NextRequest) {
   // console.log('🚀 API Route: process-video bắt đầu');
