@@ -277,6 +277,7 @@ const BusinessDashboard = () => {
       price: plan.price,
       currency: plan.currency,
       period: plan.period,
+      billingCycle: plan.billingCycle ?? 1,
       description: plan.description,
       limitations: planLimitations,
     };
