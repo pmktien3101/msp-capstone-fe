@@ -56,7 +56,7 @@ export interface PricingCardProps {
 // };
 
 const getCurrencySymbol = (currency?: string): string => {
-  return "₫"; // VND only
+  return "VND"; // VND only
 };
 
 const formatPrice = (price: number | string): string => {

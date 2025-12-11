@@ -6,6 +6,8 @@ import { useUser } from "@/hooks/useUser";
 import { UserRole } from "@/lib/rbac";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useMeetingLimitationCheck } from "@/hooks/useLimitationCheck";
+import { usePagination } from "@/hooks/usePagination";
+import { Pagination } from "@/components/ui/Pagination";
 import { toast } from "react-toastify";
 
 import { CreateMeetingModal } from "@/components/projects/modals/CreateMeetingModal";
@@ -71,6 +73,7 @@ const MeetingsPage = () => {
   const [meetings, setMeetings] = useState<MeetingItem[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const ITEMS_PER_PAGE = 9;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -153,6 +156,13 @@ const MeetingsPage = () => {
       });
     }
 
+    // Sort by startTime (newest first)
+    filtered.sort((a: any, b: any) => {
+      const dateA = new Date(a.startTime);
+      const dateB = new Date(b.startTime);
+      return dateB.getTime() - dateA.getTime();
+    });
+
     return filtered;
   }, [
     meetings,
@@ -163,6 +173,17 @@ const MeetingsPage = () => {
     dateRangeEnd,
     quickFilter,
   ]);
+
+  // Pagination for filtered meetings
+  const {
+    paginatedData: paginatedMeetings,
+    currentPage,
+    totalPages,
+    setCurrentPage,
+  } = usePagination({
+    data: filteredMeetings,
+    itemsPerPage: ITEMS_PER_PAGE,
+  });
 
   const getProjectName = (projectId: string) => {
     const project = projects.find((p: any) => p.id === projectId);
@@ -413,10 +434,6 @@ const MeetingsPage = () => {
         </div>
         <div className="hero-content">
           <div className="hero-text">
-            <div className="hero-badge">
-              <Video size={14} />
-              <span>Meeting Hub</span>
-            </div>
             <h1 className="hero-title">Meetings List</h1>
             <p className="hero-subtitle">
               Schedule, manage and track all your project meetings in one place
@@ -670,120 +687,135 @@ const MeetingsPage = () => {
               )}
           </div>
         ) : (
-          <div className="meetings-grid">
-            {filteredMeetings.map((meeting: any) => (
-              <div
-                key={meeting.id}
-                className={`meeting-card status-${meeting.status.toLowerCase()}`}
-                onClick={() => handleCardClick(meeting.id)}
-              >
-                {/* Card Header */}
-                <div className="card-header">
-                  <div
-                    className={`status-indicator ${meeting.status.toLowerCase()}`}
-                  >
-                    {getStatusIcon(meeting.status)}
-                    <span>{getStatusLabel(meeting.status)}</span>
-                  </div>
-                  <div className="card-actions">
-                    <button
-                      onClick={(e) => handleDropdownToggle(meeting.id, e)}
-                      className="action-btn"
-                      title="More options"
+          <>
+            <div className="meetings-grid">
+              {paginatedMeetings.map((meeting: any) => (
+                <div
+                  key={meeting.id}
+                  className={`meeting-card status-${meeting.status.toLowerCase()}`}
+                  onClick={() => handleCardClick(meeting.id)}
+                >
+                  {/* Card Header */}
+                  <div className="card-header">
+                    <div
+                      className={`status-indicator ${meeting.status.toLowerCase()}`}
                     >
-                      <MoreVertical size={16} />
-                    </button>
-                    {openDropdownId === meeting.id && (
-                      <div className="action-menu">
-                        <button
-                          onClick={(e) => handleEditMeeting(meeting, e)}
-                          className="menu-item"
-                        >
-                          <Edit size={14} />
-                          Edit Meeting
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteMeeting(meeting, e)}
-                          className="menu-item danger"
-                        >
-                          <Trash2 size={14} />
-                          Delete
-                        </button>
+                      {getStatusIcon(meeting.status)}
+                      <span>{getStatusLabel(meeting.status)}</span>
+                    </div>
+                    <div className="card-actions">
+                      <button
+                        onClick={(e) => handleDropdownToggle(meeting.id, e)}
+                        className="action-btn"
+                        title="More options"
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                      {openDropdownId === meeting.id && (
+                        <div className="action-menu">
+                          <button
+                            onClick={(e) => handleEditMeeting(meeting, e)}
+                            className="menu-item"
+                          >
+                            <Edit size={14} />
+                            Edit Meeting
+                          </button>
+                          <button
+                            onClick={(e) => handleDeleteMeeting(meeting, e)}
+                            className="menu-item danger"
+                          >
+                            <Trash2 size={14} />
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Body */}
+                  <div className="card-body">
+                    <h3 className="card-title">{meeting.title}</h3>
+                    <p className="card-description">
+                      {meeting.description || "No description provided"}
+                    </p>
+                  </div>
+
+                  {/* Card Info */}
+                  <div className="card-info">
+                    <div
+                      className="info-row project-row"
+                      title={getProjectName(meeting.projectId)}
+                    >
+                      <FolderKanban size={14} />
+                      <span className="project-name">
+                        {getProjectName(meeting.projectId)}
+                      </span>
+                    </div>
+                    <div className="info-row">
+                      <div className="info-item">
+                        <Calendar size={14} />
+                        <span>{formatDate(meeting.startTime)}</span>
                       </div>
+                      <div className="info-item">
+                        <Clock size={14} />
+                        <span>
+                          {new Date(meeting.startTime).toLocaleTimeString(
+                            "en-US",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
+                        </span>
+                      </div>
+                      <div className="info-item">
+                        <Users size={14} />
+                        <span>
+                          {meeting.attendees?.length ??
+                            meeting.participants?.length ??
+                            0}{" "}
+                          attendees
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Footer */}
+                  <div className="card-footer">
+                    <button
+                      className="view-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCardClick(meeting.id);
+                      }}
+                    >
+                      View Details
+                      <ArrowRight size={14} />
+                    </button>
+                    {meeting.roomUrl && meeting.status === "Scheduled" && (
+                      <button
+                        className="join-btn"
+                        onClick={(e) => handleJoinMeeting(e, meeting.title)}
+                      >
+                        <Video size={14} />
+                        Join
+                      </button>
                     )}
                   </div>
                 </div>
+              ))}
+            </div>
 
-                {/* Card Body */}
-                <div className="card-body">
-                  <h3 className="card-title">{meeting.title}</h3>
-                  <p className="card-description">
-                    {meeting.description || "No description provided"}
-                  </p>
-                </div>
-
-                {/* Card Info */}
-                <div className="card-info">
-                  <div className="info-row">
-                    <div className="info-item">
-                      <Calendar size={14} />
-                      <span>{formatDate(meeting.startTime)}</span>
-                    </div>
-                    <div className="info-item">
-                      <Clock size={14} />
-                      <span>
-                        {new Date(meeting.startTime).toLocaleTimeString(
-                          "en-US",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="info-row">
-                    <div className="info-item">
-                      <Users size={14} />
-                      <span>
-                        {meeting.attendees?.length ??
-                          meeting.participants?.length ??
-                          0}{" "}
-                        attendees
-                      </span>
-                    </div>
-                    <div className="info-item project-tag">
-                      <FolderKanban size={14} />
-                      <span>{getProjectName(meeting.projectId)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Footer */}
-                <div className="card-footer">
-                  <button
-                    className="view-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCardClick(meeting.id);
-                    }}
-                  >
-                    View Details
-                    <ArrowRight size={14} />
-                  </button>
-                  {meeting.roomUrl && meeting.status === "Scheduled" && (
-                    <button
-                      className="join-btn"
-                      onClick={(e) => handleJoinMeeting(e, meeting.title)}
-                    >
-                      <Video size={14} />
-                      Join
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+            {/* Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredMeetings.length}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={setCurrentPage}
+              showInfo={true}
+            />
+          </>
         )}
       </div>
 

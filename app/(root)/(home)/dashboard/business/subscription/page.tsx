@@ -185,7 +185,7 @@ const SubscriptionBillingPage = () => {
                 <h3>{currentPackage.name}</h3>
                 <div className="plan-price">
                   <span className="price">{formatPrice(currentSubscription.totalPrice ?? currentPackage.price)}{" " + currentPackage.currency}</span>
-                  <span className="period">/{currentPackage.billingCycle} months</span>
+                  <span className="period">/{currentPackage.billingCycle ?? 1} month{(currentPackage.billingCycle ?? 1) !== 1 ? "s" : ""}</span>
 
                 </div>
               </div>
@@ -259,7 +259,7 @@ const SubscriptionBillingPage = () => {
                     <h3>{pkg.name}</h3>
                     <div className="plan-price">
                       <span className="price">{formatPrice(pkg.price)} {" " + pkg.currency}</span>
-                      <span className="period">/{pkg.billingCycle} months</span>
+                      <span className="period">/{pkg.billingCycle ?? 1} month{(pkg.billingCycle ?? 1) !== 1 ? "s" : ""}</span>
                     </div>
                   </div>
                   {pkg.description && (

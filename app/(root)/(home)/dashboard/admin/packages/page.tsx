@@ -232,12 +232,12 @@ const AdminPackages = () => {
             id: plans.length + 1,
             name: newPlan.name,
             price: parseInt(newPlan.price),
-            currency: newPlan.currency || "USD",
+            currency: newPlan.currency || "VND",
             period: newPlan.period,
             billingCycle: billingCycleValue,
             features: newPlan.features,
             activeSubscriptions: 0,
-            revenue: "$0",
+            revenue: "0",
             status: "active",
           };
           setPlans((prev) => [...prev, planToAdd]);
@@ -259,6 +259,14 @@ const AdminPackages = () => {
   };
 
   const handleNewPlanChange = (field: string, value: any) => {
+    // Validate billingCycle - must be positive integer
+    if (field === "billingCycle") {
+      const numValue = Number(value);
+      if (value !== "" && numValue < 1) {
+        return; // Don't allow values less than 1
+      }
+    }
+    
     setNewPlan((prev) => ({
       ...prev,
       [field]: value,
@@ -810,7 +818,7 @@ const AdminPackages = () => {
                       Price (VND) <span className="required">*</span>
                     </label>
                     <div className="input-with-icon">
-                      <span className="currency-icon">₫</span>
+                      <span className="currency-icon">VND</span>
                       <input
                         type="number"
                         value={newPlan.price}
@@ -841,7 +849,7 @@ const AdminPackages = () => {
                   <div className="form-group">
                     <label>Currency</label>
                     <div className="currency-display">
-                      <span>VND (₫)</span>
+                      <span>VND</span>
                     </div>
                   </div>
                   <div className="form-group">
@@ -1013,7 +1021,7 @@ const AdminPackages = () => {
                   <div className="form-group">
                     <label>Price (VND)</label>
                     <div className="input-with-icon">
-                      <span className="currency-icon">₫</span>
+                      <span className="currency-icon">VND</span>
                       <input
                         type="number"
                         value={newPlan.price}
@@ -1041,7 +1049,7 @@ const AdminPackages = () => {
                   <div className="form-group">
                     <label>Currency</label>
                     <div className="currency-display">
-                      <span>VND (₫)</span>
+                      <span>VND</span>
                     </div>
                   </div>
                   <div className="form-group">
@@ -1188,7 +1196,7 @@ const AdminPackages = () => {
                     <DollarSign size={16} />
                     <span className="label">Price</span>
                     <span className="value">
-                      {formatPrice(selectedPlan.price)}₫/month
+                      {formatPrice(selectedPlan.price)} VND/month
                     </span>
                   </div>
                   <div className="summary-item">

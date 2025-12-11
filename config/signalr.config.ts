@@ -26,7 +26,9 @@ export const signalRConfig = {
   // Hub endpoint path (must match backend MapHub configuration)
   // Localhost: /notificationHub
   // Production: /notificationHub (but base URL includes /api/v1)
-  hubPath: '/notificationHub',
+  hubPath: process.env.NODE_ENV === 'production'
+  ? '/api/v1/notificationHub'
+  : '/notificationHub',
 
   // Connection settings
   connection: {

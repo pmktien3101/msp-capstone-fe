@@ -702,6 +702,14 @@ $network-dot: rgba(255, 107, 44, 0.25);
 
   .social-login {
     margin-bottom: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    // Override any default button styles that might affect centering
+    button {
+      margin: 0 auto;
+    }
 
     .social-btn {
       width: 100%;

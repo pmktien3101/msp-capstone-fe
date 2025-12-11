@@ -133,15 +133,15 @@ const AdminLimitations: React.FC = () => {
       if (res.success) {
         const data = res.data;
         const normalize = (it: any) => ({
-          id: it.Id ?? it.id,
-          name: it.Name ?? it.name,
-          description: it.Description ?? it.description,
-          limitationType: it.LimitationType ?? it.limitationType,
+          ...it,
+          id: it.Id ?? it.id ?? it.Id,
+          name: it.Name ?? it.name ?? it.Name,
+          description: it.Description ?? it.description ?? it.Description,
+          limitationType: it.LimitationType ?? it.limitationType ?? it.LimitationType,
           isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
           limitValue: it.LimitValue ?? it.limitValue ?? null,
           limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
           isDeleted: it.IsDeleted ?? it.isDeleted ?? false,
-          ...it,
         });
 
         if (Array.isArray(data)) setItems((data as any[]).map(normalize));
@@ -253,19 +253,21 @@ const AdminLimitations: React.FC = () => {
         limitUnit: form.limitUnit || null,
         isDeleted: !!form.isDeleted,
       };
+      console.log(payload);
+      
       const res = await limitationService.createLimitation(payload);
       if (res.success && res.data) {
         const created = res.data;
         const normalize = (it: any) => ({
-          id: it.Id ?? it.id,
-          name: it.Name ?? it.name,
-          description: it.Description ?? it.description,
-          limitationType: it.LimitationType ?? it.limitationType,
+          ...it,
+          id: it.Id ?? it.id ?? it.Id,
+          name: it.Name ?? it.name ?? it.Name,
+          description: it.Description ?? it.description ?? it.Description,
+          limitationType: it.LimitationType ?? it.limitationType ?? it.LimitationType,
           isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
           limitValue: it.LimitValue ?? it.limitValue ?? null,
           limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
           isDeleted: it.IsDeleted ?? it.isDeleted ?? false,
-          ...it,
         });
         setItems((s) => [...s, normalize(created) as any]);
         setShowAdd(false);
@@ -281,6 +283,8 @@ const AdminLimitations: React.FC = () => {
   }
 
   function openEdit(item: any) {
+    console.log("Opening edit for item:", item);
+    console.log("Item limitationType:", item.limitationType);
     setActive(item);
     setForm({
       name: item.name,
@@ -316,20 +320,35 @@ const AdminLimitations: React.FC = () => {
       };
       const res = await limitationService.updateLimitation(payload);
       if (res.success && res.data) {
-        const updated = res.data;
+        // Ensure limitationType is included (API might not return it)
+        const updated = {
+          ...res.data,
+          limitationType: res.data.limitationType || form.limitationType,
+        };
+        console.log("Updated data from API:", updated);
         const normalize = (it: any) => ({
-          id: it.Id ?? it.id,
-          name: it.Name ?? it.name,
-          description: it.Description ?? it.description,
-          limitationType: it.LimitationType ?? it.limitationType,
+          ...it,
+          id: it.Id ?? it.id ?? it.Id,
+          name: it.Name ?? it.name ?? it.Name,
+          description: it.Description ?? it.description ?? it.Description,
+          limitationType: it.LimitationType ?? it.limitationType ?? it.LimitationType,
           isUnlimited: it.IsUnlimited ?? it.isUnlimited ?? false,
           limitValue: it.LimitValue ?? it.limitValue ?? null,
           limitUnit: it.LimitUnit ?? it.limitUnit ?? null,
           isDeleted: it.IsDeleted ?? it.isDeleted ?? false,
-          ...it,
         });
         setItems((s) =>
-          s.map((it) => (it.id === active.id ? normalize(updated) : it))
+          s.map((it) => {
+            if (it.id === active.id) {
+              // Merge updated data with old item to preserve limitationType
+              const merged = { ...it, ...updated };
+              console.log("Merged data:", merged);
+              const normalized = normalize(merged);
+              console.log("Normalized data:", normalized);
+              return normalized;
+            }
+            return it;
+          })
         );
         setShowEdit(false);
         setActive(null);
@@ -716,7 +735,11 @@ const AdminLimitations: React.FC = () => {
                       type="checkbox"
                       checked={form.isUnlimited}
                       onChange={(e) => {
-                        setForm({ ...form, isUnlimited: e.target.checked });
+                        setForm({
+                          ...form,
+                          isUnlimited: e.target.checked,
+                          limitValue: form.limitValue,
+                        });
                         if (e.target.checked && formErrors.limitValue) {
                           setFormErrors({
                             ...formErrors,
@@ -732,8 +755,8 @@ const AdminLimitations: React.FC = () => {
                   </label>
                 </div>
 
-                {!form.isUnlimited && (
-                  <div className="form-row">
+                <div className="form-row">
+                  {!form.isUnlimited && (
                     <div className="form-group">
                       <label>
                         Value <span className="required">*</span>
@@ -763,38 +786,38 @@ const AdminLimitations: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <div className="form-group">
-                      <label>
-                        Unit (optional)
-                        <span className="char-count">
-                          {form.limitUnit.length}/{VALIDATION.UNIT_MAX}
-                        </span>
-                      </label>
-                      <input
-                        className={`form-input ${
-                          formErrors.limitUnit ? "input-error" : ""
-                        }`}
-                        value={form.limitUnit}
-                        placeholder="e.g.: users, GB, etc."
-                        maxLength={VALIDATION.UNIT_MAX}
-                        onChange={(e) => {
-                          setForm({ ...form, limitUnit: e.target.value });
-                          if (formErrors.limitUnit) {
-                            setFormErrors({
-                              ...formErrors,
-                              limitUnit: undefined,
-                            });
-                          }
-                        }}
-                      />
-                      {formErrors.limitUnit && (
-                        <span className="error-text">
-                          {formErrors.limitUnit}
-                        </span>
-                      )}
-                    </div>
+                  )}
+                  <div className="form-group">
+                    <label>
+                      Unit <span className="required">*</span>
+                      <span className="char-count">
+                        {form.limitUnit.length}/{VALIDATION.UNIT_MAX}
+                      </span>
+                    </label>
+                    <input
+                      className={`form-input ${
+                        formErrors.limitUnit ? "input-error" : ""
+                      }`}
+                      value={form.limitUnit}
+                      placeholder="e.g.: users, GB, etc."
+                      maxLength={VALIDATION.UNIT_MAX}
+                      onChange={(e) => {
+                        setForm({ ...form, limitUnit: e.target.value });
+                        if (formErrors.limitUnit) {
+                          setFormErrors({
+                            ...formErrors,
+                            limitUnit: undefined,
+                          });
+                        }
+                      }}
+                    />
+                    {formErrors.limitUnit && (
+                      <span className="error-text">
+                        {formErrors.limitUnit}
+                      </span>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </div>
             <div className="modal-footer">
@@ -942,7 +965,11 @@ const AdminLimitations: React.FC = () => {
                       type="checkbox"
                       checked={form.isUnlimited}
                       onChange={(e) => {
-                        setForm({ ...form, isUnlimited: e.target.checked });
+                        setForm({
+                          ...form,
+                          isUnlimited: e.target.checked,
+                          limitValue: e.target.checked ? "2147483647" : form.limitValue,
+                        });
                         if (e.target.checked && formErrors.limitValue) {
                           setFormErrors({
                             ...formErrors,
@@ -958,8 +985,8 @@ const AdminLimitations: React.FC = () => {
                   </label>
                 </div>
 
-                {!form.isUnlimited && (
-                  <div className="form-row">
+                <div className="form-row">
+                  {!form.isUnlimited && (
                     <div className="form-group">
                       <label>
                         Value <span className="required">*</span>
@@ -989,38 +1016,38 @@ const AdminLimitations: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <div className="form-group">
-                      <label>
-                        Unit (optional)
-                        <span className="char-count">
-                          {form.limitUnit.length}/{VALIDATION.UNIT_MAX}
-                        </span>
-                      </label>
-                      <input
-                        className={`form-input ${
-                          formErrors.limitUnit ? "input-error" : ""
-                        }`}
-                        value={form.limitUnit}
-                        placeholder="e.g.: users, GB, etc."
-                        maxLength={VALIDATION.UNIT_MAX}
-                        onChange={(e) => {
-                          setForm({ ...form, limitUnit: e.target.value });
-                          if (formErrors.limitUnit) {
-                            setFormErrors({
-                              ...formErrors,
-                              limitUnit: undefined,
-                            });
-                          }
-                        }}
-                      />
-                      {formErrors.limitUnit && (
-                        <span className="error-text">
-                          {formErrors.limitUnit}
-                        </span>
-                      )}
-                    </div>
+                  )}
+                  <div className="form-group">
+                    <label>
+                      Unit <span className="required">*</span>
+                      <span className="char-count">
+                        {form.limitUnit.length}/{VALIDATION.UNIT_MAX}
+                      </span>
+                    </label>
+                    <input
+                      className={`form-input ${
+                        formErrors.limitUnit ? "input-error" : ""
+                      }`}
+                      value={form.limitUnit}
+                      placeholder="e.g.: users, GB, etc."
+                      maxLength={VALIDATION.UNIT_MAX}
+                      onChange={(e) => {
+                        setForm({ ...form, limitUnit: e.target.value });
+                        if (formErrors.limitUnit) {
+                          setFormErrors({
+                            ...formErrors,
+                            limitUnit: undefined,
+                          });
+                        }
+                      }}
+                    />
+                    {formErrors.limitUnit && (
+                      <span className="error-text">
+                        {formErrors.limitUnit}
+                      </span>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </div>
             <div className="modal-footer">

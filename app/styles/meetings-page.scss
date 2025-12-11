@@ -867,12 +867,38 @@
       border-top: 1px solid #f1f5f9;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+      overflow: hidden;
 
       .info-row {
         display: flex;
-        justify-content: space-between;
+        align-items: center;
         gap: 12px;
+        min-width: 0;
+        width: 100%;
+
+        &.project-row {
+          padding: 8px 12px;
+          background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+          border-radius: 8px;
+          border: 1px solid #bbf7d0;
+          gap: 8px;
+          cursor: default;
+
+          svg {
+            color: #22c55e;
+            flex-shrink: 0;
+          }
+
+          .project-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #166534;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+        }
       }
 
       .info-item {
@@ -882,20 +908,18 @@
         font-size: 13px;
         color: #64748b;
         font-weight: 500;
+        min-width: 0;
+        overflow: hidden;
 
         svg {
           color: #94a3b8;
           flex-shrink: 0;
         }
 
-        &.project-tag {
-          max-width: 140px;
-
-          span {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
+        span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
       }
     }
