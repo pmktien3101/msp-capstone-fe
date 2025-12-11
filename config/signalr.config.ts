@@ -12,23 +12,18 @@ export const signalRConfig = {
       return 'https://localhost:7129';
     }
     
-    // For production (api.msp.audivia.vn), keep /api/v1
-    // For localhost, remove /api/v1 because SignalR hub is at root
-    if (apiUrl.includes('localhost')) {
-      // Localhost: SignalR at https://localhost:7129/notificationHub
-      return apiUrl.replace('/api/v1', '');
-    } else {
-      // Production: SignalR at https://api.msp.audivia.vn/api/v1/notificationHub
-      return apiUrl;
-    }
+    // Return base URL as-is
+    // Localhost: https://localhost:7129/api/v1 or https://localhost:7129
+    // Production: https://api.msp.audivia.vn/api/v1
+    // Backend MapHub handles both /notificationHub and /api/v1/notificationHub
+    return apiUrl;
   },
 
   // Hub endpoint path (must match backend MapHub configuration)
-  // Localhost: /notificationHub
-  // Production: /notificationHub (but base URL includes /api/v1)
-  hubPath: process.env.NODE_ENV === 'production'
-  ? '/api/v1/notificationHub'
-  : '/notificationHub',
+  // Backend exposes: /notificationHub AND /api/v1/notificationHub
+  // Since NEXT_PUBLIC_BASE_URL already includes /api/v1 in production,
+  // we only need to append /notificationHub
+  hubPath: '/notificationHub',
 
   // Connection settings
   connection: {
