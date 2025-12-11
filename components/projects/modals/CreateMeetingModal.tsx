@@ -355,11 +355,7 @@ export default function MeetingForm({
                 <Input
                   placeholder="Enter meeting title"
                   {...form.register("title")}
-                  style={
-                    form.formState.errors.title
-                      ? { borderColor: "#ef4444" }
-                      : {}
-                  }
+                  className={form.formState.errors.title ? "border-red-500" : ""}
                 />
                 {form.formState.errors.title && (
                   <p style={styles.error}>
@@ -405,11 +401,7 @@ export default function MeetingForm({
                     placeholderText="Select date and time"
                     customInput={
                       <Input
-                        style={
-                          form.formState.errors.datetime
-                            ? { ...styles.dateInput, borderColor: "#ef4444" }
-                            : styles.dateInput
-                        }
+                        className={form.formState.errors.datetime ? "border-red-500" : ""}
                       />
                     }
                     popperClassName="datepicker-popper"
