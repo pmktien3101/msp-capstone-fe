@@ -44,7 +44,15 @@ const AdminRevenue = () => {
         setRevenues([]);
         setPackageOptions(["All"]);
       } else {
-        const mapped: Revenue[] = (res.data || []).map((s: any) => ({
+        // Filter out subscriptions with status "pending" or totalPrice = 0
+        const filteredData = (res.data || []).filter(
+          (s: any) =>
+            s.status?.toLowerCase() !== "pending" &&
+            (typeof s.totalPrice === "number"
+              ? s.totalPrice
+              : Number(s.totalPrice) || 0) > 0
+        );
+        const mapped: Revenue[] = filteredData.map((s: any) => ({
           id: s.id,
           businessOwner: s.user?.fullName || "-",
           packageName: s.package?.name || "-",
