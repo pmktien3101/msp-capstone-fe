@@ -21,10 +21,10 @@ export const useLimitationCheck = () => {
       );
 
       if (limitation) {
-        const { limitValue, usedValue, limitUnit } = limitation;
-
+        // const { limitValue, usedValue, limitUnit } = limitation;
+        const { limitValue, usedValue, limitUnit, isUnlimited } = limitation;
         // Check if limit reached
-        if ((usedValue ?? 0) >= (limitValue ?? 0)) {
+        if (!isUnlimited && (usedValue ?? 0) >= (limitValue ?? 0)) {
           toast.error(
             <div className="min-w-[420px] max-w-[520px] text-left">
               <p>Your current subscription has reached the <b>{itemName}</b> creation limit.</p>
@@ -91,11 +91,11 @@ export const useMemberCountLimitationCheck = () => {
       );
 
       if (limitation) {
-        const { limitValue, limitUnit } = limitation;
+        const { limitValue, limitUnit} = limitation;
         const maxAllowed = limitValue ?? 0;
 
         // Check if selected count exceeds limit
-        if (selectedCount > maxAllowed) {
+      if (!limitation.isUnlimited && selectedCount > maxAllowed) {
           toast.error(
             <div>
               <p>Cannot select {selectedCount} {itemName}.</p>
