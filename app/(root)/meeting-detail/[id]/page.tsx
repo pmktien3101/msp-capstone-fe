@@ -132,6 +132,9 @@ export default function MeetingDetailPage() {
   const [currentReferenceIds, setCurrentReferenceIds] = useState<string[]>([]);
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
 
+  // Re-generation state
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
   // Floating Action Bar position state
   const [fabPosition, setFabPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -279,6 +282,7 @@ export default function MeetingDetailPage() {
     }
   };
 
+  // Call API to process meeting
   const processVideo = async (
     recording: any,
     transcriptions: any,
@@ -435,6 +439,146 @@ export default function MeetingDetailPage() {
       setIsProcessingMeetingAI(false);
     }
   };
+
+  // Call API to regenerate meeting AI content
+  const handleRegenerate = async () => {
+    if (!call?.id || !meetingInfo) {
+      toast.error("Meeting information not available");
+      return;
+    }
+
+    setIsRegenerating(true);
+    setIsProcessingMeetingAI(true);
+
+    try {
+      // 1. Get recording URL
+      let cloudRecordingUrl = meetingInfo?.recordUrl || null;
+
+      // If no recordUrl in DB, try to get from recordings
+      if (!cloudRecordingUrl && recordings.length > 0 && recordings[0]?.url) {
+        try {
+          cloudRecordingUrl = await uploadRecordingUrlToCloud(recordings[0].url);
+        } catch (uploadErr: any) {
+          // throw new Error(uploadErr?.message || "Failed to upload recording");
+          console.warn("Regeneration: unable to upload recording:", uploadErr);
+          return;
+        }
+      }
+
+      if (!cloudRecordingUrl) {
+        // throw new Error("No recording URL available for regeneration");
+        toast.warning("No recording URL available for regeneration");
+        return;
+      }
+
+      // 2. Call Gemini API to re-process video
+      const geminiResponse = await fetch("/api/gemini/process-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoUrl: cloudRecordingUrl,
+          transcriptSegments: originalTranscriptions,
+          tasks: projectTasks,
+        }),
+      });
+
+      const geminiData = await geminiResponse.json();
+
+      if (!geminiResponse.ok || !geminiData.success) {
+        throw new Error(geminiData.error || "Failed to regenerate AI content");
+      }
+
+      // 3. Update local state immediately for instant feedback
+      setImprovedTranscript(geminiData.data.improvedTranscript);
+      const processedSummary = mapSummaryAssigneeIds(geminiData.data.summary);
+      setSummary(processedSummary);
+
+      // 4. Prepare todos for backend
+      const mappedTodos = (geminiData.data.todoList || []).map((todo: any) => {
+        // Validate and map assigneeId
+        let validAssigneeId = todo.assigneeId;
+
+        if (todo.assigneeId && meetingInfo?.attendees) {
+          const attendee = meetingInfo.attendees.find(
+            (att: any) => att.id === todo.assigneeId
+          );
+          if (!attendee) {
+            validAssigneeId = meetingInfo?.createdById;
+          }
+        } else {
+          validAssigneeId = meetingInfo?.createdById;
+        }
+
+        return {
+          meetingId: params.id as string,
+          assigneeId: validAssigneeId,
+          title: todo.title || "Untitled Task",
+          description: todo.description || "",
+          startDate: todo.startDate ? new Date(todo.startDate).toISOString() : null,
+          endDate: todo.endDate ? new Date(todo.endDate).toISOString() : null,
+          referenceTaskIds: [], // Empty for AI-generated todos
+        };
+      });
+
+      // 5. Call single backend API to update everything (meeting + todos)
+      const regenerateResult = await meetingService.regenerateMeetingAIData({
+        meetingId: params.id as string,
+        transcription: JSON.stringify(geminiData.data.improvedTranscript),
+        summary: geminiData.data.summary,
+        recordUrl: cloudRecordingUrl,
+        todos: mappedTodos,
+      });
+      if (regenerateResult.success) {
+        // 6. Update local meeting info with backend response
+        if (regenerateResult.data) {
+          setMeetingInfo((prev: any) => ({
+            ...prev,
+            summary: regenerateResult?.data?.summary,
+            transcription: regenerateResult.data?.transcription,
+            recordUrl: regenerateResult.data?.recordUrl,
+            updatedAt: regenerateResult.data?.updatedAt,
+          }));
+        }
+        // 7. Refresh todos from database
+        const refreshResult = await todoService.getTodosByMeetingId(
+          params.id as string
+        );
+        if (refreshResult.success && refreshResult.data) {
+          setTodosFromDB(refreshResult.data);
+          setTodoList(refreshResult.data);
+        }
+        // 8. Show success message
+        const todosCreated = mappedTodos.length;
+        toast.success(
+          `AI content regenerated successfully! Created ${todosCreated} new todos.`
+        );
+      }
+
+    } catch (err: any) {
+      console.error("Regeneration error:", err);
+      toast.error(err?.message || "Failed to regenerate AI content");
+    } finally {
+      setIsRegenerating(false);
+      setIsProcessingMeetingAI(false);
+    }
+  };
+
+
+  // Helper function normalizeDateval (if not exists)
+  function normalizeDateval(val: any) {
+    if (!val) return null;
+    if (typeof val === "string" && /^\d{2}-\d{2}-\d{4}$/.test(val)) {
+      const [dd, mm, yyyy] = val.split("-");
+      return new Date(`${yyyy}-${mm}-${dd}`).toISOString();
+    }
+    if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
+      return new Date(val).toISOString();
+    }
+    if (val instanceof Date) {
+      return val.toISOString();
+    }
+    return val;
+  }
 
   // useEffect to auto-call processVideo when data is ready and no result yet
   useEffect(() => {
@@ -1562,91 +1706,110 @@ export default function MeetingDetailPage() {
                 </div>
 
                 <div className="transcript">
-                  <h4>
-                    <FileText size={18} />
-                    Transcript
-                  </h4>
+                  {/* Header với nút Re-generate */}
+                  <div className="transcript-header">
+                    <h4>
+                      <FileText size={18} />
+                      Transcript
+                    </h4>
+
+                    {/* Nút Re-generate với CSS Tooltip */}
+                    <div className="tooltip-wrapper">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRegenerate}
+                        disabled={isRegenerating || isProcessingMeetingAI}
+                        className="regenerate-btn"
+                      >
+                        {isRegenerating ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" />
+                            <span>Regenerating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={14} />
+                            <span>Re-generate</span>
+                          </>
+                        )}
+                      </Button>
+                      <span className="tooltip-text">
+                        If the transcript and summary are not reasonable, please click here to regenerate
+                      </span>
+                    </div>
+
+                  </div>
+
                   {isLoadingTranscriptions && (
                     <div className="transcript-loading">
                       <Loader2 size={20} className="animate-spin" />
                       Loading transcript...
                     </div>
                   )}
+
                   {!isLoadingTranscriptions &&
                     originalTranscriptions.length === 0 &&
                     improvedTranscript.length === 0 && (
                       <div className="transcript-empty">
                         <FileText size={40} />
                         <p>No transcript available for this meeting</p>
-                      </div >
-                    )
-                  }
-                  {
-                    isProcessingMeetingAI && (
-                      <div className="transcript-processing">
-                        <Loader2 size={50} className="animate-spin" />
-                        <span>Generating meeting transcript...</span>
                       </div>
-                    )
-                  }
-                  {
-                    !isProcessingMeetingAI && improvedTranscript.length > 0 && (
-                      <>
-                        <div
-                          className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
-                            } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
-                          style={{
-                            maxHeight:
-                              improvedTranscript.length <= 4
-                                ? "none"
-                                : isTranscriptExpanded
-                                  ? "none"
-                                  : "200px",
-                          }}
-                        >
-                          <TranscriptPanel
-                            meetingId={params.id as string}
-                            transcriptItems={improvedTranscript}
-                            setTranscriptItems={setImprovedTranscript}
-                            allSpeakers={meetingInfo?.attendees ?? []}
-                            getSpeakerName={getSpeakerName}
-                            formatTimestamp={formatTimestamp}
-                          />
-                        </div>
+                    )}
 
-                        {improvedTranscript.length > 4 && (
-                          <div
-                            className="transcript-expand-hint"
-                            onClick={() =>
-                              setIsTranscriptExpanded(!isTranscriptExpanded)
-                            }
-                          >
-                            {isTranscriptExpanded ? (
-                              <>
-                                <span>Collapse transcript</span>
-                                <ArrowLeft
-                                  size={16}
-                                  style={{ transform: "rotate(90deg)" }}
-                                />
-                              </>
-                            ) : (
-                              <>
-                                <span>
-                                  View full transcript ({improvedTranscript.length}{" "}
-                                  segments)
-                                </span>
-                                <ArrowLeft
-                                  size={16}
-                                  style={{ transform: "rotate(-90deg)" }}
-                                />
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )
-                  }
-                </div >
+                  {isProcessingMeetingAI && (
+                    <div className="transcript-processing">
+                      <Loader2 size={50} className="animate-spin" />
+                      <span>Generating meeting transcript...</span>
+                    </div>
+                  )}
+
+                  {!isProcessingMeetingAI && improvedTranscript.length > 0 && (
+                    <div
+                      className={`transcript-content ${isTranscriptExpanded ? "expanded" : ""
+                        } ${improvedTranscript.length <= 4 ? "no-expand" : ""}`}
+                      style={{
+                        maxHeight:
+                          improvedTranscript.length <= 4
+                            ? "none"
+                            : isTranscriptExpanded
+                              ? "none"
+                              : "200px",
+                      }}
+                    >
+                      <TranscriptPanel
+                        meetingId={params.id as string}
+                        transcriptItems={improvedTranscript}
+                        setTranscriptItems={setImprovedTranscript}
+                        allSpeakers={meetingInfo?.attendees ?? []}
+                        getSpeakerName={getSpeakerName}
+                        formatTimestamp={formatTimestamp}
+                      />
+                    </div>
+                  )}
+
+                  {improvedTranscript.length > 4 && (
+                    <div
+                      className="transcript-expand-hint"
+                      onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
+                    >
+                      {isTranscriptExpanded ? (
+                        <>
+                          <span>Collapse transcript</span>
+                          <ArrowLeft size={16} style={{ transform: "rotate(90deg)" }} />
+                        </>
+                      ) : (
+                        <>
+                          <span>
+                            View full transcript ({improvedTranscript.length} segments)
+                          </span>
+                          <ArrowLeft size={16} style={{ transform: "rotate(-90deg)" }} />
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {(recordings.length !== 0 || summary !== "") &&
                   <div className="summary">
                     <div className="summary-header">
@@ -1695,17 +1858,23 @@ export default function MeetingDetailPage() {
                             </p>
                           </div>
                         </div>
-                        {todoList.length > 0 && (
-                          <label className="select-all-section">
-                            <Checkbox
-                              checked={selectedTasks.length === todoList.filter(t => isValidTodo(t) && t.status !== 2 && t.status !== 3).length && selectedTasks.length > 0}
-                              onCheckedChange={handleSelectAllTasks}
-                              className="select-all-checkbox data-[state=checked]:bg-[#ff5e13] data-[state=checked]:border-[#ff5e13]"
-                            />
-                            <span className="select-all-label">
-                              Select All ({selectedTasks.length}/{todoList.filter(t => isValidTodo(t) && t.status !== 2 && t.status !== 3).length})
-                            </span>
-                          </label>
+                        {!isProcessingMeetingAI && (
+                          <>
+                            {
+                              todoList.length > 0 && (
+                                <label className="select-all-section">
+                                  <Checkbox
+                                    checked={selectedTasks.length === todoList.filter(t => isValidTodo(t) && t.status !== 2 && t.status !== 3).length && selectedTasks.length > 0}
+                                    onCheckedChange={handleSelectAllTasks}
+                                    className="select-all-checkbox data-[state=checked]:bg-[#ff5e13] data-[state=checked]:border-[#ff5e13]"
+                                  />
+                                  <span className="select-all-label">
+                                    Select All ({selectedTasks.length}/{todoList.filter(t => isValidTodo(t) && t.status !== 2 && t.status !== 3).length})
+                                  </span>
+                                </label>
+                              )
+                            }
+                          </>
                         )}
                       </div>
 
@@ -1716,9 +1885,9 @@ export default function MeetingDetailPage() {
                         </div>
                       )
                       }
-
-                      <div className="task-list">{memoizedTodoList}</div>
-
+                      {!isProcessingMeetingAI && (
+                        <div className="task-list">{memoizedTodoList}</div>
+                      )}
                       {/* Action buttons for the entire AI task list */}
                       {/* <div className="ai-tasks-actions">
                         <Button

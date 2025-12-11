@@ -1,3 +1,5 @@
+import { CreateTodoRequest } from "./todo";
+
 export interface Meeting {
   id: string;
   projectId?: string;
@@ -89,4 +91,12 @@ export interface MeetingItem {
     avatarUrl?: string | null;
     fullName?: string;
   }[];
+}
+
+export interface RegenerateMeetingAIDataRequest {
+  meetingId: string;
+  transcription: string;
+  summary: string;
+  recordUrl?: string;
+  todos: CreateTodoRequest[];
 }

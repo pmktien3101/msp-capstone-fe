@@ -62,6 +62,7 @@
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
@@ -72,6 +73,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -83,6 +85,7 @@
     opacity: 0;
     transform: translateX(20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -90,11 +93,13 @@
 }
 
 @keyframes pulse-glow {
+
   0%,
   100% {
     box-shadow: 0 6px 16px rgba(255, 94, 19, 0.4);
     transform: scale(1);
   }
+
   50% {
     box-shadow: 0 8px 24px rgba(255, 94, 19, 0.6);
     transform: scale(1.05);
@@ -105,6 +110,7 @@
   0% {
     transform: translateX(-100%) translateY(-100%) rotate(45deg);
   }
+
   100% {
     transform: translateX(100%) translateY(100%) rotate(45deg);
   }
@@ -507,6 +513,7 @@
     }
 
     .recording-list {
+
       .recording-loading,
       .recording-error {
         display: flex;
@@ -717,6 +724,101 @@
     }
   }
 
+  .transcript-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    h4 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    // Tooltip wrapper
+    .tooltip-wrapper {
+      position: relative;
+      display: inline-block;
+
+      .regenerate-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 130px;
+        font-size: 13px;
+
+        &:hover:not(:disabled) {
+          background-color: #f3f4f6;
+          border-color: #FF5E13;
+          color: #FF5E13;
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        svg {
+          flex-shrink: 0;
+        }
+
+        span {
+          white-space: nowrap;
+        }
+      }
+
+      // Tooltip text
+      .tooltip-text {
+        visibility: hidden;
+        opacity: 0;
+        width: 280px;
+        background-color: #1f2937;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 10px 12px;
+        position: absolute;
+        z-index: 1000;
+        right: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        margin-right: 10px;
+        font-size: 13px;
+        line-height: 1.5;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: opacity 0.3s, visibility 0.3s;
+
+        // Mũi tên tooltip (arrow)
+        &::after {
+          content: "";
+          position: absolute;
+          left: 100%;
+          top: 50%;
+          transform: translateY(-50%);
+          border-width: 6px;
+          border-style: solid;
+          border-color: transparent transparent transparent #1f2937;
+        }
+      }
+
+      // Show tooltip on hover
+      &:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      // Ẩn tooltip khi button disabled
+      .regenerate-btn:disabled~.tooltip-text {
+        display: none;
+      }
+    }
+  }
+
+
   // ======================
   // 6. Meeting Summary + AI
   // ======================
@@ -740,12 +842,10 @@
         right: -50%;
         width: 200%;
         height: 200%;
-        background: linear-gradient(
-          45deg,
-          transparent,
-          rgba(255, 255, 255, 0.2),
-          transparent
-        );
+        background: linear-gradient(45deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent);
         animation: shimmer 3s infinite;
       }
 
@@ -803,12 +903,10 @@
     }
 
     .summary-content {
-      background: linear-gradient(
-        135deg,
-        #fff7f0 0%,
-        #ffedd5 50%,
-        #fff7ed 100%
-      );
+      background: linear-gradient(135deg,
+          #fff7f0 0%,
+          #ffedd5 50%,
+          #fff7ed 100%);
       padding: 24px;
       border-radius: 14px;
       border-left: 5px solid #ff5e13;
@@ -2134,6 +2232,7 @@
     }
   }
 }
+
 /* Floating Action Bar - Clean White Design */
 .floating-action-bar {
   position: fixed;
@@ -2175,6 +2274,7 @@
     opacity: 0;
     transform: translateY(20px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -2358,6 +2458,7 @@
 // Hide the old action buttons in task cards when selected
 .task-item.selected {
   .task-actions {
+
     .edit-btn,
     .delete-btn {
       opacity: 0.3;
