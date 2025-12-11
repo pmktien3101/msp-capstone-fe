@@ -198,7 +198,13 @@ export const NotificationBell = () => {
           if (!showDropdown) e.currentTarget.style.background = "transparent";
         }}
       >
-        <Bell size={22} color={showDropdown ? "#FF5E13" : "#4b5563"} />
+        <div
+          style={{
+            animation: unreadCount > 0 ? "bellRing 2s ease-in-out infinite" : "none",
+          }}
+        >
+          <Bell size={22} color={showDropdown ? "#FF5E13" : "#4b5563"} />
+        </div>
 
         {/* Unread Badge */}
         {unreadCount > 0 && (
@@ -613,6 +619,20 @@ export const NotificationBell = () => {
               @keyframes spin {
                 to {
                   transform: rotate(360deg);
+                }
+              }
+              @keyframes bellRing {
+                0%, 100% {
+                  transform: rotate(0deg);
+                }
+                10%, 30% {
+                  transform: rotate(-15deg);
+                }
+                20%, 40% {
+                  transform: rotate(15deg);
+                }
+                50% {
+                  transform: rotate(0deg);
                 }
               }
             `}
