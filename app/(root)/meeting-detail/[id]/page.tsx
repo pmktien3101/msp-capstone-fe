@@ -61,18 +61,26 @@ const mapCallStatus = (call?: Call) => {
 };
 
 // Helper to format date for display
-const formatDateTime = (date: Date | string | undefined) => {
+const formatDateTime = (date: Date | string | undefined, includeTime: boolean = false) => {
   if (!date) return "-";
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleString("en-US", {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+
+  const dateStr = `${day}/${month}/${year}`;
+
+  if (includeTime) {
+    const hours = d.getHours().toString().padStart(2, '0');
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    return `${dateStr} - ${hours}:${minutes}`;
+  }
+
+  return dateStr;
 };
+
+
 
 export default function MeetingDetailPage() {
   const params = useParams();
@@ -1303,7 +1311,7 @@ export default function MeetingDetailPage() {
                     <div className="info-content">
                       <label>Start Time</label>
                       <p>
-                        {formatDateTime(meetingInfo?.startTime || startsAt)}
+                        {formatDateTime(meetingInfo?.startTime || startsAt, true)}
                       </p>
                     </div>
                   </div>
@@ -1314,7 +1322,7 @@ export default function MeetingDetailPage() {
                     </div>
                     <div className="info-content">
                       <label>End Time</label>
-                      <p>{formatDateTime(meetingInfo?.endTime || endsAt)}</p>
+                      <p>{formatDateTime(meetingInfo?.endTime || endsAt, true)}</p>
                     </div>
                   </div>
                 </div>
@@ -1639,35 +1647,36 @@ export default function MeetingDetailPage() {
                     )
                   }
                 </div >
-
-                <div className="summary">
-                  <div className="summary-header">
-                    <div className="summary-title">
-                      <div className="ai-icon">
-                        <Sparkles size={24} />
-                      </div>
-                      <div className="summary-title-text">
-                        <h4>AI Meeting Summary</h4>
-                        <div className="ai-badge">
-                          <Sparkles size={10} />
-                          <span>Powered by Gemini AI</span>
+                {(recordings.length !== 0 || summary !== "") &&
+                  <div className="summary">
+                    <div className="summary-header">
+                      <div className="summary-title">
+                        <div className="ai-icon">
+                          <Sparkles size={24} />
+                        </div>
+                        <div className="summary-title-text">
+                          <h4>AI Meeting Summary</h4>
+                          <div className="ai-badge">
+                            <Sparkles size={10} />
+                            <span>Powered by Gemini AI</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="summary-content">
-                    {isProcessingMeetingAI && (
-                      <div className="summary-loading">
-                        <Loader2 size={16} className="animate-spin" />
-                        <span>Generating summary...</span>
-                      </div>
-                    )}
-                    {!isProcessingMeetingAI && summary && (
-                      <ReactMarkdown>{summary}</ReactMarkdown>
-                    )}
-                  </div>
-                </div>
 
+                    <div className="summary-content">
+                      {isProcessingMeetingAI && (
+                        <div className="summary-loading">
+                          <Loader2 size={16} className="animate-spin" />
+                          <span>Generating summary...</span>
+                        </div>
+                      )}
+                      {!isProcessingMeetingAI && summary && (
+                        <ReactMarkdown>{summary}</ReactMarkdown>
+                      )}
+                    </div>
+                  </div>
+                }
                 {/* AI Generated Tasks */}
                 {
                   isProjectManager() &&
