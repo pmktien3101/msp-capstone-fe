@@ -3,6 +3,7 @@ import type {
   MeetingItem,
   CreateMeetingRequest,
   UpdateMeetingRequest,
+  RegenerateMeetingAIDataRequest,
 } from "@/types/meeting";
 
 interface ApiResponse<T = any> {
@@ -295,6 +296,41 @@ export const meetingService = {
           error.response?.data?.message ||
           error.message ||
           "Failed to update transcript",
+      };
+    }
+  },
+
+  // Regenerate meeting AI data (transcript, summary, todos)
+  async regenerateMeetingAIData(
+    data: RegenerateMeetingAIDataRequest
+  ): Promise<{ success: boolean; data?: MeetingItem; error?: string }> {
+    try {
+      const { meetingId, ...payload } = data;
+
+      const response = await api.put<ApiResponse<MeetingItem>>(
+        `/meetings/${meetingId}/regenerate`,
+        payload
+      );
+
+      if (response.data.success && response.data.data) {
+        return {
+          success: true,
+          data: response.data.data,
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message || "Failed to regenerate AI data",
+        };
+      }
+    } catch (error: any) {
+      console.error("Regenerate meeting AI data error:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to regenerate AI data",
       };
     }
   },
