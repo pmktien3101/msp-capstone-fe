@@ -599,12 +599,65 @@ $radius-full: 9999px;
     background: $gray-50;
     color: $gray-500;
   }
+
+  &.error {
+    border-color: #ef4444;
+    background: rgba(#fef2f2, 0.5);
+
+    &:focus {
+      border-color: #dc2626;
+      box-shadow: 0 0 0 3px rgba(#ef4444, 0.1);
+    }
+  }
 }
 
 .input-hint {
   font-size: 0.75rem;
   color: $gray-400;
   font-style: italic;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.input-error {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin-top: 0.25rem;
+  display: block;
+  font-weight: 500;
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .form-input {
+    padding-right: 2.5rem;
+  }
+
+  .checking-indicator {
+    position: absolute;
+    right: 1rem;
+    font-size: 0.75rem;
+    color: $gray-400;
+    font-style: italic;
+    pointer-events: none;
+  }
+
+  .status-icon {
+    position: absolute;
+    right: 1rem;
+    pointer-events: none;
+
+    &.success {
+      color: #10b981;
+    }
+
+    &.error {
+      color: #ef4444;
+    }
+  }
 }
 
 .role-display {

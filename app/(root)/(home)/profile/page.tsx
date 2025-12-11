@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserDetail } from "@/contexts/UserContext";
 import { uploadFileToCloudinary } from "@/services/uploadFileService";
 import { userService } from "@/services/userService";
+import { authService } from "@/services/authService";
 import { toast } from "react-toastify";
 import "@/app/styles/profile.scss";
 
@@ -63,6 +64,8 @@ export default function ProfilePage() {
   const [originalProfile, setOriginalProfile] = useState<UserProfile | null>(
     null
   );
+  const [phoneError, setPhoneError] = useState<string>("");
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
 
   useEffect(() => {
     setProfile({
@@ -97,10 +100,10 @@ export default function ProfilePage() {
         setIsSaving(true);
         const uploadedUrl = await uploadFileToCloudinary(file);
         setAvatarPreview(uploadedUrl);
-        toast.success("Đã tải ảnh đại diện thành công");
+        toast.success("Avatar uploaded successfully");
       } catch (error) {
         console.error("Error uploading avatar:", error);
-        toast.error("Không thể tải ảnh đại diện");
+        toast.error("Failed to upload avatar");
       } finally {
         setIsSaving(false);
       }
@@ -119,11 +122,111 @@ export default function ProfilePage() {
   const handleCancel = () => {
     setProfile(originalProfile);
     setAvatarPreview(originalProfile?.avatarUrl);
+    setPhoneError("");
     setIsEditing(false);
+  };
+
+  const validatePhoneNumber = (phone: string): boolean => {
+    if (!phone || phone.trim() === "") {
+      setPhoneError("");
+      return true; // Phone is optional
+    }
+
+    // Remove all spaces and special characters for validation
+    const cleanPhone = phone.replace(/[\s\-\(\)\.]/g, "");
+
+    // Check if it contains only digits and optional + at start
+    if (!/^\+?\d+$/.test(cleanPhone)) {
+      setPhoneError("Phone number can only contain digits and + symbol");
+      return false;
+    }
+
+    // Check length (typically 10-15 digits for international numbers)
+    const digitCount = cleanPhone.replace(/\+/g, "").length;
+    if (digitCount < 10 || digitCount > 15) {
+      setPhoneError("Phone number must be between 10 and 15 digits");
+      return false;
+    }
+
+    setPhoneError("");
+    return true;
+  };
+
+  // Check phone number availability with backend API
+  const checkPhoneAvailability = async (phoneNumber: string) => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      setPhoneError("");
+      return;
+    }
+
+    // Skip check if phone number hasn't changed
+    if (phoneNumber === originalProfile?.phoneNumber) {
+      setPhoneError("");
+      return;
+    }
+
+    // First validate format
+    if (!validatePhoneNumber(phoneNumber)) {
+      return;
+    }
+
+    setIsCheckingPhone(true);
+
+    try {
+      const result = await authService.checkPhoneNumber(phoneNumber);
+      if (result.success && !result.isAvailable) {
+        setPhoneError("This phone number is already registered");
+      } else {
+        setPhoneError("");
+      }
+    } catch (error) {
+      console.error("Error checking phone number:", error);
+    } finally {
+      setIsCheckingPhone(false);
+    }
+  };
+
+  const handlePhoneChange = (value: string) => {
+    setProfile({ ...profile, phoneNumber: value } as UserProfile);
+    setPhoneError("");
+    
+    if (isEditing) {
+      // Debounce phone check
+      const timeoutId = setTimeout(() => {
+        checkPhoneAvailability(value);
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
   };
 
   const handleSave = async () => {
     if (!profile || !userId) return;
+
+    // Check if there's a phone error
+    if (phoneError) {
+      toast.error(phoneError);
+      return;
+    }
+
+    // Validate phone number format before saving
+    if (!validatePhoneNumber(profile.phoneNumber)) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+
+    // Final check phone number availability before saving
+    if (profile.phoneNumber && profile.phoneNumber !== originalProfile?.phoneNumber) {
+      try {
+        const phoneCheckResult = await authService.checkPhoneNumber(profile.phoneNumber);
+        if (phoneCheckResult.success && !phoneCheckResult.isAvailable) {
+          setPhoneError("This phone number is already registered");
+          toast.error("This phone number is already registered");
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking phone number before save:", error);
+      }
+    }
 
     try {
       setIsSaving(true);
@@ -135,7 +238,7 @@ export default function ProfilePage() {
       });
 
       if (result.success) {
-        toast.success(result.message || "Cập nhật hồ sơ thành công");
+        toast.success(result.message || "Profile updated successfully");
         setIsEditing(false);
 
         const { setUserData } = useUser.getState();
@@ -150,11 +253,11 @@ export default function ProfilePage() {
 
         await refreshUserDetail();
       } else {
-        toast.error(result.error || "Không thể cập nhật hồ sơ");
+        toast.error(result.error || "Failed to update profile");
       }
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast.error("Đã xảy ra lỗi khi lưu hồ sơ");
+      toast.error("An error occurred while saving profile");
     } finally {
       setIsSaving(false);
     }
@@ -394,17 +497,40 @@ export default function ProfilePage() {
                     <Phone size={14} />
                     Phone Number
                   </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={profile.phoneNumber}
-                    onChange={(e) =>
-                      setProfile({ ...profile, phoneNumber: e.target.value })
-                    }
-                    disabled={!isEditing}
-                    className={`form-input ${isEditing ? "editable" : ""}`}
-                    placeholder="Enter your phone number"
-                  />
+                  <div className="input-with-icon">
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={profile.phoneNumber}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
+                      disabled={!isEditing}
+                      className={`form-input ${isEditing ? "editable" : ""} ${
+                        phoneError ? "error" : ""
+                      }`}
+                      placeholder="Enter your phone number"
+                    />
+                    {isEditing && profile.phoneNumber && (
+                      <>
+                        {isCheckingPhone && (
+                          <span className="checking-indicator">Checking...</span>
+                        )}
+                        {!isCheckingPhone && phoneError && (
+                          <X className="status-icon error" size={20} />
+                        )}
+                        {!isCheckingPhone && !phoneError && profile.phoneNumber !== originalProfile?.phoneNumber && (
+                          <CheckCircle2 className="status-icon success" size={20} />
+                        )}
+                      </>
+                    )}
+                  </div>
+                  {phoneError && (
+                    <span className="input-error">{phoneError}</span>
+                  )}
+                  {!phoneError && isEditing && (
+                    <span className="input-hint">
+                      Optional. Format: +1234567890 or 0123456789
+                    </span>
+                  )}
                 </div>
 
                 <div className="form-group">

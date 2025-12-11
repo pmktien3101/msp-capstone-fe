@@ -175,9 +175,45 @@ export const NotificationBell = () => {
   }
 
   return (
-    <div style={{ position: "relative" }} ref={dropdownRef}>
-      {/* Bell Icon */}
-      <button
+    <>
+      {/* CSS Keyframes - Outside conditional render */}
+      <style>
+        {`
+          @keyframes slideDown {
+            from {
+              opacity: 0;
+              transform: translateY(-8px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          @keyframes spin {
+            to {
+              transform: rotate(360deg);
+            }
+          }
+          @keyframes bellRing {
+            0%, 100% {
+              transform: rotate(0deg);
+            }
+            10%, 30% {
+              transform: rotate(-15deg);
+            }
+            20%, 40% {
+              transform: rotate(15deg);
+            }
+            50% {
+              transform: rotate(0deg);
+            }
+          }
+        `}
+      </style>
+
+      <div style={{ position: "relative" }} ref={dropdownRef}>
+        {/* Bell Icon */}
+        <button
         onClick={() => setShowDropdown(!showDropdown)}
         style={{
           position: "relative",
@@ -602,43 +638,9 @@ export const NotificationBell = () => {
               ))
             )}
           </div>
-
-          {/* CSS Keyframes */}
-          <style>
-            {`
-              @keyframes slideDown {
-                from {
-                  opacity: 0;
-                  transform: translateY(-8px);
-                }
-                to {
-                  opacity: 1;
-                  transform: translateY(0);
-                }
-              }
-              @keyframes spin {
-                to {
-                  transform: rotate(360deg);
-                }
-              }
-              @keyframes bellRing {
-                0%, 100% {
-                  transform: rotate(0deg);
-                }
-                10%, 30% {
-                  transform: rotate(-15deg);
-                }
-                20%, 40% {
-                  transform: rotate(15deg);
-                }
-                50% {
-                  transform: rotate(0deg);
-                }
-              }
-            `}
-          </style>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
