@@ -213,10 +213,21 @@
     font-size: 16px;
     font-weight: 600;
     color: #1e293b;
+    transition: border-color 0.2s ease;
 
     &:focus {
       outline: none;
       border-color: #2563eb;
+    }
+
+    &.error {
+      border-color: #ef4444;
+      background: rgba(#fef2f2, 0.5);
+
+      &:focus {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px rgba(#ef4444, 0.1);
+      }
     }
   }
 
@@ -230,6 +241,7 @@
     line-height: 1.6;
     resize: vertical;
     font-family: inherit;
+    transition: border-color 0.2s ease;
 
     &:focus {
       outline: none;
@@ -245,10 +257,21 @@
     font-size: 14px;
     color: #1e293b;
     font-weight: 600;
+    transition: border-color 0.2s ease;
 
     &:focus {
       outline: none;
       border-color: #3b82f6;
+    }
+
+    &.error {
+      border-color: #ef4444;
+      background: rgba(#fef2f2, 0.5);
+
+      &:focus {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px rgba(#ef4444, 0.1);
+      }
     }
   }
 }
