@@ -48,7 +48,7 @@ import { useAuth } from "@/hooks/useAuth";
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
 const API_BASE = stripSlash(
-  process.env.NEXT_PUBLIC_API_URL || "https://localhost:7129/api/v1"
+  process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:7129/api/v1"
 );
 
 // Map Stream call state to a simplified status label
@@ -310,6 +310,9 @@ export default function MeetingDetailPage() {
           );
         }
       }
+      console.log("Cloud recording URL:", cloudRecordingUrl);
+      console.log("Transcriptions:", transcriptions);
+      console.log("Tasks:", tasks);
 
       // 2) Call API to process video (send cloud URL instead of Stream URL)
       const response = await fetch("/api/gemini/process-video", {
@@ -563,23 +566,6 @@ export default function MeetingDetailPage() {
     }
   };
 
-
-  // Helper function normalizeDateval (if not exists)
-  function normalizeDateval(val: any) {
-    if (!val) return null;
-    if (typeof val === "string" && /^\d{2}-\d{2}-\d{4}$/.test(val)) {
-      const [dd, mm, yyyy] = val.split("-");
-      return new Date(`${yyyy}-${mm}-${dd}`).toISOString();
-    }
-    if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-      return new Date(val).toISOString();
-    }
-    if (val instanceof Date) {
-      return val.toISOString();
-    }
-    return val;
-  }
-
   // useEffect to auto-call processVideo when data is ready and no result yet
   useEffect(() => {
     // Only process when meetingInfo has finished loading
@@ -611,7 +597,13 @@ export default function MeetingDetailPage() {
       hasProcessedRef.current = true;
       return;
     }
-
+    console.log("processVideo - checking conditions:", {
+      originalTranscriptionsLength: originalTranscriptions?.length,
+      recordingsLength: recordings?.length,
+      recordingUrl: recordings[0]?.url,
+      meetingInfoLoaded: !isLoadingMeeting,
+      todosFromDBLength: todosFromDB.length,
+    });
     // Only call AI when no existing data and all required info is available
     if (
       !originalTranscriptions ||
