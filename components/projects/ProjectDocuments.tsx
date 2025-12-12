@@ -175,6 +175,16 @@ export const ProjectDocuments = ({
         return;
       }
 
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      if (file.size > maxSize) {
+        toast.error(
+          `File is too large (${formatFileSize(file.size)}). Maximum allowed size is 10MB.`
+        );
+        e.target.value = ""; // Reset input
+        return;
+      }
+
       setUploadFile(file);
     }
   };
@@ -187,13 +197,19 @@ export const ProjectDocuments = ({
 
     setIsUploading(true);
     try {
+      console.log("[Upload] Starting upload process...");
+      console.log("[Upload] File:", uploadFile.name, "Size:", formatFileSize(uploadFile.size));
+
       // 1. Upload file to Cloudinary
       const fileUrl = await uploadFileToCloudinary(uploadFile);
 
       if (!fileUrl) {
-        toast.error("Unable to upload file");
+        console.error("[Upload] Failed to get file URL from Cloudinary");
+        toast.error("Unable to upload file to cloud storage");
         return;
       }
+
+      console.log("[Upload] File uploaded to Cloudinary successfully:", fileUrl);
 
       // 2. Create document record in database
       const result = await documentService.createDocument({
@@ -206,17 +222,32 @@ export const ProjectDocuments = ({
       });
 
       if (result.success) {
+        console.log("[Upload] Document created in database successfully");
+        toast.success(`Document "${uploadFile.name}" uploaded successfully!`);
         setUploadFile(null);
         setUploadDescription("");
         setShowUploadModal(false);
         // Refresh documents list
         fetchDocuments();
       } else {
-        toast.error(`Error: ${result.error}`);
+        console.error("[Upload] Failed to create document in database:", result.error);
+        toast.error(`Failed to save document: ${result.error}`);
       }
-    } catch (error) {
-      console.error("Error uploading document:", error);
-      toast.error("An error occurred while uploading document");
+    } catch (error: any) {
+      console.error("[Upload] Error uploading document:", error);
+      
+      // More specific error messages
+      if (error.message?.includes("Network")) {
+        toast.error("Network error. Please check your connection and try again.");
+      } else if (error.message?.includes("timeout")) {
+        toast.error("Upload timeout. File may be too large or connection is slow.");
+      } else if (error.response?.status === 413) {
+        toast.error("File is too large for the server to handle.");
+      } else if (error.response?.data?.message) {
+        toast.error(`Upload failed: ${error.response.data.message}`);
+      } else {
+        toast.error(`Upload error: ${error.message || "Unknown error occurred"}`);
+      }
     } finally {
       setIsUploading(false);
     }
@@ -770,7 +801,7 @@ export const ProjectDocuments = ({
                   margin: "8px 0 0 0",
                 }}
               >
-                Allowed: Images (JPG, PNG, GIF, WebP), PDF, Word (DOC, DOCX)
+                Allowed: Images (JPG, PNG, GIF, WebP), PDF, Word (DOC, DOCX) • Max: 10MB
               </p>
               {uploadFile && (
                 <p

@@ -293,9 +293,21 @@ export const TaskDetailModal = ({
   ];
 
   // Determine which status options to show based on user role
-  // If task status is ReOpened, member can see it but cannot change it
+  // For members: if current task status is not in MEMBER_STATUS_OPTIONS, add it as read-only
   const TASK_STATUS_OPTIONS = isMember
-    ? MEMBER_STATUS_OPTIONS
+    ? (() => {
+        const memberStatusValues = MEMBER_STATUS_OPTIONS.map(s => s.value);
+        const currentStatus = editedTask.status;
+        
+        // If current status is not in member's allowed list, prepend it
+        if (currentStatus && !memberStatusValues.includes(currentStatus)) {
+          const fullStatus = ALL_TASK_STATUS_OPTIONS.find(s => s.value === currentStatus);
+          if (fullStatus) {
+            return [fullStatus, ...MEMBER_STATUS_OPTIONS];
+          }
+        }
+        return MEMBER_STATUS_OPTIONS;
+      })()
     : ALL_TASK_STATUS_OPTIONS;
 
   const handleSubmitComment = async () => {
@@ -1027,18 +1039,29 @@ export const TaskDetailModal = ({
                 className="info-select"
                 value={editedTask.status}
                 onChange={(e) => handleUpdateField("status", e.target.value)}
-                disabled={mode === "view" || !canEdit}
+                disabled={
+                  mode === "view" || 
+                  !canEdit || 
+                  (isMember && !["Todo", "InProgress", "ReadyToReview"].includes(editedTask.status))
+                }
               >
-                {/* If current status is ReOpened and user is member, show it as disabled option */}
-                {isMember && editedTask.status === "ReOpened" && (
-                  <option value="ReOpened">Re-Opened</option>
-                )}
                 {TASK_STATUS_OPTIONS.map((status) => (
                   <option key={status.value} value={status.value}>
                     {status.label}
                   </option>
                 ))}
               </select>
+              {isMember && !["Todo", "InProgress", "ReadyToReview"].includes(editedTask.status) && (
+                <span
+                  style={{
+                    fontSize: "11px",
+                    color: "#6b7280",
+                    marginTop: "4px",
+                  }}
+                >
+                  Status locked - only PM can modify
+                </span>
+              )}
             </div>
 
             {/* Assignee */}

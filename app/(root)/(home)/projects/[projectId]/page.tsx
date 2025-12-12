@@ -521,7 +521,7 @@ const ProjectDetailPage = () => {
           isOpen={isTaskModalOpen}
           onClose={handleCloseTaskModal}
           task={selectedTask as any}
-          mode="view"
+          mode="edit"
           onSave={() => {
             setRefreshKey((prev) => prev + 1);
           }}

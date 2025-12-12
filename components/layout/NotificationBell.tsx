@@ -96,12 +96,40 @@ export const NotificationBell = () => {
 
       // Handle navigation based on notification type
       const notifType = notification.type?.toLowerCase() || "";
+      const notifTitle = notification.title?.toLowerCase() || "";
+      const notifMessage = notification.message?.toLowerCase() || "";
       const eventType = parsedData?.eventType?.toLowerCase() || parsedData?.EventType?.toLowerCase() || "";
 
-      // Task-related notifications
+      // Meeting-related notifications (check FIRST before project/task)
+      if (
+        notifType.includes("meeting") ||
+        notifTitle.includes("meeting") ||
+        eventType.includes("meeting") ||
+        parsedData?.meetingId ||
+        parsedData?.MeetingId
+      ) {
+        const meetingId = 
+          parsedData?.meetingId || 
+          parsedData?.MeetingId || 
+          notification.entityId;
+
+        if (meetingId) {
+          setShowDropdown(false);
+          // Always navigate directly to meeting detail page
+          router.push(`/meeting-detail/${meetingId}`);
+          return;
+        }
+      }
+
+      // Task-related notifications (including comments on tasks)
       if (
         notifType.includes("task") ||
+        notifType.includes("comment") ||
+        notifTitle.includes("task") ||
+        notifTitle.includes("comment") ||
+        notifMessage.includes("comment") ||
         eventType.includes("task") ||
+        eventType.includes("comment") ||
         parsedData?.taskId ||
         parsedData?.TaskId
       ) {
@@ -117,6 +145,7 @@ export const NotificationBell = () => {
       }
 
       // Project-related notifications (deadline, completion, status)
+      // Check this LAST to avoid catching meeting/task notifications
       if (
         notifType.includes("project") ||
         eventType.includes("project") ||
@@ -131,28 +160,6 @@ export const NotificationBell = () => {
         if (projectId) {
           setShowDropdown(false);
           router.push(`/projects/${projectId}`);
-          return;
-        }
-      }
-
-      // Meeting-related notifications
-      if (
-        notifType.includes("meeting") ||
-        eventType.includes("meeting") ||
-        parsedData?.meetingId ||
-        parsedData?.MeetingId
-      ) {
-        const meetingId = parsedData?.meetingId || parsedData?.MeetingId;
-        const projectId = parsedData?.projectId || parsedData?.ProjectId;
-
-        if (meetingId) {
-          setShowDropdown(false);
-          // Navigate to meeting detail or project meetings tab
-          if (projectId) {
-            router.push(`/projects/${projectId}?tab=meetings&meetingId=${meetingId}`);
-          } else {
-            router.push(`/meeting/${meetingId}`);
-          }
           return;
         }
       }
