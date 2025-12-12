@@ -52,6 +52,7 @@ export const MilestoneListView = ({
     Partial<MilestoneBackend>
   >({});
   const [isSaving, setIsSaving] = useState(false);
+  const [validationError, setValidationError] = useState<string>("");
 
   // Confirm delete state
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
@@ -179,12 +180,100 @@ export const MilestoneListView = ({
       ...milestone,
       dueDate: formatDateForInput(milestone.dueDate),
     });
+    setValidationError("");
   };
 
   // Cancel editing
   const handleCancelEdit = () => {
     setEditingMilestoneId(null);
     setEditedMilestone({});
+    setValidationError("");
+  };
+
+  // Handle field changes with validation
+  const handleNameChange = (value: string) => {
+    setEditedMilestone({ ...editedMilestone, name: value });
+    setValidationError("");
+
+    if (value.trim().length > 0 && value.trim().length < 3) {
+      setValidationError("Milestone name must be at least 3 characters");
+    } else if (value.trim().length > 200) {
+      setValidationError("Milestone name must not exceed 200 characters");
+    }
+  };
+
+  const handleDueDateChange = (value: string) => {
+    setEditedMilestone({ ...editedMilestone, dueDate: value });
+    setValidationError("");
+
+    if (value && editedMilestone.name) {
+      const validation = validateMilestone(editedMilestone.name, value);
+      if (!validation.valid) {
+        setValidationError(validation.message || "");
+      }
+    }
+  };
+
+  // Validate milestone
+  const validateMilestone = (
+    name: string,
+    dueDate: string
+  ): { valid: boolean; message?: string } => {
+    // Validation 1: Name is required
+    if (!name || name.trim() === "") {
+      return { valid: false, message: "Milestone name is required" };
+    }
+
+    // Validation 2: Name length
+    if (name.trim().length < 3) {
+      return {
+        valid: false,
+        message: "Milestone name must be at least 3 characters",
+      };
+    }
+
+    if (name.trim().length > 200) {
+      return {
+        valid: false,
+        message: "Milestone name must not exceed 200 characters",
+      };
+    }
+
+    // Validation 3: Due date is required
+    if (!dueDate) {
+      return { valid: false, message: "Due date is required" };
+    }
+
+    // Validation 4: Due date must be within project date range
+    if (project.startDate) {
+      const projectStart = new Date(project.startDate);
+      const milestoneDue = new Date(dueDate);
+      projectStart.setHours(0, 0, 0, 0);
+      milestoneDue.setHours(0, 0, 0, 0);
+
+      if (milestoneDue < projectStart) {
+        return {
+          valid: false,
+          message: `Due date must be on or after project start date (${formatDateForDisplay(project.startDate)})`,
+        };
+      }
+    }
+
+    if (project.endDate) {
+      const projectEnd = new Date(project.endDate);
+      const milestoneDue = new Date(dueDate);
+      projectEnd.setHours(0, 0, 0, 0);
+      milestoneDue.setHours(0, 0, 0, 0);
+
+      if (milestoneDue > projectEnd) {
+        return {
+          valid: false,
+          message: `Due date must be on or before project end date (${formatDateForDisplay(project.endDate)})`,
+        };
+      }
+    }
+
+    return { valid: true };
   };
 
   // Save milestone changes
@@ -198,14 +287,24 @@ export const MilestoneListView = ({
       return;
     }
 
+    // Validate milestone data
+    const validation = validateMilestone(
+      editedMilestone.name,
+      editedMilestone.dueDate
+    );
+    if (!validation.valid) {
+      toast.error(validation.message || "Invalid milestone data");
+      return;
+    }
+
     try {
       setIsSaving(true);
 
       const updateData = {
         id: editingMilestoneId,
         projectId: project.id,
-        name: editedMilestone.name,
-        description: editedMilestone.description || "",
+        name: editedMilestone.name.trim(),
+        description: editedMilestone.description?.trim() || "",
         dueDate: new Date(editedMilestone.dueDate).toISOString(),
       };
 
@@ -404,19 +503,34 @@ export const MilestoneListView = ({
                       </div>
 
                       <div className="edit-form-group">
-                        <label className="form-label">Milestone Name</label>
+                        <label className="form-label">
+                          Milestone Name <span style={{ color: "#ef4444" }}>*</span>
+                        </label>
                         <input
                           type="text"
                           value={editedMilestone.name || ""}
-                          onChange={(e) =>
-                            setEditedMilestone({
-                              ...editedMilestone,
-                              name: e.target.value,
-                            })
-                          }
-                          className="milestone-name-input"
+                          onChange={(e) => handleNameChange(e.target.value)}
+                          className={`milestone-name-input ${
+                            validationError &&
+                            validationError.toLowerCase().includes("name")
+                              ? "error"
+                              : ""
+                          }`}
                           placeholder="Enter milestone name..."
+                          maxLength={200}
                         />
+                        {editedMilestone.name && (
+                          <span
+                            style={{
+                              fontSize: "12px",
+                              color: "#6b7280",
+                              marginTop: "4px",
+                              display: "block",
+                            }}
+                          >
+                            {editedMilestone.name.length}/200 characters
+                          </span>
+                        )}
                       </div>
 
                       <div className="edit-form-group">
@@ -430,8 +544,9 @@ export const MilestoneListView = ({
                             })
                           }
                           className="milestone-description-input"
-                          placeholder="Enter description..."
+                          placeholder="Enter description (optional)..."
                           rows={3}
+                          maxLength={1000}
                         />
                       </div>
                     </>
@@ -473,18 +588,56 @@ export const MilestoneListView = ({
 
                   {isEditing ? (
                     <div className="edit-form-group">
-                      <label className="form-label">Due Date</label>
+                      <label className="form-label">
+                        Due Date <span style={{ color: "#ef4444" }}>*</span>
+                      </label>
                       <input
                         type="date"
                         value={editedMilestone.dueDate || ""}
-                        onChange={(e) =>
-                          setEditedMilestone({
-                            ...editedMilestone,
-                            dueDate: e.target.value,
-                          })
+                        onChange={(e) => handleDueDateChange(e.target.value)}
+                        className={`date-input ${
+                          validationError &&
+                          validationError.toLowerCase().includes("due date")
+                            ? "error"
+                            : ""
+                        }`}
+                        min={
+                          project.startDate
+                            ? formatDateForInput(project.startDate)
+                            : undefined
                         }
-                        className="date-input"
+                        max={
+                          project.endDate
+                            ? formatDateForInput(project.endDate)
+                            : undefined
+                        }
                       />
+                      {validationError && (
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "#ef4444",
+                            marginTop: "4px",
+                            display: "block",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {validationError}
+                        </span>
+                      )}
+                      {!validationError && project.startDate && project.endDate && (
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            color: "#6b7280",
+                            marginTop: "4px",
+                            display: "block",
+                          }}
+                        >
+                          Must be between {formatDateForDisplay(project.startDate)} and{" "}
+                          {formatDateForDisplay(project.endDate)}
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <div className="milestone-meta">
@@ -530,10 +683,10 @@ export const MilestoneListView = ({
           setMilestoneToDelete(null);
         }}
         onConfirm={confirmDeleteMilestone}
-        title="Xóa Milestone"
-        description={`Bạn có chắc muốn xóa milestone "${milestoneToDelete?.name}"? Hành động này không thể hoàn tác.`}
-        confirmText="Xóa"
-        cancelText="Hủy"
+        title="Delete Milestone"
+        description={`Are you sure you want to delete the milestone "${milestoneToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
       />
     </div>
   );

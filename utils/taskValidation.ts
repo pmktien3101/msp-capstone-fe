@@ -62,12 +62,7 @@ export const validateTaskDates = (
     return { valid: false, message: 'End date must be after or equal to start date' };
   }
 
-  // Validation 2: Task start date must be <= today (can create task for today or past)
-  if (taskStart > today) {
-    return { valid: false, message: 'Task start date cannot be in the future' };
-  }
-
-  // Validation 3: Task start date >= project start date
+  // Validation 2: Task start date >= project start date
   if (projectStartDate) {
     const projectStart = new Date(projectStartDate);
     projectStart.setHours(0, 0, 0, 0);
@@ -80,7 +75,7 @@ export const validateTaskDates = (
     }
   }
 
-  // Validation 4: Task end date <= project end date
+  // Validation 3: Task end date <= project end date
   if (projectEndDate) {
     const projectEnd = new Date(projectEndDate);
     projectEnd.setHours(0, 0, 0, 0);
