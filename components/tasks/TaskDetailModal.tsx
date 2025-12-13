@@ -433,6 +433,205 @@ export const TaskDetailModal = ({
     setEditedTask({ ...editedTask, [field]: value });
   };
 
+  // Validate dates when they change
+  const handleStartDateChange = (newStartDate: string) => {
+    // Always allow clearing the date
+    if (!newStartDate) {
+      handleUpdateField("startDate", newStartDate);
+      return;
+    }
+
+    // Validate against project dates (always check)
+    if (project?.startDate) {
+      const projectStart = new Date(project.startDate);
+      const selectedStart = new Date(newStartDate);
+      
+      if (selectedStart < projectStart) {
+        toast.warning("Task start date cannot be before project start date");
+        return;
+      }
+    }
+
+    if (project?.endDate) {
+      const projectEnd = new Date(project.endDate);
+      const selectedStart = new Date(newStartDate);
+      
+      if (selectedStart > projectEnd) {
+        toast.warning("Task start date cannot be after project end date");
+        return;
+      }
+    }
+
+    // Validate with end date if present
+    if (editedTask.endDate) {
+      const dateValidation = validateTaskDates(
+        newStartDate,
+        editedTask.endDate,
+        project?.startDate,
+        project?.endDate
+      );
+
+      if (!dateValidation.valid) {
+        toast.warning(dateValidation.message || "Invalid dates");
+        return;
+      }
+
+      // Validate against milestones if any selected
+      if (editedTask.milestoneIds.length > 0) {
+        const selectedMilestones = milestones.filter(m => 
+          editedTask.milestoneIds.includes(m.id)
+        );
+        
+        const milestoneValidation = validateTaskMilestoneDates(
+          newStartDate,
+          editedTask.endDate,
+          selectedMilestones
+        );
+
+        if (!milestoneValidation.valid) {
+          toast.warning(milestoneValidation.message || "Task dates conflict with milestone dates");
+          return;
+        }
+      }
+    } else if (editedTask.milestoneIds.length > 0) {
+      // If only start date and milestones are selected, check if start is valid with milestone due dates
+      const selectedMilestones = milestones.filter(m => 
+        editedTask.milestoneIds.includes(m.id)
+      );
+      
+      for (const milestone of selectedMilestones) {
+        if (milestone.dueDate) {
+          const milestoneDue = new Date(milestone.dueDate);
+          const selectedStart = new Date(newStartDate);
+          
+          if (selectedStart > milestoneDue) {
+            toast.warning(`Task start date cannot be after milestone "${milestone.name}" due date`);
+            return;
+          }
+        }
+      }
+    }
+
+    handleUpdateField("startDate", newStartDate);
+  };
+
+  const handleEndDateChange = (newEndDate: string) => {
+    // Always allow clearing the date
+    if (!newEndDate) {
+      handleUpdateField("endDate", newEndDate);
+      return;
+    }
+
+    // Validate against project dates (always check)
+    if (project?.startDate) {
+      const projectStart = new Date(project.startDate);
+      const selectedEnd = new Date(newEndDate);
+      
+      if (selectedEnd < projectStart) {
+        toast.warning("Task end date cannot be before project start date");
+        return;
+      }
+    }
+
+    if (project?.endDate) {
+      const projectEnd = new Date(project.endDate);
+      const selectedEnd = new Date(newEndDate);
+      
+      if (selectedEnd > projectEnd) {
+        toast.warning("Task end date cannot be after project end date");
+        return;
+      }
+    }
+
+    // Validate with start date if present
+    if (editedTask.startDate) {
+      const dateValidation = validateTaskDates(
+        editedTask.startDate,
+        newEndDate,
+        project?.startDate,
+        project?.endDate
+      );
+
+      if (!dateValidation.valid) {
+        toast.warning(dateValidation.message || "Invalid dates");
+        return;
+      }
+
+      // Validate against milestones if any selected
+      if (editedTask.milestoneIds.length > 0) {
+        const selectedMilestones = milestones.filter(m => 
+          editedTask.milestoneIds.includes(m.id)
+        );
+        
+        const milestoneValidation = validateTaskMilestoneDates(
+          editedTask.startDate,
+          newEndDate,
+          selectedMilestones
+        );
+
+        if (!milestoneValidation.valid) {
+          toast.warning(milestoneValidation.message || "Task dates conflict with milestone dates");
+          return;
+        }
+      }
+    } else if (editedTask.milestoneIds.length > 0) {
+      // If only end date and milestones are selected, check if end is valid with milestone due dates
+      const selectedMilestones = milestones.filter(m => 
+        editedTask.milestoneIds.includes(m.id)
+      );
+      
+      for (const milestone of selectedMilestones) {
+        if (milestone.dueDate) {
+          const milestoneDue = new Date(milestone.dueDate);
+          const selectedEnd = new Date(newEndDate);
+          
+          if (selectedEnd > milestoneDue) {
+            toast.warning(`Task end date cannot be after milestone "${milestone.name}" due date`);
+            return;
+          }
+        }
+      }
+    }
+
+    handleUpdateField("endDate", newEndDate);
+  };
+
+  const handleMilestoneToggle = (milestoneId: string) => {
+    const isAdding = !editedTask.milestoneIds.includes(milestoneId);
+    const newMilestoneIds = isAdding
+      ? [...editedTask.milestoneIds, milestoneId]
+      : editedTask.milestoneIds.filter((id) => id !== milestoneId);
+
+    // If adding a milestone, validate ONLY the new milestone being added
+    if (isAdding) {
+      const milestoneToAdd = milestones.find(m => m.id === milestoneId);
+      
+      if (milestoneToAdd && milestoneToAdd.dueDate) {
+        const milestoneDue = new Date(milestoneToAdd.dueDate);
+        
+        // Check if start date is after THIS milestone's due date
+        if (editedTask.startDate) {
+          const taskStart = new Date(editedTask.startDate);
+          if (taskStart > milestoneDue) {
+            toast.warning(`Cannot select milestone "${milestoneToAdd.name}" - task start date (${new Date(editedTask.startDate).toLocaleDateString()}) is after milestone due date (${milestoneDue.toLocaleDateString()})`);
+            return;
+          }
+        }
+        
+        // Check if end date is after THIS milestone's due date
+        if (editedTask.endDate) {
+          const taskEnd = new Date(editedTask.endDate);
+          if (taskEnd > milestoneDue) {
+            toast.warning(`Cannot select milestone "${milestoneToAdd.name}" - task end date (${new Date(editedTask.endDate).toLocaleDateString()}) is after milestone due date (${milestoneDue.toLocaleDateString()})`);
+            return;
+          }
+        }
+      }
+    }
+
+    handleUpdateField("milestoneIds", newMilestoneIds);
+  };
+
   // Format date from ISO to yyyy-mm-dd for input value (date input requires this format)
   const formatDateForInput = (isoDate: string) => {
     if (!isoDate) return "";
@@ -445,7 +644,7 @@ export const TaskDetailModal = ({
 
   const handleSaveTask = async () => {
     if (!editedTask.title.trim()) {
-      toast.error("Task title is required");
+      toast.warning("Task title is required");
       return;
     }
 
@@ -454,32 +653,20 @@ export const TaskDetailModal = ({
       return;
     }
 
-    // Validation 1: Member cannot change assignee
+    // Validation: Member cannot change assignee
     if (isMember && editedTask.userId !== task.userId) {
-      toast.error("Members are not allowed to change the assignee");
+      toast.warning("Members are not allowed to change the assignee");
       return;
     }
 
-    // Validation 2: Validate status transition
-    if (editedTask.status !== task.status) {
-      const statusValidation = isValidStatusTransition(
-        task.status,
-        editedTask.status
-      );
-      if (!statusValidation.valid) {
-        toast.error(
-          statusValidation.message || "Invalid status change"
-        );
-        return;
-      }
+    // Validation: If moving to ReadyToReview, reviewer is required
+    if (editedTask.status === 'ReadyToReview' && !editedTask.reviewerId) {
+      toast.warning("Please select a reviewer when moving to Ready To Review");
+      return;
     }
 
-    // Validation 3: Validate dates (only if dates were changed)
-    const startDateChanged = editedTask.startDate !== task.startDate;
-    const endDateChanged = editedTask.endDate !== task.endDate;
-    const datesChanged = startDateChanged || endDateChanged;
-
-    if (datesChanged && editedTask.startDate && editedTask.endDate) {
+    // Final validation: Check dates if they exist
+    if (editedTask.startDate && editedTask.endDate) {
       const dateValidation = validateTaskDates(
         editedTask.startDate,
         editedTask.endDate,
@@ -488,30 +675,26 @@ export const TaskDetailModal = ({
       );
 
       if (!dateValidation.valid) {
-        toast.error(dateValidation.message || "Invalid date");
+        toast.warning(dateValidation.message || "Invalid dates");
         return;
       }
 
       // Validate dates against selected milestones
-      const selectedMilestones = milestones.filter(m => 
-        editedTask.milestoneIds.includes(m.id)
-      );
-      const milestoneValidation = validateTaskMilestoneDates(
-        editedTask.startDate,
-        editedTask.endDate,
-        selectedMilestones
-      );
+      if (editedTask.milestoneIds.length > 0) {
+        const selectedMilestones = milestones.filter(m => 
+          editedTask.milestoneIds.includes(m.id)
+        );
+        const milestoneValidation = validateTaskMilestoneDates(
+          editedTask.startDate,
+          editedTask.endDate,
+          selectedMilestones
+        );
 
-      if (!milestoneValidation.valid) {
-        toast.error(milestoneValidation.message || "Task dates conflict with milestone dates");
-        return;
+        if (!milestoneValidation.valid) {
+          toast.warning(milestoneValidation.message || "Task dates conflict with milestone dates");
+          return;
+        }
       }
-    }
-
-    // Validation 4: If moving to ReadyToReview, reviewer is required
-    if (editedTask.status === 'ReadyToReview' && !editedTask.reviewerId) {
-      toast.error("Please select a reviewer when moving to Ready To Review");
-      return;
     }
 
     try {
@@ -1164,12 +1347,9 @@ export const TaskDetailModal = ({
                   onChange={(e) => {
                     const dateValue = e.target.value; // yyyy-mm-dd format from date input
                     if (dateValue) {
-                      handleUpdateField(
-                        "startDate",
-                        new Date(dateValue).toISOString()
-                      );
+                      handleStartDateChange(new Date(dateValue).toISOString());
                     } else {
-                      handleUpdateField("startDate", "");
+                      handleStartDateChange("");
                     }
                   }}
                   min={
@@ -1210,12 +1390,9 @@ export const TaskDetailModal = ({
                   onChange={(e) => {
                     const dateValue = e.target.value; // yyyy-mm-dd format from date input
                     if (dateValue) {
-                      handleUpdateField(
-                        "endDate",
-                        new Date(dateValue).toISOString()
-                      );
+                      handleEndDateChange(new Date(dateValue).toISOString());
                     } else {
-                      handleUpdateField("endDate", "");
+                      handleEndDateChange("");
                     }
                   }}
                   min={
@@ -1277,14 +1454,7 @@ export const TaskDetailModal = ({
                         <input
                           type="checkbox"
                           checked={editedTask.milestoneIds.includes(milestone.id)}
-                          onChange={(e) => {
-                            const newMilestoneIds = e.target.checked
-                              ? [...editedTask.milestoneIds, milestone.id]
-                              : editedTask.milestoneIds.filter(
-                                  (id: string) => id !== milestone.id
-                                );
-                            handleUpdateField("milestoneIds", newMilestoneIds);
-                          }}
+                          onChange={() => handleMilestoneToggle(milestone.id)}
                           disabled={mode === "view" || !canEdit}
                         />
                         <span>{milestone.name}</span>

@@ -118,9 +118,9 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="create-project-modal sm:max-w-[600px] h-[80vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="dialog-title">
+      <DialogContent className="create-project-modal">
+        <DialogHeader>
+          <DialogTitle className="cpm-header-title">
             <FolderOpen size={20} />
             Create New Project
           </DialogTitle>
@@ -128,7 +128,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
           {submitError && (
-            <div className="error-message">
+            <div className="cpm-error-banner">
               <svg fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
@@ -136,73 +136,73 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
             </div>
           )}
           
-          <div className="form-content scrollbar-hide">
-            <div className="form-field">
+          <div className="cpm-form-content">
+            <div className="cpm-field">
               <Label htmlFor="name">Project Name *</Label>
               <Input
                 id="name"
                 placeholder="Enter project name"
                 {...register("name")}
-                className={errors.name ? "error" : ""}
+                className={errors.name ? "cpm-error-input" : ""}
               />
               {errors.name && (
-                <p className="error-text">{errors.name.message}</p>
+                <p className="cpm-error-text">{errors.name.message}</p>
               )}
             </div>
 
-            <div className="form-field">
+            <div className="cpm-field">
               <Label htmlFor="description">Description *</Label>
               <Textarea
                 id="description"
-                placeholder="Project description"
+                placeholder="Describe your project goals and objectives"
                 {...register("description")}
-                className={errors.description ? "error" : ""}
+                className={errors.description ? "cpm-error-input" : ""}
               />
               {errors.description && (
-                <p className="error-text">{errors.description.message}</p>
+                <p className="cpm-error-text">{errors.description.message}</p>
               )}
             </div>
 
-            <div className="date-grid">
-              <div className="form-field">
+            <div className="cpm-date-grid">
+              <div className="cpm-field">
                 <Label htmlFor="startDate">Start Date *</Label>
                 <Input
                   id="startDate"
                   type="date"
                   {...register("startDate")}
-                  className={errors.startDate ? "error" : ""}
+                  className={errors.startDate ? "cpm-error-input" : ""}
                 />
                 {errors.startDate && (
-                  <p className="error-text">{errors.startDate.message}</p>
+                  <p className="cpm-error-text">{errors.startDate.message}</p>
                 )}
               </div>
-              <div className="form-field">
+              <div className="cpm-field">
                 <Label htmlFor="endDate">Expected End Date *</Label>
                 <Input
                   id="endDate"
                   type="date"
                   {...register("endDate")}
-                  className={errors.endDate ? "error" : ""}
+                  className={errors.endDate ? "cpm-error-input" : ""}
                 />
                 {errors.endDate && (
-                  <p className="error-text">{errors.endDate.message}</p>
+                  <p className="cpm-error-text">{errors.endDate.message}</p>
                 )}
               </div>
             </div>
 
-            <div className="form-field">
+            <div className="cpm-field">
               <Label>Status *</Label>
               <Controller
                 name="status"
                 control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value} disabled>
-                    <SelectTrigger className={`status-select-trigger ${errors.status ? "error" : ""}`}>
+                    <SelectTrigger className={`cpm-status-select ${errors.status ? "cpm-error-input" : ""}`}>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent className="z-[9999]" position="popper" side="bottom" align="start">
                       <SelectItem value={ProjectStatus.NotStarted}>
-                        <div className="status-item">
+                        <div className="cpm-status-item">
                           <Calendar size={16} />
                           Not Started
                         </div>
@@ -211,27 +211,27 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
                   </Select>
                 )}
               />
-              <p className="status-info">Default status for new projects</p>
+              <p className="cpm-status-info">Default status for new projects</p>
             </div>
           </div>
 
-          <DialogFooter className="dialog-footer">
+          <div className="cpm-footer">
             <Button 
               type="button" 
-              variant="secondary" 
+              variant="ghost"
               onClick={onClose}
-              className="btn-cancel"
+              className="cpm-btn-cancel"
             >
               Cancel
             </Button>
             <Button 
               type="submit"
               disabled={isSubmitting}
-              className="btn-submit"
+              className="cpm-btn-submit"
             >
               {isSubmitting ? 'Creating...' : 'Create Project'}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
