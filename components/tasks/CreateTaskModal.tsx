@@ -9,7 +9,7 @@ import { MilestoneBackend } from "@/types/milestone";
 import { Project } from "@/types/project";
 import { toast } from "react-toastify";
 import { useAuth } from "@/hooks/useAuth";
-import { validateTaskDates } from "@/utils/taskValidation";
+import { validateTaskDates, validateTaskMilestoneDates } from "@/utils/taskValidation";
 import "@/app/styles/create-task-modal.scss";
 import { format } from "path";
 import { formatDate } from "@/lib/formatDate";
@@ -169,6 +169,21 @@ export const CreateTaskModal = ({
       return;
     }
 
+    // Validate dates against selected milestones
+    const selectedMilestones = milestones.filter(m => 
+      taskData.milestoneIds.includes(m.id)
+    );
+    const milestoneValidation = validateTaskMilestoneDates(
+      taskData.startDate,
+      taskData.endDate,
+      selectedMilestones
+    );
+
+    if (!milestoneValidation.valid) {
+      toast.error(milestoneValidation.message || "Task dates conflict with milestone dates");
+      return;
+    }
+
     try {
       setIsSaving(true);
 
@@ -289,16 +304,34 @@ export const CreateTaskModal = ({
                         <label
                           key={milestone.id}
                           className="milestone-checkbox-label"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                          }}
                         >
-                          <input
-                            type="checkbox"
-                            checked={taskData.milestoneIds.includes(
-                              milestone.id
-                            )}
-                            onChange={() => toggleMilestone(milestone.id)}
-                            disabled={isSaving}
-                          />
-                          <span>{milestone.name}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
+                            <input
+                              type="checkbox"
+                              checked={taskData.milestoneIds.includes(
+                                milestone.id
+                              )}
+                              onChange={() => toggleMilestone(milestone.id)}
+                              disabled={isSaving}
+                            />
+                            <span>{milestone.name}</span>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: "#6b7280",
+                              whiteSpace: "nowrap",
+                              textAlign: "right",
+                            }}
+                          >
+                            {formatDate(milestone.dueDate)}
+                          </span>
                         </label>
                       ))
                     )}

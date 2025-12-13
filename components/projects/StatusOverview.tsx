@@ -29,7 +29,7 @@ export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
 
   const statusData = [
     { status: TASK_STATUS_LABELS[TaskStatus.Done], count: stats.completed || 0, color: '#10b981', percentage: safePercentage(stats.completed) },
-    { status: TASK_STATUS_LABELS[TaskStatus.InProgress], count: stats.inProgress || 0, color: '#fb923c', percentage: safePercentage(stats.inProgress) },
+    { status: TASK_STATUS_LABELS[TaskStatus.InProgress], count: stats.inProgress || 0, color: '#3b82f6', percentage: safePercentage(stats.inProgress) },
     { status: TASK_STATUS_LABELS[TaskStatus.Todo], count: stats.todo || 0, color: '#6b7280', percentage: safePercentage(stats.todo) },
     { status: TASK_STATUS_LABELS[TaskStatus.ReadyToReview], count: stats.readyToReview || 0, color: '#8b5cf6', percentage: safePercentage(stats.readyToReview || 0) }
   ];
@@ -161,14 +161,14 @@ export const StatusOverview = ({ project, stats }: StatusOverviewProps) => {
 
         .view-all-link {
           font-size: 13px;
-          color: #fb923c;
+          color: #3b82f6;
           text-decoration: none;
           font-weight: 500;
           transition: color 0.2s ease;
         }
 
         .view-all-link:hover {
-          color: #f97316;
+          color: #2563eb;
         }
 
         .status-content {

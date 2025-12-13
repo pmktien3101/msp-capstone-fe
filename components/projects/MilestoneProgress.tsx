@@ -7,6 +7,8 @@ import { MilestoneBackend } from "@/types/milestone";
 import { GetTaskResponse } from "@/types/task";
 import { milestoneService } from "@/services/milestoneService";
 import { taskService } from "@/services/taskService";
+import "@/app/styles/milestone-progress.scss";
+import { formatDate } from "@/lib/formatDate";
 
 interface MilestoneProgressProps {
   project: Project;
@@ -17,6 +19,18 @@ interface MilestoneWithProgress extends MilestoneBackend {
   status: string;
   totalTasks: number;
   completedTasks: number;
+  // 3 main categories for progress bar
+  doneCount: number;
+  inProgressCount: number;
+  todoCount: number;
+  // Detailed breakdown for tooltip
+  statusCounts?: {
+    done: number;
+    inProgress: number;
+    readyToReview: number;
+    reopened: number;
+    todo: number;
+  };
 }
 
 export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
@@ -33,25 +47,76 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
 
       setIsLoading(true);
       try {
-        const [milestonesRes, tasksRes] = await Promise.all([
-          milestoneService.getMilestonesByProjectId(project.id),
-          taskService.getTasksByProjectId(project.id)
-        ]);
+        // First, fetch all milestones
+        const milestonesRes = await milestoneService.getMilestonesByProjectId(project.id);
 
-        if (milestonesRes.success && milestonesRes.data && tasksRes.success && tasksRes.data) {
+        if (milestonesRes.success && milestonesRes.data) {
           const milestonesData = milestonesRes.data;
-          const tasksData = tasksRes.data.items || [];
 
-          // Calculate progress for each milestone
-          const milestonesWithProgress = milestonesData.map(milestone => {
-            // Find tasks belonging to this milestone
-            const milestoneTasks = tasksData.filter(task => 
-              task.milestones && task.milestones.some(m => m.id === milestone.id)
-            );
+          // For each milestone, fetch its tasks using the dedicated API
+          const milestonesWithProgress = await Promise.all(
+            milestonesData.map(async (milestone) => {
+              // Fetch tasks for this specific milestone
+              const tasksRes = await taskService.getTasksByMilestoneId(milestone.id);
+              const milestoneTasks = tasksRes.success && tasksRes.data ? tasksRes.data : [];
 
-            const totalTasks = milestoneTasks.length;
-            const completedTasks = milestoneTasks.filter(task => task.status === TaskStatus.Done).length;
-            const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            // Group tasks into 3 main categories for simplified progress bar
+            // Use both enum and string comparison for safety
+            const doneCount = milestoneTasks.filter(t => 
+              t.status === TaskStatus.Done || t.status === 'Done'
+            ).length;
+            
+            // In Progress includes: InProgress, ReadyToReview, ReOpened
+            const inProgressCount = milestoneTasks.filter(t => 
+              t.status === TaskStatus.InProgress || t.status === 'InProgress' ||
+              t.status === TaskStatus.ReadyToReview || t.status === 'ReadyToReview' ||
+              t.status === TaskStatus.ReOpened || t.status === 'ReOpened'
+            ).length;
+            
+            const todoCount = milestoneTasks.filter(t => 
+              t.status === TaskStatus.Todo || t.status === 'Todo'
+            ).length;
+
+            // Total tasks excluding Cancelled (only count tasks displayed in progress bar)
+            const totalTasks = doneCount + inProgressCount + todoCount;
+            const completedTasks = doneCount;
+
+            // Status weights for progress calculation
+            const statusWeights: Record<string, number> = {
+              [TaskStatus.Todo]: 0,
+              [TaskStatus.InProgress]: 0.5,
+              [TaskStatus.ReadyToReview]: 0.75,
+              [TaskStatus.Done]: 1.0,
+              [TaskStatus.ReOpened]: 0.3,
+              [TaskStatus.Cancelled]: 0, // Not counted towards progress (not displayed)
+            };
+
+            // Calculate weighted progress (only for non-cancelled tasks)
+            let totalWeight = 0;
+            milestoneTasks.forEach((task) => {
+              if (task.status !== TaskStatus.Cancelled && task.status !== 'Cancelled') {
+                totalWeight += statusWeights[task.status] || 0;
+              }
+            });
+
+            const progress = totalTasks > 0 
+              ? Math.round((totalWeight / totalTasks) * 100) 
+              : 0;
+
+            // Keep detailed breakdown for tooltip
+            const statusCounts = {
+              done: doneCount,
+              inProgress: milestoneTasks.filter(t => 
+                t.status === TaskStatus.InProgress || t.status === 'InProgress'
+              ).length,
+              readyToReview: milestoneTasks.filter(t => 
+                t.status === TaskStatus.ReadyToReview || t.status === 'ReadyToReview'
+              ).length,
+              reopened: milestoneTasks.filter(t => 
+                t.status === TaskStatus.ReOpened || t.status === 'ReOpened'
+              ).length,
+              todo: todoCount,
+            };
 
             // Determine status based on progress and due date
             let status = 'pending';
@@ -71,9 +136,14 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
               progress,
               status,
               totalTasks,
-              completedTasks
+              completedTasks,
+              doneCount,
+              inProgressCount,
+              todoCount,
+              statusCounts
             };
-          });
+          })
+        );
 
           setMilestones(milestonesWithProgress);
         } else {
@@ -124,41 +194,6 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return {
-          background: 'rgba(16, 185, 129, 0.1)',
-          color: '#10b981',
-          border: 'rgba(16, 185, 129, 0.2)'
-        };
-      case "in-progress":
-        return {
-          background: 'rgba(251, 146, 60, 0.1)',
-          color: '#fb923c',
-          border: 'rgba(251, 146, 60, 0.2)'
-        };
-      case "pending":
-        return {
-          background: 'rgba(107, 114, 128, 0.1)',
-          color: '#6b7280',
-          border: 'rgba(107, 114, 128, 0.2)'
-        };
-      case "overdue":
-        return {
-          background: 'rgba(239, 68, 68, 0.1)',
-          color: '#ef4444',
-          border: 'rgba(239, 68, 68, 0.2)'
-        };
-      default:
-        return {
-          background: 'rgba(107, 114, 128, 0.1)',
-          color: '#6b7280',
-          border: 'rgba(107, 114, 128, 0.2)'
-        };
-    }
-  };
-
   return (
     <div className="milestone-progress">
       <div className="milestone-section-header">
@@ -180,6 +215,22 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
         </a>
       </div>
 
+      {/* Progress Legend */}
+      <div className="progress-legend">
+        <div className="legend-item">
+          <span className="legend-color done"></span>
+          <span className="legend-label">Done</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-color in-progress"></span>
+          <span className="legend-label">In progress</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-color todo"></span>
+          <span className="legend-label">To do</span>
+        </div>
+      </div>
+
       <div className="milestones-list">
         {milestones.length === 0 ? (
           <div className="no-milestones-message">
@@ -191,18 +242,66 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
             <div className="milestone-header">
               <div className="milestone-info">
                 <h4 className="milestone-title">{milestone.name}</h4>
-                <p className="milestone-description">{milestone.description}</p>
               </div>
             </div>
 
             <div className="milestone-progress-bar">
               <div className="progress-container">
-                <div
-                  className="progress-fill"
-                  style={{ width: `${milestone.progress}%` }}
-                ></div>
+                {/* Simplified 3-segment progress bar */}
+                {milestone.totalTasks > 0 ? (
+                  <>
+                    {/* Done segment (green) */}
+                    {milestone.doneCount > 0 && (() => {
+                      const percentage = Math.round((milestone.doneCount / milestone.totalTasks) * 100);
+                      return (
+                        <div
+                          className="progress-segment done"
+                          style={{ 
+                            width: `${percentage}%` 
+                          }}
+                          title={`Done: ${milestone.doneCount} task${milestone.doneCount > 1 ? 's' : ''}`}
+                        >
+                          {percentage >= 10 && <span className="segment-percentage">{percentage}%</span>}
+                        </div>
+                      );
+                    })()}
+                    {/* In Progress segment (blue) - includes InProgress, ReadyToReview, ReOpened */}
+                    {milestone.inProgressCount > 0 && (() => {
+                      const percentage = Math.round((milestone.inProgressCount / milestone.totalTasks) * 100);
+                      return (
+                        <div
+                          className="progress-segment in-progress"
+                          style={{ 
+                            width: `${percentage}%` 
+                          }}
+                          title={`In Progress: ${milestone.inProgressCount} task${milestone.inProgressCount > 1 ? 's' : ''} (InProgress: ${milestone.statusCounts?.inProgress || 0}, Ready: ${milestone.statusCounts?.readyToReview || 0}, ReOpened: ${milestone.statusCounts?.reopened || 0})`}
+                        >
+                          {percentage >= 10 && <span className="segment-percentage">{percentage}%</span>}
+                        </div>
+                      );
+                    })()}
+                    {/* Todo segment (gray) */}
+                    {milestone.todoCount > 0 && (() => {
+                      const percentage = Math.round((milestone.todoCount / milestone.totalTasks) * 100);
+                      return (
+                        <div
+                          className="progress-segment todo"
+                          style={{ 
+                            width: `${percentage}%` 
+                          }}
+                          title={`To Do: ${milestone.todoCount} task${milestone.todoCount > 1 ? 's' : ''}`}
+                        >
+                          {percentage >= 10 && <span className="segment-percentage">{percentage}%</span>}
+                        </div>
+                      );
+                    })()}
+                  </>
+                ) : (
+                  <div className="progress-segment empty" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>No tasks yet</span>
+                  </div>
+                )}
               </div>
-              <span className="progress-text">{milestone.progress}%</span>
             </div>
 
             <div className="milestone-details">
@@ -238,12 +337,12 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
                   />
                 </svg>
                 <span>
-                  Due: {new Date(milestone.dueDate).toLocaleDateString("en-US")}
+                  Due: {formatDate(milestone.dueDate)}
                 </span>
               </div>
               <div className="milestone-tasks">
                 <span>
-                  {milestone.completedTasks}/{milestone.totalTasks} {milestone.totalTasks === 1 ? 'task' : 'tasks'} completed
+                  {milestone.totalTasks} tasks 
                 </span>
               </div>
             </div>
@@ -251,200 +350,6 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
           ))
         )}
       </div>
-
-      <style jsx>{`
-        .milestone-progress {
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 24px;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .milestone-section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 24px;
-        }
-
-        .milestone-section-title h3 {
-          font-size: 16px;
-          font-weight: 600;
-          color: #1f2937;
-          margin: 0 0 4px 0;
-        }
-
-        .milestone-section-title p {
-          font-size: 14px;
-          color: #6b7280;
-          margin: 0;
-        }
-
-        .view-all-link {
-          font-size: 13px;
-          color: #fb923c;
-          text-decoration: none;
-          font-weight: 500;
-          transition: color 0.2s ease;
-        }
-
-        .view-all-link:hover {
-          color: #f97316;
-        }
-
-        .milestones-list {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .no-milestones-message {
-          text-align: center;
-          padding: 40px 20px;
-          color: #6b7280;
-          font-size: 14px;
-        }
-
-        .no-milestones-message p {
-          margin: 0;
-        }
-
-        .milestone-item {
-          padding: 16px;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-          transition: all 0.2s ease;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .milestone-item::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: linear-gradient(90deg, #fb923c, #fbbf24);
-        }
-
-        .milestone-item:hover {
-          border-color: #d1d5db;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-          transform: translateY(-1px);
-        }
-
-        .milestone-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 12px;
-        }
-
-        .milestone-info {
-          flex: 1;
-        }
-
-        .milestone-title {
-          font-size: 13px;
-          font-weight: 600;
-          color: #1f2937;
-          margin: 0 0 4px 0;
-          line-height: 1.3;
-        }
-
-        .milestone-description {
-          font-size: 12px;
-          color: #6b7280;
-          margin: 0;
-          line-height: 1.4;
-        }
-
-        .milestone-status {
-          flex-shrink: 0;
-        }
-
-        .status-badge {
-          display: inline-block;
-          font-size: 10px;
-          font-weight: 500;
-          padding: 4px 8px;
-          border-radius: 12px;
-          background: rgba(251, 146, 60, 0.1);
-          color: #fb923c;
-          border: 1px solid rgba(251, 146, 60, 0.2);
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-        }
-
-        .milestone-progress-bar {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 12px;
-        }
-
-        .progress-container {
-          flex: 1;
-          height: 6px;
-          background: #f1f5f9;
-          border-radius: 6px;
-          overflow: hidden;
-          box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .progress-fill {
-          height: 100%;
-          background: linear-gradient(90deg, #fb923c, #fbbf24);
-          border-radius: 6px;
-          transition: width 0.3s ease;
-          box-shadow: 0 1px 2px rgba(251, 146, 60, 0.3);
-        }
-
-        .progress-text {
-          font-size: 11px;
-          font-weight: 600;
-          color: #fb923c;
-          min-width: 35px;
-          text-align: right;
-        }
-
-        .milestone-details {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-          font-size: 11px;
-          color: #6b7280;
-          padding: 8px 10px;
-          background: rgba(251, 146, 60, 0.05);
-          border-radius: 6px;
-          border: 1px solid rgba(251, 146, 60, 0.1);
-        }
-
-        .milestone-due-date {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-
-        @media (max-width: 768px) {
-          .milestone-header {
-            flex-direction: column;
-            gap: 12px;
-          }
-
-          .milestone-details {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
-          }
-        }
-      `}</style>
     </div>
   );
 };

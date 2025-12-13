@@ -221,7 +221,8 @@ export const ProjectSettings = ({
       return; // Limit exceeded, don't add
     }
 
-    setShowAddMemberModal(false);
+    // Don't close modal here - let user add multiple members
+    // setShowAddMemberModal(false);
 
     // Re-fetch members from API to get latest data
     try {
@@ -231,6 +232,7 @@ export const ProjectSettings = ({
           .filter((pm: any) => pm.member)
           .map((pm: any) => ({
             id: pm.member.id,
+            pmId: pm.id, // Store ProjectMember ID for deletion
             name: pm.member.fullName || "Unknown",
             email: pm.member.email || "",
             role: pm.member.role || "Member",
@@ -362,12 +364,62 @@ export const ProjectSettings = ({
               <Settings size={16} color="white" />
             </div>
             <h4>Basic Information</h4>
-            {!isEditingBasicInfo && canEditBasicInfo && (
-              <button className="btn btn-secondary" onClick={handleStartEdit}>
-                <Edit size={14} />
-                Edit
-              </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {!isEditingBasicInfo && canEditBasicInfo && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <select
+                      value={settings.status}
+                      onChange={async (e) => {
+                        const newStatus = e.target.value;
+                        try {
+                          const updateData = {
+                            id: project.id,
+                            name: settings.name,
+                            description: settings.description,
+                            status: newStatus,
+                            startDate: settings.startDate ? new Date(settings.startDate.split('/').reverse().join('-')).toISOString() : undefined,
+                            endDate: settings.endDate ? new Date(settings.endDate.split('/').reverse().join('-')).toISOString() : undefined,
+                          };
+                          
+                          const result = await projectService.updateProject(updateData);
+                          
+                          if (result.success) {
+                            setSettings(prev => ({ ...prev, status: newStatus }));
+                            toast.success('Project status updated!');
+                            if (onProjectUpdate) onProjectUpdate();
+                          } else {
+                            toast.error(result.error || 'Failed to update status');
+                          }
+                        } catch (error) {
+                          toast.error('Error updating status');
+                        }
+                      }}
+                      className="form-select"
+                      style={{
+                        padding: '6px 32px 6px 10px',
+                        fontSize: '13px',
+                        borderRadius: '6px',
+                        border: '1.5px solid #e5e7eb',
+                        cursor: 'pointer',
+                        minWidth: '140px',
+                        fontWeight: 500
+                      }}
+                    >
+                      {PROJECT_STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button className="btn btn-secondary" onClick={handleStartEdit}>
+                    <Edit size={14} />
+                    Edit
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="form-grid">
@@ -403,48 +455,6 @@ export const ProjectSettings = ({
                 className="form-textarea"
                 rows={3}
                 placeholder="Detailed project description"
-                disabled={!isEditingBasicInfo}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">
-                <Shield size={14} />
-                Status
-              </label>
-              <select
-                value={
-                  isEditingBasicInfo ? tempSettings.status : settings.status
-                }
-                onChange={(e) =>
-                  handleTempInputChange("status", e.target.value)
-                }
-                className="form-select"
-                disabled={!isEditingBasicInfo}
-              >
-                {PROJECT_STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">
-                <User size={14} />
-                Business Owner
-              </label>
-              <input
-                type="text"
-                value={
-                  isEditingBasicInfo ? tempSettings.manager : settings.manager
-                }
-                onChange={(e) =>
-                  handleTempInputChange("manager", e.target.value)
-                }
-                className="form-input"
-                placeholder="Manager name"
                 disabled={!isEditingBasicInfo}
               />
             </div>
