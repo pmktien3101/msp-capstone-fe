@@ -84,6 +84,11 @@ export const TaskDetailModal = ({
     milestoneIds: task?.milestones?.map((m) => m.id) || [],
   });
 
+  // Track original milestones to detect changes
+  const [originalMilestoneIds] = useState<string[]>(
+    task?.milestones?.map((m) => m.id) || []
+  );
+
   const [commentText, setCommentText] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState("");
@@ -241,6 +246,7 @@ export const TaskDetailModal = ({
   // Update editedTask when task prop changes
   useEffect(() => {
     if (task) {
+      const taskMilestoneIds = task.milestones?.map((m) => m.id) || [];
       setEditedTask({
         title: task.title || "",
         description: task.description || "",
@@ -249,7 +255,7 @@ export const TaskDetailModal = ({
         reviewerId: task.reviewerId || "",
         startDate: task.startDate || "",
         endDate: task.endDate || "",
-        milestoneIds: task.milestones?.map((m) => m.id) || [],
+        milestoneIds: taskMilestoneIds,
       });
     }
   }, [task]);
@@ -509,6 +515,11 @@ export const TaskDetailModal = ({
     }
 
     try {
+      // Check if milestones were actually changed
+      const milestonesChanged = 
+        JSON.stringify([...editedTask.milestoneIds].sort()) !== 
+        JSON.stringify([...originalMilestoneIds].sort());
+
       const updateData = {
         id: task.id,
         projectId: task.projectId,
@@ -524,10 +535,8 @@ export const TaskDetailModal = ({
         endDate: editedTask.endDate
           ? new Date(editedTask.endDate).toISOString()
           : undefined,
-        milestoneIds:
-          editedTask.milestoneIds.length > 0
-            ? editedTask.milestoneIds
-            : undefined,
+        // Only include milestoneIds if they were actually changed
+        milestoneIds: milestonesChanged ? editedTask.milestoneIds : undefined,
       };
 
       const response = await taskService.updateTask(updateData);

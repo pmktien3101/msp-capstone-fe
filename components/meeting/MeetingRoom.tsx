@@ -13,6 +13,7 @@ import {
 } from "@stream-io/video-react-sdk";
 import BackgroundFilterSettings from "../filters/background-filter-settings";
 import React, { Fragment, useEffect, useRef, useState } from "react";
+import { useSubscription } from "@/hooks/useSubscription";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +44,7 @@ const MeetingRoom = () => {
   const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
   const call = useCall();
+  const subscription = useSubscription();
 
   const wasJoinedRef = useRef(false);
 
@@ -156,7 +158,8 @@ const MeetingRoom = () => {
     try {
       await call.camera?.disable();
       await call.microphone?.disable();
-      showToast("Meeting has reached 30 minutes. Ending call...", 4000);
+      const meetingDurationLimit = getMeetingDurationLimit();
+      showToast(`Meeting has reached ${meetingDurationLimit} minutes. Ending call...`, 4000);
       await call.endCall();
 
       const endedAtRaw = await waitForEndedAt();
@@ -183,6 +186,18 @@ const MeetingRoom = () => {
     }
   };
 
+  const getMeetingDurationLimit = (): number => {
+    if (subscription?.package?.limitations) {
+      const meetingDurationLim = subscription.package.limitations.find(
+        (lim: any) => lim.limitationType === "MeetingDuration"
+      );
+      if (meetingDurationLim && !meetingDurationLim.isUnlimited) {
+        return meetingDurationLim.limitValue || 30;
+      }
+    }
+    return 30; // fallback to 30 minutes
+  };
+
   useEffect(() => {
     if (!call) return;
 
@@ -197,10 +212,11 @@ const MeetingRoom = () => {
     const startTime = new Date(startRaw);
     if (Number.isNaN(startTime.getTime())) return;
 
+    const meetingDurationMinutes = getMeetingDurationLimit();
     const now = Date.now();
-    const msUntil15 = startTime.getTime() + 15 * 60 * 1000 - now; // 15 min after start (15 left)
-    const msUntil25 = startTime.getTime() + 25 * 60 * 1000 - now; // 25 min after start (5 left)
-    const msUntilEnd = startTime.getTime() + 30 * 60 * 1000 - now; // 30 min after start
+    const msUntil15 = startTime.getTime() + (meetingDurationMinutes - 15) * 60 * 1000 - now; // 15 min before end
+    const msUntil5 = startTime.getTime() + (meetingDurationMinutes - 5) * 60 * 1000 - now; // 5 min before end
+    const msUntilEnd = startTime.getTime() + meetingDurationMinutes * 60 * 1000 - now; // at end time
 
     // clear existing timers
     if (timersRef.current.r15) {
@@ -224,15 +240,15 @@ const MeetingRoom = () => {
       }, msUntil15);
     }
 
-    // schedule 5-min reminder (25 min after start, 5 min remaining)
+    // schedule 5-min reminder (5 min before end)
     // Only schedule if the reminder time hasn't passed yet
-    if (msUntil25 > 0) {
+    if (msUntil5 > 0) {
       timersRef.current.r5 = window.setTimeout(() => {
         showToast("5 minutes remaining until the meeting ends.");
-      }, msUntil25);
+      }, msUntil5);
     }
 
-    // schedule auto end at 30 minutes
+    // schedule auto end at meeting duration limit
     if (msUntilEnd > 0) {
       timersRef.current.end = window.setTimeout(() => {
         void endCallDueToTimeout();
@@ -256,12 +272,13 @@ const MeetingRoom = () => {
         timersRef.current.end = undefined;
       }
     };
-    // only re-run when call identity/state changes
+    // only re-run when call identity/state changes or subscription changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     call?.id,
     (call as any)?.state?.createdAt,
     (call as any)?.state?.startedAt,
+    subscription?.package?.limitations,
   ]);
 
   const CallLayout = () => {
