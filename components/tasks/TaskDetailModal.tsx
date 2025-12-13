@@ -35,6 +35,7 @@ import { getTaskStatusColor, getTaskStatusLabel } from "@/constants/status";
 import {
   validateTaskDates,
   isValidStatusTransition,
+  validateTaskMilestoneDates,
 } from "@/utils/taskValidation";
 import "@/app/styles/task-detail-modal.scss";
 import { formatDate } from "@/lib/formatDate";
@@ -467,8 +468,12 @@ export const TaskDetailModal = ({
       }
     }
 
-    // Validation 3: Validate dates
-    if (editedTask.startDate && editedTask.endDate) {
+    // Validation 3: Validate dates (only if dates were changed)
+    const startDateChanged = editedTask.startDate !== task.startDate;
+    const endDateChanged = editedTask.endDate !== task.endDate;
+    const datesChanged = startDateChanged || endDateChanged;
+
+    if (datesChanged && editedTask.startDate && editedTask.endDate) {
       const dateValidation = validateTaskDates(
         editedTask.startDate,
         editedTask.endDate,
@@ -478,6 +483,21 @@ export const TaskDetailModal = ({
 
       if (!dateValidation.valid) {
         toast.error(dateValidation.message || "Invalid date");
+        return;
+      }
+
+      // Validate dates against selected milestones
+      const selectedMilestones = milestones.filter(m => 
+        editedTask.milestoneIds.includes(m.id)
+      );
+      const milestoneValidation = validateTaskMilestoneDates(
+        editedTask.startDate,
+        editedTask.endDate,
+        selectedMilestones
+      );
+
+      if (!milestoneValidation.valid) {
+        toast.error(milestoneValidation.message || "Task dates conflict with milestone dates");
         return;
       }
     }
@@ -1234,21 +1254,42 @@ export const TaskDetailModal = ({
                   </div>
                 ) : (
                   milestones.map((milestone) => (
-                    <label key={milestone.id} className="milestone-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={editedTask.milestoneIds.includes(milestone.id)}
-                        onChange={(e) => {
-                          const newMilestoneIds = e.target.checked
-                            ? [...editedTask.milestoneIds, milestone.id]
-                            : editedTask.milestoneIds.filter(
-                                (id: string) => id !== milestone.id
-                              );
-                          handleUpdateField("milestoneIds", newMilestoneIds);
+                    <label 
+                      key={milestone.id} 
+                      className="milestone-checkbox"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
+                        <input
+                          type="checkbox"
+                          checked={editedTask.milestoneIds.includes(milestone.id)}
+                          onChange={(e) => {
+                            const newMilestoneIds = e.target.checked
+                              ? [...editedTask.milestoneIds, milestone.id]
+                              : editedTask.milestoneIds.filter(
+                                  (id: string) => id !== milestone.id
+                                );
+                            handleUpdateField("milestoneIds", newMilestoneIds);
+                          }}
+                          disabled={mode === "view" || !canEdit}
+                        />
+                        <span>{milestone.name}</span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          color: "#6b7280",
+                          whiteSpace: "nowrap",
+                          textAlign: "right",
                         }}
-                        disabled={mode === "view" || !canEdit}
-                      />
-                      <span>{milestone.name}</span>
+                      >
+                        {formatDate(milestone.dueDate)}
+                      </span>
                     </label>
                   ))
                 )}

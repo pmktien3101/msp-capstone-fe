@@ -164,10 +164,10 @@ export function AddMemberModal({
         // Refresh available users list
         await fetchAvailableUsers();
         
-        // Close modal after 1.5 seconds
-        setTimeout(() => {
-          handleClose();
-        }, 1500);
+        // Don't close modal automatically - let user add multiple members
+        // setTimeout(() => {
+        //   handleClose();
+        // }, 1500);
       } else {
         const errorMsg = result.error || 'Unable to add member';
         setError(errorMsg);

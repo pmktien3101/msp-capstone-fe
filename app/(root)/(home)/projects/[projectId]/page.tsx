@@ -492,10 +492,6 @@ const ProjectDetailPage = () => {
                 {(project.members?.length || 0) === 1 ? "member" : "members"}
               </span>
             </div>
-            <div className="meta-item">
-              <Target size={16} />
-              <span>Progress: {projectProgress}%</span>
-            </div>
           </div>
         </div>
       </div>

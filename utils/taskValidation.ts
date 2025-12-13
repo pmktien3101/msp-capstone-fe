@@ -92,6 +92,42 @@ export const validateTaskDates = (
 };
 
 /**
+ * Validates task dates against selected milestone due dates
+ */
+export const validateTaskMilestoneDates = (
+  taskStartDate: string,
+  taskEndDate: string,
+  selectedMilestones: Array<{ id: string; name: string; dueDate: string }>
+): { valid: boolean; message?: string } => {
+  if (!taskStartDate || !taskEndDate || selectedMilestones.length === 0) {
+    return { valid: true }; // No validation needed if no milestones selected
+  }
+
+  const taskStart = new Date(taskStartDate);
+  const taskEnd = new Date(taskEndDate);
+  
+  // Set time to 00:00:00 for date-only comparison
+  taskStart.setHours(0, 0, 0, 0);
+  taskEnd.setHours(0, 0, 0, 0);
+
+  // Check each milestone
+  for (const milestone of selectedMilestones) {
+    const milestoneDue = new Date(milestone.dueDate);
+    milestoneDue.setHours(0, 0, 0, 0);
+
+    // Validation: Task end date must be <= milestone due date
+    if (taskEnd > milestoneDue) {
+      return {
+        valid: false,
+        message: `Task end date must be on or before milestone "${milestone.name}" due date (${formatDate(milestone.dueDate)})`,
+      };
+    }
+  }
+
+  return { valid: true };
+};
+
+/**
  * Format date for display
  */
 const formatDate = (dateStr: string): string => {

@@ -8,6 +8,7 @@ import { taskService } from '@/services/taskService';
 import { projectService } from '@/services/projectService';
 import { GetTaskResponse } from '@/types/task';
 import { MilestoneBackend } from '@/types/milestone';
+import { CheckCircle, Plus, Clock } from 'lucide-react';
 
 interface OverviewCardsProps {
   project: Project;
@@ -71,13 +72,31 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
   const completedTasks = projectTasks.filter(task => task.status === TaskStatus.Done).length;
   const completedPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   
-  const totalMilestones = projectMilestones.length;
-  // Milestone hoàn thành khi tất cả tasks trong milestone đã hoàn thành
-  const completedMilestones = projectMilestones.filter(milestone => {
-    const milestoneTasks = projectTasks.filter(task => 
-      task.milestones && task.milestones.some(m => m.id === milestone.id)
-    );
-    return milestoneTasks.length > 0 && milestoneTasks.every(task => task.status === TaskStatus.Done);
+  // Lấy timestamp hiện tại và 7 ngày trước
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  
+  // Card 2: Số task completed trong 7 ngày gần nhất
+  const recentlyCompletedTasks = projectTasks.filter(task => {
+    if (task.status !== TaskStatus.Done) return false;
+    // Giả sử task có trường updatedAt hoặc completedAt
+    const taskDate = task.updatedAt ? new Date(task.updatedAt) : null;
+    return taskDate && taskDate >= sevenDaysAgo && taskDate <= now;
+  }).length;
+  
+  // Card 3: Số task được tạo trong 7 ngày gần nhất
+  const recentlyCreatedTasks = projectTasks.filter(task => {
+    const taskDate = task.createdAt ? new Date(task.createdAt) : null;
+    return taskDate && taskDate >= sevenDaysAgo && taskDate <= now;
+  }).length;
+  
+  // Card 4: Số task sắp đến hạn (7 ngày tiếp theo)
+  const upcomingDueTasks = projectTasks.filter(task => {
+    // Chỉ tính các task chưa hoàn thành
+    if (task.status === TaskStatus.Done || task.status === TaskStatus.Cancelled) return false;
+    const dueDate = task.endDate ? new Date(task.endDate) : null;
+    return dueDate && dueDate >= now && dueDate <= sevenDaysLater;
   }).length;
   
   const overviewData = [
@@ -85,50 +104,29 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
       id: 'completion-rate',
       title: `${completedPercentage}%`,
       subtitle: 'Overall Completion',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
+      icon: <CheckCircle size={18} />,
       color: '#10b981'
     },
     {
-      id: 'milestones',
-      title: `${completedMilestones}/${totalMilestones}`,
-      subtitle: 'Milestones Completed',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
-      color: '#fb923c'
+      id: 'recently-completed',
+      title: `${recentlyCompletedTasks} completed`,
+      subtitle: 'in the last 7 days',
+      icon: <CheckCircle size={18} />,
+      color: '#10b981'
     },
     {
-      id: 'completed-tasks',
-      title: `${completedTasks}`,
-      subtitle: 'Tasks Completed',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
-      color: '#fbbf24'
+      id: 'recently-created',
+      title: `${recentlyCreatedTasks} created`,
+      subtitle: 'in the last 7 days',
+      icon: <Plus size={18} />,
+      color: '#3b82f6'
     },
     {
-      id: 'members',
-      title: `${projectMembers.length}`,
-      subtitle: 'Project Members',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
-      color: '#fb923c'
+      id: 'upcoming-due',
+      title: `${upcomingDueTasks} due soon`,
+      subtitle: 'in the next 7 days',
+      icon: <Clock size={18} />,
+      color: '#f59e0b'
     }
   ];
 
@@ -187,7 +185,7 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
         }
 
         .card-title-123 {
-          font-size: 20px;
+          font-size: 18px;
           font-weight: 600;
           color: #1f2937;
           margin: 0 0 3px 0;

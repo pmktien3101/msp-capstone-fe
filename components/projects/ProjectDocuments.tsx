@@ -311,7 +311,14 @@ export const ProjectDocuments = ({
 
       if (result.success) {
         toast.success("Document deleted successfully!");
-        fetchDocuments();
+        
+        // If deleting the last item on current page (and not on page 1), go to previous page
+        if (documents.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+        } else {
+          // Otherwise just refresh current page
+          fetchDocuments();
+        }
       } else {
         toast.error(`Error: ${result.error}`);
       }

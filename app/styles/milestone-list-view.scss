@@ -307,16 +307,130 @@
 
   .progress-bar-container {
     width: 100%;
-    height: 8px;
-    background: #e2e8f0;
+    height: 24px;
+    background: #f1f5f9;
     border-radius: 4px;
     overflow: hidden;
+    display: flex;
+    border: 1px solid #e2e8f0;
 
+    .progress-segment {
+      height: 100%;
+      transition: width 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding-left: 6px;
+
+      &.done {
+        background: #10b981; // Green - for Done status
+      }
+
+      &.in-progress {
+        background: #3b82f6; // Blue - for InProgress, ReadyToReview, ReOpened
+      }
+
+      &.todo {
+        background: #6b7280; // Gray - for Todo status
+      }
+
+      &.empty {
+        background: #f1f5f9;
+        width: 100%;
+      }
+
+      &:hover {
+        opacity: 0.85;
+      }
+
+      .segment-percentage {
+        font-size: 10px;
+        font-weight: 600;
+        color: white;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        user-select: none;
+        pointer-events: none;
+      }
+    }
+
+    // Old progress-bar-fill kept for backward compatibility
     .progress-bar-fill {
       height: 100%;
       background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
       border-radius: 4px;
       transition: width 0.3s ease;
+    }
+  }
+
+  .task-breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 10px;
+    background: #f8fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+
+    .breakdown-label {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 600;
+      margin-right: 4px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+
+      &.todo {
+        background: rgba(148, 163, 184, 0.15);
+        color: #64748b;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+      }
+
+      &.in-progress {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+      }
+
+      &.ready-to-review {
+        background: rgba(251, 146, 60, 0.15);
+        color: #f97316;
+        border: 1px solid rgba(251, 146, 60, 0.3);
+      }
+
+      &.done {
+        background: rgba(34, 197, 94, 0.15);
+        color: #16a34a;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+      }
+
+      &.reopened {
+        background: rgba(168, 85, 247, 0.15);
+        color: #a855f7;
+        border: 1px solid rgba(168, 85, 247, 0.3);
+      }
+
+      &.cancelled {
+        background: rgba(239, 68, 68, 0.15);
+        color: #dc2626;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
     }
   }
 }
