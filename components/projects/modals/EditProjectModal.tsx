@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,7 +16,6 @@ import { useForm } from "react-hook-form";
 import { Project } from "@/types/project";
 import { Edit, X, Save } from 'lucide-react';
 import { PROJECT_STATUS_OPTIONS } from '@/constants/status';
-import '@/app/styles/edit-project-modal.scss';
 
 interface EditProjectModalProps {
   isOpen: boolean;
@@ -37,7 +36,7 @@ export function EditProjectModal({ isOpen, onClose, project, onUpdateProject }: 
     }
   };
 
-  const { register, handleSubmit, control, formState: { errors } } = useForm({
+  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm({
     defaultValues: {
       name: project.name,
       description: project.description,
@@ -47,7 +46,31 @@ export function EditProjectModal({ isOpen, onClose, project, onUpdateProject }: 
     }
   });
 
+  // Watch for date changes
+  const startDate = watch("startDate");
+  const endDate = watch("endDate");
+  const [dateError, setDateError] = useState<string>("");
+
+  // Validate dates
+  useEffect(() => {
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      if (start > end) {
+        setDateError("End date must be after or equal to start date");
+      } else {
+        setDateError("");
+      }
+    }
+  }, [startDate, endDate]);
+
   const onSubmit = (data: any) => {
+    // Validate dates before submitting
+    if (dateError) {
+      return;
+    }
+
     console.log(data);
     
     // Convert dates to ISO 8601 UTC format for PostgreSQL
@@ -73,75 +96,78 @@ export function EditProjectModal({ isOpen, onClose, project, onUpdateProject }: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="edit-project-modal sm:max-w-[600px] h-[80vh] flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="dialog-title">
+      <DialogContent className="edit-project-modal">
+        <DialogHeader>
+          <DialogTitle className="epm-header-title">
             <Edit size={20} />
             Edit Project
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
-          <div className="form-content scrollbar-hide">
-            <div className="form-field">
+          <div className="epm-form-content">
+            <div className="epm-field">
               <Label htmlFor="name">Project Name *</Label>
               <Input
                 id="name"
                 placeholder="Enter project name"
                 {...register("name", { required: "Project name is required" })}
-                className={errors.name ? "error" : ""}
+                className={errors.name ? "epm-error-input" : ""}
               />
               {errors.name && (
-                <p className="error-text">{errors.name.message}</p>
+                <p className="epm-error-text">{errors.name.message}</p>
               )}
             </div>
 
-            <div className="form-field">
+            <div className="epm-field">
               <Label htmlFor="description">Description *</Label>
               <Textarea
                 id="description"
-                placeholder="Project description"
+                placeholder="Describe your project goals and objectives"
                 {...register("description", { required: "Description is required" })}
-                className={errors.description ? "error" : ""}
+                className={errors.description ? "epm-error-input" : ""}
               />
               {errors.description && (
-                <p className="error-text">{errors.description.message}</p>
+                <p className="epm-error-text">{errors.description.message}</p>
               )}
             </div>
 
-            <div className="date-grid">
-              <div className="form-field">
+            <div className="epm-date-grid">
+              <div className="epm-field">
                 <Label htmlFor="startDate">Start Date *</Label>
                 <Input
                   id="startDate"
                   type="date"
                   {...register("startDate", { required: "Start date is required" })}
-                  className={errors.startDate ? "error" : ""}
+                  className={errors.startDate || dateError ? "epm-error-input" : ""}
                 />
                 {errors.startDate && (
-                  <p className="error-text">{errors.startDate.message}</p>
+                  <p className="epm-error-text">{errors.startDate.message}</p>
                 )}
               </div>
-              <div className="form-field">
-                <Label htmlFor="endDate">End Date *</Label>
+              <div className="epm-field">
+                <Label htmlFor="endDate">Expected End Date *</Label>
                 <Input
                   id="endDate"
                   type="date"
                   {...register("endDate", { required: "End date is required" })}
-                  className={errors.endDate ? "error" : ""}
+                  className={errors.endDate || dateError ? "epm-error-input" : ""}
                 />
                 {errors.endDate && (
-                  <p className="error-text">{errors.endDate.message}</p>
+                  <p className="epm-error-text">{errors.endDate.message}</p>
+                )}
+                {dateError && (
+                  <p className="epm-error-text">{dateError}</p>
                 )}
               </div>
             </div>
 
-            <div className="form-field">
+            <div className="epm-field">
               <Label htmlFor="status">Status *</Label>
               <select
                 id="status"
                 {...register("status", { required: "Status is required" })}
-                className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${errors.status ? "error" : ""}`}
+                className={`flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${errors.status ? "epm-error-input" : ""}`}
               >
                 <option value="">Select status</option>
                 {PROJECT_STATUS_OPTIONS.map((option) => (
@@ -151,30 +177,27 @@ export function EditProjectModal({ isOpen, onClose, project, onUpdateProject }: 
                 ))}
               </select>
               {errors.status && (
-                <p className="error-text">{errors.status.message}</p>
+                <p className="epm-error-text">{errors.status.message}</p>
               )}
             </div>
-
           </div>
 
-          <DialogFooter className="dialog-footer">
+          <div className="epm-footer">
             <Button 
               type="button" 
-              variant="secondary" 
+              variant="ghost"
               onClick={onClose}
-              className="btn-cancel"
+              className="epm-btn-cancel"
             >
-              <X size={16} />
               Cancel
             </Button>
             <Button 
               type="submit"
-              className="btn-submit"
+              className="epm-btn-submit"
             >
-              <Save size={16} />
               Update Project
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

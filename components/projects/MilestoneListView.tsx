@@ -52,7 +52,10 @@ export const MilestoneListView = ({
     Partial<MilestoneBackend>
   >({});
   const [isSaving, setIsSaving] = useState(false);
-  const [validationError, setValidationError] = useState<string>("");
+  const [validationErrors, setValidationErrors] = useState({
+    name: "",
+    dueDate: "",
+  });
 
   // Confirm delete state
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
@@ -234,36 +237,45 @@ export const MilestoneListView = ({
       ...milestone,
       dueDate: formatDateForInput(milestone.dueDate),
     });
-    setValidationError("");
+    setValidationErrors({ name: "", dueDate: "" });
   };
 
   // Cancel editing
   const handleCancelEdit = () => {
     setEditingMilestoneId(null);
     setEditedMilestone({});
-    setValidationError("");
+    setValidationErrors({ name: "", dueDate: "" });
   };
 
   // Handle field changes with validation
   const handleNameChange = (value: string) => {
     setEditedMilestone({ ...editedMilestone, name: value });
-    setValidationError("");
+    
+    // Clear name error on change
+    setValidationErrors(prev => ({ ...prev, name: "" }));
 
+    // Validate name length
     if (value.trim().length > 0 && value.trim().length < 3) {
-      setValidationError("Milestone name must be at least 3 characters");
+      setValidationErrors(prev => ({ ...prev, name: "Milestone name must be at least 3 characters" }));
     } else if (value.trim().length > 200) {
-      setValidationError("Milestone name must not exceed 200 characters");
+      setValidationErrors(prev => ({ ...prev, name: "Milestone name must not exceed 200 characters" }));
     }
   };
 
   const handleDueDateChange = (value: string) => {
     setEditedMilestone({ ...editedMilestone, dueDate: value });
-    setValidationError("");
+    
+    // Clear due date error on change
+    setValidationErrors(prev => ({ ...prev, dueDate: "" }));
 
+    // Validate due date if name is also present
     if (value && editedMilestone.name) {
       const validation = validateMilestone(editedMilestone.name, value);
       if (!validation.valid) {
-        setValidationError(validation.message || "");
+        // Determine which field has the error
+        if (validation.message?.toLowerCase().includes("due date")) {
+          setValidationErrors(prev => ({ ...prev, dueDate: validation.message || "" }));
+        }
       }
     }
   };
@@ -332,12 +344,21 @@ export const MilestoneListView = ({
 
   // Save milestone changes
   const handleSaveMilestone = async () => {
-    if (
-      !editingMilestoneId ||
-      !editedMilestone.name ||
-      !editedMilestone.dueDate
-    ) {
-      toast.error("Please fill in all required fields");
+    // Clear previous errors
+    setValidationErrors({ name: "", dueDate: "" });
+
+    // Check required fields
+    if (!editingMilestoneId) {
+      return;
+    }
+
+    if (!editedMilestone.name || !editedMilestone.name.trim()) {
+      setValidationErrors(prev => ({ ...prev, name: "Milestone name is required" }));
+      return;
+    }
+
+    if (!editedMilestone.dueDate) {
+      setValidationErrors(prev => ({ ...prev, dueDate: "Due date is required" }));
       return;
     }
 
@@ -347,7 +368,15 @@ export const MilestoneListView = ({
       editedMilestone.dueDate
     );
     if (!validation.valid) {
-      toast.error(validation.message || "Invalid milestone data");
+      // Set error to appropriate field
+      if (validation.message?.toLowerCase().includes("name")) {
+        setValidationErrors(prev => ({ ...prev, name: validation.message || "" }));
+      } else if (validation.message?.toLowerCase().includes("due date")) {
+        setValidationErrors(prev => ({ ...prev, dueDate: validation.message || "" }));
+      } else {
+        // Generic error, show in due date field as it's last
+        setValidationErrors(prev => ({ ...prev, dueDate: validation.message || "Invalid milestone data" }));
+      }
       return;
     }
 
@@ -564,16 +593,16 @@ export const MilestoneListView = ({
                           type="text"
                           value={editedMilestone.name || ""}
                           onChange={(e) => handleNameChange(e.target.value)}
-                          className={`milestone-name-input ${
-                            validationError &&
-                            validationError.toLowerCase().includes("name")
-                              ? "error"
-                              : ""
-                          }`}
+                          className={`milestone-name-input ${validationErrors.name ? "error" : ""}`}
                           placeholder="Enter milestone name..."
                           maxLength={200}
                         />
-                        {editedMilestone.name && (
+                        {validationErrors.name && (
+                          <span className="error-text">
+                            {validationErrors.name}
+                          </span>
+                        )}
+                        {!validationErrors.name && editedMilestone.name && (
                           <span
                             style={{
                               fontSize: "12px",
@@ -698,12 +727,7 @@ export const MilestoneListView = ({
                         type="date"
                         value={editedMilestone.dueDate || ""}
                         onChange={(e) => handleDueDateChange(e.target.value)}
-                        className={`date-input ${
-                          validationError &&
-                          validationError.toLowerCase().includes("due date")
-                            ? "error"
-                            : ""
-                        }`}
+                        className={`date-input ${validationErrors.dueDate ? "error" : ""}`}
                         min={
                           project.startDate
                             ? formatDateForInput(project.startDate)
@@ -715,20 +739,12 @@ export const MilestoneListView = ({
                             : undefined
                         }
                       />
-                      {validationError && (
-                        <span
-                          style={{
-                            fontSize: "12px",
-                            color: "#ef4444",
-                            marginTop: "4px",
-                            display: "block",
-                            fontWeight: 500,
-                          }}
-                        >
-                          {validationError}
+                      {validationErrors.dueDate && (
+                        <span className="error-text">
+                          {validationErrors.dueDate}
                         </span>
                       )}
-                      {!validationError && project.startDate && project.endDate && (
+                      {!validationErrors.dueDate && project.startDate && project.endDate && (
                         <span
                           style={{
                             fontSize: "12px",

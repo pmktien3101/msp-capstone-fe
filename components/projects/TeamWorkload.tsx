@@ -38,7 +38,7 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
         }
 
         if (membersRes.success && membersRes.data) {
-          // Normalize member list to a simple shape: { id: string, name, email, role }
+          // Normalize member list to a simple shape: { id: string, name, email, role, avatarUrl }
           const transformedMembers = (membersRes.data || [])
             .map((pm: any) => (pm.member || pm))
             .filter((src: any) => src && (src.id || src.userId))
@@ -49,7 +49,8 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
                 id: src.id ? src.id.toString() : (src.userId ? src.userId.toString() : ''),
                 name: src.fullName || src.name || src.email || 'Unknown',
                 email: src.email || '',
-                role: normalizedRole
+                role: normalizedRole,
+                avatarUrl: src.avatarUrl || src.avatar || null
               };
             })
             // Keep only users with Member role
@@ -138,7 +139,7 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
   members.forEach((m) => {
     if (m && m.id) {
       assigneeCounts[m.id] = 0;
-      assigneeMap[m.id] = { fullName: m.name, email: m.email, role: m.role };
+      assigneeMap[m.id] = { fullName: m.name, email: m.email, role: m.role, avatarUrl: m.avatarUrl };
     }
   });
 
@@ -162,7 +163,7 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
   const totalTasks = tasks.length;
 
   // Build workload data — ensure all members are present (even zero tasks), then include any other assignees and unassigned bucket
-  const workloadEntries: Array<{ assignee: string; taskCount: number; color?: string; gradient?: string | null; avatar?: string | null } > = [];
+  const workloadEntries: Array<{ assignee: string; taskCount: number; color?: string; gradient?: string | null; avatar?: string | null; avatarUrl?: string | null } > = [];
 
   // Members first
   members.forEach((m) => {
@@ -172,7 +173,8 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
       taskCount: count,
       color: '#fb923c',
       gradient: getAvatarColor(m.name),
-      avatar: m.name ? m.name.charAt(0).toUpperCase() : null
+      avatar: m.name ? m.name.charAt(0).toUpperCase() : null,
+      avatarUrl: m.avatarUrl
     });
   });
 
@@ -187,7 +189,8 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
       taskCount: assigneeCounts[userId] || 0,
       color: '#fb923c',
       gradient: getAvatarColor(fullName),
-      avatar: fullName ? String(fullName).charAt(0).toUpperCase() : null
+      avatar: fullName ? String(fullName).charAt(0).toUpperCase() : null,
+      avatarUrl: user?.avatarUrl || null
     });
   });
 
@@ -198,7 +201,8 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
       taskCount: assigneeCounts['unassigned'] || 0,
       color: '#6b7280',
       gradient: null,
-      avatar: null
+      avatar: null,
+      avatarUrl: null
     });
   }
 
@@ -224,7 +228,13 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
             <div key={item.assignee} className="workload-item">
               <div className="workload-header">
                 <div className="assignee-info">
-                  {item.avatar ? (
+                  {item.avatarUrl ? (
+                    <img 
+                      src={item.avatarUrl} 
+                      alt={item.assignee}
+                      className="assignee-avatar-img"
+                    />
+                  ) : item.avatar ? (
                     <div className="assignee-avatar" style={{ background: item.gradient || item.color }}>
                       {item.avatar}
                     </div>
@@ -324,21 +334,29 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
           gap: 8px;
         }
 
+        .assignee-avatar-img {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid #f3f4f6;
+        }
+
         .assignee-avatar {
-          width: 24px;
-          height: 24px;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
-          font-size: 10px;
+          font-size: 12px;
           font-weight: 600;
         }
 
         .assignee-placeholder {
-          width: 24px;
-          height: 24px;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
           background: #f3f4f6;
           color: #9ca3af;

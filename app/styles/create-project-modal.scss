@@ -1,5 +1,9 @@
+// Create Project Modal - Unique namespace to avoid conflicts
 .create-project-modal {
-  .scrollbar-hide {
+  max-width: 560px !important;
+
+  // Scrollbar hide utility
+  .cpm-scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
 
@@ -8,148 +12,198 @@
     }
   }
 
-  .error-message {
+  // Error message banner
+  .cpm-error-banner {
     margin-bottom: 16px;
-    padding: 12px;
+    padding: 10px 12px;
     background-color: #fef2f2;
     border: 1px solid #fecaca;
-    border-radius: 8px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     gap: 8px;
 
     svg {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       color: #ef4444;
       flex-shrink: 0;
     }
 
     span {
-      font-size: 14px;
+      font-size: 13px;
       color: #dc2626;
+      line-height: 1.4;
     }
   }
 
-  .dialog-title {
+  // Header title with icon
+  .cpm-header-title {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
   }
 
-  .form-content {
+  // Form content scrollable area
+  .cpm-form-content {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
     flex: 1;
     overflow-y: auto;
+    padding: 4px 2px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f3f4f6;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 3px;
+
+      &:hover {
+        background: #9ca3af;
+      }
+    }
   }
 
-  .form-field {
+  // Individual form field
+  .cpm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
     label {
-      display: block;
-      margin-bottom: 4px;
       font-size: 14px;
       font-weight: 500;
+      color: #374151;
     }
 
     input,
     textarea {
       width: 100%;
-      padding: 8px 12px;
+      padding: 10px 12px;
       border: 1px solid #d1d5db;
       border-radius: 6px;
       font-size: 14px;
+      color: #1f2937;
+      transition: all 0.2s;
 
-      &.error {
+      &.cpm-error-input {
         border-color: #ef4444;
       }
 
       &:focus {
         outline: none;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        border-color: #ff5e13;
+        box-shadow: 0 0 0 3px rgba(255, 94, 19, 0.1);
+      }
+
+      &::placeholder {
+        color: #9ca3af;
       }
     }
 
     textarea {
-      min-height: 80px;
+      min-height: 100px;
       resize: vertical;
+      font-family: inherit;
     }
 
-    .error-text {
-      font-size: 13px;
+    .cpm-error-text {
+      font-size: 12px;
       color: #ef4444;
-      margin-top: 4px;
+      margin-top: -2px;
     }
   }
 
-  .date-grid {
+  // Date fields grid
+  .cpm-date-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
   }
 
-  .status-info {
+  // Status field info text
+  .cpm-status-info {
     font-size: 12px;
     color: #6b7280;
-    margin-top: 4px;
+    margin-top: -2px;
   }
 
-  .status-select-trigger {
-    background-color: #f3f4f6;
+  // Status select styling
+  .cpm-status-select {
+    background-color: #f9fafb;
     cursor: not-allowed;
+    opacity: 0.7;
 
-    &.error {
+    &.cpm-error-input {
       border-color: #ef4444;
     }
   }
 
-  .status-item {
+  // Status dropdown item
+  .cpm-status-item {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 14px;
   }
 
-  .dialog-footer {
+  // Footer actions
+  .cpm-footer {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
     flex-shrink: 0;
-    margin-top: 16px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
   }
 
-  .btn-cancel {
-    background: transparent;
+  // Cancel button
+  .cpm-btn-cancel {
+    background: white;
     color: #6b7280;
     border: 1px solid #d1d5db;
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 10px 20px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
 
     &:hover {
-      background: #f3f4f6;
+      background: #f9fafb;
       border-color: #9ca3af;
+      color: #374151;
     }
   }
 
-  .btn-submit {
-    background: transparent;
-    color: #ff5e13;
+  // Submit button
+  .cpm-btn-submit {
+    background: #ff5e13;
+    color: white;
     border: 1px solid #ff5e13;
-    border-radius: 8px;
-    padding: 10px 20px;
+    border-radius: 6px;
+    padding: 10px 24px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
 
     &:hover:not(:disabled) {
-      background: #ff5e13;
-      color: white;
+      background: #e55310;
+      border-color: #e55310;
+      box-shadow: 0 2px 8px rgba(255, 94, 19, 0.3);
     }
 
     &:disabled {
@@ -157,6 +211,7 @@
       color: #9ca3af;
       border-color: #d1d5db;
       cursor: not-allowed;
+      opacity: 0.6;
     }
   }
 }

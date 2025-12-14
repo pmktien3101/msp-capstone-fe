@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { X, Calendar, FileText, Target } from "lucide-react";
+import { X, Target } from "lucide-react";
 import { milestoneService } from "@/services/milestoneService";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "react-toastify";
+import { Project } from "@/types/project";
 import "@/app/styles/create-milestone-modal.scss";
 
 interface CreateMilestoneModalProps {
@@ -13,6 +14,7 @@ interface CreateMilestoneModalProps {
   onCreateMilestone?: (milestoneData: any) => void;
   onSuccess?: () => void;
   projectId: string;
+  project?: Project; // Add project prop for date validation
 }
 
 export const CreateMilestoneModal = ({
@@ -21,6 +23,7 @@ export const CreateMilestoneModal = ({
   onCreateMilestone,
   onSuccess,
   projectId,
+  project,
 }: CreateMilestoneModalProps) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [formData, setFormData] = useState({
@@ -29,7 +32,11 @@ export const CreateMilestoneModal = ({
     dueDate: "",
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState({
+    name: "",
+    description: "",
+    dueDate: "",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
@@ -39,43 +46,72 @@ export const CreateMilestoneModal = ({
     }));
 
     // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({
-        ...prev,
-        [field]: "",
-      }));
+    setValidationErrors((prev) => ({
+      ...prev,
+      [field]: "",
+    }));
+  };
+
+  // Format date for display (dd/mm/yyyy)
+  const formatDateForDisplay = (dateStr?: string) => {
+    if (!dateStr) return "No date";
+    try {
+      const date = new Date(dateStr);
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return "Invalid";
     }
   };
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
+    const newErrors = {
+      name: "",
+      description: "",
+      dueDate: "",
+    };
 
+    // Validate name
     if (!formData.name.trim()) {
       newErrors.name = "Milestone name is required";
     } else if (formData.name.trim().length < 3) {
       newErrors.name = "Milestone name must be at least 3 characters";
+    } else if (formData.name.trim().length > 200) {
+      newErrors.name = "Milestone name must not exceed 200 characters";
     }
 
-    if (!formData.description.trim()) {
-      newErrors.description = "Description is required";
-    } else if (formData.description.trim().length < 10) {
-      newErrors.description = "Description must be at least 10 characters";
-    }
-
+    // Validate due date
     if (!formData.dueDate) {
       newErrors.dueDate = "Due date is required";
     } else {
-      const selectedDate = new Date(formData.dueDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Validate against project dates if project info is available
+      if (project?.startDate) {
+        const projectStart = new Date(project.startDate);
+        const milestoneDue = new Date(formData.dueDate);
+        projectStart.setHours(0, 0, 0, 0);
+        milestoneDue.setHours(0, 0, 0, 0);
 
-      if (selectedDate < today) {
-        newErrors.dueDate = "Due date cannot be in the past";
+        if (milestoneDue < projectStart) {
+          newErrors.dueDate = `Due date must be on or after project start date (${formatDateForDisplay(project.startDate)})`;
+        }
+      }
+
+      if (project?.endDate) {
+        const projectEnd = new Date(project.endDate);
+        const milestoneDue = new Date(formData.dueDate);
+        projectEnd.setHours(0, 0, 0, 0);
+        milestoneDue.setHours(0, 0, 0, 0);
+
+        if (milestoneDue > projectEnd) {
+          newErrors.dueDate = `Due date must be on or before project end date (${formatDateForDisplay(project.endDate)})`;
+        }
       }
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setValidationErrors(newErrors);
+    return !newErrors.name && !newErrors.description && !newErrors.dueDate;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -130,7 +166,7 @@ export const CreateMilestoneModal = ({
           description: "",
           dueDate: "",
         });
-        setErrors({});
+        setValidationErrors({ name: "", description: "", dueDate: "" });
         onClose();
       } else {
         toast.error(`Error: ${response.error}`);
@@ -149,7 +185,7 @@ export const CreateMilestoneModal = ({
       description: "",
       dueDate: "",
     });
-    setErrors({});
+    setValidationErrors({ name: "", description: "", dueDate: "" });
     onClose();
   };
 
@@ -171,7 +207,6 @@ export const CreateMilestoneModal = ({
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-group">
             <label htmlFor="name" className="form-label">
-              <FileText size={16} />
               Milestone Name *
             </label>
             <input
@@ -179,40 +214,50 @@ export const CreateMilestoneModal = ({
               id="name"
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
-              className={`form-input ${errors.name ? "error" : ""}`}
+              className={`form-input ${validationErrors.name ? "error" : ""}`}
               placeholder="Enter milestone name..."
-              maxLength={100}
+              maxLength={200}
             />
-            {errors.name && (
-              <span className="error-message">{errors.name}</span>
+            {validationErrors.name && (
+              <span className="error-message">{validationErrors.name}</span>
+            )}
+            {!validationErrors.name && formData.name && (
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "#6b7280",
+                  marginTop: "4px",
+                  display: "block",
+                }}
+              >
+                {formData.name.length}/200 characters
+              </span>
             )}
           </div>
 
           <div className="form-group">
             <label htmlFor="description" className="form-label">
-              <FileText size={16} />
-              Description *
+              Description
             </label>
             <textarea
               id="description"
               value={formData.description}
               onChange={(e) => handleInputChange("description", e.target.value)}
-              className={`form-textarea ${errors.description ? "error" : ""}`}
-              placeholder="Enter detailed description of this milestone..."
+              className={`form-textarea ${validationErrors.description ? "error" : ""}`}
+              placeholder="Enter detailed description of this milestone (optional)..."
               rows={4}
-              maxLength={500}
+              maxLength={1000}
             />
             <div className="char-count">
-              {formData.description.length}/500 characters
+              {formData.description.length}/1000 characters
             </div>
-            {errors.description && (
-              <span className="error-message">{errors.description}</span>
+            {validationErrors.description && (
+              <span className="error-message">{validationErrors.description}</span>
             )}
           </div>
 
           <div className="form-group">
             <label htmlFor="dueDate" className="form-label">
-              <Calendar size={16} />
               Due Date *
             </label>
             <input
@@ -220,11 +265,25 @@ export const CreateMilestoneModal = ({
               id="dueDate"
               value={formData.dueDate}
               onChange={(e) => handleInputChange("dueDate", e.target.value)}
-              className={`form-input ${errors.dueDate ? "error" : ""}`}
-              min={new Date().toISOString().split("T")[0]}
+              className={`form-input ${validationErrors.dueDate ? "error" : ""}`}
+              min={project?.startDate ? new Date(project.startDate).toISOString().split("T")[0] : undefined}
+              max={project?.endDate ? new Date(project.endDate).toISOString().split("T")[0] : undefined}
             />
-            {errors.dueDate && (
-              <span className="error-message">{errors.dueDate}</span>
+            {validationErrors.dueDate && (
+              <span className="error-message">{validationErrors.dueDate}</span>
+            )}
+            {!validationErrors.dueDate && project?.startDate && project?.endDate && (
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "#6b7280",
+                  marginTop: "4px",
+                  display: "block",
+                }}
+              >
+                Must be between {formatDateForDisplay(project.startDate)} and{" "}
+                {formatDateForDisplay(project.endDate)}
+              </span>
             )}
           </div>
 

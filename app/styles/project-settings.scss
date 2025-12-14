@@ -100,11 +100,29 @@
       cursor: not-allowed;
       border-color: #E5E7EB;
     }
+
+    &.error {
+      border-color: #ef4444;
+      background: rgba(254, 242, 242, 0.5);
+
+      &:focus {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+      }
+    }
   }
 
   .form-textarea {
     resize: vertical;
     min-height: 70px;
+  }
+
+  .error-text {
+    font-size: 12px;
+    color: #ef4444;
+    margin-top: 4px;
+    display: block;
+    font-weight: 500;
   }
 
   .checkbox-grid {

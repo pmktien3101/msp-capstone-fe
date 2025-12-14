@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useUser } from "@/hooks/useUser";
-import { Bell, Check, CheckCheck, Trash2, X, BellRing } from "lucide-react";
+import { Bell, CheckCheck, Trash2, X, BellRing } from "lucide-react";
 import type { NotificationResponse } from "@/types/notification";
 
 export const NotificationBell = () => {
@@ -279,8 +279,8 @@ export const NotificationBell = () => {
             position: "absolute",
             top: "calc(100% + 8px)",
             right: 0,
-            width: "360px",
-            maxHeight: "420px",
+            width: "420px",
+            maxHeight: "500px",
             background: "white",
             borderRadius: "16px",
             boxShadow:
@@ -429,7 +429,7 @@ export const NotificationBell = () => {
             style={{
               flex: 1,
               overflowY: "auto",
-              maxHeight: "320px",
+              maxHeight: "400px",
             }}
           >
             {isLoading ? (
@@ -489,7 +489,7 @@ export const NotificationBell = () => {
                   onMouseEnter={() => setHoveredId(notification.id)}
                   onMouseLeave={() => setHoveredId(null)}
                   style={{
-                    padding: "10px 14px",
+                    padding: "14px 16px",
                     borderBottom: "1px solid #f5f5f5",
                     background: notification.isRead
                       ? hoveredId === notification.id
@@ -540,7 +540,7 @@ export const NotificationBell = () => {
                     >
                       <h4
                         style={{
-                          fontSize: "13px",
+                          fontSize: "14px",
                           fontWeight: notification.isRead ? 500 : 600,
                           color: "#1f2937",
                           margin: 0,
@@ -554,7 +554,7 @@ export const NotificationBell = () => {
                       </h4>
                       <span
                         style={{
-                          fontSize: "11px",
+                          fontSize: "12px",
                           color: "#9ca3af",
                           flexShrink: 0,
                         }}
@@ -564,12 +564,12 @@ export const NotificationBell = () => {
                     </div>
                     <p
                       style={{
-                        fontSize: "12px",
+                        fontSize: "13px",
                         color: "#6b7280",
                         margin: 0,
-                        lineHeight: "1.4",
+                        lineHeight: "1.5",
                         display: "-webkit-box",
-                        WebkitLineClamp: 2,
+                        WebkitLineClamp: 3,
                         WebkitBoxOrient: "vertical",
                         overflow: "hidden",
                       }}
@@ -588,33 +588,6 @@ export const NotificationBell = () => {
                       transition: "opacity 0.15s",
                     }}
                   >
-                    {!notification.isRead && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          markAsRead(notification.id);
-                        }}
-                        style={{
-                          padding: "6px",
-                          background: "#f0fdf4",
-                          border: "none",
-                          cursor: "pointer",
-                          borderRadius: "6px",
-                          display: "flex",
-                          alignItems: "center",
-                          transition: "background 0.15s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#dcfce7";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "#f0fdf4";
-                        }}
-                        title="Mark as read"
-                      >
-                        <Check size={14} color="#16a34a" />
-                      </button>
-                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
