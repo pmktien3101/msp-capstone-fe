@@ -29,9 +29,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
     <div className="main-layout">
-      <div className="layout-header">
-        <Header />
-      </div>
+      <Header />
       
       <div className="layout-body">
         <div className={`layout-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>

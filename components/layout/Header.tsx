@@ -116,6 +116,14 @@ const Header = () => {
                 {getInitial()}
               </AvatarFallback>
             </Avatar>
+            <div className="user-info">
+              <span className="user-name">{getUserDisplayName()}</span>
+              <span className="user-role">{getRoleDisplayName()}</span>
+            </div>
+            <ChevronDown 
+              size={16} 
+              className={`chevron-icon ${showUserMenu ? "rotated" : ""}`} 
+            />
           </div>
 
           {/* User Dropdown Menu */}

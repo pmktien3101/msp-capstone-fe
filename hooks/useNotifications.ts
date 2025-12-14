@@ -159,15 +159,19 @@ export const useNotifications = ({
         setNotifications(result.data);
       } else {
         console.error("❌ Fetch notifications failed:", result.error);
-        toast.error("Failed to load notifications");
+        if (showToast) {
+          toast.error("Failed to load notifications");
+        }
       }
     } catch (error) {
       console.error("❌ Fetch notifications error:", error);
-      toast.error("Error loading notifications");
+      if (showToast) {
+        toast.error("Error loading notifications");
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, showToast]);
 
   const fetchUnreadNotifications = useCallback(async () => {
     if (!userId) return;
@@ -221,13 +225,17 @@ export const useNotifications = ({
           }
         }
       } else {
-        toast.error("Failed to mark as read");
+        if (showToast) {
+          toast.error("Failed to mark as read");
+        }
       }
     } catch (error) {
       console.error("❌ Mark read error:", error);
-      toast.error("Error marking as read");
+      if (showToast) {
+        toast.error("Error marking as read");
+      }
     }
-  }, []);
+  }, [showToast]);
 
   const markAllAsRead = useCallback(async () => {
     if (!userId) return;
@@ -243,15 +251,21 @@ export const useNotifications = ({
           }))
         );
         setUnreadCount(0);
-        toast.success("All notifications marked as read");
+        if (showToast) {
+          toast.success("All notifications marked as read");
+        }
       } else {
-        toast.error("Failed to mark all as read");
+        if (showToast) {
+          toast.error("Failed to mark all as read");
+        }
       }
     } catch (error) {
       console.error("❌ Mark all error:", error);
-      toast.error("Error marking all as read");
+      if (showToast) {
+        toast.error("Error marking all as read");
+      }
     }
-  }, [userId]);
+  }, [userId, showToast]);
 
   const deleteNotification = useCallback(
     async (notificationId: string) => {
@@ -271,16 +285,22 @@ export const useNotifications = ({
             prev.filter((n) => n.id !== notificationId)
           );
 
-          toast.success("Notification deleted");
+          if (showToast) {
+            toast.success("Notification deleted");
+          }
         } else {
-          toast.error("Failed to delete notification");
+          if (showToast) {
+            toast.error("Failed to delete notification");
+          }
         }
       } catch (error) {
         console.error("❌ Delete error:", error);
-        toast.error("Error deleting notification");
+        if (showToast) {
+          toast.error("Error deleting notification");
+        }
       }
     },
-    [notifications]
+    [notifications, showToast]
   );
 
   const connect = useCallback(async () => {
