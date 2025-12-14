@@ -145,6 +145,13 @@ export const ProjectSettings = ({
 
   const [isEditingBasicInfo, setIsEditingBasicInfo] = useState(false);
   const [tempSettings, setTempSettings] = useState<Settings>({ ...settings });
+  
+  // Validation errors
+  const [validationErrors, setValidationErrors] = useState({
+    name: "",
+    startDate: "",
+    endDate: "",
+  });
 
   // Get user role for permission checks
   const { role } = useUser();
@@ -284,17 +291,59 @@ export const ProjectSettings = ({
 
   const handleStartEdit = () => {
     setTempSettings({ ...settings });
+    setValidationErrors({ name: "", startDate: "", endDate: "" });
     setIsEditingBasicInfo(true);
   };
 
   const handleCancelEdit = () => {
     setTempSettings({ ...settings });
+    setValidationErrors({ name: "", startDate: "", endDate: "" });
     setIsEditingBasicInfo(false);
   };
 
   const handleSaveBasicInfo = async () => {
     if (!project.id) {
       toast.error("Project information not found");
+      return;
+    }
+
+    // Clear previous errors
+    setValidationErrors({ name: "", startDate: "", endDate: "" });
+
+    // Validate name
+    if (!tempSettings.name || !tempSettings.name.trim()) {
+      setValidationErrors(prev => ({ ...prev, name: "Project name is required" }));
+      return;
+    }
+
+    if (tempSettings.name.trim().length < 3) {
+      setValidationErrors(prev => ({ ...prev, name: "Project name must be at least 3 characters" }));
+      return;
+    }
+
+    // Validate dates
+    if (!tempSettings.startDate) {
+      setValidationErrors(prev => ({ ...prev, startDate: "Start date is required" }));
+      return;
+    }
+
+    if (!tempSettings.endDate) {
+      setValidationErrors(prev => ({ ...prev, endDate: "End date is required" }));
+      return;
+    }
+
+    // Convert dates to compare
+    const convertToDate = (dateStr: string) => {
+      if (!dateStr) return null;
+      const [day, month, year] = dateStr.split("/");
+      return new Date(Number(year), Number(month) - 1, Number(day));
+    };
+
+    const startDate = convertToDate(tempSettings.startDate);
+    const endDate = convertToDate(tempSettings.endDate);
+
+    if (startDate && endDate && endDate < startDate) {
+      setValidationErrors(prev => ({ ...prev, endDate: "End date must be after or equal to start date" }));
       return;
     }
 
@@ -316,7 +365,7 @@ export const ProjectSettings = ({
 
       const updateData = {
         id: project.id,
-        name: tempSettings.name,
+        name: tempSettings.name.trim(),
         description: tempSettings.description,
         status: tempSettings.status,
         startDate: convertToISO(tempSettings.startDate),
@@ -331,6 +380,7 @@ export const ProjectSettings = ({
           result.data
         );
         setSettings(tempSettings);
+        setValidationErrors({ name: "", startDate: "", endDate: "" });
         setIsEditingBasicInfo(false);
         toast.success("Project information updated successfully!");
 
@@ -353,6 +403,32 @@ export const ProjectSettings = ({
       ...prev,
       [field]: value,
     }));
+
+    // Clear error for the field being edited
+    if (field === "name" || field === "startDate" || field === "endDate") {
+      setValidationErrors(prev => ({ ...prev, [field]: "" }));
+    }
+
+    // Real-time validation for dates
+    if (field === "startDate" || field === "endDate") {
+      const convertToDate = (dateStr: string) => {
+        if (!dateStr) return null;
+        const [day, month, year] = dateStr.split("/");
+        return new Date(Number(year), Number(month) - 1, Number(day));
+      };
+
+      const startDate = field === "startDate" ? convertToDate(value) : convertToDate(tempSettings.startDate);
+      const endDate = field === "endDate" ? convertToDate(value) : convertToDate(tempSettings.endDate);
+
+      if (startDate && endDate && endDate < startDate) {
+        setValidationErrors(prev => ({ 
+          ...prev, 
+          endDate: "End date must be after or equal to start date" 
+        }));
+      } else {
+        setValidationErrors(prev => ({ ...prev, endDate: "" }));
+      }
+    }
   };
 
   return (
@@ -432,10 +508,13 @@ export const ProjectSettings = ({
                 type="text"
                 value={isEditingBasicInfo ? tempSettings.name : settings.name}
                 onChange={(e) => handleTempInputChange("name", e.target.value)}
-                className="form-input"
+                className={`form-input ${validationErrors.name ? "error" : ""}`}
                 placeholder="Enter project name"
                 disabled={!isEditingBasicInfo}
               />
+              {validationErrors.name && (
+                <span className="error-text">{validationErrors.name}</span>
+              )}
             </div>
 
             <div className="form-group full-width">
@@ -465,17 +544,22 @@ export const ProjectSettings = ({
                 Start Date
               </label>
               {isEditingBasicInfo ? (
-                <input
-                  type="date"
-                  value={convertDisplayToInput(tempSettings.startDate)}
-                  onChange={(e) =>
-                    handleTempInputChange(
-                      "startDate",
-                      formatDateForDisplay(e.target.value)
-                    )
-                  }
-                  className="form-input"
-                />
+                <>
+                  <input
+                    type="date"
+                    value={convertDisplayToInput(tempSettings.startDate)}
+                    onChange={(e) =>
+                      handleTempInputChange(
+                        "startDate",
+                        formatDateForDisplay(e.target.value)
+                      )
+                    }
+                    className={`form-input ${validationErrors.startDate ? "error" : ""}`}
+                  />
+                  {validationErrors.startDate && (
+                    <span className="error-text">{validationErrors.startDate}</span>
+                  )}
+                </>
               ) : (
                 <input
                   type="text"
@@ -492,17 +576,22 @@ export const ProjectSettings = ({
                 End Date
               </label>
               {isEditingBasicInfo ? (
-                <input
-                  type="date"
-                  value={convertDisplayToInput(tempSettings.endDate)}
-                  onChange={(e) =>
-                    handleTempInputChange(
-                      "endDate",
-                      formatDateForDisplay(e.target.value)
-                    )
-                  }
-                  className="form-input"
-                />
+                <>
+                  <input
+                    type="date"
+                    value={convertDisplayToInput(tempSettings.endDate)}
+                    onChange={(e) =>
+                      handleTempInputChange(
+                        "endDate",
+                        formatDateForDisplay(e.target.value)
+                      )
+                    }
+                    className={`form-input ${validationErrors.endDate ? "error" : ""}`}
+                  />
+                  {validationErrors.endDate && (
+                    <span className="error-text">{validationErrors.endDate}</span>
+                  )}
+                </>
               ) : (
                 <input
                   type="text"

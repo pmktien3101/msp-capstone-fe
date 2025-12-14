@@ -530,6 +530,7 @@ const ProjectDetailPage = () => {
         onClose={handleCloseMilestoneModal}
         onCreateMilestone={handleSubmitMilestone}
         projectId={projectId}
+        project={project}
       />
 
       {/* Create Task Modal */}
