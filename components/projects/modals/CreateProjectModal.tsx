@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,7 +27,6 @@ import { projectService } from '@/services/projectService';
 import { Project, CreateProjectRequest } from '@/types/project';
 import { useAuth } from "@/hooks/useAuth";
 import { ProjectStatus, ALL_PROJECT_STATUSES } from '@/constants/status';
-import '@/app/styles/create-project-modal.scss';
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -36,6 +35,14 @@ const projectSchema = z.object({
   endDate: z.string().min(1, "End date is required"),
   status: z.enum(ALL_PROJECT_STATUSES as [string, ...string[]]).describe("Status"),
   members: z.array(z.string()).optional(),
+}).refine((data) => {
+  if (!data.startDate || !data.endDate) return true;
+  const start = new Date(data.startDate);
+  const end = new Date(data.endDate);
+  return start <= end;
+}, {
+  message: "End date must be after or equal to start date",
+  path: ["endDate"],
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -57,6 +64,8 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
     register,
     handleSubmit,
     control,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -65,6 +74,26 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
       members: [],
     },
   });
+
+  // Watch startDate changes
+  const startDate = watch("startDate");
+
+  // Auto-update status based on startDate
+  useEffect(() => {
+    if (startDate) {
+      const selectedDate = new Date(startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      selectedDate.setHours(0, 0, 0, 0);
+
+      // If startDate is today or in the past, set status to InProgress
+      if (selectedDate <= today) {
+        setValue("status", ProjectStatus.InProgress);
+      } else {
+        setValue("status", ProjectStatus.NotStarted);
+      }
+    }
+  }, [startDate, setValue]);
 
   const onSubmit = async (data: ProjectFormData) => {
     if (!user?.userId) {
@@ -196,22 +225,34 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
                 name="status"
                 control={control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value} disabled>
-                    <SelectTrigger className={`cpm-status-select ${errors.status ? "cpm-error-input" : ""}`}>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[9999]" position="popper" side="bottom" align="start">
-                      <SelectItem value={ProjectStatus.NotStarted}>
-                        <div className="cpm-status-item">
-                          <Calendar size={16} />
-                          Not Started
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <>
+                    <Select onValueChange={field.onChange} value={field.value} disabled>
+                      <SelectTrigger className={`cpm-status-select ${errors.status ? "cpm-error-input" : ""}`}>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[9999]" position="popper" side="bottom" align="start">
+                        <SelectItem value={ProjectStatus.NotStarted}>
+                          <div className="cpm-status-item">
+                            <Calendar size={16} />
+                            Not Started
+                          </div>
+                        </SelectItem>
+                        <SelectItem value={ProjectStatus.InProgress}>
+                          <div className="cpm-status-item">
+                            <Calendar size={16} />
+                            In Progress
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="cpm-status-info">
+                      {field.value === ProjectStatus.InProgress 
+                        ? "Auto-set to In Progress (start date is today or past)" 
+                        : "Default status for future projects"}
+                    </p>
+                  </>
                 )}
               />
-              <p className="cpm-status-info">Default status for new projects</p>
             </div>
           </div>
 

@@ -89,6 +89,16 @@ export const TaskDetailModal = ({
     task?.milestones?.map((m) => m.id) || []
   );
 
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState({
+    title: "",
+    startDate: "",
+    endDate: "",
+    milestone: "",
+    status: "",
+    reviewer: "",
+  });
+
   const [commentText, setCommentText] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState("");
@@ -423,11 +433,14 @@ export const TaskDetailModal = ({
     if (field === "status" && value !== editedTask.status) {
       const statusValidation = isValidStatusTransition(task.status, value);
       if (!statusValidation.valid) {
-        toast.warning(
-          statusValidation.message || "This status change is not allowed"
-        );
+        setValidationErrors(prev => ({ 
+          ...prev, 
+          status: statusValidation.message || "This status change is not allowed" 
+        }));
         return; // Don't update if invalid
       }
+      // Clear status error if valid
+      setValidationErrors(prev => ({ ...prev, status: "" }));
     }
 
     setEditedTask({ ...editedTask, [field]: value });
@@ -437,6 +450,7 @@ export const TaskDetailModal = ({
   const handleStartDateChange = (newStartDate: string) => {
     // Always allow clearing the date
     if (!newStartDate) {
+      setValidationErrors(prev => ({ ...prev, startDate: "" }));
       handleUpdateField("startDate", newStartDate);
       return;
     }
@@ -447,7 +461,7 @@ export const TaskDetailModal = ({
       const selectedStart = new Date(newStartDate);
       
       if (selectedStart < projectStart) {
-        toast.warning("Task start date cannot be before project start date");
+        setValidationErrors(prev => ({ ...prev, startDate: "Task start date cannot be before project start date" }));
         return;
       }
     }
@@ -457,7 +471,7 @@ export const TaskDetailModal = ({
       const selectedStart = new Date(newStartDate);
       
       if (selectedStart > projectEnd) {
-        toast.warning("Task start date cannot be after project end date");
+        setValidationErrors(prev => ({ ...prev, startDate: "Task start date cannot be after project end date" }));
         return;
       }
     }
@@ -472,7 +486,7 @@ export const TaskDetailModal = ({
       );
 
       if (!dateValidation.valid) {
-        toast.warning(dateValidation.message || "Invalid dates");
+        setValidationErrors(prev => ({ ...prev, startDate: dateValidation.message || "Invalid dates" }));
         return;
       }
 
@@ -489,7 +503,7 @@ export const TaskDetailModal = ({
         );
 
         if (!milestoneValidation.valid) {
-          toast.warning(milestoneValidation.message || "Task dates conflict with milestone dates");
+          setValidationErrors(prev => ({ ...prev, startDate: milestoneValidation.message || "Task dates conflict with milestone dates" }));
           return;
         }
       }
@@ -505,19 +519,22 @@ export const TaskDetailModal = ({
           const selectedStart = new Date(newStartDate);
           
           if (selectedStart > milestoneDue) {
-            toast.warning(`Task start date cannot be after milestone "${milestone.name}" due date`);
+            setValidationErrors(prev => ({ ...prev, startDate: `Task start date cannot be after milestone "${milestone.name}" due date` }));
             return;
           }
         }
       }
     }
 
+    // Clear error if all validations passed
+    setValidationErrors(prev => ({ ...prev, startDate: "" }));
     handleUpdateField("startDate", newStartDate);
   };
 
   const handleEndDateChange = (newEndDate: string) => {
     // Always allow clearing the date
     if (!newEndDate) {
+      setValidationErrors(prev => ({ ...prev, endDate: "" }));
       handleUpdateField("endDate", newEndDate);
       return;
     }
@@ -528,7 +545,7 @@ export const TaskDetailModal = ({
       const selectedEnd = new Date(newEndDate);
       
       if (selectedEnd < projectStart) {
-        toast.warning("Task end date cannot be before project start date");
+        setValidationErrors(prev => ({ ...prev, endDate: "Task end date cannot be before project start date" }));
         return;
       }
     }
@@ -538,7 +555,7 @@ export const TaskDetailModal = ({
       const selectedEnd = new Date(newEndDate);
       
       if (selectedEnd > projectEnd) {
-        toast.warning("Task end date cannot be after project end date");
+        setValidationErrors(prev => ({ ...prev, endDate: "Task end date cannot be after project end date" }));
         return;
       }
     }
@@ -553,7 +570,7 @@ export const TaskDetailModal = ({
       );
 
       if (!dateValidation.valid) {
-        toast.warning(dateValidation.message || "Invalid dates");
+        setValidationErrors(prev => ({ ...prev, endDate: dateValidation.message || "Invalid dates" }));
         return;
       }
 
@@ -570,7 +587,7 @@ export const TaskDetailModal = ({
         );
 
         if (!milestoneValidation.valid) {
-          toast.warning(milestoneValidation.message || "Task dates conflict with milestone dates");
+          setValidationErrors(prev => ({ ...prev, endDate: milestoneValidation.message || "Task dates conflict with milestone dates" }));
           return;
         }
       }
@@ -586,13 +603,15 @@ export const TaskDetailModal = ({
           const selectedEnd = new Date(newEndDate);
           
           if (selectedEnd > milestoneDue) {
-            toast.warning(`Task end date cannot be after milestone "${milestone.name}" due date`);
+            setValidationErrors(prev => ({ ...prev, endDate: `Task end date cannot be after milestone "${milestone.name}" due date` }));
             return;
           }
         }
       }
     }
 
+    // Clear error if all validations passed
+    setValidationErrors(prev => ({ ...prev, endDate: "" }));
     handleUpdateField("endDate", newEndDate);
   };
 
@@ -613,7 +632,10 @@ export const TaskDetailModal = ({
         if (editedTask.startDate) {
           const taskStart = new Date(editedTask.startDate);
           if (taskStart > milestoneDue) {
-            toast.warning(`Cannot select milestone "${milestoneToAdd.name}" - task start date (${new Date(editedTask.startDate).toLocaleDateString()}) is after milestone due date (${milestoneDue.toLocaleDateString()})`);
+            setValidationErrors(prev => ({ 
+              ...prev, 
+              milestone: `Cannot select milestone "${milestoneToAdd.name}" - task start date is after milestone due date` 
+            }));
             return;
           }
         }
@@ -622,13 +644,18 @@ export const TaskDetailModal = ({
         if (editedTask.endDate) {
           const taskEnd = new Date(editedTask.endDate);
           if (taskEnd > milestoneDue) {
-            toast.warning(`Cannot select milestone "${milestoneToAdd.name}" - task end date (${new Date(editedTask.endDate).toLocaleDateString()}) is after milestone due date (${milestoneDue.toLocaleDateString()})`);
+            setValidationErrors(prev => ({ 
+              ...prev, 
+              milestone: `Cannot select milestone "${milestoneToAdd.name}" - task end date is after milestone due date` 
+            }));
             return;
           }
         }
       }
     }
 
+    // Clear milestone error when successfully toggling
+    setValidationErrors(prev => ({ ...prev, milestone: "" }));
     handleUpdateField("milestoneIds", newMilestoneIds);
   };
 
@@ -643,8 +670,19 @@ export const TaskDetailModal = ({
   };
 
   const handleSaveTask = async () => {
+    // Clear all previous errors
+    setValidationErrors({
+      title: "",
+      startDate: "",
+      endDate: "",
+      milestone: "",
+      status: "",
+      reviewer: "",
+    });
+
+    // Validate title
     if (!editedTask.title.trim()) {
-      toast.warning("Task title is required");
+      setValidationErrors(prev => ({ ...prev, title: "Task title is required" }));
       return;
     }
 
@@ -661,7 +699,7 @@ export const TaskDetailModal = ({
 
     // Validation: If moving to ReadyToReview, reviewer is required
     if (editedTask.status === 'ReadyToReview' && !editedTask.reviewerId) {
-      toast.warning("Please select a reviewer when moving to Ready To Review");
+      setValidationErrors(prev => ({ ...prev, reviewer: "Please select a reviewer when moving to Ready To Review" }));
       return;
     }
 
@@ -675,7 +713,7 @@ export const TaskDetailModal = ({
       );
 
       if (!dateValidation.valid) {
-        toast.warning(dateValidation.message || "Invalid dates");
+        setValidationErrors(prev => ({ ...prev, endDate: dateValidation.message || "Invalid dates" }));
         return;
       }
 
@@ -691,7 +729,7 @@ export const TaskDetailModal = ({
         );
 
         if (!milestoneValidation.valid) {
-          toast.warning(milestoneValidation.message || "Task dates conflict with milestone dates");
+          setValidationErrors(prev => ({ ...prev, milestone: milestoneValidation.message || "Task dates conflict with milestone dates" }));
           return;
         }
       }
@@ -764,13 +802,21 @@ export const TaskDetailModal = ({
             <div className="field-group">
               <label className="field-label">Title</label>
               {mode === "edit" && canEdit ? (
-                <input
-                  type="text"
-                  className="field-input"
-                  value={editedTask.title}
-                  onChange={(e) => handleUpdateField("title", e.target.value)}
-                  placeholder="Enter task title..."
-                />
+                <>
+                  <input
+                    type="text"
+                    className={`field-input ${validationErrors.title ? "error" : ""}`}
+                    value={editedTask.title}
+                    onChange={(e) => {
+                      handleUpdateField("title", e.target.value);
+                      setValidationErrors(prev => ({ ...prev, title: "" }));
+                    }}
+                    placeholder="Enter task title..."
+                  />
+                  {validationErrors.title && (
+                    <p className="error-text">{validationErrors.title}</p>
+                  )}
+                </>
               ) : (
                 <div className="field-value">{editedTask.title}</div>
               )}
@@ -1248,7 +1294,7 @@ export const TaskDetailModal = ({
                 Status
               </label>
               <select
-                className="info-select"
+                className={`info-select ${validationErrors.status ? "error" : ""}`}
                 value={editedTask.status}
                 onChange={(e) => handleUpdateField("status", e.target.value)}
                 disabled={
@@ -1263,6 +1309,9 @@ export const TaskDetailModal = ({
                   </option>
                 ))}
               </select>
+              {validationErrors.status && (
+                <p className="error-text">{validationErrors.status}</p>
+              )}
               {isMember && !["Todo", "InProgress", "ReadyToReview"].includes(editedTask.status) && (
                 <span
                   style={{
@@ -1317,11 +1366,12 @@ export const TaskDetailModal = ({
                 Reviewer
               </label>
               <select
-                className="info-select"
+                className={`info-select ${validationErrors.reviewer ? "error" : ""}`}
                 value={editedTask.reviewerId}
-                onChange={(e) =>
-                  handleUpdateField("reviewerId", e.target.value)
-                }
+                onChange={(e) => {
+                  handleUpdateField("reviewerId", e.target.value);
+                  setValidationErrors(prev => ({ ...prev, reviewer: "" }));
+                }}
                 disabled={isLoadingData || mode === "view" || !canEdit}
               >
                 <option value="">No reviewer</option>
@@ -1331,6 +1381,9 @@ export const TaskDetailModal = ({
                   </option>
                 ))}
               </select>
+              {validationErrors.reviewer && (
+                <p className="error-text">{validationErrors.reviewer}</p>
+              )}
             </div>
 
             {/* Start Date */}
@@ -1342,7 +1395,7 @@ export const TaskDetailModal = ({
               <div style={{ position: "relative" }}>
                 <input
                   type="date"
-                  className="info-input"
+                  className={`info-input ${validationErrors.startDate ? "error" : ""}`}
                   value={formatDateForInput(editedTask.startDate)}
                   onChange={(e) => {
                     const dateValue = e.target.value; // yyyy-mm-dd format from date input
@@ -1362,6 +1415,9 @@ export const TaskDetailModal = ({
                   style={{ colorScheme: "light" }}
                 />
               </div>
+              {validationErrors.startDate && (
+                <p className="error-text">{validationErrors.startDate}</p>
+              )}
               {project?.startDate && mode === "edit" && (
                 <span
                   style={{
@@ -1385,7 +1441,7 @@ export const TaskDetailModal = ({
               <div style={{ position: "relative" }}>
                 <input
                   type="date"
-                  className="info-input"
+                  className={`info-input ${validationErrors.endDate ? "error" : ""}`}
                   value={formatDateForInput(editedTask.endDate)}
                   onChange={(e) => {
                     const dateValue = e.target.value; // yyyy-mm-dd format from date input
@@ -1409,6 +1465,9 @@ export const TaskDetailModal = ({
                   style={{ colorScheme: "light" }}
                 />
               </div>
+              {validationErrors.endDate && (
+                <p className="error-text">{validationErrors.endDate}</p>
+              )}
             </div>
 
             {/* Milestones */}
@@ -1473,6 +1532,9 @@ export const TaskDetailModal = ({
                   ))
                 )}
               </div>
+              {validationErrors.milestone && (
+                <p className="error-text">{validationErrors.milestone}</p>
+              )}
             </div>
           </div>
         </div>
