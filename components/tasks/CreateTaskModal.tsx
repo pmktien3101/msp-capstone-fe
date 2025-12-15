@@ -167,6 +167,16 @@ export const CreateTaskModal = ({
       return;
     }
     
+    if (taskData.title.trim().length < 3) {
+      setValidationErrors(prev => ({ ...prev, title: "Task title must be at least 3 characters" }));
+      return;
+    }
+    
+    if (taskData.title.trim().length > 50) {
+      setValidationErrors(prev => ({ ...prev, title: "Task title must not exceed 50 characters" }));
+      return;
+    }
+    
     if (!taskData.startDate) {
       setValidationErrors(prev => ({ ...prev, startDate: "Start date is required" }));
       return;
@@ -421,6 +431,14 @@ export const CreateTaskModal = ({
       
       if (milestoneToAdd && milestoneToAdd.dueDate) {
         const milestoneDue = new Date(milestoneToAdd.dueDate);
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0); // Reset time to compare dates only
+        
+        // Check if milestone due date is in the past
+        if (milestoneDue < currentDate) {
+          setValidationErrors(prev => ({ ...prev, milestone: `Cannot select milestone "${milestoneToAdd.name}" - due date has passed` }));
+          return;
+        }
         
         // Check if start date is after THIS milestone's due date
         if (taskData.startDate) {
@@ -526,40 +544,49 @@ export const CreateTaskModal = ({
                     {milestones.length === 0 ? (
                       <p className="no-data-text">No milestones available</p>
                     ) : (
-                      milestones.map((milestone) => (
-                        <label
-                          key={milestone.id}
-                          className="milestone-checkbox-label"
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: "12px",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
-                            <input
-                              type="checkbox"
-                              checked={taskData.milestoneIds.includes(
-                                milestone.id
-                              )}
-                              onChange={() => toggleMilestone(milestone.id)}
-                              disabled={isSaving}
-                            />
-                            <span>{milestone.name}</span>
-                          </div>
-                          <span
+                      milestones.map((milestone) => {
+                        const milestoneDue = new Date(milestone.dueDate);
+                        const currentDate = new Date();
+                        currentDate.setHours(0, 0, 0, 0);
+                        const isPastDue = milestoneDue < currentDate;
+                        
+                        return (
+                          <label
+                            key={milestone.id}
+                            className="milestone-checkbox-label"
                             style={{
-                              fontSize: "11px",
-                              color: "#6b7280",
-                              whiteSpace: "nowrap",
-                              textAlign: "right",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: "12px",
+                              opacity: isPastDue ? 0.5 : 1,
                             }}
                           >
-                            {formatDate(milestone.dueDate)}
-                          </span>
-                        </label>
-                      ))
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
+                              <input
+                                type="checkbox"
+                                checked={taskData.milestoneIds.includes(
+                                  milestone.id
+                                )}
+                                onChange={() => toggleMilestone(milestone.id)}
+                                disabled={isSaving || isPastDue}
+                              />
+                              <span>{milestone.name}</span>
+                            </div>
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: isPastDue ? "#ef4444" : "#6b7280",
+                                whiteSpace: "nowrap",
+                                textAlign: "right",
+                              }}
+                            >
+                              {formatDate(milestone.dueDate)}
+                              {isPastDue && " (Past due)"}
+                            </span>
+                          </label>
+                        );
+                      })
                     )}
                   </div>
                   {validationErrors.milestone && (
