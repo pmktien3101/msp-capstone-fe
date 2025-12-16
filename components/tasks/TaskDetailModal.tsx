@@ -801,7 +801,7 @@ export const TaskDetailModal = ({
         }
         onClose();
       } else {
-        toast.error(response.error || "Failed to update task");
+        toast.warning(response.error || "Failed to update task");
       }
     } catch (error) {
       console.error("Error updating task:", error);

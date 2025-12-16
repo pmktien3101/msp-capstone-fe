@@ -274,7 +274,7 @@ export const CreateTaskModal = ({
         onSuccess?.();
         onClose();
       } else {
-        toast.error(response.error || "Failed to create task");
+        toast.warning(response.error || "Failed to create task");
       }
     } catch (error) {
       console.error("Error creating task:", error);
