@@ -159,6 +159,7 @@ const AdminDashboard = () => {
   // Recent subscriptions (filtered, sorted, sliced)
   const recentSubscriptions = useMemo(() => {
     return filteredSubscriptions
+      .filter((sub: any) => sub.totalPrice !== 0 && sub.transactionId !== "FREE_PACKAGE")
       .map((sub: any) => ({
         id: sub.id,
         packageName: sub.package?.name || "Unknown Package",

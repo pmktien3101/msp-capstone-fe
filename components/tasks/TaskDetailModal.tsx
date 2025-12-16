@@ -307,6 +307,7 @@ export const TaskDetailModal = ({
     { value: "Todo", label: "Todo" },
     { value: "InProgress", label: "In Progress" },
     { value: "ReadyToReview", label: "Ready To Review" },
+    { value: "ReOpened", label: "Re-Opened" },
   ];
 
   // Determine which status options to show based on user role
@@ -627,6 +628,17 @@ export const TaskDetailModal = ({
       
       if (milestoneToAdd && milestoneToAdd.dueDate) {
         const milestoneDue = new Date(milestoneToAdd.dueDate);
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0); // Reset time to compare dates only
+        
+        // Check if milestone due date is in the past
+        if (milestoneDue < currentDate) {
+          setValidationErrors(prev => ({ 
+            ...prev, 
+            milestone: `Cannot select milestone "${milestoneToAdd.name}" - due date has passed` 
+          }));
+          return;
+        }
         
         // Check if start date is after THIS milestone's due date
         if (editedTask.startDate) {
@@ -670,22 +682,6 @@ export const TaskDetailModal = ({
   };
 
   const handleSaveTask = async () => {
-    // Clear all previous errors
-    setValidationErrors({
-      title: "",
-      startDate: "",
-      endDate: "",
-      milestone: "",
-      status: "",
-      reviewer: "",
-    });
-
-    // Validate title
-    if (!editedTask.title.trim()) {
-      setValidationErrors(prev => ({ ...prev, title: "Task title is required" }));
-      return;
-    }
-
     if (!user?.userId) {
       toast.error("User is not logged in");
       return;
@@ -697,13 +693,37 @@ export const TaskDetailModal = ({
       return;
     }
 
-    // Validation: If moving to ReadyToReview, reviewer is required
-    if (editedTask.status === 'ReadyToReview' && !editedTask.reviewerId) {
-      setValidationErrors(prev => ({ ...prev, reviewer: "Please select a reviewer when moving to Ready To Review" }));
-      return;
+    // Validate all fields at once
+    const errors = {
+      title: "",
+      startDate: "",
+      endDate: "",
+      milestone: "",
+      status: "",
+      reviewer: "",
+    };
+
+    let hasError = false;
+
+    // Validate title
+    if (!editedTask.title.trim()) {
+      errors.title = "Task title is required";
+      hasError = true;
+    } else if (editedTask.title.trim().length < 3) {
+      errors.title = "Task title must be at least 3 characters";
+      hasError = true;
+    } else if (editedTask.title.trim().length > 50) {
+      errors.title = "Task title must not exceed 50 characters";
+      hasError = true;
     }
 
-    // Final validation: Check dates if they exist
+    // Validate reviewer if moving to ReadyToReview
+    if (editedTask.status === 'ReadyToReview' && !editedTask.reviewerId) {
+      errors.reviewer = "Please select a reviewer when moving to Ready To Review";
+      hasError = true;
+    }
+
+    // Validate dates if they exist
     if (editedTask.startDate && editedTask.endDate) {
       const dateValidation = validateTaskDates(
         editedTask.startDate,
@@ -713,12 +733,12 @@ export const TaskDetailModal = ({
       );
 
       if (!dateValidation.valid) {
-        setValidationErrors(prev => ({ ...prev, endDate: dateValidation.message || "Invalid dates" }));
-        return;
+        errors.endDate = dateValidation.message || "Invalid dates";
+        hasError = true;
       }
 
       // Validate dates against selected milestones
-      if (editedTask.milestoneIds.length > 0) {
+      if (!errors.endDate && editedTask.milestoneIds.length > 0) {
         const selectedMilestones = milestones.filter(m => 
           editedTask.milestoneIds.includes(m.id)
         );
@@ -729,10 +749,18 @@ export const TaskDetailModal = ({
         );
 
         if (!milestoneValidation.valid) {
-          setValidationErrors(prev => ({ ...prev, milestone: milestoneValidation.message || "Task dates conflict with milestone dates" }));
-          return;
+          errors.milestone = milestoneValidation.message || "Task dates conflict with milestone dates";
+          hasError = true;
         }
       }
+    }
+
+    // Set all errors at once
+    setValidationErrors(errors);
+
+    // If there are any errors, stop here
+    if (hasError) {
+      return;
     }
 
     try {
@@ -773,7 +801,7 @@ export const TaskDetailModal = ({
         }
         onClose();
       } else {
-        toast.error(response.error || "Failed to update task");
+        toast.warning(response.error || "Failed to update task");
       }
     } catch (error) {
       console.error("Error updating task:", error);
@@ -1300,7 +1328,7 @@ export const TaskDetailModal = ({
                 disabled={
                   mode === "view" || 
                   !canEdit || 
-                  (isMember && !["Todo", "InProgress", "ReadyToReview"].includes(editedTask.status))
+                  (isMember && !["Todo", "InProgress", "ReadyToReview", "ReOpened"].includes(editedTask.status))
                 }
               >
                 {TASK_STATUS_OPTIONS.map((status) => (
@@ -1312,7 +1340,7 @@ export const TaskDetailModal = ({
               {validationErrors.status && (
                 <p className="error-text">{validationErrors.status}</p>
               )}
-              {isMember && !["Todo", "InProgress", "ReadyToReview"].includes(editedTask.status) && (
+              {isMember && !["Todo", "InProgress", "ReadyToReview", "ReOpened"].includes(editedTask.status) && (
                 <span
                   style={{
                     fontSize: "11px",
@@ -1498,38 +1526,47 @@ export const TaskDetailModal = ({
                     No milestones available
                   </div>
                 ) : (
-                  milestones.map((milestone) => (
-                    <label 
-                      key={milestone.id} 
-                      className="milestone-checkbox"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
-                        <input
-                          type="checkbox"
-                          checked={editedTask.milestoneIds.includes(milestone.id)}
-                          onChange={() => handleMilestoneToggle(milestone.id)}
-                          disabled={mode === "view" || !canEdit}
-                        />
-                        <span>{milestone.name}</span>
-                      </div>
-                      <span
+                  milestones.map((milestone) => {
+                    const milestoneDue = new Date(milestone.dueDate);
+                    const currentDate = new Date();
+                    currentDate.setHours(0, 0, 0, 0);
+                    const isPastDue = milestoneDue < currentDate;
+                    
+                    return (
+                      <label 
+                        key={milestone.id} 
+                        className="milestone-checkbox"
                         style={{
-                          fontSize: "11px",
-                          color: "#6b7280",
-                          whiteSpace: "nowrap",
-                          textAlign: "right",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          opacity: isPastDue ? 0.5 : 1,
                         }}
                       >
-                        {formatDate(milestone.dueDate)}
-                      </span>
-                    </label>
-                  ))
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
+                          <input
+                            type="checkbox"
+                            checked={editedTask.milestoneIds.includes(milestone.id)}
+                            onChange={() => handleMilestoneToggle(milestone.id)}
+                            disabled={mode === "view" || !canEdit || isPastDue}
+                          />
+                          <span>{milestone.name}</span>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            color: isPastDue ? "#ef4444" : "#6b7280",
+                            whiteSpace: "nowrap",
+                            textAlign: "right",
+                          }}
+                        >
+                          {formatDate(milestone.dueDate)}
+                          {isPastDue && " (Past due)"}
+                        </span>
+                      </label>
+                    );
+                  })
                 )}
               </div>
               {validationErrors.milestone && (

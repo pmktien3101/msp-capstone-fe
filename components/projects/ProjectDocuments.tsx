@@ -312,11 +312,15 @@ export const ProjectDocuments = ({
       if (result.success) {
         toast.success("Document deleted successfully!");
         
-        // If deleting the last item on current page (and not on page 1), go to previous page
-        if (documents.length === 1 && currentPage > 1) {
+        // Remove the deleted document from local state immediately for better UX
+        const updatedDocuments = documents.filter(doc => doc.id !== documentToDelete.id);
+        setDocuments(updatedDocuments);
+        
+        // If this was the last item on current page (and not on page 1), go to previous page
+        if (updatedDocuments.length === 0 && currentPage > 1) {
           setCurrentPage(currentPage - 1);
         } else {
-          // Otherwise just refresh current page
+          // Otherwise refresh to get accurate data from server
           fetchDocuments();
         }
       } else {
