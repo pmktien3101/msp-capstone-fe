@@ -149,79 +149,106 @@ export const CreateTaskModal = ({
   };
 
   const handleSave = async () => {
-    // Clear previous errors
-    setValidationErrors({
-      title: "",
-      startDate: "",
-      endDate: "",
-      milestone: "",
-    });
-
     if (!user?.userId) {
       toast.error("User not logged in");
       return;
     }
-    
+
+    // Validate all fields at once
+    const errors = {
+      title: "",
+      startDate: "",
+      endDate: "",
+      milestone: "",
+    };
+
+    let hasError = false;
+
+    // Validate title
     if (!taskData.title.trim()) {
-      setValidationErrors(prev => ({ ...prev, title: "Task title is required" }));
-      return;
+      errors.title = "Task title is required";
+      hasError = true;
+    } else if (taskData.title.trim().length < 3) {
+      errors.title = "Task title must be at least 3 characters";
+      hasError = true;
+    } else if (taskData.title.trim().length > 50) {
+      errors.title = "Task title must not exceed 50 characters";
+      hasError = true;
     }
-    
-    if (taskData.title.trim().length < 3) {
-      setValidationErrors(prev => ({ ...prev, title: "Task title must be at least 3 characters" }));
-      return;
-    }
-    
-    if (taskData.title.trim().length > 50) {
-      setValidationErrors(prev => ({ ...prev, title: "Task title must not exceed 50 characters" }));
-      return;
-    }
-    
+
+    // Validate start date
     if (!taskData.startDate) {
-      setValidationErrors(prev => ({ ...prev, startDate: "Start date is required" }));
-      return;
-    }
-    
-    if (!taskData.endDate) {
-      setValidationErrors(prev => ({ ...prev, endDate: "End date is required" }));
-      return;
-    }
-
-    // Validate dates
-    const start = new Date(taskData.startDate);
-    const end = new Date(taskData.endDate);
-    
-    if (start > end) {
-      setValidationErrors(prev => ({ ...prev, endDate: "End date must be after or equal to start date" }));
-      return;
-    }
-
-    // Validate against project dates
-    if (project?.startDate && start < new Date(project.startDate)) {
-      setValidationErrors(prev => ({ ...prev, startDate: "Task start date cannot be before project start date" }));
-      return;
-    }
-
-    if (project?.endDate && end > new Date(project.endDate)) {
-      setValidationErrors(prev => ({ ...prev, endDate: "Task end date cannot be after project end date" }));
-      return;
-    }
-
-    // Validate dates against selected milestones
-    if (taskData.milestoneIds.length > 0) {
-      const selectedMilestones = milestones.filter(m => 
-        taskData.milestoneIds.includes(m.id)
-      );
+      errors.startDate = "Start date is required";
+      hasError = true;
+    } else {
+      const start = new Date(taskData.startDate);
       
-      for (const milestone of selectedMilestones) {
-        if (milestone.dueDate) {
-          const milestoneDue = new Date(milestone.dueDate);
-          if (end > milestoneDue) {
-            setValidationErrors(prev => ({ ...prev, endDate: `Task end date cannot be after milestone "${milestone.name}" due date` }));
-            return;
+      // Check against project start date
+      if (project?.startDate && start < new Date(project.startDate)) {
+        errors.startDate = "Task start date cannot be before project start date";
+        hasError = true;
+      }
+      
+      // Check against project end date
+      if (project?.endDate && start > new Date(project.endDate)) {
+        errors.startDate = "Task start date cannot be after project end date";
+        hasError = true;
+      }
+    }
+
+    // Validate end date
+    if (!taskData.endDate) {
+      errors.endDate = "End date is required";
+      hasError = true;
+    } else {
+      const end = new Date(taskData.endDate);
+      
+      // Check if end date is after start date
+      if (taskData.startDate) {
+        const start = new Date(taskData.startDate);
+        if (start > end) {
+          errors.endDate = "End date must be after or equal to start date";
+          hasError = true;
+        }
+      }
+      
+      // Check against project start date
+      if (!errors.endDate && project?.startDate && end < new Date(project.startDate)) {
+        errors.endDate = "Task end date cannot be before project start date";
+        hasError = true;
+      }
+      
+      // Check against project end date
+      if (!errors.endDate && project?.endDate && end > new Date(project.endDate)) {
+        errors.endDate = "Task end date cannot be after project end date";
+        hasError = true;
+      }
+
+      // Validate dates against selected milestones
+      if (!errors.endDate && taskData.milestoneIds.length > 0) {
+        const selectedMilestones = milestones.filter(m => 
+          taskData.milestoneIds.includes(m.id)
+        );
+        
+        for (const milestone of selectedMilestones) {
+          if (milestone.dueDate) {
+            const milestoneDue = new Date(milestone.dueDate);
+            if (end > milestoneDue) {
+              errors.endDate = `Task end date cannot be after milestone "${milestone.name}" due date`;
+              hasError = true;
+              break;
+            }
           }
         }
       }
+    }
+
+    // Set all errors at once
+    setValidationErrors(errors);
+
+    // If there are any errors, stop here
+    if (hasError) {
+      return;
     }
 
     try {
@@ -247,7 +274,7 @@ export const CreateTaskModal = ({
         onSuccess?.();
         onClose();
       } else {
-        toast.error(response.error || "Failed to create task");
+        toast.warning(response.error || "Failed to create task");
       }
     } catch (error) {
       console.error("Error creating task:", error);

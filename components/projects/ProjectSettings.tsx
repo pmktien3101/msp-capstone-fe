@@ -132,6 +132,7 @@ export const ProjectSettings = ({
   });
 
   const [members, setMembers] = useState<Member[]>([]);
+  const [formerMembers, setFormerMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
 
@@ -176,19 +177,35 @@ export const ProjectSettings = ({
         if (result.success && result.data) {
           // Transform ProjectMember[] to Member[]
           // API returns: { id, projectId, userId, member: { id, fullName, email, role, ... }, joinedAt, leftAt }
-          const transformedMembers: Member[] = result.data
-            .filter((pm: any) => pm.member) // Only include items with member data
-            .map((pm: any) => ({
-              id: pm.member.id,
-              pmId: pm.id, // Store ProjectMember ID for deletion
-              name: pm.member.fullName || "Unknown",
-              email: pm.member.email || "",
-              role: pm.member.role || "Member",
-              avatar: (pm.member.fullName || "U").charAt(0).toUpperCase(),
-              avatarUrl: pm.member.avatarUrl || null,
-            }));
+          
+          // Separate active and former members
+          const activeMembers: Member[] = [];
+          const formerMembersList: Member[] = [];
 
-          setMembers(transformedMembers);
+          result.data
+            .filter((pm: any) => pm.member) // Only include items with member data
+            .forEach((pm: any) => {
+              const memberData = {
+                id: pm.member.id,
+                pmId: pm.id, // Store ProjectMember ID for deletion
+                name: pm.member.fullName || "Unknown",
+                email: pm.member.email || "",
+                role: pm.member.role || "Member",
+                avatar: (pm.member.fullName || "U").charAt(0).toUpperCase(),
+                avatarUrl: pm.member.avatarUrl || null,
+                leftAt: pm.leftAt, // Store leftAt date
+              };
+
+              // If leftAt exists, member has left the project
+              if (pm.leftAt) {
+                formerMembersList.push(memberData);
+              } else {
+                activeMembers.push(memberData);
+              }
+            });
+
+          setMembers(activeMembers);
+          setFormerMembers(formerMembersList);
         }
       } catch (error) {
         console.error("Error fetching project members:", error);
@@ -235,18 +252,32 @@ export const ProjectSettings = ({
     try {
       const result = await projectService.getProjectMembers(project.id);
       if (result.success && result.data) {
-        const transformedMembers: Member[] = result.data
+        const activeMembers: Member[] = [];
+        const formerMembersList: Member[] = [];
+
+        result.data
           .filter((pm: any) => pm.member)
-          .map((pm: any) => ({
-            id: pm.member.id,
-            pmId: pm.id, // Store ProjectMember ID for deletion
-            name: pm.member.fullName || "Unknown",
-            email: pm.member.email || "",
-            role: pm.member.role || "Member",
-            avatar: (pm.member.fullName || "U").charAt(0).toUpperCase(),
-            avatarUrl: pm.member.avatarUrl || null,
-          }));
-        setMembers(transformedMembers);
+          .forEach((pm: any) => {
+            const memberData = {
+              id: pm.member.id,
+              pmId: pm.id,
+              name: pm.member.fullName || "Unknown",
+              email: pm.member.email || "",
+              role: pm.member.role || "Member",
+              avatar: (pm.member.fullName || "U").charAt(0).toUpperCase(),
+              avatarUrl: pm.member.avatarUrl || null,
+              leftAt: pm.leftAt,
+            };
+
+            if (pm.leftAt) {
+              formerMembersList.push(memberData);
+            } else {
+              activeMembers.push(memberData);
+            }
+          });
+
+        setMembers(activeMembers);
+        setFormerMembers(formerMembersList);
       }
     } catch (error) {
       console.error("Error refreshing members:", error);
@@ -790,6 +821,60 @@ export const ProjectSettings = ({
             )}
           </div>
         </div>
+
+        {/* Former Members Section */}
+        {formerMembers.length > 0 && (
+          <div className="settings-section">
+            <div className="settings-section-header">
+              <div className="section-icon" style={{ background: "#9CA3AF" }}>
+                <Users size={16} color="white" />
+              </div>
+              <h4>Former Members ({formerMembers.length})</h4>
+            </div>
+            <div className="members-list-settings">
+              <div className="members-grid-settings">
+                {formerMembers
+                  .sort((a, b) => {
+                    // Sort by leftAt date (most recent first)
+                    const dateA = (a as any).leftAt ? new Date((a as any).leftAt).getTime() : 0;
+                    const dateB = (b as any).leftAt ? new Date((b as any).leftAt).getTime() : 0;
+                    return dateB - dateA;
+                  })
+                  .map((member) => (
+                    <div key={member.id} className="member-card" style={{ opacity: 0.7 }}>
+                      <div className="member-avatar" style={{ filter: "grayscale(50%)" }}>
+                        {(member as any).avatarUrl ? (
+                          <img
+                            src={(member as any).avatarUrl}
+                            alt={member.name}
+                          />
+                        ) : (
+                          member.avatar
+                        )}
+                      </div>
+                      <div className="member-info">
+                        <div className="member-name">{member.name}</div>
+                        <div className="member-role">{member.role}</div>
+                        <div className="member-email">{member.email}</div>
+                        {(member as any).leftAt && (
+                          <div 
+                            style={{ 
+                              fontSize: "11px", 
+                              color: "#9CA3AF",
+                              marginTop: "4px",
+                              fontStyle: "italic"
+                            }}
+                          >
+                            Left: {formatDateForDisplay((member as any).leftAt)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add Member Modal */}

@@ -682,32 +682,6 @@ export const TaskDetailModal = ({
   };
 
   const handleSaveTask = async () => {
-    // Clear all previous errors
-    setValidationErrors({
-      title: "",
-      startDate: "",
-      endDate: "",
-      milestone: "",
-      status: "",
-      reviewer: "",
-    });
-
-    // Validate title
-    if (!editedTask.title.trim()) {
-      setValidationErrors(prev => ({ ...prev, title: "Task title is required" }));
-      return;
-    }
-    
-    if (editedTask.title.trim().length < 3) {
-      setValidationErrors(prev => ({ ...prev, title: "Task title must be at least 3 characters" }));
-      return;
-    }
-    
-    if (editedTask.title.trim().length > 50) {
-      setValidationErrors(prev => ({ ...prev, title: "Task title must not exceed 50 characters" }));
-      return;
-    }
-
     if (!user?.userId) {
       toast.error("User is not logged in");
       return;
@@ -719,13 +693,37 @@ export const TaskDetailModal = ({
       return;
     }
 
-    // Validation: If moving to ReadyToReview, reviewer is required
-    if (editedTask.status === 'ReadyToReview' && !editedTask.reviewerId) {
-      setValidationErrors(prev => ({ ...prev, reviewer: "Please select a reviewer when moving to Ready To Review" }));
-      return;
+    // Validate all fields at once
+    const errors = {
+      title: "",
+      startDate: "",
+      endDate: "",
+      milestone: "",
+      status: "",
+      reviewer: "",
+    };
+
+    let hasError = false;
+
+    // Validate title
+    if (!editedTask.title.trim()) {
+      errors.title = "Task title is required";
+      hasError = true;
+    } else if (editedTask.title.trim().length < 3) {
+      errors.title = "Task title must be at least 3 characters";
+      hasError = true;
+    } else if (editedTask.title.trim().length > 50) {
+      errors.title = "Task title must not exceed 50 characters";
+      hasError = true;
     }
 
-    // Final validation: Check dates if they exist
+    // Validate reviewer if moving to ReadyToReview
+    if (editedTask.status === 'ReadyToReview' && !editedTask.reviewerId) {
+      errors.reviewer = "Please select a reviewer when moving to Ready To Review";
+      hasError = true;
+    }
+
+    // Validate dates if they exist
     if (editedTask.startDate && editedTask.endDate) {
       const dateValidation = validateTaskDates(
         editedTask.startDate,
@@ -735,12 +733,12 @@ export const TaskDetailModal = ({
       );
 
       if (!dateValidation.valid) {
-        setValidationErrors(prev => ({ ...prev, endDate: dateValidation.message || "Invalid dates" }));
-        return;
+        errors.endDate = dateValidation.message || "Invalid dates";
+        hasError = true;
       }
 
       // Validate dates against selected milestones
-      if (editedTask.milestoneIds.length > 0) {
+      if (!errors.endDate && editedTask.milestoneIds.length > 0) {
         const selectedMilestones = milestones.filter(m => 
           editedTask.milestoneIds.includes(m.id)
         );
@@ -751,10 +749,18 @@ export const TaskDetailModal = ({
         );
 
         if (!milestoneValidation.valid) {
-          setValidationErrors(prev => ({ ...prev, milestone: milestoneValidation.message || "Task dates conflict with milestone dates" }));
-          return;
+          errors.milestone = milestoneValidation.message || "Task dates conflict with milestone dates";
+          hasError = true;
         }
       }
+    }
+
+    // Set all errors at once
+    setValidationErrors(errors);
+
+    // If there are any errors, stop here
+    if (hasError) {
+      return;
     }
 
     try {
@@ -795,7 +801,7 @@ export const TaskDetailModal = ({
         }
         onClose();
       } else {
-        toast.error(response.error || "Failed to update task");
+        toast.warning(response.error || "Failed to update task");
       }
     } catch (error) {
       console.error("Error updating task:", error);
