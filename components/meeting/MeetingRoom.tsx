@@ -30,6 +30,7 @@ import CameraButton from "../ui/camera-button";
 import RecordButton from "../ui/record-button";
 import { CallIndicators } from "../ui/CallIndicators";
 import { meetingService } from "@/services/meetingService";
+import { uploadFileToCloudinary } from "@/services/uploadFileService";
 
 type CallLayoutType = "grid" | "speaker-left" | "speaker-right";
 
@@ -159,7 +160,10 @@ const MeetingRoom = () => {
       await call.camera?.disable();
       await call.microphone?.disable();
       const meetingDurationLimit = getMeetingDurationLimit();
-      showToast(`Meeting has reached ${meetingDurationLimit} minutes. Ending call...`, 4000);
+      showToast(
+        `Meeting has reached ${meetingDurationLimit} minutes. Ending call...`,
+        4000
+      );
       await call.endCall();
 
       const endedAtRaw = await waitForEndedAt();
@@ -171,6 +175,7 @@ const MeetingRoom = () => {
 
       try {
         await meetingService.finishMeeting(call.id, endTime);
+        await uploadRecordingToCloudAndSave(call.id);
         console.log("finishMeeting success (auto end)", call.id);
       } catch (e) {
         console.error(
@@ -214,9 +219,12 @@ const MeetingRoom = () => {
 
     const meetingDurationMinutes = getMeetingDurationLimit();
     const now = Date.now();
-    const msUntil15 = startTime.getTime() + (meetingDurationMinutes - 15) * 60 * 1000 - now; // 15 min before end
-    const msUntil5 = startTime.getTime() + (meetingDurationMinutes - 5) * 60 * 1000 - now; // 5 min before end
-    const msUntilEnd = startTime.getTime() + meetingDurationMinutes * 60 * 1000 - now; // at end time
+    const msUntil15 =
+      startTime.getTime() + (meetingDurationMinutes - 15) * 60 * 1000 - now; // 15 min before end
+    const msUntil5 =
+      startTime.getTime() + (meetingDurationMinutes - 5) * 60 * 1000 - now; // 5 min before end
+    const msUntilEnd =
+      startTime.getTime() + meetingDurationMinutes * 60 * 1000 - now; // at end time
 
     // clear existing timers
     if (timersRef.current.r15) {
@@ -289,6 +297,32 @@ const MeetingRoom = () => {
         return <SpeakerLayout participantsBarPosition="right" />;
       default:
         return <SpeakerLayout participantsBarPosition="left" />;
+    }
+  };
+
+  const uploadRecordingToCloudAndSave = async (callId: string) => {
+    try {
+      // 1. Lấy recordings từ Stream
+      const res = await call?.queryRecordings();
+      const recording = res?.recordings?.[0];
+      if (!recording?.url) return;
+
+      // 2. Fetch file từ recording.url
+      const fileRes = await fetch(recording.url);
+      const blob = await fileRes.blob();
+      const file = new File([blob], "meeting-record.mp4", { type: blob.type });
+
+      // 3. Gọi API upload lên cloud (giả sử bạn có uploadFileToCloudinary)
+      // import { uploadFileToCloudinary } from "@/services/uploadFileService";
+      const cloudUrl = await uploadFileToCloudinary(file);
+
+      // 4. Lưu URL cloud vào DB
+      await meetingService.updateMeeting({
+        meetingId: callId,
+        recordUrl: cloudUrl,
+      });
+    } catch (err) {
+      console.error("Error upload record to cloud & save:", err);
     }
   };
 
