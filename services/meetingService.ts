@@ -300,6 +300,47 @@ export const meetingService = {
     }
   },
 
+  // Update Summary
+  async updateSummary(
+    meetingId: string,
+    summary: string
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const payload = JSON.stringify(summary); // stringify -> JSON string literal
+
+      const response = await api.put<ApiResponse>(
+        `/meetings/${meetingId}/summary`,
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.data.success) {
+        return {
+          success: true,
+          data: response.data.data,
+        };
+      } else {
+        return {
+          success: false,
+          error: response.data.message || "Failed to update summary",
+        };
+      }
+    } catch (error: any) {
+      console.error("Update summary error:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update summary",
+      };
+    }
+  },
+
   // Regenerate meeting AI data (transcript, summary, todos)
   async regenerateMeetingAIData(
     data: RegenerateMeetingAIDataRequest
@@ -335,4 +376,3 @@ export const meetingService = {
     }
   },
 };
-
