@@ -19,6 +19,7 @@ import {
   Building2,
   Users,
   Video,
+  Clock,
   ClipboardList,
   ChevronLeft,
   ChevronRight,
@@ -87,6 +88,11 @@ const AdminLimitations: React.FC = () => {
       value: "NumberMemberInMeeting",
       label: "Members in meeting",
       icon: Video,
+    },
+    {
+      value: "MeetingDuration",
+      label: "Meeting duration",
+      icon: Clock,
     },
   ];
 
