@@ -83,17 +83,6 @@ const formatDateTime = (
   return dateStr;
 };
 
-// Helper to format file size
-const formatFileSize = (bytes: number | undefined): string => {
-  if (!bytes || bytes === 0) return "-";
-  
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const size = (bytes / Math.pow(1024, i)).toFixed(2);
-  
-  return `${size} ${sizes[i]}`;
-};
-
 export default function MeetingDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -1657,15 +1646,6 @@ export default function MeetingDetailPage() {
                     (() => {
                       // Prioritize showing recordUrl from DB
                       if (meetingInfo?.recordUrl) {
-                        // Calculate duration from meeting start and end time
-                        const duration =
-                          meetingInfo.startTime && meetingInfo.endTime
-                            ? formatDuration(
-                                new Date(meetingInfo.endTime).getTime() -
-                                  new Date(meetingInfo.startTime).getTime()
-                              )
-                            : null;
-                        
                         return (
                           <div className="recording-item" key="db-recording">
                             <div className="recording-info">
@@ -1674,18 +1654,10 @@ export default function MeetingDetailPage() {
                               </div>
                               <div>
                                 <h5>Meeting Recording</h5>
-                                <p className="recording-metadata">
-                                  <span className="metadata-date">
-                                    {meetingInfo.updatedAt
-                                      ? formatDateTime(meetingInfo.updatedAt, true)
-                                      : "-"}
-                                  </span>
-                                  {duration && (
-                                    <span className="recording-duration">
-                                      {" "}
-                                      · Duration: {duration}
-                                    </span>
-                                  )}
+                                <p>
+                                  {meetingInfo.updatedAt
+                                    ? formatDateTime(meetingInfo.updatedAt)
+                                    : "-"}
                                 </p>
                               </div>
                             </div>
@@ -1744,7 +1716,7 @@ export default function MeetingDetailPage() {
                         const displayName =
                           rec.filename?.substring(0, 80) || "Recording";
                         const createdAt = rec.start_time
-                          ? formatDateTime(rec.start_time, true) // Include time
+                          ? formatDateTime(rec.start_time)
                           : "-";
                         const duration =
                           rec.start_time && rec.end_time
@@ -1753,9 +1725,6 @@ export default function MeetingDetailPage() {
                                   new Date(rec.start_time).getTime()
                               )
                             : null;
-                        // Try to get file size from recording (may not be available)
-                        const fileSize = formatFileSize((rec as any).size);
-                        
                         return (
                           <div className="recording-item" key={rec.url || idx}>
                             <div className="recording-info">
@@ -1764,18 +1733,12 @@ export default function MeetingDetailPage() {
                               </div>
                               <div>
                                 <h5>{displayName}</h5>
-                                <p className="recording-metadata">
-                                  <span className="metadata-date">{createdAt}</span>
+                                <p>
+                                  {createdAt}
                                   {duration && (
                                     <span className="recording-duration">
                                       {" "}
                                       · Duration: {duration}
-                                    </span>
-                                  )}
-                                  {fileSize !== "-" && (
-                                    <span className="recording-size">
-                                      {" "}
-                                      · Size: {fileSize}
                                     </span>
                                   )}
                                 </p>

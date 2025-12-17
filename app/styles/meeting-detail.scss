@@ -611,25 +611,8 @@
             margin: 0;
             font-weight: 500;
 
-            &.recording-metadata {
-              display: flex;
-              flex-wrap: wrap;
-              gap: 4px;
-              align-items: center;
-            }
-
-            .metadata-date {
-              color: #475569;
-              font-weight: 500;
-            }
-
             .recording-duration {
               color: #ff5e13;
-              font-weight: 600;
-            }
-
-            .recording-size {
-              color: #10b981;
               font-weight: 600;
             }
           }
