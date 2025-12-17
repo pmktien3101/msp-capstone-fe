@@ -309,7 +309,7 @@ export async function POST(request: NextRequest) {
             }
           }
         } catch (videoError: any) {
-          console.warn('⚠️ Failed to upload video to Gemini, fallback to text-only:', videoError.message);
+          console.error('❌ Failed to upload video to Gemini:', videoError.message);
           // Cleanup on error
           if (geminiFileName) {
             try {
@@ -319,8 +319,13 @@ export async function POST(request: NextRequest) {
               // Ignore cleanup errors
             }
           }
-          geminiFileUri = null;
-          geminiFileName = null;
+          
+          // ❌ THROW ERROR thay vì fallback - không cho phép xử lý với text-only
+          throw new Error(
+            `Video processing failed: ${videoError.message}. ` +
+            `Please check your internet connection and try again. ` +
+            `Video URL processing is required for accurate AI results.`
+          );
         }
       }
 

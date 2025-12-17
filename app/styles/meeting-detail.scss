@@ -115,6 +115,17 @@
   }
 }
 
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 // ======================
 // 2. Meeting Header & Title/Status
 // ======================
@@ -600,8 +611,25 @@
             margin: 0;
             font-weight: 500;
 
+            &.recording-metadata {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 4px;
+              align-items: center;
+            }
+
+            .metadata-date {
+              color: #475569;
+              font-weight: 500;
+            }
+
             .recording-duration {
               color: #ff5e13;
+              font-weight: 600;
+            }
+
+            .recording-size {
+              color: #10b981;
               font-weight: 600;
             }
           }
@@ -815,6 +843,88 @@
       }
     }
   }
+
+  // AI Processing Error Banner
+  .ai-error-banner {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 20px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 2px solid #dc2626;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.1);
+    animation: slideInDown 0.3s ease-out;
+
+    .error-icon {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        background: #dc2626;
+        border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+
+        svg {
+          color: white;
+        }
+      }
+
+      .error-content {
+        flex: 1;
+        min-width: 0;
+
+        .error-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #991b1b;
+          margin: 0 0 8px 0;
+        }
+
+        .error-details {
+          font-size: 14px;
+          color: #dc2626;
+          margin: 0 0 8px 0;
+          line-height: 1.5;
+          word-break: break-word;
+        }
+
+        .error-hint {
+          font-size: 13px;
+          color: #b91c1c;
+          margin: 0;
+          padding: 8px 12px;
+          background: rgba(220, 38, 38, 0.08);
+          border-radius: 6px;
+          border-left: 3px solid #dc2626;
+        }
+      }
+
+      .error-close-btn {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: #dc2626;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          background: rgba(220, 38, 38, 0.1);
+          color: #991b1b;
+        }
+
+        svg {
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
 
   // ======================
   // 6. Meeting Summary + AI

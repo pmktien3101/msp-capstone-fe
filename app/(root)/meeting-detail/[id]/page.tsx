@@ -43,6 +43,7 @@ import { PagingRequest } from "@/types/project";
 import TodoCard from "@/components/meeting/TodoCard";
 import { RelatedTasksSidebar } from "@/components/meeting/RelatedTasksSidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { formatTime } from "@/lib/formatDate";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -80,6 +81,17 @@ const formatDateTime = (
   }
 
   return dateStr;
+};
+
+// Helper to format file size
+const formatFileSize = (bytes: number | undefined): string => {
+  if (!bytes || bytes === 0) return "-";
+  
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  const size = (bytes / Math.pow(1024, i)).toFixed(2);
+  
+  return `${size} ${sizes[i]}`;
 };
 
 export default function MeetingDetailPage() {
@@ -139,6 +151,13 @@ export default function MeetingDetailPage() {
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [editingSummaryText, setEditingSummaryText] = useState("");
   const [isSavingSummary, setIsSavingSummary] = useState(false);
+
+  // AI Processing Error state
+  const [aiProcessingError, setAiProcessingError] = useState<{
+    message: string;
+    details?: string;
+    timestamp: number;
+  } | null>(null);
 
   // Floating Action Bar position state
   const [fabPosition, setFabPosition] = useState<{
@@ -247,6 +266,8 @@ export default function MeetingDetailPage() {
     transcriptions: any,
     tasks: any[]
   ) => {
+    // Clear previous error when starting new process
+    setAiProcessingError(null);
     setIsProcessingMeetingAI(true);
 
     try {
@@ -395,14 +416,28 @@ export default function MeetingDetailPage() {
               );
             }
           } catch (todoError) {
-            toast.error("Lỗi khi tạo công việc từ AI");
+            toast.error("Failed to create tasks from AI");
           }
         }
       } else {
         throw new Error(data.error || "Unknown error");
       }
     } catch (err: any) {
+      console.error("❌ processVideo error:", err);
+      
+      // Hiển thị lỗi trực tiếp trên UI thay vì toast
+      const errorMessage = err?.message || "Unknown error occurred during video processing";
+      
+      setAiProcessingError({
+        message: "Failed to process meeting video",
+        details: errorMessage,
+        timestamp: Date.now(),
+      });
+      
+      // Don't continue with partial/invalid data
+      throw err;
     } finally {
+      // Always reset processing state, whether success or error
       setIsProcessingMeetingAI(false);
     }
   };
@@ -414,6 +449,9 @@ export default function MeetingDetailPage() {
       return;
     }
 
+    // Clear previous error khi retry
+    setAiProcessingError(null);
+    
     setIsRegenerating(true);
     setIsProcessingMeetingAI(true);
 
@@ -517,8 +555,16 @@ export default function MeetingDetailPage() {
         );
       }
     } catch (err: any) {
-      console.error("Regeneration error:", err);
-      toast.error(err?.message || "Failed to regenerate AI content");
+      console.error("❌ Regeneration error:", err);
+      
+      // Hiển thị lỗi trực tiếp trên UI thay vì toast
+      const errorMessage = err?.message || "Unknown error occurred during regeneration";
+      
+      setAiProcessingError({
+        message: "Failed to regenerate AI content",
+        details: errorMessage,
+        timestamp: Date.now(),
+      });
     } finally {
       setIsRegenerating(false);
       setIsProcessingMeetingAI(false);
@@ -635,7 +681,13 @@ export default function MeetingDetailPage() {
       });
     }
     
-    processVideo(recordings[0], originalTranscriptions, projectTasks);
+    // Process video with error handling
+    processVideo(recordings[0], originalTranscriptions, projectTasks).catch((error) => {
+      console.error("❌ Auto-process video failed:", error);
+      // Error already displayed in processVideo's catch block
+      // Reset ref to allow manual retry
+      hasProcessedRef.current = false;
+    });
   }, [
     originalTranscriptions,
     recordings,
@@ -1605,6 +1657,15 @@ export default function MeetingDetailPage() {
                     (() => {
                       // Prioritize showing recordUrl from DB
                       if (meetingInfo?.recordUrl) {
+                        // Calculate duration from meeting start and end time
+                        const duration =
+                          meetingInfo.startTime && meetingInfo.endTime
+                            ? formatDuration(
+                                new Date(meetingInfo.endTime).getTime() -
+                                  new Date(meetingInfo.startTime).getTime()
+                              )
+                            : null;
+                        
                         return (
                           <div className="recording-item" key="db-recording">
                             <div className="recording-info">
@@ -1613,10 +1674,18 @@ export default function MeetingDetailPage() {
                               </div>
                               <div>
                                 <h5>Meeting Recording</h5>
-                                <p>
-                                  {meetingInfo.updatedAt
-                                    ? formatDateTime(meetingInfo.updatedAt)
-                                    : "-"}
+                                <p className="recording-metadata">
+                                  <span className="metadata-date">
+                                    {meetingInfo.updatedAt
+                                      ? formatDateTime(meetingInfo.updatedAt, true)
+                                      : "-"}
+                                  </span>
+                                  {duration && (
+                                    <span className="recording-duration">
+                                      {" "}
+                                      · Duration: {duration}
+                                    </span>
+                                  )}
                                 </p>
                               </div>
                             </div>
@@ -1675,7 +1744,7 @@ export default function MeetingDetailPage() {
                         const displayName =
                           rec.filename?.substring(0, 80) || "Recording";
                         const createdAt = rec.start_time
-                          ? formatDateTime(rec.start_time)
+                          ? formatDateTime(rec.start_time, true) // Include time
                           : "-";
                         const duration =
                           rec.start_time && rec.end_time
@@ -1684,6 +1753,9 @@ export default function MeetingDetailPage() {
                                   new Date(rec.start_time).getTime()
                               )
                             : null;
+                        // Try to get file size from recording (may not be available)
+                        const fileSize = formatFileSize((rec as any).size);
+                        
                         return (
                           <div className="recording-item" key={rec.url || idx}>
                             <div className="recording-info">
@@ -1692,12 +1764,18 @@ export default function MeetingDetailPage() {
                               </div>
                               <div>
                                 <h5>{displayName}</h5>
-                                <p>
-                                  {createdAt}
+                                <p className="recording-metadata">
+                                  <span className="metadata-date">{createdAt}</span>
                                   {duration && (
                                     <span className="recording-duration">
                                       {" "}
                                       · Duration: {duration}
+                                    </span>
+                                  )}
+                                  {fileSize !== "-" && (
+                                    <span className="recording-size">
+                                      {" "}
+                                      · Size: {fileSize}
                                     </span>
                                   )}
                                 </p>
@@ -1774,6 +1852,37 @@ export default function MeetingDetailPage() {
                     </span>
                   </div>
                 </div>
+
+                {/* AI Processing Error Banner */}
+                {aiProcessingError && (
+                  <div className="ai-error-banner">
+                    <div className="error-icon">
+                      <AlertTriangleIcon size={24} color="#dc2626" />
+                    </div>
+                    <div className="error-content">
+                      <h4 className="error-title">{aiProcessingError.message}</h4>
+                      <p className="error-details">{aiProcessingError.details}</p>
+                      {aiProcessingError.details?.includes("internet connection") && (
+                        <p className="error-hint">
+                          💡 Tip: Check your network connection and click "Re-generate" to try again
+                        </p>
+                      )}
+                      {!aiProcessingError.details?.includes("internet connection") && (
+                        <p className="error-hint">
+                          💡 Tip: Click "Re-generate" to try again
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAiProcessingError(null)}
+                      className="error-close-btn"
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                )}
 
                 {isLoadingTranscriptions && (
                   <div className="transcript-loading">
