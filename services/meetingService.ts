@@ -127,14 +127,21 @@ export const meetingService = {
     }
   },
 
-  // Finish meeting (set end time)
+  // Finish meeting (set end time and optionally recording URL)
   async finishMeeting(
     meetingId: string,
-    endTime: Date | string
+    endTime: Date | string,
+    recordUrl?: string | null
   ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-      const payload =
-        endTime instanceof Date ? endTime.toISOString() : String(endTime);
+      const payload: any = {
+        endTime: endTime instanceof Date ? endTime.toISOString() : String(endTime),
+      };
+
+      // Only include recordUrl if it's provided and not null
+      if (recordUrl) {
+        payload.recordUrl = recordUrl;
+      }
 
       const response = await api.patch<ApiResponse>(
         `/meetings/${meetingId}/finish`,

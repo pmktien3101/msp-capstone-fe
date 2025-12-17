@@ -4,6 +4,7 @@ import { Button } from "./button";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { meetingService } from "../../services/meetingService";
+import { uploadFileToCloudinary } from "../../services/uploadFileService";
 
 const EndCallButton = () => {
   const call = useCall();
@@ -31,40 +32,115 @@ const EndCallButton = () => {
     return null;
   };
 
+  // Upload recording to Cloudinary after meeting ends
+  const uploadRecordingToCloud = async (callId: string) => {
+    try {
+      console.log("🔄 Fetching recording from Stream...", { callId });
+      
+      // Wait a bit for Stream to process the recording
+      await new Promise((r) => setTimeout(r, 3000));
+      
+      // Query recordings from Stream
+      const recordingsResponse = await call?.queryRecordings();
+      const recordings = recordingsResponse?.recordings || [];
+      
+      if (recordings.length === 0) {
+        console.warn("⚠️ No recordings found yet");
+        return null;
+      }
+
+      const recording = recordings[0];
+      if (!recording?.url) {
+        console.warn("⚠️ Recording URL not available");
+        return null;
+      }
+
+      console.log("📥 Downloading recording from Stream...", { url: recording.url });
+      
+      // Fetch recording from Stream
+      const response = await fetch(recording.url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch recording: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const contentType = blob.type || "video/mp4";
+      const ext = contentType.includes("webm") ? "webm" : "mp4";
+      
+      // Create file from blob
+      const filename = `meeting-${callId}-${Date.now()}.${ext}`;
+      const file = new File([blob], filename, { type: contentType });
+
+      console.log("☁️ Uploading to Cloudinary...", { 
+        filename, 
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB` 
+      });
+
+      // Upload to Cloudinary
+      const cloudinaryUrl = await uploadFileToCloudinary(file);
+      
+      console.log("✅ Upload successful!", { cloudinaryUrl });
+      return cloudinaryUrl;
+    } catch (error) {
+      console.error("❌ Error uploading recording:", error);
+      return null;
+    }
+  };
+
   const handleEndForAll = async () => {
     if (!call || isProcessing) return;
     setIsProcessing(true);
+    
+    // Store callId before ending call (as call object may be invalidated)
+    const callId = call.id;
+    
     try {
+      // 1. Upload recording to Cloudinary BEFORE ending call
+      let recordUrl: string | null = null;
+      try {
+        console.log("📤 Starting recording upload to Cloudinary (before ending call)...");
+        recordUrl = await uploadRecordingToCloud(callId);
+        if (recordUrl) {
+          console.log("✅ Recording uploaded successfully:", recordUrl);
+        } else {
+          console.warn("⚠️ Recording upload returned null (may not be ready yet)");
+        }
+      } catch (uploadError) {
+        console.error("❌ Error uploading recording:", uploadError);
+        // Don't block the flow if upload fails
+      }
+
+      // 2. Now end the call
       await call.camera?.disable();
       await call.microphone?.disable();
       console.log("Calling endCall()", {
-        callId: call.id,
+        callId: callId,
         beforeState: call.state,
       });
       await call.endCall();
 
-      // wait a short while for the call stream/state to update with an end timestamp
+      // 3. Wait for endedAt timestamp
       const endedAtRaw = await waitForEndedAt();
       let endTime: Date;
       if (endedAtRaw) {
         endTime =
           endedAtRaw instanceof Date ? endedAtRaw : new Date(endedAtRaw);
         console.log("Call endedAt updated on stream:", {
-          callId: call.id,
+          callId: callId,
           endedAt: endTime,
         });
       } else {
         endTime = new Date();
         console.warn("endedAt not found after endCall, using now:", {
-          callId: call.id,
+          callId: callId,
           state: call.state,
           endTime,
         });
       }
 
-      // send end time to backend
+      // 4. Send end time and recording URL to backend
       try {
-        const res = await meetingService.finishMeeting(call.id, endTime);
+        const res = await meetingService.finishMeeting(callId, endTime, recordUrl);
         if (res.success) {
           console.log("finishMeeting success:", res.message);
         } else {
@@ -77,7 +153,7 @@ const EndCallButton = () => {
       console.warn("Error ending call", err);
     } finally {
       setIsProcessing(false);
-      router.push(`/projects`);
+      router.push(`/meeting-detail/${callId}`);
     }
   };
 
@@ -92,7 +168,7 @@ const EndCallButton = () => {
       console.warn("Error leaving call", err);
     } finally {
       setIsProcessing(false);
-      router.push(`/projects`);
+      router.push(`/meeting-detail/${call.id}`);
     }
   };
 

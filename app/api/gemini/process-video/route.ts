@@ -57,52 +57,6 @@ const callGeminiWithRetry = async (
 
 // ===== HELPER FUNCTIONS =====
 /**
- * Convert video URL thành base64 string
- */
-const videoUrlToBase64 = async (videoUrl: string): Promise<string> => {
-  // console.log('📥 Đang tải video từ URL');
-
-  try {
-    const response = await fetch(videoUrl, {
-      method: "GET",
-      signal: AbortSignal.timeout(60000), // Timeout 60 giây
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    // Kiểm tra kích thước file
-    const contentLength = response.headers.get("content-length");
-    const fileSizeInMB = contentLength
-      ? parseInt(contentLength) / (1024 * 1024)
-      : 0;
-
-    // if (fileSizeInMB > 20) {
-    //     throw new Error(`Video quá lớn: ${fileSizeInMB.toFixed(2)}MB. Tối đa 20MB.`);
-    // }
-
-    if (fileSizeInMB > 0) {
-      console.log(`📊 Kích thước video: ${fileSizeInMB.toFixed(2)}MB`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = btoa(
-      new Uint8Array(arrayBuffer).reduce(
-        (data, byte) => data + String.fromCharCode(byte),
-        ""
-      )
-    );
-
-    // console.log('✅ Video đã được convert sang base64');
-    return base64;
-  } catch (error: any) {
-    console.error("❌ Lỗi videoUrlToBase64:", error.message);
-    throw new Error(`Không thể tải video: ${error.message}`);
-  }
-};
-
-/**
  * Format timestamp từ milliseconds sang MM:SS hoặc HH:MM:SS
  */
 const formatTimestamp = (ms: number): string => {
@@ -189,21 +143,21 @@ const parseImprovedTranscript = (
 
 // ===== API ROUTE HANDLER =====
 export async function POST(request: NextRequest) {
-  // console.log('🚀 API Route: process-video bắt đầu');
+  console.log('🚀 API Route: process-video bắt đầu (text-only mode)');
 
   try {
     const { videoUrl, transcriptSegments, tasks } = await request.json();
 
-    // console.log('📋 Request:', {
-    //     hasVideoUrl: !!videoUrl,
-    //     transcriptCount: transcriptSegments?.length,
-    //     taskCount: tasks?.length || 0,
-    // });
+    console.log('📋 Request:', {
+      hasVideoUrl: !!videoUrl,
+      transcriptCount: transcriptSegments?.length,
+      taskCount: tasks?.length || 0,
+    });
 
     // Validate input
-    if (!videoUrl || !transcriptSegments) {
+    if (!transcriptSegments) {
       return NextResponse.json(
-        { success: false, error: "Thiếu videoUrl hoặc transcriptSegments" },
+        { success: false, error: "Thiếu transcriptSegments" },
         { status: 400 }
       );
     }
@@ -217,88 +171,267 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // console.log('✅ GEMINI_API_KEY tồn tại');
+    console.log('✅ GEMINI_API_KEY tồn tại');
 
     // Khởi tạo AI client
     const ai = new GoogleGenAI({
       apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
     });
 
-    // Convert video sang base64
-    console.log("📹 Bước 1: Đang convert video sang base64...");
-    const base64 = await videoUrlToBase64(videoUrl);
+    // 🧹 Cleanup: Xóa tất cả files cũ trong Gemini storage (optional)
+    try {
+      console.log('🧹 Cleaning up old files in Gemini storage...');
+      const listPager = await ai.files.list();
+      const files: any[] = [];
+      
+      // Iterate through pager to get all files
+      for await (const file of listPager) {
+        files.push(file);
+      }
+      
+      if (files.length > 0) {
+        console.log(`   Found ${files.length} file(s) to delete`);
+        const deletePromises = files.map((file: any) => 
+          ai.files.delete({ name: file.name }).catch((e: any) => {
+            console.warn(`   Failed to delete ${file.name}:`, e.message);
+          })
+        );
+        await Promise.all(deletePromises);
+        console.log('✅ Storage cleanup completed');
+      } else {
+        console.log('   No old files to clean');
+      }
+    } catch (cleanupError) {
+      console.warn('⚠️ Storage cleanup failed (non-critical):', cleanupError);
+      // Continue execution even if cleanup fails
+    }
 
+    // Prepare transcript text
     const transcriptText = transcriptArrayToText(transcriptSegments);
-    // console.log('📝 Transcript đã chuẩn bị, độ dài:', transcriptText.length);
+    console.log('📝 Transcript đã chuẩn bị, độ dài:', transcriptText.length);
 
-    // ===== BƯỚC 2: Cải thiện Transcript với RETRY =====
+    // ⚡ VIDEO URL MODE - Gửi URL trực tiếp cho Gemini (không cần base64)
+    const hasVideoUrl = !!videoUrl;
+    console.log('🎥 Video processing mode:', {
+      hasVideoUrl,
+      videoSource: hasVideoUrl 
+        ? (videoUrl.includes('cloudinary') ? 'Cloudinary' : 
+           videoUrl.includes('stream-io') ? 'Stream' : 'Other')
+        : 'None',
+      willUseVideo: hasVideoUrl
+    });
+
+    // ===== BƯỚC 1: Cải thiện Transcript với Video URL =====
     console.log(
-      "🤖 Bước 2: Đang cải thiện transcript với Gemini 2.5 Pro (có video)..."
+      hasVideoUrl 
+        ? '🤖 Bước 1: Đang cải thiện transcript với Gemini 2.0 Flash (video URL mode - NHANH)...'
+        : '🤖 Bước 1: Đang cải thiện transcript với Gemini 2.0 Flash (text-only)...'
     );
 
     let improvedText = "";
     let improvedTranscript = transcriptSegments;
+    
+    // Declare outside try block for cleanup access
+    let geminiFileUri: string | null = null;
+    let geminiFileName: string | null = null;
+    let geminiFileMimeType: string | null = null;
 
     try {
+      // Upload video to Gemini File API nếu có URL
+      
+      if (hasVideoUrl) {
+        try {
+          console.log('📤 Uploading video URL to Gemini File API...');
+          
+          // Tải video trực tiếp từ URL
+          const videoResponse = await fetch(videoUrl, {
+            signal: AbortSignal.timeout(60000), // 60s timeout
+          });
+          
+          if (!videoResponse.ok) {
+            throw new Error(`Failed to fetch video: ${videoResponse.status}`);
+          }
+
+          const videoBlob = await videoResponse.blob();
+          const videoFile = new File([videoBlob], "meeting-recording.mp4", {
+            type: "video/mp4",
+          });
+
+          console.log('📊 Video info:', {
+            size: (videoFile.size / 1024 / 1024).toFixed(2) + ' MB',
+            type: videoFile.type,
+            name: videoFile.name
+          });
+
+          // Upload to Gemini File API (để Gemini tự detect codec)
+          const uploadResult = await ai.files.upload({
+            file: videoFile,
+            config: {
+              displayName: "Meeting Recording",
+            },
+          });
+
+          geminiFileUri = uploadResult.uri || null;
+          geminiFileName = uploadResult.name || null;
+          console.log('✅ Video uploaded to Gemini File API:', geminiFileUri);
+
+          // ⏳ Đợi file chuyển sang trạng thái ACTIVE (bắt buộc!)
+          if (geminiFileName) {
+            console.log('⏳ Waiting for file to become ACTIVE...');
+            let fileReady = false;
+            let attempts = 0;
+            const maxAttempts = 30; // Tối đa 30 lần (30 giây)
+
+            while (!fileReady && attempts < maxAttempts) {
+              attempts++;
+              
+              // Đợi 1 giây trước khi check
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              // Lấy thông tin file
+              const fileInfo = await ai.files.get({ name: geminiFileName });
+              
+              console.log(`  → Attempt ${attempts}/${maxAttempts}: File state = ${fileInfo.state}, mimeType = ${fileInfo.mimeType}`);
+              
+              if (fileInfo.state === 'ACTIVE') {
+                fileReady = true;
+                geminiFileMimeType = fileInfo.mimeType || null; // Lưu mime type từ Gemini
+                console.log('✅ File is ACTIVE and ready to use!');
+                console.log('✅ Detected mime type:', geminiFileMimeType);
+              } else if (fileInfo.state === 'FAILED') {
+                throw new Error('File processing failed on Gemini side');
+              }
+              // If still PROCESSING, continue loop
+            }
+
+            if (!fileReady) {
+              throw new Error('File did not become ACTIVE within timeout');
+            }
+          }
+        } catch (videoError: any) {
+          console.warn('⚠️ Failed to upload video to Gemini, fallback to text-only:', videoError.message);
+          // Cleanup on error
+          if (geminiFileName) {
+            try {
+              await ai.files.delete({ name: geminiFileName });
+              console.log('🗑️ Cleaned up failed upload');
+            } catch (e) {
+              // Ignore cleanup errors
+            }
+          }
+          geminiFileUri = null;
+          geminiFileName = null;
+        }
+      }
+
+      // Build request parts
+      const requestParts: any[] = [
+        {
+          text: geminiFileUri 
+            ? `
+                Tôi có một đoạn transcript sơ bộ của video cuộc họp. Hãy xem video và dựa vào transcript để tạo ra một transcript hoàn chỉnh, chính xác hơn bằng tiếng Việt.
+
+                Transcript sơ bộ:
+                ${transcriptText}
+
+                Yêu cầu:
+                - Xem video để hiểu ngữ cảnh, cảm xúc, ngữ điệu
+                - Sửa lỗi chính tả, ngữ pháp, từ sai hoặc thiếu dựa trên video
+                - Thêm dấu câu chính xác
+                - Chia đoạn văn hợp lý
+                - QUAN TRỌNG: Giữ NGUYÊN Speaker ID như trong transcript gốc
+                - QUAN TRỌNG: Giữ NGUYÊN timestamp format [MM:SS]
+                
+                Trả về transcript đã cải thiện theo ĐÚNG định dạng:
+                [timestamp] Speaker X: <nội dung đã sửa>
+
+                Transcript đã cải thiện:
+              `
+            : `
+                Hãy cải thiện transcript cuộc họp sau bằng tiếng Việt.
+
+                Transcript gốc:
+                ${transcriptText}
+
+                Yêu cầu:
+                - Sửa lỗi chính tả, ngữ pháp
+                - Thêm dấu câu chính xác
+                - Chia đoạn văn hợp lý
+                - Giữ nguyên ý nghĩa và ngữ cảnh
+                - QUAN TRỌNG: Giữ NGUYÊN Speaker ID như trong transcript gốc
+                - QUAN TRỌNG: Giữ NGUYÊN timestamp format [MM:SS]
+                
+                Trả về transcript đã cải thiện theo ĐÚNG định dạng:
+                [timestamp] Speaker X: <nội dung đã sửa>
+
+                Transcript đã cải thiện:
+              `,
+        },
+      ];
+
+      // Add file reference if uploaded
+      if (geminiFileUri) {
+        requestParts.push({
+          fileData: {
+            // ⚠️ KHÔNG chỉ định mimeType ở đây - để Gemini tự detect từ file
+            fileUri: geminiFileUri,
+          },
+        });
+      }
+
       const improvedResponse = await callGeminiWithRetry(
         ai,
         {
-          model: "gemini-2.5-pro",
+          model: "gemini-2.0-flash",
           contents: [
             {
               role: "user",
-              parts: [
-                {
-                  text: `
-                                    Tôi có một đoạn transcript sơ bộ của video này. Hãy xem video và dựa vào transcript tôi cung cấp để tạo ra một transcript hoàn chỉnh, chính xác hơn bằng tiếng Việt.
-
-                                    Transcript sơ bộ:
-                                    ${transcriptText}
-
-                                    Yêu cầu:
-                                    - Sửa lại các từ sai, thiếu hoặc không rõ ràng
-                                    - Thêm dấu câu chính xác
-                                    - Chia đoạn văn hợp lý
-                                    - Giữ nguyên ý nghĩa và ngữ cảnh
-                                    - Định dạng rõ ràng, dễ đọc
-                                    - Giữ nguyên Speaker ID như trong transcript gốc
-                                    
-                                    Trả về transcript đã cải thiện theo định dạng:
-                                    [timestamp] Speaker X: <nội dung đã sửa>
-
-                                    Transcript đã cải thiện:
-                                `,
-                },
-                {
-                  inlineData: {
-                    mimeType: "video/mp4",
-                    data: base64,
-                  },
-                },
-              ],
+              parts: requestParts,
             },
           ],
         },
-        3 // Retry tối đa 3 lần
+        2 // Retry tối đa 2 lần
       );
 
       improvedText =
         improvedResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-      // console.log('✅ Đã nhận được improved transcript, độ dài:', improvedText.length);
-      // console.log('📄 Improved Transcript Preview:', improvedText);
+      console.log('✅ Đã nhận được improved transcript, độ dài:', improvedText.length);
+      
       improvedTranscript = parseImprovedTranscript(
         improvedText,
         transcriptSegments
       );
-      // improvedTranscript = updateSpeakerIds(transcriptSegments, improvedTranscript);
-      // console.log('✅ Đã parse improved transcript thành array: ', improvedTranscript.length, 'segments');
-      // console.log('📄 Improved Transcript Array Preview:', improvedTranscript.slice(0, 3));
+      console.log('✅ Đã parse improved transcript thành array:', improvedTranscript.length, 'segments');
+      
       improvedText = transcriptArrayToText(improvedTranscript);
+
+      // 🗑️ Xóa file ngay sau khi xử lý xong (cleanup)
+      if (geminiFileName) {
+        try {
+          console.log('🗑️ Deleting video file from Gemini storage...');
+          await ai.files.delete({ name: geminiFileName });
+          console.log('✅ Video file deleted successfully');
+        } catch (deleteError) {
+          console.warn('⚠️ Failed to delete file (non-critical):', deleteError);
+          // Non-critical error, continue
+        }
+      }
     } catch (error: any) {
       console.warn(
-        "⚠️ Bước 2 thất bại sau khi retry, sử dụng transcript gốc:",
+        "⚠️ Bước 1 thất bại sau khi retry, sử dụng transcript gốc:",
         error.message
       );
+      
+      // Cleanup file on error
+      if (geminiFileName) {
+        try {
+          await ai.files.delete({ name: geminiFileName });
+          console.log('🗑️ Cleaned up file after error');
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+      }
+      
       // Fallback: Sử dụng transcript gốc nếu improve failed
       improvedText = transcriptText;
       improvedTranscript = transcriptSegments.map(
@@ -309,11 +442,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // console.log('✅ Đã parse improved transcript:', improvedTranscript.length, 'segments');
-
-    // ===== BƯỚC 3: Tạo Summary + Todo List với RETRY (parallel) =====
+    // ===== BƯỚC 2: Tạo Summary + Todo List với RETRY (parallel) =====
     console.log(
-      "🤖 Bước 3: Đang tạo summary và todo list với Gemini 2.0 Flash (parallel, chỉ text)..."
+      "🤖 Bước 2: Đang tạo summary và todo list với Gemini 2.0 Flash (parallel, text-only)..."
     );
 
     let summary = "Không có kết quả.";
@@ -441,14 +572,14 @@ export async function POST(request: NextRequest) {
         todoList = [];
       }
     } catch (error: any) {
-      console.warn("⚠️ Bước 3 thất bại một phần sau khi retry:", error.message);
+      console.warn("⚠️ Bước 2 thất bại một phần sau khi retry:", error.message);
       // Tiếp tục với kết quả partial (có thể có summary nhưng không có todo)
     }
 
-    console.log("✅ Bước 3 hoàn thành: Summary và Todo list đã được tạo");
+    console.log("✅ Bước 2 hoàn thành: Summary và Todo list đã được tạo");
 
     // Trả về kết quả (ngay cả khi chỉ có partial results)
-    console.log("🎉 Xử lý hoàn tất!");
+    console.log("🎉 Xử lý hoàn tất! (text-only mode - NHANH HƠN)");
     return NextResponse.json({
       success: true,
       data: {

@@ -38,7 +38,6 @@ import { todoService } from "@/services/todoService";
 import TranscriptPanel from "@/components/meeting/TranscriptPanel";
 import "react-datepicker/dist/react-datepicker.css";
 import { Todo } from "@/types/todo";
-import { uploadFileToCloudinary } from "@/services/uploadFileService";
 import { taskService } from "@/services/taskService";
 import { PagingRequest } from "@/types/project";
 import TodoCard from "@/components/meeting/TodoCard";
@@ -241,55 +240,6 @@ export default function MeetingDetailPage() {
   };
 
   const hasProcessedRef = useRef(false);
-  // Async function to upload recording
-  const uploadRecordingUrlToCloud = async (recordUrl: string) => {
-    // If we already have recordUrl pointing to Cloudinary (or previously uploaded), return immediately
-    if (!recordUrl) throw new Error("No recording URL to upload");
-    try {
-      console.debug("uploadRecordingUrlToCloud - recordUrl:", recordUrl);
-      const res = await fetch(recordUrl);
-      console.debug("uploadRecordingUrlToCloud - fetch response:", {
-        ok: res.ok,
-        status: res.status,
-        statusText: res.statusText,
-        contentType: res.headers?.get?.("content-type") ?? "(no header)",
-      });
-      if (!res.ok) throw new Error("Failed to fetch recording for upload");
-      const blob = await res.blob();
-      console.debug("uploadRecordingUrlToCloud - blob:", {
-        size: blob.size,
-        type: blob.type,
-      });
-      const contentType = blob.type || "video/mp4";
-      const ext = contentType.includes("webm") ? "webm" : "mp4";
-      // Get a proper filename
-      const urlParts = (recordUrl || "").split("/");
-      let filename = urlParts[urlParts.length - 1] || `recording.${ext}`;
-      // sanitize
-      filename = filename.split("?")[0].replace(/[^a-zA-Z0-9-_\.]/g, "-");
-      const file = new File([blob], filename, { type: contentType });
-      console.debug("uploadRecordingUrlToCloud - prepared file:", {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      });
-      // uploadFileToCloudinary is imported from services
-      try {
-        const cloudUrl = await uploadFileToCloudinary(file);
-        console.debug("uploadRecordingUrlToCloud - upload success:", cloudUrl);
-        return cloudUrl;
-      } catch (uploadErr: any) {
-        console.error("uploadRecordingUrlToCloud - uploadErr:", uploadErr);
-        throw uploadErr;
-      }
-    } catch (err: any) {
-      // propagate meaningful error
-      console.error("uploadRecordingUrlToCloud - error:", err);
-      throw new Error(
-        err?.message || "Unable to upload to cloud. Please try again."
-      );
-    }
-  };
 
   // Call API to process meeting
   const processVideo = async (
@@ -300,37 +250,34 @@ export default function MeetingDetailPage() {
     setIsProcessingMeetingAI(true);
 
     try {
-      // 1) Upload recording from Stream to Cloud (if not already in DB)
+      // 1) Use recording URL from DB (should already be uploaded during end meeting)
       let cloudRecordingUrl = meetingInfo?.recordUrl || null;
-      if (!cloudRecordingUrl) {
-        if (!recording?.url)
-          throw new Error("No recording URL found for upload");
-        try {
-          cloudRecordingUrl = await uploadRecordingUrlToCloud(recording.url);
-          // Update local immediately to avoid re-uploading
-          setMeetingInfo((prev: any) => ({
-            ...(prev || {}),
-            recordUrl: cloudRecordingUrl,
-          }));
-        } catch (uploadErr: any) {
-          // If upload fails, stop and show error
-          throw new Error(
-            uploadErr?.message || "Failed to upload recording to cloud"
-          );
-        }
+      let isUsingStreamUrl = false;
+      
+      // Fallback: If somehow recordUrl is not in DB, use Stream URL directly
+      if (!cloudRecordingUrl && recording?.url) {
+        console.warn("⚠️ Recording URL not found in DB, using Stream URL as fallback");
+        cloudRecordingUrl = recording.url;
+        isUsingStreamUrl = true;
       }
+
+      if (!cloudRecordingUrl) {
+        throw new Error("No recording URL available");
+      }
+
       console.log("Cloud recording URL:", cloudRecordingUrl);
+      console.log("Is using Stream URL:", isUsingStreamUrl);
       console.log("Transcriptions:", transcriptions);
       console.log("Tasks:", tasks);
 
-      // 2) Call API to process video (send cloud URL instead of Stream URL)
+      // 2) Call API to process video
       const response = await fetch("/api/gemini/process-video", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          videoUrl: cloudRecordingUrl, // use cloud URL
+          videoUrl: cloudRecordingUrl,
           transcriptSegments: transcriptions,
           tasks: tasks,
         }),
@@ -349,21 +296,29 @@ export default function MeetingDetailPage() {
         setSummary(processedSummary);
         setTodoList(data.data.todoList);
 
-        // 3) Update meeting on server with cloudRecordingUrl (not Stream URL)
+        // 3) Update meeting on server
+        // IMPORTANT: Only save recordUrl if it's NOT a Stream URL (temporary)
         try {
-          const updateResult = await meetingService.updateMeeting({
+          const updatePayload: any = {
             meetingId: params.id as string,
             summary: data.data.summary,
             transcription: JSON.stringify(data.data.improvedTranscript),
-            recordUrl: cloudRecordingUrl, // save cloud URL
-          });
+          };
+
+          // Only include recordUrl if it's a permanent Cloudinary URL
+          if (!isUsingStreamUrl && cloudRecordingUrl) {
+            updatePayload.recordUrl = cloudRecordingUrl;
+          }
+
+          const updateResult = await meetingService.updateMeeting(updatePayload);
 
           if (updateResult.success) {
             setMeetingInfo((prev: any) => ({
               ...prev,
               summary: data.data.summary,
               transcription: JSON.stringify(data.data.improvedTranscript),
-              recordUrl: cloudRecordingUrl,
+              // Only update recordUrl in state if it's permanent
+              ...((!isUsingStreamUrl && cloudRecordingUrl) ? { recordUrl: cloudRecordingUrl } : {}),
               todoList: JSON.stringify(data.data.todoList),
             }));
           } else {
@@ -463,24 +418,16 @@ export default function MeetingDetailPage() {
     setIsProcessingMeetingAI(true);
 
     try {
-      // 1. Get recording URL
+      // 1. Get recording URL from DB (should already be uploaded)
       let cloudRecordingUrl = meetingInfo?.recordUrl || null;
 
-      // If no recordUrl in DB, try to get from recordings
+      // Fallback: If no recordUrl in DB, use Stream URL
       if (!cloudRecordingUrl && recordings.length > 0 && recordings[0]?.url) {
-        try {
-          cloudRecordingUrl = await uploadRecordingUrlToCloud(
-            recordings[0].url
-          );
-        } catch (uploadErr: any) {
-          // throw new Error(uploadErr?.message || "Failed to upload recording");
-          console.warn("Regeneration: unable to upload recording:", uploadErr);
-          return;
-        }
+        console.warn("⚠️ Recording URL not in DB, using Stream URL as fallback");
+        cloudRecordingUrl = recordings[0].url;
       }
 
       if (!cloudRecordingUrl) {
-        // throw new Error("No recording URL available for regeneration");
         toast.warning("No recording URL available for regeneration");
         return;
       }
@@ -655,13 +602,22 @@ export default function MeetingDetailPage() {
       recordingUrl: recordings[0]?.url,
       meetingInfoLoaded: !isLoadingMeeting,
       todosFromDBLength: todosFromDB.length,
+      meetingInfoRecordUrl: meetingInfo?.recordUrl,
     });
+    
     // Only call AI when no existing data and all required info is available
     if (
       !originalTranscriptions ||
-      originalTranscriptions.length === 0 ||
-      !recordings[0]?.url
+      originalTranscriptions.length === 0
     ) {
+      console.log("⏸️ Waiting for transcriptions...");
+      return;
+    }
+
+    // Check if we have recording URL (from DB or Stream)
+    const hasRecordingUrl = meetingInfo?.recordUrl || recordings[0]?.url;
+    if (!hasRecordingUrl) {
+      console.log("⏸️ Waiting for recording URL...");
       return;
     }
 
@@ -670,6 +626,15 @@ export default function MeetingDetailPage() {
     }
 
     hasProcessedRef.current = true;
+    
+    // Show info if using temporary Stream URL
+    if (!meetingInfo?.recordUrl && recordings[0]?.url) {
+      console.warn("⚠️ Using temporary Stream URL for AI processing. Recording will be uploaded permanently on next access.");
+      toast.info("Processing meeting with temporary recording link. Upload will happen in background.", {
+        autoClose: 5000,
+      });
+    }
+    
     processVideo(recordings[0], originalTranscriptions, projectTasks);
   }, [
     originalTranscriptions,
