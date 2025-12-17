@@ -224,17 +224,8 @@ export const ProjectSettings = ({
     }));
   };
 
-  const handleAddMember = async (member: Member) => {
-    // Check member count limitation before adding
-    const newMemberCount = members.length + 1;
-    if (!checkMemberInProjectLimit(newMemberCount)) {
-      return; // Limit exceeded, don't add
-    }
-
-    // Don't close modal here - let user add multiple members
-    // setShowAddMemberModal(false);
-
-    // Re-fetch members from API to get latest data
+  // Helper function to refresh members list from API
+  const refreshMembersList = async () => {
     try {
       const result = await projectService.getProjectMembers(project.id);
       if (result.success && result.data) {
@@ -270,6 +261,25 @@ export const ProjectSettings = ({
     }
   };
 
+  const handleAddMember = async (member: Member) => {
+    // Check member count limitation before adding
+    const newMemberCount = members.length + 1;
+    if (!checkMemberInProjectLimit(newMemberCount)) {
+      return; // Limit exceeded, don't add
+    }
+
+    // Don't close modal here - let user add multiple members
+    // setShowAddMemberModal(false);
+
+    // Re-fetch members from API to get latest data
+    await refreshMembersList();
+    
+    // Trigger project header refresh
+    if (onProjectUpdate) {
+      onProjectUpdate();
+    }
+  };
+
   const handleDeleteMember = (memberId: string) => {
     const member = members.find((m) => m.id === memberId);
     if (member) {
@@ -288,10 +298,14 @@ export const ProjectSettings = ({
       );
 
       if (result.success) {
-        // Remove from UI on success
-        setMembers((prev) =>
-          prev.filter((m) => (m.pmId || m.id) !== memberToDelete.id)
-        );
+        // Re-fetch members from API to get updated data (moved to Former Members)
+        await refreshMembersList();
+        
+        // Trigger project header refresh
+        if (onProjectUpdate) {
+          onProjectUpdate();
+        }
+        
         toast.success("Member removed successfully!");
       } else {
         toast.error(
