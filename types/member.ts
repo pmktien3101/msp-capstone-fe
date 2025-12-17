@@ -6,6 +6,7 @@ export interface Member {
   avatar: string;
   email: string;
   avatarUrl?: string | null;
+  leftAt?: string | null; // Track if member has left the project
 }
 export interface Participant {
   id: string;

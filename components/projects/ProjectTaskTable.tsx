@@ -187,9 +187,9 @@ export const ProjectTaskTable = ({
         const response = await projectService.getProjectMembers(projectId);
         
         if (response.success && response.data) {
-          // Transform to simple format for display
+          // Transform to simple format for display - only active members
           const transformedMembers = response.data
-            .filter((pm: any) => pm.member)
+            .filter((pm: any) => pm.member && !pm.leftAt) // Only active members
             .map((pm: any) => ({
               id: pm.member.id,
               name: pm.member.fullName || pm.member.email,

@@ -329,18 +329,24 @@ const ProjectDetailPage = () => {
             membersResult = { success: true, data: [] };
           }
 
-          // Combine project data with members
+          // Combine project data with members - only active members
           const projectWithMembers = {
             ...result.data,
             members:
               membersResult.success && membersResult.data
-                ? membersResult.data.map((memberResponse: any) => ({
-                    userId: memberResponse.id,
-                    fullName: memberResponse.fullName,
-                    email: memberResponse.email,
-                    role: memberResponse.roleName,
-                    image: memberResponse.avatarUrl || "",
-                  }))
+                ? membersResult.data
+                    .filter((pm: any) => !pm.leftAt) // Only active members
+                    .map((pm: any) => {
+                      // API returns ProjectMember with nested member object
+                      const memberData = pm.member || pm;
+                      return {
+                        userId: memberData.id,
+                        fullName: memberData.fullName,
+                        email: memberData.email,
+                        role: memberData.roleName || memberData.role,
+                        image: memberData.avatarUrl || "",
+                      };
+                    })
                 : [],
             progress: 0, // TODO: Calculate from tasks/milestones
             manager:

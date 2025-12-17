@@ -71,19 +71,25 @@ export function AddMemberModal({
     }
   };
 
-  // Filter out existing members and apply search
+  // Filter out ACTIVE members only (not former members who can be re-added)
   // Support both Member format (id) and User format (userId or id)
-  const existingMemberUserIds = existingMembers.map(m => m.id || (m as any).userId).filter(Boolean);
-  const existingMemberEmails = existingMembers.map(m => m.email?.toLowerCase()).filter(Boolean);
+  const activeMemberUserIds = existingMembers
+    .filter(m => !m.leftAt) // Only filter active members
+    .map(m => m.id || (m as any).userId)
+    .filter(Boolean);
+  const activeMemberEmails = existingMembers
+    .filter(m => !m.leftAt) // Only filter active members
+    .map(m => m.email?.toLowerCase())
+    .filter(Boolean);
   
   const filteredUsers = availableUsers.filter(availableUser => {
     // Get user ID - API might return 'id' or 'userId'
     const userIdentifier = availableUser.userId || availableUser.id;
     
-    // Check if user already exists by ID or email
-    const isExistingMemberById = existingMemberUserIds.includes(userIdentifier);
-    const isExistingMemberByEmail = existingMemberEmails.includes(availableUser.email?.toLowerCase());
-    const isExistingMember = isExistingMemberById || isExistingMemberByEmail;
+    // Check if user is already an ACTIVE member (leftAt == null)
+    const isActiveMemberById = activeMemberUserIds.includes(userIdentifier);
+    const isActiveMemberByEmail = activeMemberEmails.includes(availableUser.email?.toLowerCase());
+    const isActiveMember = isActiveMemberById || isActiveMemberByEmail;
     
     // Role-based filtering
     const userRoleValue = availableUser.role || availableUser.roleName || '';
@@ -107,7 +113,7 @@ export function AddMemberModal({
       availableUser.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       userRoleValue.toLowerCase().includes(searchQuery.toLowerCase());
     
-    return !isExistingMember && matchesSearch;
+    return !isActiveMember && matchesSearch;
   });
 
   const handleAddMember = async (selectedUser: any) => {

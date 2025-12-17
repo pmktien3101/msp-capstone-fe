@@ -105,7 +105,7 @@ export default function MeetingForm({
     members: ProjectMemberResponse[]
   ): Participant[] => {
     return members
-      .filter((member) => member.member.role !== "ProjectManager")
+      .filter((member) => !member.leftAt && member.member.role !== "ProjectManager") // Only active members
       .map((member) => ({
         id: member.member.id,
         role: member.member.role,

@@ -85,7 +85,7 @@ export const CreateTaskModal = ({
         );
         if (membersResponse.success && membersResponse.data) {
           const membersList = membersResponse.data
-            .filter((pm: any) => pm.member)
+            .filter((pm: any) => pm.member && !pm.leftAt) // Only active members
             .map((pm: any) => ({
               id: pm.member.id,
               name: pm.member.fullName || pm.member.email,
@@ -99,7 +99,7 @@ export const CreateTaskModal = ({
         );
         if (reviewersResponse.success && reviewersResponse.data) {
           const reviewersList = reviewersResponse.data
-            .filter((pm: any) => pm.member)
+            .filter((pm: any) => pm.member && !pm.leftAt) // Only active PMs
             .map((pm: any) => ({
               id: pm.member.id,
               name: pm.member.fullName || pm.member.email,
@@ -230,14 +230,19 @@ export const CreateTaskModal = ({
           taskData.milestoneIds.includes(m.id)
         );
         
-        for (const milestone of selectedMilestones) {
-          if (milestone.dueDate) {
-            const milestoneDue = new Date(milestone.dueDate);
-            if (end > milestoneDue) {
-              errors.endDate = `Task end date cannot be after milestone "${milestone.name}" due date`;
-              hasError = true;
-              break;
-            }
+        // Find the milestone with the latest due date
+        const milestonesWithDates = selectedMilestones.filter(m => m.dueDate);
+        if (milestonesWithDates.length > 0) {
+          const latestMilestoneDue = new Date(
+            Math.max(...milestonesWithDates.map(m => new Date(m.dueDate).getTime()))
+          );
+          const latestMilestone = milestonesWithDates.find(
+            m => new Date(m.dueDate).getTime() === latestMilestoneDue.getTime()
+          );
+          
+          if (end > latestMilestoneDue) {
+            errors.endDate = `Task end date cannot be after the latest milestone "${latestMilestone?.name}" due date`;
+            hasError = true;
           }
         }
       }
@@ -332,13 +337,19 @@ export const CreateTaskModal = ({
           taskData.milestoneIds.includes(m.id)
         );
         
-        for (const milestone of selectedMilestones) {
-          if (milestone.dueDate) {
-            const milestoneDue = new Date(milestone.dueDate);
-            if (end > milestoneDue) {
-              setValidationErrors(prev => ({ ...prev, startDate: `Task dates conflict with milestone "${milestone.name}"` }));
-              return;
-            }
+        // Find the milestone with the latest due date
+        const milestonesWithDates = selectedMilestones.filter(m => m.dueDate);
+        if (milestonesWithDates.length > 0) {
+          const latestMilestoneDue = new Date(
+            Math.max(...milestonesWithDates.map(m => new Date(m.dueDate).getTime()))
+          );
+          const latestMilestone = milestonesWithDates.find(
+            m => new Date(m.dueDate).getTime() === latestMilestoneDue.getTime()
+          );
+          
+          if (end > latestMilestoneDue) {
+            setValidationErrors(prev => ({ ...prev, startDate: `Task end date conflicts with milestone "${latestMilestone?.name}"` }));
+            return;
           }
         }
       }
@@ -411,13 +422,19 @@ export const CreateTaskModal = ({
           taskData.milestoneIds.includes(m.id)
         );
         
-        for (const milestone of selectedMilestones) {
-          if (milestone.dueDate) {
-            const milestoneDue = new Date(milestone.dueDate);
-            if (end > milestoneDue) {
-              setValidationErrors(prev => ({ ...prev, endDate: `End date cannot be after milestone "${milestone.name}" due date` }));
-              return;
-            }
+        // Find the milestone with the latest due date
+        const milestonesWithDates = selectedMilestones.filter(m => m.dueDate);
+        if (milestonesWithDates.length > 0) {
+          const latestMilestoneDue = new Date(
+            Math.max(...milestonesWithDates.map(m => new Date(m.dueDate).getTime()))
+          );
+          const latestMilestone = milestonesWithDates.find(
+            m => new Date(m.dueDate).getTime() === latestMilestoneDue.getTime()
+          );
+          
+          if (end > latestMilestoneDue) {
+            setValidationErrors(prev => ({ ...prev, endDate: `End date cannot be after the latest milestone "${latestMilestone?.name}" due date` }));
+            return;
           }
         }
       }
@@ -427,15 +444,20 @@ export const CreateTaskModal = ({
         taskData.milestoneIds.includes(m.id)
       );
       
-      for (const milestone of selectedMilestones) {
-        if (milestone.dueDate) {
-          const milestoneDue = new Date(milestone.dueDate);
-          const selectedEnd = new Date(newEndDate);
-          
-          if (selectedEnd > milestoneDue) {
-            setValidationErrors(prev => ({ ...prev, endDate: `End date cannot be after milestone "${milestone.name}" due date` }));
-            return;
-          }
+      // Find the milestone with the latest due date
+      const milestonesWithDates = selectedMilestones.filter(m => m.dueDate);
+      if (milestonesWithDates.length > 0) {
+        const latestMilestoneDue = new Date(
+          Math.max(...milestonesWithDates.map(m => new Date(m.dueDate).getTime()))
+        );
+        const latestMilestone = milestonesWithDates.find(
+          m => new Date(m.dueDate).getTime() === latestMilestoneDue.getTime()
+        );
+        const selectedEnd = new Date(newEndDate);
+        
+        if (selectedEnd > latestMilestoneDue) {
+          setValidationErrors(prev => ({ ...prev, endDate: `End date cannot be after the latest milestone "${latestMilestone?.name}" due date` }));
+          return;
         }
       }
     }

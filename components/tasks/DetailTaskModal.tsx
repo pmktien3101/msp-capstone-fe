@@ -56,7 +56,9 @@ export const DetailTaskModal = ({
       try {
         const response = await projectService.getProjectMembers(projectId);
         if (response.success && response.data) {
-          setMembers(response.data);
+          // Filter out members who have left the project
+          const activeMembers = response.data.filter((pm: any) => !pm.leftAt);
+          setMembers(activeMembers);
         }
       } catch (error) {
         console.error('Error fetching members:', error);

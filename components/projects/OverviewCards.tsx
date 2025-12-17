@@ -55,7 +55,9 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
         }
 
         if (membersRes.success && membersRes.data) {
-          setProjectMembers(membersRes.data);
+          // Filter out members who have left the project
+          const activeMembers = membersRes.data.filter((pm: any) => !pm.leftAt);
+          setProjectMembers(activeMembers);
         }
       } catch (error) {
         console.error('[OverviewCards] Error fetching data:', error);

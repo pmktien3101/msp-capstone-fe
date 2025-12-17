@@ -60,9 +60,10 @@ export function ProjectSummary({ project, readOnly = false }: ProjectSummaryProp
           setProjectTasks([]);
         }
 
-        // Set members
+        // Set members - filter out members who have left
         if (membersRes.success && membersRes.data) {
-          setProjectMembers(membersRes.data);
+          const activeMembers = membersRes.data.filter((pm: any) => !pm.leftAt);
+          setProjectMembers(activeMembers);
         } else {
           setProjectMembers([]);
         }

@@ -52,20 +52,6 @@ export const ProjectSettings = ({
 }: ProjectSettingsProps) => {
   const { checkMemberInProjectLimit } = useMemberInProjectLimitationCheck();
 
-  // Helper function to format ISO date to YYYY-MM-DD for date input
-  const formatDateForInput = (dateString?: string) => {
-    if (!dateString) return "";
-    try {
-      const date = new Date(dateString);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    } catch {
-      return "";
-    }
-  };
-
   // Helper function to format date for display (dd/MM/yyyy)
   const formatDateForDisplay = (dateString?: string) => {
     if (!dateString) return "";
@@ -824,9 +810,9 @@ export const ProjectSettings = ({
 
         {/* Former Members Section */}
         {formerMembers.length > 0 && (
-          <div className="settings-section">
+          <div className="settings-section former-members-section">
             <div className="settings-section-header">
-              <div className="section-icon" style={{ background: "#9CA3AF" }}>
+              <div className="section-icon">
                 <Users size={16} color="white" />
               </div>
               <h4>Former Members ({formerMembers.length})</h4>
@@ -841,8 +827,8 @@ export const ProjectSettings = ({
                     return dateB - dateA;
                   })
                   .map((member) => (
-                    <div key={member.id} className="member-card" style={{ opacity: 0.7 }}>
-                      <div className="member-avatar" style={{ filter: "grayscale(50%)" }}>
+                    <div key={member.id} className="member-card former-member-card">
+                      <div className="member-avatar">
                         {(member as any).avatarUrl ? (
                           <img
                             src={(member as any).avatarUrl}
@@ -857,14 +843,8 @@ export const ProjectSettings = ({
                         <div className="member-role">{member.role}</div>
                         <div className="member-email">{member.email}</div>
                         {(member as any).leftAt && (
-                          <div 
-                            style={{ 
-                              fontSize: "11px", 
-                              color: "#9CA3AF",
-                              marginTop: "4px",
-                              fontStyle: "italic"
-                            }}
-                          >
+                          <div className="left-date">
+                            <Calendar size={12} />
                             Left: {formatDateForDisplay((member as any).leftAt)}
                           </div>
                         )}

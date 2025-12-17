@@ -40,6 +40,7 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
         if (membersRes.success && membersRes.data) {
           // Normalize member list to a simple shape: { id: string, name, email, role, avatarUrl }
           const transformedMembers = (membersRes.data || [])
+            .filter((pm: any) => !pm.leftAt) // Only active members
             .map((pm: any) => (pm.member || pm))
             .filter((src: any) => src && (src.id || src.userId))
             .map((src: any) => {

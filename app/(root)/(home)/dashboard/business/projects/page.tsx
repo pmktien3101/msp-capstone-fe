@@ -71,11 +71,13 @@ const BusinessProjectsPage = () => {
             let memberCount = 0;
 
             if (membersResult.success && membersResult.data) {
-              memberCount = membersResult.data.length;
+              // Count only active members (without leftAt)
+              const activeMembers = membersResult.data.filter((pm: any) => !pm.leftAt);
+              memberCount = activeMembers.length;
               const pmUserIds: string[] = [];
 
-              membersResult.data.forEach((projectMember: any) => {
-                // API returns: { userId, member: { id, role, fullName, email } }
+              activeMembers.forEach((projectMember: any) => {
+                // API returns: { userId, member: { id, role, fullName, email }, leftAt }
                 if (
                   projectMember.member &&
                   projectMember.member.role === "ProjectManager"

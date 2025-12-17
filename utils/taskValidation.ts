@@ -110,16 +110,27 @@ export const validateTaskMilestoneDates = (
   taskStart.setHours(0, 0, 0, 0);
   taskEnd.setHours(0, 0, 0, 0);
 
-  // Check each milestone
-  for (const milestone of selectedMilestones) {
-    const milestoneDue = new Date(milestone.dueDate);
-    milestoneDue.setHours(0, 0, 0, 0);
+  // Find the milestone with the latest due date
+  const milestonesWithDates = selectedMilestones.filter(m => m.dueDate);
+  if (milestonesWithDates.length > 0) {
+    const latestMilestoneDue = new Date(
+      Math.max(...milestonesWithDates.map(m => new Date(m.dueDate).getTime()))
+    );
+    latestMilestoneDue.setHours(0, 0, 0, 0);
+    
+    const latestMilestone = milestonesWithDates.find(
+      m => {
+        const mDate = new Date(m.dueDate);
+        mDate.setHours(0, 0, 0, 0);
+        return mDate.getTime() === latestMilestoneDue.getTime();
+      }
+    );
 
-    // Validation: Task end date must be <= milestone due date
-    if (taskEnd > milestoneDue) {
+    // Validation: Task end date must be <= latest milestone due date
+    if (taskEnd > latestMilestoneDue) {
       return {
         valid: false,
-        message: `Task end date must be on or before milestone "${milestone.name}" due date (${formatDate(milestone.dueDate)})`,
+        message: `Task end date must be on or before the latest milestone "${latestMilestone?.name}" due date (${formatDate(latestMilestone?.dueDate || '')})`,
       };
     }
   }
