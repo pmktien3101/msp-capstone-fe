@@ -48,10 +48,25 @@ const MeetingRoom = () => {
   const subscription = useSubscription();
 
   const wasJoinedRef = useRef(false);
+  const joinTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (callingState === CallingState.JOINED) {
+    if (callingState === CallingState.JOINED && call) {
       wasJoinedRef.current = true;
+      
+      // Dùng session.started_at từ Stream - đây là thời gian user đầu tiên join
+      // Stream tự động track điều này và đồng bộ giữa tất cả clients
+      const sessionStartedAt = (call as any).state?.session?.started_at;
+      
+      if (sessionStartedAt) {
+        // Có session started_at từ Stream
+        joinTimeRef.current = new Date(sessionStartedAt).getTime();
+        console.log("✅ Session started at (first join):", new Date(joinTimeRef.current).toISOString());
+      } else {
+        // Fallback: nếu chưa có session, dùng current time
+        joinTimeRef.current = Date.now();
+        console.log("⚠️ Using current time as fallback:", new Date(joinTimeRef.current).toISOString());
+      }
     }
     if (
       wasJoinedRef.current &&
@@ -154,9 +169,84 @@ const MeetingRoom = () => {
     return null;
   };
 
+  // Upload recording to Cloudinary (same logic as end-call-button)
+  const uploadRecordingToCloud = async (callId: string) => {
+    try {
+      console.log("🔄 Fetching recording from Stream (auto-end)...", { callId });
+      
+      // Wait a bit for Stream to process the recording
+      await new Promise((r) => setTimeout(r, 3000));
+      
+      // Query recordings from Stream
+      const recordingsResponse = await call?.queryRecordings();
+      const recordings = recordingsResponse?.recordings || [];
+      
+      if (recordings.length === 0) {
+        console.warn("⚠️ No recordings found yet (auto-end)");
+        return null;
+      }
+
+      const recording = recordings[0];
+      if (!recording?.url) {
+        console.warn("⚠️ Recording URL not available (auto-end)");
+        return null;
+      }
+
+      console.log("📥 Downloading recording from Stream (auto-end)...", { url: recording.url });
+      
+      // Fetch recording from Stream
+      const response = await fetch(recording.url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch recording: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const contentType = blob.type || "video/mp4";
+      const ext = contentType.includes("webm") ? "webm" : "mp4";
+      
+      // Create file from blob
+      const filename = `meeting-${callId}-${Date.now()}.${ext}`;
+      const file = new File([blob], filename, { type: contentType });
+
+      console.log("☁️ Uploading to Cloudinary (auto-end)...", { 
+        filename, 
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB` 
+      });
+
+      // Upload to Cloudinary
+      const cloudinaryUrl = await uploadFileToCloudinary(file);
+      
+      console.log("✅ Upload successful (auto-end)!", { cloudinaryUrl });
+      return cloudinaryUrl;
+    } catch (error) {
+      console.error("❌ Error uploading recording (auto-end):", error);
+      return null;
+    }
+  };
+
   const endCallDueToTimeout = async () => {
     if (!call) return;
+    
+    // Store callId before ending call
+    const callId = call.id;
+    
     try {
+      // 1. Upload recording to Cloudinary BEFORE ending call (same as end-call-button)
+      let recordUrl: string | null = null;
+      try {
+        console.log("📤 Starting recording upload to Cloudinary (auto-end, before ending call)...");
+        recordUrl = await uploadRecordingToCloud(callId);
+        if (recordUrl) {
+          console.log("✅ Recording uploaded successfully (auto-end):", recordUrl);
+        } else {
+          console.warn("⚠️ Recording upload returned null (auto-end, may not be ready yet)");
+        }
+      } catch (uploadError) {
+        console.error("❌ Error uploading recording (auto-end):", uploadError);
+        // Don't block the flow if upload fails
+      }
+
+      // 2. Now disable devices and end call
       await call.camera?.disable();
       await call.microphone?.disable();
       const meetingDurationLimit = getMeetingDurationLimit();
@@ -166,6 +256,7 @@ const MeetingRoom = () => {
       );
       await call.endCall();
 
+      // 3. Wait for endedAt timestamp
       const endedAtRaw = await waitForEndedAt();
       const endTime = endedAtRaw
         ? endedAtRaw instanceof Date
@@ -173,21 +264,22 @@ const MeetingRoom = () => {
           : new Date(endedAtRaw)
         : new Date();
 
+      // 4. Send end time and recording URL to backend
       try {
-        await meetingService.finishMeeting(call.id, endTime);
-        await uploadRecordingToCloudAndSave(call.id);
-        console.log("finishMeeting success (auto end)", call.id);
+        const res = await meetingService.finishMeeting(callId, endTime, recordUrl);
+        if (res.success) {
+          console.log("finishMeeting success (auto end):", res.message);
+        } else {
+          console.warn("finishMeeting failed (auto end):", res.error || res.message);
+        }
       } catch (e) {
-        console.error(
-          "Error calling meetingService.finishMeeting (auto end)",
-          e
-        );
+        console.error("Error calling meetingService.finishMeeting (auto end)", e);
       }
     } catch (err) {
       console.warn("Error auto-ending call", err);
     } finally {
-      // navigate to meeting detail page
-      router.push(`/projects`);
+      // navigate to projects page
+      router.push(`/meeting-details?${call.id}`);
     }
   };
 
@@ -197,34 +289,32 @@ const MeetingRoom = () => {
         (lim: any) => lim.limitationType === "MeetingDuration"
       );
       if (meetingDurationLim && !meetingDurationLim.isUnlimited) {
+        console.log("Meeting duration limit:", meetingDurationLim.limitValue);
         return meetingDurationLim.limitValue || 30;
       }
     }
     return 30; // fallback to 30 minutes
   };
 
+  // useEffect để schedule meeting reminders và auto-end
   useEffect(() => {
     if (!call) return;
 
-    // determine start time (try common fields)
-    const startRaw =
-      (call as any)?.state?.createdAt ||
-      (call as any)?.state?.startedAt ||
-      (call as any)?.createdAt ||
-      (call as any)?.created_at;
-    if (!startRaw) return;
+    // Dùng thời gian thực tế khi user join (không phải createdAt)
+    if (!joinTimeRef.current) {
+      console.warn("⚠️ Join time not yet recorded, skipping reminder scheduling");
+      return;
+    }
 
-    const startTime = new Date(startRaw);
-    if (Number.isNaN(startTime.getTime())) return;
-
+    const startTime = joinTimeRef.current; // Đây là timestamp (number)
     const meetingDurationMinutes = getMeetingDurationLimit();
     const now = Date.now();
     const msUntil15 =
-      startTime.getTime() + (meetingDurationMinutes - 15) * 60 * 1000 - now; // 15 min before end
+      startTime + (meetingDurationMinutes - 15) * 60 * 1000 - now; // 15 min before end
     const msUntil5 =
-      startTime.getTime() + (meetingDurationMinutes - 5) * 60 * 1000 - now; // 5 min before end
+      startTime + (meetingDurationMinutes - 5) * 60 * 1000 - now; // 5 min before end
     const msUntilEnd =
-      startTime.getTime() + meetingDurationMinutes * 60 * 1000 - now; // at end time
+      startTime + meetingDurationMinutes * 60 * 1000 - now; // at end time
 
     // clear existing timers
     if (timersRef.current.r15) {
@@ -280,14 +370,7 @@ const MeetingRoom = () => {
         timersRef.current.end = undefined;
       }
     };
-    // only re-run when call identity/state changes or subscription changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    call?.id,
-    (call as any)?.state?.createdAt,
-    (call as any)?.state?.startedAt,
-    subscription?.package?.limitations,
-  ]);
+  }, [call, joinTimeRef.current, subscription?.package?.limitations]);
 
   const CallLayout = () => {
     switch (layout) {
@@ -297,32 +380,6 @@ const MeetingRoom = () => {
         return <SpeakerLayout participantsBarPosition="right" />;
       default:
         return <SpeakerLayout participantsBarPosition="left" />;
-    }
-  };
-
-  const uploadRecordingToCloudAndSave = async (callId: string) => {
-    try {
-      // 1. Lấy recordings từ Stream
-      const res = await call?.queryRecordings();
-      const recording = res?.recordings?.[0];
-      if (!recording?.url) return;
-
-      // 2. Fetch file từ recording.url
-      const fileRes = await fetch(recording.url);
-      const blob = await fileRes.blob();
-      const file = new File([blob], "meeting-record.mp4", { type: blob.type });
-
-      // 3. Gọi API upload lên cloud (giả sử bạn có uploadFileToCloudinary)
-      // import { uploadFileToCloudinary } from "@/services/uploadFileService";
-      const cloudUrl = await uploadFileToCloudinary(file);
-
-      // 4. Lưu URL cloud vào DB
-      await meetingService.updateMeeting({
-        meetingId: callId,
-        recordUrl: cloudUrl,
-      });
-    } catch (err) {
-      console.error("Error upload record to cloud & save:", err);
     }
   };
 

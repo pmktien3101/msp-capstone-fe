@@ -44,6 +44,7 @@ import TodoCard from "@/components/meeting/TodoCard";
 import { RelatedTasksSidebar } from "@/components/meeting/RelatedTasksSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { formatTime } from "@/lib/formatDate";
+import { uploadFileToCloudinary } from "@/services/uploadFileService";
 
 // Environment-configurable API bases
 const stripSlash = (s: string) => s.replace(/\/$/, "");
@@ -148,6 +149,10 @@ export default function MeetingDetailPage() {
     timestamp: number;
   } | null>(null);
 
+  // Background upload state
+  const [isUploadingRecording, setIsUploadingRecording] = useState(false);
+  const hasAttemptedUploadRef = useRef(false);
+
   // Floating Action Bar position state
   const [fabPosition, setFabPosition] = useState<{
     x: number;
@@ -248,6 +253,94 @@ export default function MeetingDetailPage() {
   };
 
   const hasProcessedRef = useRef(false);
+
+  // Upload recording to Cloudinary in background
+  const uploadRecordingInBackground = async () => {
+    if (!call || hasAttemptedUploadRef.current || isUploadingRecording) {
+      return null;
+    }
+
+    hasAttemptedUploadRef.current = true;
+    setIsUploadingRecording(true);
+
+    try {
+      console.log("🔄 Background: Fetching recording from Stream...");
+      
+      // Wait for Stream to have recording ready
+      await new Promise((r) => setTimeout(r, 3000));
+      
+      // Query recordings
+      const recordingsResponse = await call.queryRecordings();
+      const recordings = recordingsResponse?.recordings || [];
+      
+      if (recordings.length === 0) {
+        console.warn("⚠️ Background: No recordings found");
+        return null;
+      }
+
+      const recording = recordings[0];
+      if (!recording?.url) {
+        console.warn("⚠️ Background: Recording URL not available");
+        return null;
+      }
+
+      console.log("📥 Background: Downloading recording...", { url: recording.url });
+      
+      // Fetch recording
+      const response = await fetch(recording.url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch recording: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const contentType = blob.type || "video/mp4";
+      const ext = contentType.includes("webm") ? "webm" : "mp4";
+      
+      // Create file
+      const filename = `meeting-${call.id}-${Date.now()}.${ext}`;
+      const file = new File([blob], filename, { type: contentType });
+
+      console.log("☁️ Background: Uploading to Cloudinary...", { 
+        filename, 
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB` 
+      });
+
+      // Upload to Cloudinary
+      const cloudinaryUrl = await uploadFileToCloudinary(file);
+      
+      console.log("✅ Background: Upload successful!", { cloudinaryUrl });
+
+      // Update DB với recordUrl mới
+      if (cloudinaryUrl) {
+        const updateResult = await meetingService.updateMeeting({
+          meetingId: call.id,
+          recordUrl: cloudinaryUrl,
+        });
+
+        if (updateResult.success) {
+          console.log("✅ Background: RecordUrl updated in DB");
+          // Update local state
+          setMeetingInfo((prev: any) => ({
+            ...prev,
+            recordUrl: cloudinaryUrl,
+          }));
+          
+          toast.success("Recording uploaded successfully!", { autoClose: 3000 });
+          return cloudinaryUrl;
+        }
+      }
+
+      return cloudinaryUrl;
+    } catch (error: any) {
+      console.error("❌ Background: Error uploading recording:", error);
+      toast.warning("Failed to upload recording. AI may use temporary URL.", {
+        autoClose: 5000,
+      });
+      return null;
+    } finally {
+      setIsUploadingRecording(false);
+    }
+  };
 
   // Call API to process meeting
   const processVideo = async (
@@ -1181,6 +1274,20 @@ export default function MeetingDetailPage() {
     }
     fetchMeeting();
   }, [params.id]);
+
+  // Auto-upload recording in background if not already uploaded
+  useEffect(() => {
+    if (
+      !isLoadingMeeting &&
+      meetingInfo?.endTime &&
+      !meetingInfo.recordUrl &&
+      call &&
+      !hasAttemptedUploadRef.current &&
+      !isUploadingRecording
+    ) {
+      uploadRecordingInBackground();
+    }
+  }, [isLoadingMeeting, meetingInfo, call, isUploadingRecording]);
 
   // Load todos from DB
   useEffect(() => {
