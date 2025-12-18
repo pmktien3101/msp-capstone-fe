@@ -80,7 +80,7 @@ const MeetingRoom = () => {
         } catch (err) {
           console.warn("Disable devices error", err);
         } finally {
-          router.push("/projects");
+          router.push(`/meeting-details/${call?.id}`);
         }
       })();
     }
@@ -279,7 +279,7 @@ const MeetingRoom = () => {
       console.warn("Error auto-ending call", err);
     } finally {
       // navigate to projects page
-      router.push(`/meeting-details?${call.id}`);
+      router.push(`/meeting-details/${call.id}`);
     }
   };
 
