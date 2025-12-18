@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, CircleAlertIcon, MailOpenIcon, Plus, Search, SearchIcon, Trash2, User, UserPenIcon, UserStarIcon, XIcon } from "lucide-react";
+import { CheckCircle2, CircleAlertIcon, Eye, MailOpenIcon, Plus, Search, SearchIcon, Trash2, User, UserPenIcon, UserStarIcon, XIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import "../../../../../styles/businessMembers.scss";
@@ -24,6 +24,8 @@ const MembersRolesPage = () => {
   // States
   const [showEditRoleModal, setShowEditRoleModal] = useState(false);
   const [memberToEditRole, setMemberToEditRole] = useState<GetUserResponse | null>(null);
+  const [showViewMemberModal, setShowViewMemberModal] = useState(false);
+  const [memberToView, setMemberToView] = useState<GetUserResponse | null>(null);
   const [members, setMembers] = useState<GetUserResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -128,6 +130,11 @@ const MembersRolesPage = () => {
   const handleEditRole = (member: GetUserResponse) => {
     setMemberToEditRole(member);
     setShowEditRoleModal(true);
+  };
+
+  const handleViewMember = (member: GetUserResponse) => {
+    setMemberToView(member);
+    setShowViewMemberModal(true);
   };
 
   const handleUpdateRole = async () => {
@@ -538,6 +545,10 @@ const MembersRolesPage = () => {
                     </div>
 
                     <div className="col-actions">
+                      <button className="action-btn view" onClick={() => handleViewMember(member)} title="View Details">
+                        <Eye size={16} strokeWidth={2} />
+                      </button>
+
                       <button className="action-btn edit" onClick={() => handleEditRole(member)} title="Edit Role">
                         <UserPenIcon size={16} strokeWidth={2} />
                       </button>
@@ -704,6 +715,72 @@ const MembersRolesPage = () => {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* View Member Detail Modal */}
+      {showViewMemberModal && memberToView && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Member Details</h3>
+              <button
+                className="close-btn"
+                onClick={() => setShowViewMemberModal(false)}
+              >
+                <XIcon size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="member-info-section">
+                <div className="member-avatar" style={{ width: '80px', height: '80px', fontSize: '32px' }}>
+                  {memberToView.fullName.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div className="info-name" style={{ fontSize: '24px', marginBottom: '8px' }}>{memberToView.fullName}</div>
+                  <div className="info-email" style={{ fontSize: '16px', marginBottom: '12px' }}>{memberToView.email}</div>
+                  <span className={`status-badge ${memberToView.isActive ? 'active' : 'inactive'}`}>
+                    {getStatusText(memberToView.isActive)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: '24px' }}>
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '8px' }}>Role</label>
+                <span className="role-badge" style={{ fontSize: '14px', padding: '8px 16px' }}>
+                  {getRoleBadge(memberToView.roleName)}
+                </span>
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '8px' }}>Phone Number</label>
+                <p style={{ margin: 0, color: '#6b7280' }}>{memberToView.phoneNumber || 'Not provided'}</p>
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '8px' }}>Projects</label>
+                <p style={{ margin: 0, color: '#6b7280' }}>{memberToView.projects || 0} projects</p>
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontWeight: 600, display: 'block', marginBottom: '8px' }}>Joined Date</label>
+                <p style={{ margin: 0, color: '#6b7280' }}>
+                  {memberToView.createdAt ? new Date(memberToView.createdAt).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  }) : 'Unknown'}
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="cancel-btn" onClick={() => setShowViewMemberModal(false)}>
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
