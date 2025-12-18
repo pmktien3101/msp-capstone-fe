@@ -38,16 +38,26 @@ const BusinessDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   // UI states
-  const [selectedPeriod, setSelectedPeriod] = useState("month");
+  const [selectedPeriod, setSelectedPeriod] = useState("custom");
   const [hoveredStat, setHoveredStat] = useState<string | null>(null);
   const [showPackages, setShowPackages] = useState(false);
   const [packageViewMode, setPackageViewMode] = useState<"grid" | "list">(
     "grid"
   );
   const [packageSearchQuery, setPackageSearchQuery] = useState("");
-  const [customDateRange, setCustomDateRange] = useState({
-    startDate: "",
-    endDate: "",
+  const [customDateRange, setCustomDateRange] = useState(() => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startYear = firstDay.getFullYear();
+    const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
+    const startDay = String(firstDay.getDate()).padStart(2, '0');
+    const endYear = now.getFullYear();
+    const endMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const endDay = String(now.getDate()).padStart(2, '0');
+    return {
+      startDate: `${startYear}-${startMonth}-${startDay}`,
+      endDate: `${endYear}-${endMonth}-${endDay}`,
+    };
   });
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
@@ -619,76 +629,301 @@ const BusinessDashboard = () => {
 
   return (
     <div className="business-dashboard">
-      {/* Time Filter */}
-      <div className="time-filter-container">
-        <div className="time-filter-header">
-          <h3>Time Filter</h3>
-        </div>
-        <div className="time-filter-select">
-          <select
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="time-filter-dropdown"
-          >
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="quarter">This Quarter</option>
-            <option value="year">This Year</option>
-            <option value="last-week">Last Week</option>
-            <option value="last-month">Last Month</option>
-            <option value="last-quarter">Last Quarter</option>
-            <option value="last-year">Last Year</option>
-            <option value="custom">Custom</option>
-          </select>
+      {/* Dashboard Header */}
+      <div style={{ marginBottom: '20px' }}>
+        <h1 style={{
+          fontSize: '28px',
+          fontWeight: 700,
+          color: '#1f2937',
+          margin: '0 0 4px 0',
+          background: 'linear-gradient(135deg, #1f2937 0%, #374151 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>Business Dashboard</h1>
+        <p style={{
+          fontSize: '14px',
+          color: '#6b7280',
+          margin: 0,
+          fontWeight: 400
+        }}>Overview of your business activities</p>
+      </div>
 
-          {selectedPeriod === "custom" && (
-            <div className="custom-date-range">
-              <div className="date-input-group">
-                <label>From:</label>
-                <input
-                  type="date"
-                  value={customDateRange.startDate}
-                  onChange={(e) =>
-                    setCustomDateRange((prev) => ({
-                      ...prev,
-                      startDate: e.target.value,
-                    }))
-                  }
-                  className="date-input"
-                />
-              </div>
-              <div className="date-input-group">
-                <label>To:</label>
-                <input
-                  type="date"
-                  value={customDateRange.endDate}
-                  onChange={(e) =>
-                    setCustomDateRange((prev) => ({
-                      ...prev,
-                      endDate: e.target.value,
-                    }))
-                  }
-                  className="date-input"
-                  min={customDateRange.startDate}
-                />
-              </div>
-              <button
-                className="apply-date-btn"
-                onClick={() => {
-                  if (customDateRange.startDate && customDateRange.endDate) {
-                    console.log("Apply time range:", customDateRange);
-                    // Add logic to filter data by time range here
-                  }
-                }}
-                disabled={
-                  !customDateRange.startDate || !customDateRange.endDate
-                }
-              >
-                Apply
-              </button>
-            </div>
-          )}
+      {/* Date Range Filter */}
+      <div 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '20px',
+          marginBottom: '24px',
+          padding: '16px 20px',
+          background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 100%)',
+          borderRadius: '16px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+          border: '1px solid #e5e7eb',
+          flexWrap: 'wrap'
+        }}
+      >
+        <div 
+          style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: '12px',
+            flexShrink: 0
+          }}
+        >
+          <div 
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}
+          >
+            <label style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              color: '#6b7280',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              margin: 0
+            }}>From</label>
+            <input
+              type="date"
+              value={customDateRange.startDate}
+              onChange={(e) => {
+                setCustomDateRange((prev) => ({
+                  ...prev,
+                  startDate: e.target.value,
+                }));
+                setSelectedPeriod('custom');
+              }}
+              max={customDateRange.endDate || undefined}
+              style={{
+                padding: '10px 14px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '10px',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: '#1f2937',
+                background: 'white',
+                cursor: 'pointer',
+                minWidth: '160px',
+                transition: 'all 0.2s ease'
+              }}
+            />
+          </div>
+          <span 
+            style={{
+              color: '#9ca3af',
+              fontSize: '14px',
+              fontWeight: 600,
+              paddingBottom: '10px',
+              userSelect: 'none'
+            }}
+          >to</span>
+          <div 
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}
+          >
+            <label style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              color: '#6b7280',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              margin: 0
+            }}>To</label>
+            <input
+              type="date"
+              value={customDateRange.endDate}
+              onChange={(e) => {
+                setCustomDateRange((prev) => ({
+                  ...prev,
+                  endDate: e.target.value,
+                }));
+                setSelectedPeriod('custom');
+              }}
+              min={customDateRange.startDate || undefined}
+              style={{
+                padding: '10px 14px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '10px',
+                fontSize: '14px',
+                fontWeight: 600,
+                color: '#1f2937',
+                background: 'white',
+                cursor: 'pointer',
+                minWidth: '160px',
+                transition: 'all 0.2s ease'
+              }}
+            />
+          </div>
         </div>
+        
+        <div 
+          style={{
+            display: 'flex',
+            gap: '8px',
+            flexWrap: 'wrap',
+            marginLeft: 'auto'
+          }}
+        >
+          <button
+            onClick={() => {
+              const now = new Date();
+              const dayOfWeek = now.getDay();
+              const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+              const monday = new Date(now);
+              monday.setDate(now.getDate() - diffToMonday);
+              
+              const startYear = monday.getFullYear();
+              const startMonth = String(monday.getMonth() + 1).padStart(2, '0');
+              const startDay = String(monday.getDate()).padStart(2, '0');
+              const endYear = now.getFullYear();
+              const endMonth = String(now.getMonth() + 1).padStart(2, '0');
+              const endDay = String(now.getDate()).padStart(2, '0');
+              
+              setCustomDateRange({
+                startDate: `${startYear}-${startMonth}-${startDay}`,
+                endDate: `${endYear}-${endMonth}-${endDay}`
+              });
+              setSelectedPeriod('week');
+            }}
+            style={{
+              padding: '10px 18px',
+              border: selectedPeriod === 'week' ? 'none' : '2px solid #e5e7eb',
+              background: selectedPeriod === 'week' 
+                ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)' 
+                : 'white',
+              color: selectedPeriod === 'week' ? 'white' : '#6b7280',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              borderRadius: '10px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease',
+              boxShadow: selectedPeriod === 'week' 
+                ? '0 4px 12px rgba(249, 115, 22, 0.3)' 
+                : 'none'
+            }}
+          >
+            This Week
+          </button>
+          <button
+            onClick={() => {
+              const now = new Date();
+              const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+              
+              const startYear = firstDay.getFullYear();
+              const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
+              const startDay = String(firstDay.getDate()).padStart(2, '0');
+              const endYear = now.getFullYear();
+              const endMonth = String(now.getMonth() + 1).padStart(2, '0');
+              const endDay = String(now.getDate()).padStart(2, '0');
+              
+              setCustomDateRange({
+                startDate: `${startYear}-${startMonth}-${startDay}`,
+                endDate: `${endYear}-${endMonth}-${endDay}`
+              });
+              setSelectedPeriod('month');
+            }}
+            style={{
+              padding: '10px 18px',
+              border: selectedPeriod === 'month' ? 'none' : '2px solid #e5e7eb',
+              background: selectedPeriod === 'month' 
+                ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)' 
+                : 'white',
+              color: selectedPeriod === 'month' ? 'white' : '#6b7280',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              borderRadius: '10px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease',
+              boxShadow: selectedPeriod === 'month' 
+                ? '0 4px 12px rgba(249, 115, 22, 0.3)' 
+                : 'none'
+            }}
+          >
+            This Month
+          </button>
+          <button
+            onClick={() => {
+              const now = new Date();
+              const firstDay = new Date(now.getFullYear(), 0, 1);
+              
+              const startYear = firstDay.getFullYear();
+              const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
+              const startDay = String(firstDay.getDate()).padStart(2, '0');
+              const endYear = now.getFullYear();
+              const endMonth = String(now.getMonth() + 1).padStart(2, '0');
+              const endDay = String(now.getDate()).padStart(2, '0');
+              
+              setCustomDateRange({
+                startDate: `${startYear}-${startMonth}-${startDay}`,
+                endDate: `${endYear}-${endMonth}-${endDay}`
+              });
+              setSelectedPeriod('year');
+            }}
+            style={{
+              padding: '10px 18px',
+              border: selectedPeriod === 'year' ? 'none' : '2px solid #e5e7eb',
+              background: selectedPeriod === 'year' 
+                ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)' 
+                : 'white',
+              color: selectedPeriod === 'year' ? 'white' : '#6b7280',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              borderRadius: '10px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease',
+              boxShadow: selectedPeriod === 'year' 
+                ? '0 4px 12px rgba(249, 115, 22, 0.3)' 
+                : 'none'
+            }}
+          >
+            This Year
+          </button>
+          <button
+            onClick={() => {
+              const now = new Date();
+              const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+              const startYear = firstDay.getFullYear();
+              const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
+              const startDay = String(firstDay.getDate()).padStart(2, '0');
+              const endYear = now.getFullYear();
+              const endMonth = String(now.getMonth() + 1).padStart(2, '0');
+              const endDay = String(now.getDate()).padStart(2, '0');
+              setCustomDateRange({
+                startDate: `${startYear}-${startMonth}-${startDay}`,
+                endDate: `${endYear}-${endMonth}-${endDay}`
+              });
+              setSelectedPeriod('custom');
+            }}
+            style={{
+              padding: '10px 18px',
+              border: '2px solid #ef4444',
+              background: 'white',
+              color: '#ef4444',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              borderRadius: '10px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* Old time filter - hidden */}
+      <div style={{ display: 'none' }}>
       </div>
 
       {/* Stats Cards */}

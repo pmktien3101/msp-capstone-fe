@@ -15,10 +15,19 @@ import { subscriptionService } from "@/services/subscriptionService";
 import { userService } from "@/services/userService";
 import { projectService } from "@/services/projectService";
 import { meetingService } from "@/services/meetingService";
-import "../../../../../styles/admin-dashboard.scss";
+import "@/app/styles/admin-dashboard.scss";
 
 // Helper function to get date range based on filter
-const getDateRange = (filter: string): { start: Date; end: Date } => {
+const getDateRange = (filter: string, customStart?: string, customEnd?: string): { start: Date; end: Date } => {
+  // If custom dates are provided, use them
+  if (filter === "Custom" && customStart && customEnd) {
+    const start = new Date(customStart);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(customEnd);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
+
   const now = new Date();
   let end = new Date(now);
   let start = new Date(now);
@@ -63,10 +72,10 @@ const getDateRange = (filter: string): { start: Date; end: Date } => {
 };
 
 // Helper function to check if a date is within range
-const isDateInRange = (dateStr: string, filter: string): boolean => {
+const isDateInRange = (dateStr: string, filter: string, customStart?: string, customEnd?: string): boolean => {
   if (!dateStr) return false;
   const date = new Date(dateStr);
-  const { start, end } = getDateRange(filter);
+  const { start, end } = getDateRange(filter, customStart, customEnd);
   return date >= start && date <= end;
 };
 
@@ -109,8 +118,26 @@ interface MonthlyBusinessReg {
 
 const AdminDashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("Year");
-  const [timeFilter, setTimeFilter] = useState("This Year");
   const [businessRegPeriod, setBusinessRegPeriod] = useState("Year");
+  
+  // Custom date range states
+  const [startDate, setStartDate] = useState<string>(() => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const year = firstDay.getFullYear();
+    const month = String(firstDay.getMonth() + 1).padStart(2, '0');
+    const day = String(firstDay.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+  const [quickFilter, setQuickFilter] = useState<string>("");
+  
   const [packages, setPackages] = useState<PackageInfo[]>([]);
   const [packageDistribution, setPackageDistribution] = useState<
     PackageDistribution[]
@@ -125,28 +152,34 @@ const AdminDashboard = () => {
   const [allProjects, setAllProjects] = useState<any[]>([]);
   const [allMeetings, setAllMeetings] = useState<any[]>([]);
 
-  // Filtered subscriptions based on timeFilter
+  // Determine active filter
+  const activeFilter = useMemo(() => {
+    if (startDate && endDate) return "Custom";
+    return quickFilter;
+  }, [startDate, endDate, quickFilter]);
+
+  // Filtered subscriptions based on date range
   const filteredSubscriptions = useMemo(() => {
     return allSubscriptions.filter((sub) =>
-      isDateInRange(sub.paidAt || sub.startDate, timeFilter)
+      isDateInRange(sub.paidAt || sub.startDate, activeFilter, startDate, endDate)
     );
-  }, [allSubscriptions, timeFilter]);
+  }, [allSubscriptions, activeFilter, startDate, endDate]);
 
-  // Filtered projects based on timeFilter
+  // Filtered projects based on date range
   const totalProjects = useMemo(() => {
     const filtered = allProjects.filter((project) =>
-      isDateInRange(project.createdAt, timeFilter)
+      isDateInRange(project.createdAt, activeFilter, startDate, endDate)
     );
     return filtered.length;
-  }, [allProjects, timeFilter]);
+  }, [allProjects, activeFilter, startDate, endDate]);
 
-  // Filtered meetings based on timeFilter
+  // Filtered meetings based on date range
   const totalMeetings = useMemo(() => {
     const filtered = allMeetings.filter((meeting) =>
-      isDateInRange(meeting.startTime || meeting.createdAt, timeFilter)
+      isDateInRange(meeting.startTime || meeting.createdAt, activeFilter, startDate, endDate)
     );
     return filtered.length;
-  }, [allMeetings, timeFilter]);
+  }, [allMeetings, activeFilter, startDate, endDate]);
 
   // Total revenue based on filtered subscriptions
   const totalRevenue = useMemo(() => {
@@ -270,12 +303,12 @@ const AdminDashboard = () => {
     }
   }, [allSubscriptions, selectedPeriod]);
 
-  // Filtered business owners based on timeFilter
+  // Filtered business owners based on date range
   const filteredBusinessOwners = useMemo(() => {
     return allBusinessOwners.filter((owner) =>
-      isDateInRange(owner.createdAt, timeFilter)
+      isDateInRange(owner.createdAt, activeFilter, startDate, endDate)
     );
-  }, [allBusinessOwners, timeFilter]);
+  }, [allBusinessOwners, activeFilter, startDate, endDate]);
 
   // Total businesses count
   const totalBusinesses = useMemo(() => {
@@ -697,19 +730,275 @@ const AdminDashboard = () => {
               <h1>Dashboard Overview</h1>
               <p>Welcome back, Admin</p>
             </div>
-            <div className="filter-controls">
-              <select
-                value={timeFilter}
-                onChange={(e) => setTimeFilter(e.target.value)}
-                className="time-filter-select"
+          </div>
+
+          {/* Date Range Filter */}
+          <div 
+            className="date-range-filter"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '24px',
+              padding: '14px 18px',
+              background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 100%)',
+              borderRadius: '16px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+              border: '1px solid #e5e7eb'
+            }}
+          >
+            <div 
+              className="date-inputs"
+              style={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: '10px',
+                flexShrink: 0
+              }}
+            >
+              <div 
+                className="input-group"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}
               >
-                <option value="Today">Today</option>
-                <option value="This Week">This Week</option>
-                <option value="This Month">This Month</option>
-                <option value="This Quarter">This Quarter</option>
-                <option value="This Year">This Year</option>
-                <option value="All Time">All Time</option>
-              </select>
+                <label style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#6b7280',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  margin: 0
+                }}>From</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setQuickFilter("");
+                  }}
+                  max={endDate || undefined}
+                  className="date-input"
+                  style={{
+                    padding: '9px 12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '10px',
+                    fontSize: '13.5px',
+                    fontWeight: 600,
+                    color: '#1f2937',
+                    background: 'white',
+                    cursor: 'pointer',
+                    minWidth: '150px',
+                    transition: 'all 0.2s ease'
+                  }}
+                />
+              </div>
+              <span 
+                className="date-separator"
+                style={{
+                  color: '#9ca3af',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  paddingBottom: '9px',
+                  userSelect: 'none'
+                }}
+              >to</span>
+              <div 
+                className="input-group"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}
+              >
+                <label style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#6b7280',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  margin: 0
+                }}>To</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setQuickFilter("");
+                  }}
+                  min={startDate || undefined}
+                  className="date-input"
+                  style={{
+                    padding: '9px 12px',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '10px',
+                    fontSize: '13.5px',
+                    fontWeight: 600,
+                    color: '#1f2937',
+                    background: 'white',
+                    cursor: 'pointer',
+                    minWidth: '150px',
+                    transition: 'all 0.2s ease'
+                  }}
+                />
+              </div>
+            </div>
+            <div 
+              className="quick-filters"
+              style={{
+                display: 'flex',
+                gap: '6px',
+                marginLeft: '16px',
+                flex: 1,
+                alignItems: 'flex-end'
+              }}
+            >
+              <button
+                className={`quick-filter-btn ${quickFilter === "This Week" ? "active" : ""}`}
+                onClick={() => {
+                  const now = new Date();
+                  const dayOfWeek = now.getDay();
+                  const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                  const monday = new Date(now);
+                  monday.setDate(now.getDate() - diffToMonday);
+                  
+                  const startYear = monday.getFullYear();
+                  const startMonth = String(monday.getMonth() + 1).padStart(2, '0');
+                  const startDay = String(monday.getDate()).padStart(2, '0');
+                  const endYear = now.getFullYear();
+                  const endMonth = String(now.getMonth() + 1).padStart(2, '0');
+                  const endDay = String(now.getDate()).padStart(2, '0');
+                  
+                  setStartDate(`${startYear}-${startMonth}-${startDay}`);
+                  setEndDate(`${endYear}-${endMonth}-${endDay}`);
+                  setQuickFilter("This Week");
+                }}
+                style={{
+                  padding: '9px 14px',
+                  border: quickFilter === "This Week" ? 'none' : '2px solid #e5e7eb',
+                  background: quickFilter === "This Week" 
+                    ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)' 
+                    : 'white',
+                  color: quickFilter === "This Week" ? 'white' : '#6b7280',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                  boxShadow: quickFilter === "This Week" 
+                    ? '0 4px 12px rgba(249, 115, 22, 0.3)' 
+                    : 'none'
+                }}
+              >
+                This Week
+              </button>
+              <button
+                className={`quick-filter-btn ${quickFilter === "This Month" ? "active" : ""}`}
+                onClick={() => {
+                  const now = new Date();
+                  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                  
+                  const startYear = firstDay.getFullYear();
+                  const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
+                  const startDay = String(firstDay.getDate()).padStart(2, '0');
+                  const endYear = now.getFullYear();
+                  const endMonth = String(now.getMonth() + 1).padStart(2, '0');
+                  const endDay = String(now.getDate()).padStart(2, '0');
+                  
+                  setStartDate(`${startYear}-${startMonth}-${startDay}`);
+                  setEndDate(`${endYear}-${endMonth}-${endDay}`);
+                  setQuickFilter("This Month");
+                }}
+                style={{
+                  padding: '9px 14px',
+                  border: quickFilter === "This Month" ? 'none' : '2px solid #e5e7eb',
+                  background: quickFilter === "This Month" 
+                    ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)' 
+                    : 'white',
+                  color: quickFilter === "This Month" ? 'white' : '#6b7280',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                  boxShadow: quickFilter === "This Month" 
+                    ? '0 4px 12px rgba(249, 115, 22, 0.3)' 
+                    : 'none'
+                }}
+              >
+                This Month
+              </button>
+              <button
+                className={`quick-filter-btn ${quickFilter === "This Year" ? "active" : ""}`}
+                onClick={() => {
+                  const now = new Date();
+                  const firstDay = new Date(now.getFullYear(), 0, 1);
+                  
+                  const startYear = firstDay.getFullYear();
+                  const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
+                  const startDay = String(firstDay.getDate()).padStart(2, '0');
+                  const endYear = now.getFullYear();
+                  const endMonth = String(now.getMonth() + 1).padStart(2, '0');
+                  const endDay = String(now.getDate()).padStart(2, '0');
+                  
+                  setStartDate(`${startYear}-${startMonth}-${startDay}`);
+                  setEndDate(`${endYear}-${endMonth}-${endDay}`);
+                  setQuickFilter("This Year");
+                }}
+                style={{
+                  padding: '9px 14px',
+                  border: quickFilter === "This Year" ? 'none' : '2px solid #e5e7eb',
+                  background: quickFilter === "This Year" 
+                    ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)' 
+                    : 'white',
+                  color: quickFilter === "This Year" ? 'white' : '#6b7280',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                  boxShadow: quickFilter === "This Year" 
+                    ? '0 4px 12px rgba(249, 115, 22, 0.3)' 
+                    : 'none'
+                }}
+              >
+                This Year
+              </button>
+              <button
+                className="clear-btn"
+                onClick={() => {
+                  const now = new Date();
+                  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                  const startYear = firstDay.getFullYear();
+                  const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
+                  const startDay = String(firstDay.getDate()).padStart(2, '0');
+                  const endYear = now.getFullYear();
+                  const endMonth = String(now.getMonth() + 1).padStart(2, '0');
+                  const endDay = String(now.getDate()).padStart(2, '0');
+                  setStartDate(`${startYear}-${startMonth}-${startDay}`);
+                  setEndDate(`${endYear}-${endMonth}-${endDay}`);
+                  setQuickFilter("");
+                }}
+                style={{
+                  padding: '9px 14px',
+                  border: '2px solid #ef4444',
+                  background: 'white',
+                  color: '#ef4444',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Reset
+              </button>
             </div>
           </div>
 
@@ -920,7 +1209,11 @@ const AdminDashboard = () => {
               </span>
             </div>
             <div className="revenue-period">
-              <span>{timeFilter}</span>
+              <span>
+                {startDate && endDate
+                  ? `${startDate.split('-').reverse().join('/')} - ${endDate.split('-').reverse().join('/')}`
+                  : quickFilter}
+              </span>
             </div>
           </div>
 
