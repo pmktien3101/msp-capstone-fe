@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Project } from '@/types/project';
 import { meetingService } from '@/services/meetingService';
 import { MeetingItem } from '@/types/meeting';
@@ -10,6 +11,7 @@ interface UpcomingMeetingsProps {
 }
 
 export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
+  const router = useRouter();
   const [meetings, setMeetings] = useState<MeetingItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,6 +70,10 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
         hour12: false 
       })
     };
+  };
+
+  const handleJoinMeeting = (meetingId: string) => {
+    router.push(`/meeting/${meetingId}`);
   };
 
   return (
@@ -143,7 +149,7 @@ export const UpcomingMeetings = ({ project }: UpcomingMeetingsProps) => {
                   </div>
                   
                   <div className="meeting-actions">
-                    <button className="join-button">
+                    <button className="join-button" onClick={() => handleJoinMeeting(meeting.id)}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                         <path d="M15 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         <path d="M8 11L12 15L16 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

@@ -1476,11 +1476,12 @@ export default function MeetingDetailPage() {
                   <FileText size={18} />
                   Meeting Details
                 </h3>
-                {(meetingInfo?.endTime
-                  ? new Date(meetingInfo.endTime) > new Date()
-                  : endsAt
-                  ? endsAt > new Date()
-                  : false) && (
+                {(meetingInfo?.status === 'Scheduled' || 
+                  (meetingInfo?.endTime
+                    ? new Date(meetingInfo.endTime) > new Date()
+                    : endsAt
+                    ? endsAt > new Date()
+                    : false)) && (
                   <Button
                     variant="default"
                     className="join-now-btn"

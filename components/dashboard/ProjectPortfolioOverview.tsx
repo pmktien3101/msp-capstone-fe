@@ -39,9 +39,15 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
     return Math.round((completedTasks / projectTasks.length) * 100);
   };
 
-  // Calculate member count for a project
-  const getMemberCount = (projectId: string) => {
-    const projectTasks = tasks.filter((task: any) => task.projectId === projectId);
+  // Get member count for a project - use project.members if available, otherwise calculate from tasks
+  const getMemberCount = (project: Project) => {
+    // Use project.members array if available (from API)
+    if (project.members && Array.isArray(project.members)) {
+      return project.members.length;
+    }
+    
+    // Fallback: calculate from tasks
+    const projectTasks = tasks.filter((task: any) => task.projectId === project.id);
     const uniqueUsers = new Set(projectTasks.map((task: any) => task.userId).filter(Boolean));
     return uniqueUsers.size;
   };
@@ -153,7 +159,6 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
                 <th>Project Name</th>
                 <th>Status</th>
                 <th>Members</th>
-                <th>Progress</th>
                 <th>Start Date</th>
                 <th>End Date</th>
               </tr>
@@ -161,7 +166,7 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
             <tbody>
               {filteredProjects.map(project => {
                 const progress = calculateProgress(project.id);
-                const memberCount = getMemberCount(project.id);
+                const memberCount = getMemberCount(project);
                 
                 return (
                 <tr key={project.id} className="project-row" onClick={() => handleProjectClick(project.id)}>
@@ -184,24 +189,36 @@ export const ProjectPortfolioOverview = ({ projects, tasks = [] }: ProjectPortfo
                   </td>
                   <td className="members-cell">
                     <div className="members-info">
-                      <Users size={16} />
-                      <span>{memberCount} {memberCount === 1 ? 'member' : 'members'}</span>
-                    </div>
-                  </td>
-                  <td className="progress-cell">
-                    <div className="progress-info">
-                      <div className="progress-header">
-                        <span>{progress}%</span>
-                      </div>
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill"
-                          style={{ 
-                            width: `${progress}%`,
-                            backgroundColor: progress === 100 ? '#10b981' : progress > 50 ? '#3b82f6' : '#f59e0b'
-                          }}
-                        />
-                      </div>
+                      {project.members && project.members.length > 0 ? (
+                        <>
+                          <div className="members-avatars">
+                            {project.members.slice(0, 3).map((member: any, idx: number) => (
+                              <div 
+                                key={member.id || idx} 
+                                className="member-avatar"
+                                title={member.name}
+                              >
+                                {member.avatarUrl ? (
+                                  <img src={member.avatarUrl} alt={member.name} />
+                                ) : (
+                                  member.avatar || member.name?.charAt(0).toUpperCase() || '?'
+                                )}
+                              </div>
+                            ))}
+                            {project.members.length > 3 && (
+                              <div className="member-more" title={`+${project.members.length - 3} more`}>
+                                +{project.members.length - 3}
+                              </div>
+                            )}
+                          </div>
+                          <span className="members-count">{memberCount} {memberCount === 1 ? 'member' : 'members'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Users size={16} />
+                          <span>{memberCount} {memberCount === 1 ? 'member' : 'members'}</span>
+                        </>
+                      )}
                     </div>
                   </td>
                   <td className="date-cell">

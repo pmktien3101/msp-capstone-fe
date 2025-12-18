@@ -103,6 +103,7 @@ export default function DashboardPage() {
                       email: pm.member.email || "",
                       avatar:
                         pm.member.fullName?.charAt(0).toUpperCase() || "U",
+                      avatarUrl: pm.member.avatarUrl || null,
                     })),
                 };
               } catch (error) {

@@ -34,6 +34,7 @@ export function AddMemberModal({
   const { checkMemberInProjectLimit } = useMemberInProjectLimitationCheck();
   const [searchQuery, setSearchQuery] = useState('');
   const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string>('');
@@ -59,6 +60,7 @@ export function AddMemberModal({
       const result = await userService.getMembersByBO(ownerId);
       
       if (result.success && result.data) {
+        console.log('Available users data:', result.data);
         setAvailableUsers(result.data);
       } else {
         setError(result.error || 'Unable to load user list');
@@ -115,6 +117,97 @@ export function AddMemberModal({
     
     return !isActiveMember && matchesSearch;
   });
+
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUsers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(userId)) {
+        newSet.delete(userId);
+      } else {
+        newSet.add(userId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleAddSelectedMembers = async () => {
+    if (selectedUsers.size === 0) {
+      setError('Please select at least one member to add');
+      return;
+    }
+
+    // Check member count limitation before adding
+    const newMemberCount = existingMembers.length + selectedUsers.size;
+    if (!checkMemberInProjectLimit(newMemberCount)) {
+      return; // Limit exceeded, don't add
+    }
+
+    setAdding(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const usersToAdd = availableUsers.filter(u => 
+        selectedUsers.has(u.userId || u.id)
+      );
+
+      let successCount = 0;
+      let failCount = 0;
+      const errors: string[] = [];
+
+      // Add members one by one
+      for (const user of usersToAdd) {
+        const userIdToAdd = user.userId || user.id;
+        
+        try {
+          const result = await projectService.addProjectMember(projectId, userIdToAdd);
+          
+          if (result.success && result.data) {
+            const newMember: Member = {
+              id: userIdToAdd,
+              name: user.fullName,
+              email: user.email,
+              role: user.role || user.roleName || 'Member',
+              avatar: user.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase(),
+              avatarUrl: user.avatarUrl || null
+            };
+            
+            onAddMember(newMember);
+            successCount++;
+          } else {
+            failCount++;
+            errors.push(`${user.fullName}: ${result.error || 'Failed'}`);
+          }
+        } catch (err: any) {
+          failCount++;
+          errors.push(`${user.fullName}: ${err.message || 'Error'}`);
+        }
+      }
+
+      // Show result
+      if (successCount > 0) {
+        setSuccess(`Successfully added ${successCount} member${successCount > 1 ? 's' : ''}!`);
+        setSelectedUsers(new Set()); // Clear selection
+        await fetchAvailableUsers(); // Refresh list
+      }
+      
+      if (failCount > 0) {
+        setError(`Failed to add ${failCount} member${failCount > 1 ? 's' : ''}: ${errors.join(', ')}`);
+      }
+
+      // Close modal after successful add
+      if (successCount > 0 && failCount === 0) {
+        setTimeout(() => {
+          handleClose();
+        }, 1500);
+      }
+    } catch (err: any) {
+      console.error('Error adding members:', err);
+      setError(err.message || 'An error occurred while adding members');
+    } finally {
+      setAdding(false);
+    }
+  };
 
   const handleAddMember = async (selectedUser: any) => {
     if (!projectId) {
@@ -190,6 +283,7 @@ export function AddMemberModal({
 
   const handleClose = () => {
     setSearchQuery('');
+    setSelectedUsers(new Set());
     setError('');
     setSuccess('');
     onClose();
@@ -259,9 +353,21 @@ export function AddMemberModal({
                   <div key={member.id || (member as any).userId || `existing-${index}`} className="member-item">
                     <div className="member-avatar existing">
                       {member.avatarUrl ? (
-                        <img src={member.avatarUrl} alt={member.name} />
+                        <img 
+                          src={member.avatarUrl} 
+                          alt={member.name}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              parent.textContent = member.avatar || member.name?.charAt(0).toUpperCase() || '?';
+                            }
+                          }}
+                        />
                       ) : (
-                        member.avatar
+                        <span className="avatar-initials">
+                          {member.avatar || member.name?.charAt(0).toUpperCase() || '?'}
+                        </span>
                       )}
                     </div>
                     <div className="member-info">
@@ -284,34 +390,58 @@ export function AddMemberModal({
           {/* Available Users */}
           {!loading && filteredUsers.length > 0 && (
             <div className="members-section">
-              <h4>Available Members ({filteredUsers.length})</h4>
+              <div className="section-header">
+                <h4>Available Members ({filteredUsers.length})</h4>
+                {selectedUsers.size > 0 && (
+                  <span className="selected-count">
+                    {selectedUsers.size} selected
+                  </span>
+                )}
+              </div>
               <div className="members-list">
                 {filteredUsers.map((availableUser, index) => {
                   const userId = availableUser.userId || availableUser.id;
                   const userRole = availableUser.role || availableUser.roleName || 'Member';
+                  const isSelected = selectedUsers.has(userId);
                   
                   return (
                     <div
                       key={userId || availableUser.email || `available-${index}`}
-                      className={`member-item clickable ${adding ? 'disabled' : ''}`}
-                      onClick={() => !adding && handleAddMember(availableUser)}
+                      className={`member-item clickable ${adding ? 'disabled' : ''} ${isSelected ? 'selected' : ''}`}
+                      onClick={() => !adding && toggleUserSelection(userId)}
                     >
+                      <div className="member-checkbox">
+                        <input 
+                          type="checkbox" 
+                          checked={isSelected}
+                          onChange={() => {}}
+                          disabled={adding}
+                        />
+                      </div>
                       <div className="member-avatar available">
                         {availableUser.avatarUrl ? (
-                          <img src={availableUser.avatarUrl} alt={availableUser.fullName} />
+                          <img 
+                            src={availableUser.avatarUrl} 
+                            alt={availableUser.fullName}
+                            onError={(e) => {
+                              // Fallback to initials if image fails to load
+                              e.currentTarget.style.display = 'none';
+                              const parent = e.currentTarget.parentElement;
+                              if (parent) {
+                                parent.textContent = availableUser.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
+                              }
+                            }}
+                          />
                         ) : (
-                          availableUser.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase()
+                          <span className="avatar-initials">
+                            {availableUser.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?'}
+                          </span>
                         )}
                       </div>
                       <div className="member-info">
                         <div className="member-name">{availableUser.fullName}</div>
                         <div className="member-details">{availableUser.email} • {userRole}</div>
                       </div>
-                      {adding ? (
-                        <Loader2 size={16} className="icon-loading" />
-                      ) : (
-                        <Plus size={16} className="icon-add" />
-                      )}
                     </div>
                   );
                 })}
@@ -332,6 +462,29 @@ export function AddMemberModal({
             </div>
           )}
         </div>
+
+        {/* Footer with Add Button */}
+        {!loading && filteredUsers.length > 0 && (
+          <div className="add-member-modal-footer">
+            <Button
+              onClick={handleAddSelectedMembers}
+              disabled={selectedUsers.size === 0 || adding}
+              className="btn-add-members"
+            >
+              {adding ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Adding...
+                </>
+              ) : (
+                <>
+                  <Plus size={16} />
+                  Add {selectedUsers.size > 0 ? `${selectedUsers.size} ` : ''}Member{selectedUsers.size !== 1 ? 's' : ''}
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { CheckCircle2, CircleAlertIcon, MailOpenIcon, Plus, Search, SearchIcon, Trash2, User, UserPenIcon, UserStarIcon, XIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import "../../../../../styles/businessMembers.scss";
 import { userService } from "@/services/userService";
 import { GetUserResponse } from "@/types/user";
@@ -18,6 +19,7 @@ const MembersRolesPage = () => {
   const { user } = useAuth();
   const currentSubscription = useSubscription();
   const { checkMemberLimitation } = useMemberLimitationCheck();
+  const searchParams = useSearchParams();
 
   // States
   const [showEditRoleModal, setShowEditRoleModal] = useState(false);
@@ -96,6 +98,18 @@ const MembersRolesPage = () => {
   useEffect(() => {
     fetchMembers();
   }, [user?.userId]);
+
+  // Handle URL query params for tab navigation
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'join-requests') {
+      setActiveTab('requests');
+    } else if (tab === 'invites') {
+      setActiveTab('invites');
+    } else if (tab === 'members') {
+      setActiveTab('members');
+    }
+  }, [searchParams]);
 
   // Handlers
   const handleDeleteMember = async (memberId: string) => {

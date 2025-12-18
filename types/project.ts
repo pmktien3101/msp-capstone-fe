@@ -40,6 +40,9 @@ export interface Project {
   createdBy?: User;
   createdAt: string;
   updatedAt: string;
+  members?: any[]; // Array of project members (extended from API)
+  progress?: number; // Calculated progress (extended from API)
+  milestones?: string[]; // Array of milestone IDs (extended from API)
 }
 
 export interface CreateTaskRequest {

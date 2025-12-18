@@ -27,6 +27,7 @@ import { projectService } from '@/services/projectService';
 import { Project, CreateProjectRequest } from '@/types/project';
 import { useAuth } from "@/hooks/useAuth";
 import { ProjectStatus, ALL_PROJECT_STATUSES } from '@/constants/status';
+import { toast } from 'react-toastify';
 
 const projectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
@@ -127,6 +128,12 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
       const result = await projectService.createProject(projectData);
       
       if (result.success && result.data) {
+        // Show success toast
+        toast.success(`Project "${result.data.name}" created successfully!`, {
+          position: "top-right",
+          autoClose: 3000,
+        });
+
         // Call parent callback with created project
         if (onCreateProject) {
           onCreateProject(result.data);
@@ -135,11 +142,21 @@ export function CreateProjectModal({ isOpen, onClose, onCreateProject }: CreateP
         // Close modal
         onClose();
       } else {
-        setSubmitError(result.error || 'Unable to create project');
+        const errorMsg = result.error || 'Unable to create project';
+        setSubmitError(errorMsg);
+        toast.error(errorMsg, {
+          position: "top-right",
+          autoClose: 5000,
+        });
       }
     } catch (error) {
       console.error('Create project error:', error);
-      setSubmitError('An error occurred while creating project');
+      const errorMsg = 'An error occurred while creating project';
+      setSubmitError(errorMsg);
+      toast.error(errorMsg, {
+        position: "top-right",
+        autoClose: 5000,
+      });
     } finally {
       setIsSubmitting(false);
     }

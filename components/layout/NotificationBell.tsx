@@ -64,15 +64,25 @@ export const NotificationBell = () => {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
+    const diffWeeks = Math.floor(diffMs / 604800000);
+    const diffMonths = Math.floor(diffMs / 2592000000);
 
     if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m`;
-    if (diffHours < 24) return `${diffHours}h`;
-    if (diffDays < 7) return `${diffDays}d`;
+    if (diffMins === 1) return "1 minute ago";
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    if (diffHours === 1) return "1 hour ago";
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays === 1) return "1 day ago";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffWeeks === 1) return "1 week ago";
+    if (diffWeeks < 4) return `${diffWeeks} weeks ago`;
+    if (diffMonths === 1) return "1 month ago";
+    if (diffMonths < 12) return `${diffMonths} months ago`;
 
     return date.toLocaleDateString("en-US", {
       day: "2-digit",
       month: "2-digit",
+      year: "numeric",
     });
   };
 
@@ -99,6 +109,21 @@ export const NotificationBell = () => {
       const notifTitle = notification.title?.toLowerCase() || "";
       const notifMessage = notification.message?.toLowerCase() || "";
       const eventType = parsedData?.eventType?.toLowerCase() || parsedData?.EventType?.toLowerCase() || "";
+
+      // Join Request notifications (for Business Owner)
+      if (
+        notifType.includes("join") ||
+        notifType.includes("request") ||
+        notifTitle.includes("join request") ||
+        notifMessage.includes("join request") ||
+        eventType.includes("join") ||
+        eventType.includes("request")
+      ) {
+        setShowDropdown(false);
+        // Navigate to members page with Join Requests tab
+        router.push('/dashboard/business/members?tab=join-requests');
+        return;
+      }
 
       // Meeting-related notifications (check FIRST before project/task)
       if (

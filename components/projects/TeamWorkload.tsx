@@ -104,8 +104,8 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
       <div className="team-workload">
         <div className="section-header">
           <div className="team-workload-section-title">
-            <h3>Team Members</h3>
-            <p>List of members and their assigned tasks.</p>
+            <h3>Team workload</h3>
+            <p>List of members and their work distribution.</p>
           </div>
         </div>
         <div className="no-data-message">
@@ -121,8 +121,8 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
       <div className="team-workload">
         <div className="team-workload-section-header">
           <div className="team-workload-section-title">
-            <h3>Team Members</h3>
-            <p>List of members and their assigned tasks.</p>
+            <h3>Team workload</h3>
+            <p>List of members and their work distribution.</p>
           </div>
         </div>
         <div className="workload-content">
@@ -218,9 +218,9 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
     <div className="team-workload">
       <div className="team-workload-section-header">
         <div className="team-workload-section-title">
-          <h3>Team Members</h3>
-          <p>List of members and their assigned tasks.</p>
-        </div>
+            <h3>Team workload</h3>
+            <p>List of members and their work distribution.</p>
+          </div>
       </div>
 
       <div className="workload-content">
@@ -269,12 +269,8 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
 
         <div className="workload-summary">
           <div className="summary-item">
-            <span className="summary-label">Total Members</span>
-            <span className="summary-value">{workloadData.length}</span>
-          </div>
-          <div className="summary-item">
-            <span className="summary-label">Assigned Tasks</span>
-            <span className="summary-value">{totalTasks - (assigneeCounts.unassigned || 0)}/{totalTasks}</span>
+            <span className="summary-label">Total Tasks</span>
+            <span className="summary-value">{totalTasks}</span>
           </div>
         </div>
       </div>

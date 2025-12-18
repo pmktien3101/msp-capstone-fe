@@ -399,8 +399,10 @@ export default function BusinessDashboard() {
         >
           <Send size={18} />
           <span>Requests</span>
-          {sentJoinRequests.length > 0 && (
-            <span className="biz-tabs__badge">{sentJoinRequests.length}</span>
+          {sentJoinRequests.filter(r => r.statusDisplay === "Pending").length > 0 && (
+            <span className="biz-tabs__badge">
+              {sentJoinRequests.filter(r => r.statusDisplay === "Pending").length}
+            </span>
           )}
         </button>
       </div>
