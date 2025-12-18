@@ -258,8 +258,8 @@ export function AddMemberModal({
                 {existingMembers.map((member, index) => (
                   <div key={member.id || (member as any).userId || `existing-${index}`} className="member-item">
                     <div className="member-avatar existing">
-                      {(member as any).avatarUrl ? (
-                        <img src={(member as any).avatarUrl} alt={member.name} />
+                      {member.avatarUrl ? (
+                        <img src={member.avatarUrl} alt={member.name} />
                       ) : (
                         member.avatar
                       )}
