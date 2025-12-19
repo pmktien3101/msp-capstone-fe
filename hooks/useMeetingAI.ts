@@ -143,12 +143,12 @@ export function useMeetingAI() {
 
             // 3️⃣ Check nếu video quá dài (> 30 phút) → Reject
             if (videoMetadata.duration > 30 * 60) {
-                const errorMsg = `Video quá dài (${Math.ceil(videoMetadata.duration / 60)} phút). ` +
-                    `Video dài hơn 30 phút cần xử lý nền. Vui lòng liên hệ hỗ trợ.`;
+                const errorMsg = `Video is too long (${Math.ceil(videoMetadata.duration / 60)} minutes). ` +
+                    `Videos longer than 30 minutes require background processing. Please contact support.`;
 
                 setError({
                     message: errorMsg,
-                    details: `Thời gian ước tính: ${Math.ceil(videoMetadata.estimatedProcessingTime / 60)} phút`,
+                    details: `Estimated time: ${Math.ceil(videoMetadata.estimatedProcessingTime / 60)} minutes`,
                     timestamp: Date.now(),
                     type: 'VIDEO_TOO_LONG'
                 });
@@ -161,14 +161,14 @@ export function useMeetingAI() {
             if (videoMetadata.duration >= 10 * 60 && videoMetadata.duration <= 30 * 60) {
                 // Case 2: Video 10-30 phút
                 toast.info(
-                    `Video dài ${Math.ceil(videoMetadata.duration / 60)} phút. ` +
-                    `Quá trình xử lý có thể mất ${Math.ceil(videoMetadata.estimatedProcessingTime / 60)} phút. ` +
-                    `Vui lòng đợi...`,
+                    `Video length: ${Math.ceil(videoMetadata.duration / 60)} minutes. ` +
+                    `Processing may take around ${Math.ceil(videoMetadata.estimatedProcessingTime / 60)} minutes. ` +
+                    `Please wait...`,
                     { autoClose: 8000 }
                 );
             } else {
                 // Case 1: Video < 10 phút
-                toast.info('Đang xử lý video với AI...', { autoClose: 5000 });
+                toast.info('Processing with AI...', { autoClose: 5000 });
             }
 
             // 5️⃣ Chuẩn bị transcript segments
@@ -253,7 +253,7 @@ export function useMeetingAI() {
                 // Case: Video cần chunking
                 if (data.needsChunking) {
                     setError({
-                        message: '⚠️ Video dài, cần xử lý từng đoạn',
+                        message: 'Video is long and requires chunked processing',
                         details: data.message,
                         timestamp: Date.now(),
                         type: 'NEEDS_CHUNKING'
@@ -265,7 +265,7 @@ export function useMeetingAI() {
                 // Case: Cần background processing
                 if (data.needsBackgroundProcessing) {
                     setError({
-                        message: '🚫 Video quá dài (> 30 phút)',
+                        message: 'Video is too long (> 30 minutes)',
                         details: data.message,
                         timestamp: Date.now(),
                         type: 'BACKGROUND_REQUIRED'
@@ -275,7 +275,7 @@ export function useMeetingAI() {
                 }
 
                 // Lỗi từ API
-                const errorMsg = data.userMessage || data.error || "Không thể xử lý video";
+                const errorMsg = data.userMessage || data.error || "Unable to process video";
 
                 setError({
                     message: errorMsg,
@@ -313,7 +313,7 @@ export function useMeetingAI() {
                 const createResult = await todoService.createTodosFromAI(meetingId, mappedTodos);
 
                 if (createResult.success) {
-                    toast.success(`Tạo thành công ${createResult.data?.length || 0} công việc từ AI!`);
+                    toast.success(`Successfully created ${createResult.data?.length ?? 0} task(s) from AI!`);
 
                     // Refresh todos
                     const refreshResult = await todoService.getTodosByMeetingId(meetingId);
@@ -323,7 +323,7 @@ export function useMeetingAI() {
                 }
             }
 
-            toast.success('Xử lý video thành công!');
+            toast.success('Video processed successfully!');
             return true;
 
         } catch (err: any) {
@@ -332,13 +332,13 @@ export function useMeetingAI() {
             const errorMessage = err?.message || "Unknown error";
 
             setError({
-                message: "Không thể xử lý video",
+                message: "Unable to process video",
                 details: errorMessage,
                 timestamp: Date.now(),
                 type: 'GENERAL_ERROR'
             });
 
-            toast.error(`Lỗi: ${errorMessage}`);
+            toast.error(`Error: ${errorMessage}`);
             throw err;
         } finally {
             setIsProcessing(false);
@@ -363,7 +363,7 @@ export function useMeetingAI() {
 
             // Check video length
             if (videoMetadata.duration > 30 * 60) {
-                const errorMsg = `Video quá dài (${Math.ceil(videoMetadata.duration / 60)} phút). Không thể regenerate.`;
+                const errorMsg = `Video is too long (${Math.ceil(videoMetadata.duration / 60)} minutes). Unable to regenerate.`;
 
                 setError({
                     message: errorMsg,
@@ -378,12 +378,12 @@ export function useMeetingAI() {
             // Notify user
             if (videoMetadata.duration >= 10 * 60) {
                 toast.info(
-                    `Đang regenerate (video ${Math.ceil(videoMetadata.duration / 60)} phút). ` +
-                    `Có thể mất ${Math.ceil(videoMetadata.estimatedProcessingTime / 60)} phút...`,
+                    `Regenerating (video ${Math.ceil(videoMetadata.duration / 60)} minutes). ` +
+                    `This may take around ${Math.ceil(videoMetadata.estimatedProcessingTime / 60)} minutes...`,
                     { autoClose: 8000 }
                 );
             } else {
-                toast.info('Đang regenerate với AI...', { autoClose: 5000 });
+                toast.info('Regenerating with AI...', { autoClose: 5000 });
             }
 
             // Prepare data
@@ -447,19 +447,19 @@ export function useMeetingAI() {
                 if (refreshResult.success && refreshResult.data) {
                     setTodoList(refreshResult.data);
                 }
-                toast.success(`Regenerate thành công! Tạo ${mappedTodos.length} công việc.`);
+                toast.success(`Regenerate successful! Created ${mappedTodos.length} task(s).`);
             }
         } catch (err: any) {
             console.error("❌ regenerate error:", err);
 
             setError({
-                message: "Không thể regenerate",
+                message: "Unable to regenerate",
                 details: err?.message || "Unknown error",
                 timestamp: Date.now(),
                 type: 'GENERAL_ERROR'
             });
 
-            toast.error(`Lỗi: ${err?.message || "Unknown error"}`);
+            toast.error(`Error: ${err?.message || "Unknown error"}`);
         } finally {
             setIsProcessing(false);
         }

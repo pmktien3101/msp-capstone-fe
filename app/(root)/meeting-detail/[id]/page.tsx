@@ -211,7 +211,7 @@ export default function MeetingDetailPage() {
     hasProcessedRef.current = true;
 
     if (!meetingInfo?.recordUrl && recordings[0]?.url) {
-      toast.info("Đang xử lý video với AI...", { autoClose: 5000 });
+      toast.info("Processing video with AI...", { autoClose: 5000 });
     }
 
     processVideo(
@@ -237,8 +237,10 @@ export default function MeetingDetailPage() {
   // FAB initialization
   useEffect(() => {
     if (activeTab === "recording" && !fabInitializedRef.current) {
-      const initialX = window.innerWidth - 180;
-      const initialY = window.innerHeight - 200;
+      // Position FAB at specific coordinates (top: 151px, left: 376px)
+      const initialX = 376;
+      const initialY = 151;
+      
       setFabPosition({ x: initialX, y: initialY });
       fabInitializedRef.current = true;
     }
@@ -316,12 +318,12 @@ export default function MeetingDetailPage() {
         }));
         setIsEditingSummary(false);
         setEditingSummaryText("");
-        toast.success("Cập nhật tóm tắt thành công");
+        toast.success("Summary updated successfully");
       } else {
-        toast.error(result.error || "Không thể cập nhật tóm tắt");
+        toast.error(result.error || "Unable to update summary");
       }
     } catch (error) {
-      toast.error("Lỗi khi cập nhật tóm tắt");
+      toast.error("Error updating summary");
     } finally {
       setIsSavingSummary(false);
     }
@@ -330,7 +332,7 @@ export default function MeetingDetailPage() {
   // Regenerate AI content
   const handleRegenerate = useCallback(async () => {
     if (!call?.id || !meetingInfo) {
-      toast.error("Thông tin cuộc họp không khả dụng");
+      toast.error("Meeting information not available");
       return;
     }
 
@@ -346,7 +348,7 @@ export default function MeetingDetailPage() {
       }
 
       if (!cloudRecordingUrl) {
-        toast.warning("Không có URL recording");
+        toast.warning("No recording URL available");
         return;
       }
 
@@ -378,7 +380,7 @@ export default function MeetingDetailPage() {
       const todo = todoList.find((t) => t.id === taskId);
 
       if (!isValidTodo(todo)) {
-        toast.warning("Công việc đã được chuyển đổi hoặc xóa");
+        toast.warning("Task has already been converted or deleted");
         return;
       }
 
@@ -407,6 +409,35 @@ export default function MeetingDetailPage() {
     if (!deleteConfirmModal.taskId) return;
 
     try {
+      // Handle multiple task deletion
+      if (deleteConfirmModal.taskId === "multiple") {
+        const deletePromises = selectedTasks.map((taskId) =>
+          todoService.deleteTodo(taskId)
+        );
+
+        const results = await Promise.all(deletePromises);
+        const successCount = results.filter((r) => r.success).length;
+
+        if (successCount > 0) {
+          const filterDeleted = (tasks: any[]) =>
+            tasks.filter((task) => !selectedTasks.includes(task.id));
+
+          setTodoList(filterDeleted);
+          setTodosFromDB(filterDeleted);
+          setSelectedTasks([]);
+          
+          toast.success(
+            `Successfully deleted ${successCount} task${successCount > 1 ? 's' : ''}!`
+          );
+        } else {
+          toast.error("Unable to delete tasks");
+        }
+        
+        setDeleteConfirmModal({ isOpen: false, taskId: null });
+        return;
+      }
+
+      // Handle single task deletion
       const result = await todoService.deleteTodo(deleteConfirmModal.taskId);
 
       if (result.success) {
@@ -415,15 +446,21 @@ export default function MeetingDetailPage() {
 
         setTodoList(filterDeleted);
         setTodosFromDB(filterDeleted);
-        toast.success("Xóa công việc thành công");
+        
+        // Remove the deleted task from selectedTasks
+        setSelectedTasks((prev) => 
+          prev.filter((id) => id !== deleteConfirmModal.taskId)
+        );
+        
+        toast.success("Task deleted successfully");
         setDeleteConfirmModal({ isOpen: false, taskId: null });
       } else {
-        toast.error("Không thể xóa: " + result.error);
+        toast.error("Unable to delete: " + result.error);
       }
     } catch (error) {
-      toast.error("Lỗi khi xóa công việc");
+      toast.error("Error deleting task");
     }
-  }, [deleteConfirmModal.taskId, setTodoList, setTodosFromDB]);
+  }, [deleteConfirmModal.taskId, selectedTasks, setTodoList, setTodosFromDB]);
 
   const handleOpenConvertModal = useCallback(() => {
     setConvertConfirmModal({ isOpen: true, taskCount: selectedTasks.length });
@@ -431,7 +468,7 @@ export default function MeetingDetailPage() {
 
   const handleConfirmConvert = useCallback(async () => {
     if (selectedTasks.length === 0) {
-      toast.warning("Vui lòng chọn ít nhất một công việc!");
+      toast.warning("Please select at least one task!");
       return;
     }
 
@@ -439,22 +476,23 @@ export default function MeetingDetailPage() {
       const result = await todoService.convertTodosToTasks(selectedTasks);
 
       if (result.success) {
+        const taskCount = result.data?.length ?? 0;
         toast.success(
-          `Chuyển đổi thành công ${result.data?.length} công việc!`
+          `Successfully converted ${taskCount} task${taskCount > 1 ? 's' : ''}!`
         );
         setSelectedTasks([]);
         setConvertConfirmModal({ isOpen: false, taskCount: 0 });
 
         if (meetingInfo?.projectId) {
           setTimeout(() => {
-            router.push(`/projects/${meetingInfo.projectId}?tab=board`);
+            router.push(`/projects/${meetingInfo.projectId}?tab=tasks`);
           }, 600);
         }
       } else {
-        toast.error(result.error || "Không thể chuyển đổi!");
+        toast.error(result.error || "Unable to convert tasks!");
       }
     } catch (error) {
-      toast.error("Lỗi khi chuyển đổi!");
+      toast.error("Error converting tasks!");
     } finally {
       setConvertConfirmModal({ isOpen: false, taskCount: 0 });
     }
@@ -505,7 +543,7 @@ export default function MeetingDetailPage() {
         a.remove();
         URL.revokeObjectURL(url);
       } catch (err) {
-        toast.error("Tải xuống thất bại!");
+        toast.error("Download failed!");
       } finally {
         setDownloadingId(null);
       }
@@ -559,7 +597,7 @@ export default function MeetingDetailPage() {
 
           setTodoList(updateTodoInList);
           setTodosFromDB(updateTodoInList);
-          toast.success("Cập nhật công việc thành công");
+          toast.success("Task updated successfully");
 
           setOriginalTodoCache((prev) => {
             const copy = { ...prev };
@@ -568,10 +606,10 @@ export default function MeetingDetailPage() {
           });
           setEditMode((prev) => ({ ...prev, [todo.id]: false }));
         } else {
-          toast.error("Không thể cập nhật: " + updateResult.error);
+          toast.error("Unable to update: " + updateResult.error);
         }
       } catch (error) {
-        toast.error("Lỗi khi cập nhật công việc");
+        toast.error("Error updating task");
       }
     },
     [meetingInfo?.attendees, setTodoList, setTodosFromDB]
@@ -673,7 +711,7 @@ export default function MeetingDetailPage() {
       <div className="meeting-detail-page">
         <div className="meeting-detail-loading">
           <div className="loading-spinner"></div>
-          <p>Đang tải thông tin cuộc họp...</p>
+          <p>Meeting detail is loading...</p>
         </div>
       </div>
     );
@@ -683,9 +721,9 @@ export default function MeetingDetailPage() {
     return (
       <div className="meeting-detail-page">
         <div className="meeting-detail-error">
-          <h3>Không tìm thấy cuộc họp</h3>
-          <p>Cuộc họp không tồn tại hoặc đã bị xóa</p>
-          <Button onClick={() => router.back()}>Quay lại</Button>
+          <h3>Meeting detail not found</h3>
+          <p>The meeting does not exist or has been deleted</p>
+          <Button onClick={() => router.back()}>Go Back</Button>
         </div>
       </div>
     );
@@ -1083,6 +1121,7 @@ export default function MeetingDetailPage() {
                       transcriptItems={improvedTranscript}
                       setTranscriptItems={setImprovedTranscript}
                       allSpeakers={allSpeakers}
+                      attendees={meetingInfo?.attendees || []}
                       getSpeakerName={(id) =>
                         getSpeakerName(id, meetingInfo?.attendees || [])
                       }
@@ -1124,25 +1163,25 @@ export default function MeetingDetailPage() {
             )}
 
             {/* Summary */}
-            {summary && (
-              <div className="summary">
-                <div className="summary-header">
-                  <div className="summary-title">
-                    <div className="ai-icon">
+            {(summary || isProcessingMeetingAI) && (
+              <div className="meeting-summary-section">
+                <div className="meeting-summary-header">
+                  <div className="meeting-summary-title-wrapper">
+                    <div className="meeting-summary-ai-icon">
                       <Sparkles size={24} />
                     </div>
-                    <div className="summary-title-text">
+                    <div className="meeting-summary-title-text">
                       <h4>AI Meeting Summary</h4>
-                      <span className="ai-badge">
+                      <span className="meeting-summary-ai-badge">
                         <Sparkles size={12} />
                         POWERED BY GEMINI AI
                       </span>
                     </div>
                   </div>
 
-                  {isProjectManager() && !isEditingSummary && (
+                  {isProjectManager() && !isEditingSummary && !isProcessingMeetingAI && (
                     <button
-                      className="edit-summary-btn"
+                      className="meeting-summary-edit-btn"
                       onClick={handleStartEditSummary}
                     >
                       <Edit3 size={16} />
@@ -1151,19 +1190,24 @@ export default function MeetingDetailPage() {
                   )}
                 </div>
 
-                <div className="summary-content">
-                  {isEditingSummary ? (
-                    <div className="summary-edit-mode">
+                <div className="meeting-summary-content-wrapper">
+                  {isProcessingMeetingAI ? (
+                    <div className="meeting-summary-processing-state">
+                      <Loader2 className="animate-spin" size={32} />
+                      <span>AI is generating meeting summary...</span>
+                    </div>
+                  ) : isEditingSummary ? (
+                    <div className="meeting-summary-edit-mode">
                       <textarea
-                        className="summary-textarea"
+                        className="meeting-summary-textarea"
                         value={editingSummaryText}
                         onChange={(e) => setEditingSummaryText(e.target.value)}
                         rows={10}
                         placeholder="Enter meeting summary..."
                       />
-                      <div className="summary-edit-actions">
+                      <div className="meeting-summary-edit-actions">
                         <button
-                          className="save-summary-btn"
+                          className="meeting-summary-save-btn"
                           onClick={handleSaveSummary}
                           disabled={isSavingSummary}
                         >
@@ -1174,7 +1218,10 @@ export default function MeetingDetailPage() {
                           )}
                           Save
                         </button>
-                        <button onClick={handleCancelEditSummary}>
+                        <button 
+                          className="meeting-summary-cancel-btn"
+                          onClick={handleCancelEditSummary}
+                        >
                           <X size={16} />
                           Cancel
                         </button>
@@ -1188,7 +1235,7 @@ export default function MeetingDetailPage() {
             )}
 
             {/* Todos */}
-            {todoList.length > 0 && (
+            {(todoList.length > 0 || isProcessingMeetingAI) && (
               <div className="ai-generated-tasks">
                 <div className="ai-tasks-header">
                   <div className="ai-tasks-title">
@@ -1204,7 +1251,7 @@ export default function MeetingDetailPage() {
                     </div>
                   </div>
 
-                  {isProjectManager() && validTodoCount > 0 && (
+                  {isProjectManager() && validTodoCount > 0 && !isProcessingMeetingAI && (
                     <div
                       className="select-all-section"
                       onClick={handleSelectAllTasks}
@@ -1220,7 +1267,14 @@ export default function MeetingDetailPage() {
                   )}
                 </div>
 
-                <div className="task-list">{memoizedTodoList}</div>
+                {isProcessingMeetingAI ? (
+                  <div className="todos-processing">
+                    <Loader2 className="animate-spin" size={32} />
+                    <span>AI is generating to-do list...</span>
+                  </div>
+                ) : (
+                  <div className="task-list">{memoizedTodoList}</div>
+                )}
               </div>
             )}
           </div>
@@ -1311,8 +1365,21 @@ export default function MeetingDetailPage() {
               <h3>Confirm Deletion</h3>
             </div>
             <div className="delete-modal-content">
-              <p>Are you sure you want to delete this task?</p>
-              <p className="delete-warning">This action cannot be undone.</p>
+              {deleteConfirmModal.taskId === "multiple" ? (
+                <>
+                  <p>
+                    Are you sure you want to delete{" "}
+                    <strong>{selectedTasks.length}</strong> task
+                    {selectedTasks.length > 1 ? "s" : ""}?
+                  </p>
+                  <p className="delete-warning">This action cannot be undone.</p>
+                </>
+              ) : (
+                <>
+                  <p>Are you sure you want to delete this task?</p>
+                  <p className="delete-warning">This action cannot be undone.</p>
+                </>
+              )}
             </div>
             <div className="delete-modal-actions">
               <button

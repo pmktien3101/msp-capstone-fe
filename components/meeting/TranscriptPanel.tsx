@@ -6,12 +6,13 @@ interface TranscriptPanelProps {
     transcriptItems: any[]; // type chuẩn: TranscriptItem[]
     setTranscriptItems: (items: any[]) => void; // chuẩn: (items: TranscriptItem[]) => void
     allSpeakers: { id: string; name: string }[];
+    attendees: any[]; // Meeting attendees for dropdown
     getSpeakerName: (speakerId: string) => string;
     formatTimestamp: (ts: number) => string;
 }
 
 const TranscriptPanel = ({
-    meetingId, transcriptItems, setTranscriptItems, allSpeakers, getSpeakerName, formatTimestamp
+    meetingId, transcriptItems, setTranscriptItems, allSpeakers, attendees, getSpeakerName, formatTimestamp
 }: TranscriptPanelProps) => (
     <div className="transcript-panel">
         {transcriptItems.map((item, idx) => (
@@ -20,6 +21,7 @@ const TranscriptPanel = ({
                 speakerId={item.speakerId}
                 speaker={getSpeakerName(item.speakerId)}
                 speakerList={allSpeakers}
+                attendees={attendees}
                 timestamp={formatTimestamp(item.startTs)}
                 text={item.text}
                 onSave={async (newText, newSpeakerId) => {

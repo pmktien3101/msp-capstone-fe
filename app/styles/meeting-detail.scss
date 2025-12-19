@@ -912,10 +912,10 @@
   // ======================
   // 6. Meeting Summary + AI
   // ======================
-  .summary {
+  .meeting-summary-section {
     margin-bottom: 32px;
 
-    .summary-header {
+    .meeting-summary-header {
       margin-bottom: 20px;
       padding: 20px;
       background: linear-gradient(135deg, #fff7f0 0%, #fed7aa 100%);
@@ -944,14 +944,14 @@
         animation: shimmer 3s infinite;
       }
 
-      .summary-title {
+      .meeting-summary-title-wrapper {
         display: flex;
         align-items: center;
         gap: 16px;
         position: relative;
         z-index: 1;
 
-        .ai-icon {
+        .meeting-summary-ai-icon {
           background: linear-gradient(135deg, #ff5e13 0%, #e54e0a 100%);
           color: white;
           width: 52px;
@@ -964,7 +964,7 @@
           animation: pulse-glow 2s ease-in-out infinite;
         }
 
-        .summary-title-text {
+        .meeting-summary-title-text {
           flex: 1;
           display: flex;
           flex-direction: column;
@@ -977,7 +977,7 @@
             margin: 0;
           }
 
-          .ai-badge {
+          .meeting-summary-ai-badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -996,7 +996,7 @@
         }
       }
 
-      .edit-summary-btn {
+      .meeting-summary-edit-btn {
         position: relative;
         z-index: 1;
         display: flex;
@@ -1018,7 +1018,7 @@
       }
     }
 
-    .summary-content {
+    .meeting-summary-content-wrapper {
       background: linear-gradient(
         135deg,
         #fff7f0 0%,
@@ -1039,7 +1039,23 @@
         word-wrap: break-word;
       }
 
-      .summary-loading {
+      .meeting-summary-processing-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 60px 20px;
+        min-height: 200px;
+        color: #ff5e13;
+
+        span {
+          font-weight: 600;
+          font-size: 15px;
+        }
+      }
+
+      .meeting-summary-loading {
         display: flex;
         align-items: center;
         gap: 12px;
@@ -1050,12 +1066,12 @@
       }
 
       // Summary edit mode styles
-      .summary-edit-mode {
+      .meeting-summary-edit-mode {
         display: flex;
         flex-direction: column;
         gap: 12px;
 
-        .summary-textarea {
+        .meeting-summary-textarea {
           width: 100%;
           min-height: 300px;
           padding: 16px;
@@ -1081,7 +1097,7 @@
           }
         }
 
-        .summary-edit-hint {
+        .meeting-summary-edit-hint {
           display: flex;
           align-items: center;
           gap: 6px;
@@ -1094,7 +1110,7 @@
           }
         }
 
-        .summary-edit-actions {
+        .meeting-summary-edit-actions {
           display: flex;
           justify-content: flex-end;
           gap: 12px;
@@ -1111,7 +1127,7 @@
             transition: all 0.2s ease;
           }
 
-          .save-summary-btn {
+          .meeting-summary-save-btn {
             background: linear-gradient(135deg, #ff5e13 0%, #e54e0a 100%);
             color: white;
             border: none;
@@ -1124,6 +1140,17 @@
             &:disabled {
               opacity: 0.6;
               cursor: not-allowed;
+            }
+          }
+
+          .meeting-summary-cancel-btn {
+            background: white;
+            border: 1.5px solid #fed7aa;
+            color: #c2410c;
+
+            &:hover {
+              background: #fff7ed;
+              border-color: #ff5e13;
             }
           }
         }
@@ -1363,6 +1390,22 @@
         font-weight: 600;
         transition: color 0.3s ease;
       }
+    }
+  }
+
+  .todos-processing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 60px 20px;
+    min-height: 200px;
+    color: #ff5e13;
+
+    span {
+      font-weight: 600;
+      font-size: 15px;
     }
   }
 
@@ -2101,26 +2144,26 @@
   .recording-section {
     padding: 20px;
 
-    .summary {
-      .summary-header {
+    .meeting-summary-section {
+      .meeting-summary-header {
         padding: 16px;
 
-        .summary-title {
+        .meeting-summary-title-wrapper {
           flex-direction: column;
           align-items: flex-start;
           gap: 14px;
 
-          .ai-icon {
+          .meeting-summary-ai-icon {
             width: 44px;
             height: 44px;
           }
 
-          .summary-title-text {
+          .meeting-summary-title-text {
             h4 {
               font-size: 17px;
             }
 
-            .ai-badge {
+            .meeting-summary-ai-badge {
               font-size: 10px;
               padding: 5px 12px;
             }
@@ -2162,7 +2205,7 @@
 // ======================
 // 11. Markdown Custom Styles
 // ======================
-.summary-content {
+.meeting-summary-content-wrapper {
   h2 {
     font-size: 1.4rem;
     font-weight: 700;

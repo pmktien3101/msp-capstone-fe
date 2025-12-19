@@ -7,13 +7,14 @@ interface EditableTranscriptItemProps {
     speakerId: string;
     speaker: string;
     speakerList: any[];
+    attendees: any[]; // Meeting attendees for dropdown
     text: string;
     timestamp: string;
     onSave: (newText: string, newSpeakerId: string) => void;
 }
 
 const EditableTranscriptItem: React.FC<EditableTranscriptItemProps> = ({
-    speakerId, speaker, speakerList, text, timestamp, onSave
+    speakerId, speaker, speakerList, attendees, text, timestamp, onSave
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedText, setEditedText] = useState(text);
@@ -31,11 +32,15 @@ const EditableTranscriptItem: React.FC<EditableTranscriptItemProps> = ({
                             onChange={(e) => setEditedSpeakerId(e.target.value)}
                             className="edit-speaker"
                         >
-                            {speakerList.map(sp => (
-                                <option key={sp.id} value={sp.id}>
-                                    {sp.fullName}
-                                </option>
-                            ))}
+                            {attendees && attendees.length > 0 ? (
+                                attendees.map(att => (
+                                    <option key={att.id} value={att.id}>
+                                        {att.fullName || att.email}
+                                    </option>
+                                ))
+                            ) : (
+                                <option value="">No attendees</option>
+                            )}
                         </select>
                     </div>
                     <textarea
