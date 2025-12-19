@@ -110,7 +110,7 @@ export const NotificationBell = () => {
       const notifMessage = notification.message?.toLowerCase() || "";
       const eventType = parsedData?.eventType?.toLowerCase() || parsedData?.EventType?.toLowerCase() || "";
 
-      // Join Request notifications (for Business Owner)
+      // Join Request notifications
       if (
         notifType.includes("join") ||
         notifType.includes("request") ||
@@ -120,7 +120,18 @@ export const NotificationBell = () => {
         eventType.includes("request")
       ) {
         setShowDropdown(false);
-        // Navigate to members page with Join Requests tab
+        
+        // If it's "join request accepted" - Member navigates to business page
+        if (
+          notifTitle.includes("accepted") ||
+          notifMessage.includes("accepted") ||
+          notifMessage.includes("welcome")
+        ) {
+          router.push('/business');
+          return;
+        }
+        
+        // Otherwise - Business Owner navigates to members page with Join Requests tab
         router.push('/dashboard/business/members?tab=join-requests');
         return;
       }
@@ -146,25 +157,50 @@ export const NotificationBell = () => {
         }
       }
 
-      // Task-related notifications (including comments on tasks)
+      // Task-related notifications (including comments)
       if (
         notifType.includes("task") ||
-        notifType.includes("comment") ||
         notifTitle.includes("task") ||
         notifTitle.includes("comment") ||
-        notifMessage.includes("comment") ||
         eventType.includes("task") ||
-        eventType.includes("comment") ||
         parsedData?.taskId ||
         parsedData?.TaskId
       ) {
         const projectId = parsedData?.projectId || parsedData?.ProjectId;
-        const taskId = parsedData?.taskId || parsedData?.TaskId;
+        const taskId = parsedData?.taskId || parsedData?.TaskId || notification.entityId;
 
-        if (projectId && taskId) {
-          // Navigate to project page with task modal open
+        // For comment notifications, entityId is the taskId
+        if (taskId) {
           setShowDropdown(false);
-          router.push(`/projects/${projectId}?tab=tasks&taskId=${taskId}`);
+          
+          // If we have both projectId and taskId, navigate with both
+          if (projectId) {
+            router.push(`/projects/${projectId}?tab=tasks&taskId=${taskId}`);
+          } else {
+            // If we only have taskId (like comment notifications), 
+            // need to fetch task details first to get projectId
+            // For now, try to navigate with just taskId - the page will handle fetching
+            const fetchTaskAndNavigate = async () => {
+              try {
+                const { taskService } = await import('@/services/taskService');
+                const taskResult = await taskService.getTaskById(taskId);
+                if (taskResult.success && taskResult.data) {
+                  const task = taskResult.data;
+                  router.push(`/projects/${task.projectId}?tab=tasks&taskId=${taskId}`);
+                }
+              } catch (error) {
+                console.error("Error fetching task for navigation:", error);
+              }
+            };
+            fetchTaskAndNavigate();
+          }
+          return;
+        }
+        
+        // Fallback: if we only have projectId
+        if (projectId) {
+          setShowDropdown(false);
+          router.push(`/projects/${projectId}?tab=tasks`);
           return;
         }
       }

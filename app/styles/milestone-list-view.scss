@@ -336,8 +336,12 @@
         background: #10b981; // Green - for Done status
       }
 
+      &.ready-to-review {
+        background: #8b5cf6; // Purple - for Ready to Review status
+      }
+
       &.in-progress {
-        background: #3b82f6; // Blue - for InProgress, ReadyToReview, ReOpened
+        background: #3b82f6; // Blue - for InProgress and ReOpened only
       }
 
       &.todo {

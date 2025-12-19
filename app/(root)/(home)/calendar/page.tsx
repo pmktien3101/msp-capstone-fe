@@ -467,13 +467,6 @@ export default function CalendarPage() {
                         </span>
                       </div>
 
-                      {event.location && (
-                        <div className="location-info">
-                          <MapPin size={14} />
-                          <span>{event.location}</span>
-                        </div>
-                      )}
-
                       {event.attendees && event.attendees.length > 0 && (
                         <div className="attendees-info">
                           <Users size={14} />
@@ -489,14 +482,14 @@ export default function CalendarPage() {
                     {/* Action Button */}
                     <div className="event-action">
                       <button
-                        className="action-btn meeting-btn"
+                        className="modern-join-btn"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleJoinMeeting(event.id);
                         }}
                       >
+                        <Video size={16} />
                         <span>Join Meeting</span>
-                        <Video size={14} />
                       </button>
                     </div>
                   </div>
