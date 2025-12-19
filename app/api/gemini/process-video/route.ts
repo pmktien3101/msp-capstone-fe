@@ -534,7 +534,7 @@ JSON:
       ]);
 
       // Process summary
-      let rawSummary = summaryResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "Không có kết quả.";
+      const rawSummary = summaryResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "Không có kết quả.";
       summary = mapSpeakerIdsToNames(rawSummary, streamMetadata?.participants || []);
 
       // Process todo
