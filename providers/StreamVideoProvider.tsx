@@ -67,5 +67,5 @@ export const StreamVideoProvider = ({
     return <Loader />;
   }
   
-  return <StreamVideo client={videoClient}>{children}</StreamVideo>;
+  return <StreamVideo client={videoClient} language="vi">{children}</StreamVideo>;
 };
