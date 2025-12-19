@@ -143,16 +143,20 @@ export const MilestoneListView = ({
       [TaskStatus.Cancelled]: 0, // Not counted towards progress
     };
 
-    // Group tasks into 3 main categories for simplified progress bar
+    // Group tasks into 4 main categories for progress bar
     // Use both enum and string comparison for safety
     const doneCount = tasks.filter(t => 
       t.status === TaskStatus.Done || t.status === 'Done'
     ).length;
     
-    // In Progress includes: InProgress, ReadyToReview, ReOpened
+    // Ready to Review - separated from In Progress
+    const readyToReviewCount = tasks.filter(t => 
+      t.status === TaskStatus.ReadyToReview || t.status === 'ReadyToReview'
+    ).length;
+    
+    // In Progress now only includes: InProgress and ReOpened
     const inProgressCount = tasks.filter(t => 
       t.status === TaskStatus.InProgress || t.status === 'InProgress' ||
-      t.status === TaskStatus.ReadyToReview || t.status === 'ReadyToReview' ||
       t.status === TaskStatus.ReOpened || t.status === 'ReOpened'
     ).length;
     
@@ -161,7 +165,7 @@ export const MilestoneListView = ({
     ).length;
 
     // Total tasks excluding Cancelled (only count tasks displayed in progress bar)
-    const totalTasks = doneCount + inProgressCount + todoCount;
+    const totalTasks = doneCount + readyToReviewCount + inProgressCount + todoCount;
 
     // Keep detailed breakdown for tooltip
     const statusCounts = {
@@ -195,6 +199,7 @@ export const MilestoneListView = ({
       completed,
       percentage,
       doneCount,
+      readyToReviewCount,
       inProgressCount,
       todoCount,
       statusCounts, // Include status breakdown
@@ -461,7 +466,7 @@ export const MilestoneListView = ({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "24px",
+          marginBottom: "16px",
           padding: "0 4px",
         }}
       >
@@ -516,6 +521,97 @@ export const MilestoneListView = ({
             Create Milestone
           </Button>
         )}
+      </div>
+
+      {/* Task Status Legend */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "20px",
+          padding: "12px 16px",
+          backgroundColor: "#f9fafb",
+          borderRadius: "8px",
+          marginBottom: "24px",
+          border: "1px solid #e5e7eb",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "#374151",
+          }}
+        >
+          Task Status:
+        </span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div
+              style={{
+                width: "16px",
+                height: "16px",
+                backgroundColor: "#10b981",
+                borderRadius: "3px",
+              }}
+            />
+            <span style={{ fontSize: "13px", color: "#6b7280" }}>Done</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div
+              style={{
+                width: "16px",
+                height: "16px",
+                backgroundColor: "#8b5cf6",
+                borderRadius: "3px",
+              }}
+            />
+            <span style={{ fontSize: "13px", color: "#6b7280" }}>
+              Ready to Review
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div
+              style={{
+                width: "16px",
+                height: "16px",
+                backgroundColor: "#3b82f6",
+                borderRadius: "3px",
+              }}
+            />
+            <span style={{ fontSize: "13px", color: "#6b7280" }}>
+              In Progress
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div
+              style={{
+                width: "16px",
+                height: "16px",
+                backgroundColor: "#6b7280",
+                borderRadius: "3px",
+              }}
+            />
+            <span style={{ fontSize: "13px", color: "#6b7280" }}>To Do</span>
+          </div>
+        </div>
+        <span
+          style={{
+            fontSize: "12px",
+            color: "#9ca3af",
+            fontStyle: "italic",
+            marginLeft: "auto",
+          }}
+        >
+          * In Progress includes InProgress and ReOpened tasks only
+        </span>
       </div>
 
       {milestones.length === 0 ? (
@@ -676,7 +772,23 @@ export const MilestoneListView = ({
                                 </div>
                               );
                             })()}
-                            {/* In Progress segment (blue) - includes InProgress, ReadyToReview, ReOpened */}
+                            {/* Ready to Review segment (purple) */}
+                            {(progress.readyToReviewCount ?? 0) > 0 && (() => {
+                              const readyCount = progress.readyToReviewCount ?? 0;
+                              const percentage = Math.round((readyCount / progress.total) * 100);
+                              return (
+                                <div
+                                  className="progress-segment ready-to-review"
+                                  style={{ 
+                                    width: `${percentage}%` 
+                                  }}
+                                  title={`Ready to Review: ${readyCount} task${readyCount > 1 ? 's' : ''}`}
+                                >
+                                  {percentage >= 10 && <span className="segment-percentage">{percentage}%</span>}
+                                </div>
+                              );
+                            })()}
+                            {/* In Progress segment (blue) - only InProgress and ReOpened */}
                             {(progress.inProgressCount ?? 0) > 0 && (() => {
                               const inProgressCount = progress.inProgressCount ?? 0;
                               const percentage = Math.round((inProgressCount / progress.total) * 100);
@@ -686,7 +798,7 @@ export const MilestoneListView = ({
                                   style={{ 
                                     width: `${percentage}%` 
                                   }}
-                                  title={`In Progress: ${inProgressCount} task${inProgressCount > 1 ? 's' : ''} (InProgress: ${progress.statusCounts?.InProgress || 0}, Ready: ${progress.statusCounts?.ReadyToReview || 0}, ReOpened: ${progress.statusCounts?.ReOpened || 0})`}
+                                  title={`In Progress: ${inProgressCount} task${inProgressCount > 1 ? 's' : ''} (InProgress: ${progress.statusCounts?.InProgress || 0}, ReOpened: ${progress.statusCounts?.ReOpened || 0})`}
                                 >
                                   {percentage >= 10 && <span className="segment-percentage">{percentage}%</span>}
                                 </div>

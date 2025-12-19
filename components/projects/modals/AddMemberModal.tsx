@@ -428,13 +428,13 @@ export function AddMemberModal({
                               e.currentTarget.style.display = 'none';
                               const parent = e.currentTarget.parentElement;
                               if (parent) {
-                                parent.textContent = availableUser.fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase();
+                                parent.textContent = availableUser.fullName?.charAt(0).toUpperCase();
                               }
                             }}
                           />
                         ) : (
                           <span className="avatar-initials">
-                            {availableUser.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '?'}
+                            {availableUser.avatar || availableUser.fullName?.charAt(0).toUpperCase() || '?'}
                           </span>
                         )}
                       </div>

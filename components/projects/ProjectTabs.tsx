@@ -84,6 +84,13 @@ export const ProjectTabs = ({
     }
   }, [initialTabFromQuery]);
 
+  // Sync with parent's initialActiveTab prop changes
+  useEffect(() => {
+    if (initialActiveTab && initialActiveTab !== activeTab) {
+      setActiveTab(initialActiveTab);
+    }
+  }, [initialActiveTab]);
+
   const tabs = [
     {
       id: "summary",
@@ -91,12 +98,12 @@ export const ProjectTabs = ({
       icon: <LayoutDashboard size={20} />,
     },
     {
-      id: "board",
+      id: "tasks",
       label: "Tasks",
       icon: <BiTask size={20} />,
     },
     {
-      id: "list",
+      id: "milestones",
       label: "Milestones",
       icon: <Flag size={20} />,
     },
@@ -126,7 +133,7 @@ export const ProjectTabs = ({
     switch (activeTab) {
       case "summary":
         return <ProjectSummary project={project} readOnly={isBusiness} />;
-      case "board":
+      case "tasks":
         return (
           <ProjectTaskTable
             project={project}
@@ -138,14 +145,12 @@ export const ProjectTabs = ({
             readOnly={isBusiness}
           />
         );
-      case "list":
+      case "milestones":
         return <ProjectList project={project} refreshKey={refreshKey} onCreateMilestone={isBusiness ? undefined : onCreateMilestone} readOnly={isBusiness} />;
       case "documents":
         return <ProjectDocuments project={project} readOnly={isBusiness} />;
       case "meetings":
         return <MeetingTab project={project} readOnly={isBusiness} />;
-      // case "reports":
-      //   return <ProjectReports project={project} />;
       case "settings":
         return <ProjectSettings project={project} availableProjectManagers={availableProjectManagers} onProjectUpdate={onProjectUpdate} />;
       default:

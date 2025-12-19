@@ -257,8 +257,8 @@ const ProjectDetailPage = () => {
         tabFromUrl &&
         [
           "summary",
-          "board",
-          "list",
+          "tasks",
+          "milestones",
           "documents",
           "meetings",
           "settings",
@@ -375,6 +375,36 @@ const ProjectDetailPage = () => {
       fetchProjectData();
     }
   }, [projectId, searchParams, refreshKey]);
+
+  // Handle tab and taskId from URL params
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    const taskIdParam = searchParams.get("taskId");
+    
+    // Switch to tab if specified
+    if (
+      tabParam &&
+      ["summary", "tasks", "milestones", "documents", "meetings", "settings"].includes(tabParam)
+    ) {
+      setActiveTab(tabParam);
+    }
+
+    // Open task modal if taskId is specified
+    if (taskIdParam && tabParam === "tasks") {
+      const fetchAndOpenTask = async () => {
+        try {
+          const taskResult = await taskService.getTaskById(taskIdParam);
+          if (taskResult.success && taskResult.data) {
+            setSelectedTask(taskResult.data);
+            setIsTaskModalOpen(true);
+          }
+        } catch (error) {
+          console.error("Error fetching task:", error);
+        }
+      };
+      fetchAndOpenTask();
+    }
+  }, [searchParams]);
 
   // Fetch tasks and calculate progress
   useEffect(() => {
