@@ -70,6 +70,10 @@
           background: #3b82f6; // Blue
         }
 
+        &.reopened {
+          background: #fbbf24; // Yellow
+        }
+
         &.todo {
           background: #6b7280; // Gray
         }
@@ -205,15 +209,17 @@
       background: #8b5cf6; // Purple - for Ready to Review status
     }
 
-    &.in-progress {
-      background: #3b82f6; // Blue - for InProgress and ReOpened only
-    }
+        &.in-progress {
+          background: #3b82f6; // Blue - for InProgress status only
+        }
 
-    &.todo {
-      background: #6b7280; // Gray - for Todo status
-    }
+        &.reopened {
+          background: #fbbf24; // Yellow - for Re-Opened status
+        }
 
-    &.empty {
+        &.todo {
+          background: #6b7280; // Gray - for Todo status
+        }    &.empty {
       background: #f1f5f9;
       width: 100%;
     }

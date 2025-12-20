@@ -341,7 +341,11 @@
       }
 
       &.in-progress {
-        background: #3b82f6; // Blue - for InProgress and ReOpened only
+        background: #3b82f6; // Blue - for InProgress status only
+      }
+
+      &.reopened {
+        background: #fbbf24; // Yellow - for Re-Opened status
       }
 
       &.todo {

@@ -11,17 +11,28 @@ import {
   Target,
   Trash2,
   Edit2,
+  Paperclip,
+  Upload,
+  Download,
+  File,
+  FileText,
+  Image as ImageIcon,
+  Video,
+  Loader2,
 } from "lucide-react";
 import { projectService } from "@/services/projectService";
 import { milestoneService } from "@/services/milestoneService";
 import { taskService } from "@/services/taskService";
 import { taskHistoryService } from "@/services/taskHistoryService";
 import { commentService } from "@/services/commentService";
+import { attachmentService } from "@/services/attachmentService";
+import { uploadFileToCloudinary } from "@/services/uploadFileService";
 import { GetTaskResponse } from "@/types/task";
 import { MilestoneBackend } from "@/types/milestone";
 import { Project } from "@/types/project";
 import { TaskHistory } from "@/types/taskHistory";
 import { GetCommentResponse } from "@/types/comment";
+import { TaskAttachmentResponse } from "@/types/attachment";
 import { toast } from "react-toastify";
 import { useAuth } from "@/hooks/useAuth";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -107,6 +118,14 @@ export const TaskDetailModal = ({
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(
     null
   );
+
+  // Attachments state
+  const [attachments, setAttachments] = useState<TaskAttachmentResponse[]>([]);
+  const [isLoadingAttachments, setIsLoadingAttachments] = useState(true);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
+  const [isConfirmDeleteAttachmentOpen, setIsConfirmDeleteAttachmentOpen] = useState(false);
 
   // API data
   const [members, setMembers] = useState<any[]>([]);
@@ -252,6 +271,36 @@ export const TaskDetailModal = ({
       fetchComments();
     }
   }, [isOpen, task?.id, fetchComments]);
+
+  // Function to fetch attachments
+  const fetchAttachments = useCallback(async () => {
+    if (!task?.id) {
+      return;
+    }
+
+    setIsLoadingAttachments(true);
+    try {
+      const response = await attachmentService.getAttachmentsByTaskId(task.id);
+
+      if (response.success && response.data) {
+        setAttachments(response.data);
+      } else {
+        setAttachments([]);
+      }
+    } catch (error) {
+      console.error("Error fetching attachments:", error);
+      setAttachments([]);
+    } finally {
+      setIsLoadingAttachments(false);
+    }
+  }, [task?.id]);
+
+  // Fetch attachments when modal opens
+  useEffect(() => {
+    if (isOpen && task?.id) {
+      fetchAttachments();
+    }
+  }, [isOpen, task?.id, fetchAttachments]);
 
   // Update editedTask when task prop changes
   useEffect(() => {
@@ -427,6 +476,132 @@ export const TaskDetailModal = ({
       setIsConfirmDeleteCommentOpen(false);
       setDeletingCommentId(null);
     }
+  };
+
+  // Attachment handlers
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !task?.id) return;
+
+    setIsUploadingFile(true);
+
+    try {
+      // Upload files one by one
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileKey = `${file.name}-${Date.now()}`;
+
+        try {
+          // Upload to Cloudinary
+          setUploadProgress((prev) => ({ ...prev, [fileKey]: 0 }));
+          
+          const cloudinaryUrl = await uploadFileToCloudinary(file);
+          
+          if (!cloudinaryUrl) {
+            toast.error(`Failed to upload ${file.name}`);
+            continue;
+          }
+
+          setUploadProgress((prev) => ({ ...prev, [fileKey]: 50 }));
+
+          // Extract filename from Cloudinary URL
+          // URL format: https://res.cloudinary.com/dgzn2ix8w/image/upload/v1234567890/filename.jpg
+          const urlParts = cloudinaryUrl.split('/');
+          const fileNameWithExt = urlParts[urlParts.length - 1];
+
+          // Create attachment metadata in backend
+          const attachmentData = {
+            fileName: fileNameWithExt,
+            originalFileName: file.name,
+            fileSize: file.size,
+            contentType: file.type,
+            fileUrl: cloudinaryUrl,
+          };
+
+          const response = await attachmentService.createAttachment(
+            task.id,
+            attachmentData
+          );
+
+          if (response.success) {
+            setUploadProgress((prev) => ({ ...prev, [fileKey]: 100 }));
+            toast.success(`${file.name} uploaded successfully`);
+          } else {
+            toast.error(`Failed to save ${file.name}: ${response.error}`);
+          }
+        } catch (error) {
+          console.error(`Error uploading ${file.name}:`, error);
+          toast.error(`Error uploading ${file.name}`);
+        } finally {
+          // Remove progress after a delay
+          setTimeout(() => {
+            setUploadProgress((prev) => {
+              const newProgress = { ...prev };
+              delete newProgress[fileKey];
+              return newProgress;
+            });
+          }, 1000);
+        }
+      }
+
+      // Refresh attachments list
+      await fetchAttachments();
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      toast.error("An error occurred while uploading files");
+    } finally {
+      setIsUploadingFile(false);
+      // Reset file input
+      event.target.value = "";
+    }
+  };
+
+  const handleDeleteAttachment = (attachmentId: string) => {
+    setDeletingAttachmentId(attachmentId);
+    setIsConfirmDeleteAttachmentOpen(true);
+  };
+
+  const confirmDeleteAttachment = async () => {
+    if (!deletingAttachmentId) return;
+
+    try {
+      const response = await attachmentService.deleteAttachment(
+        deletingAttachmentId
+      );
+
+      if (response.success) {
+        toast.success("Attachment deleted successfully");
+        await fetchAttachments();
+      } else {
+        toast.error(response.error || "Failed to delete attachment");
+      }
+    } catch (error) {
+      console.error("Error deleting attachment:", error);
+      toast.error("An error occurred while deleting attachment");
+    } finally {
+      setIsConfirmDeleteAttachmentOpen(false);
+      setDeletingAttachmentId(null);
+    }
+  };
+
+  const getFileIcon = (contentType: string) => {
+    if (contentType.startsWith("image/")) {
+      return <ImageIcon size={20} />;
+    } else if (contentType.startsWith("video/")) {
+      return <Video size={20} />;
+    } else if (contentType === "application/pdf") {
+      return <FileText size={20} />;
+    } else {
+      return <File size={20} />;
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i];
   };
 
   const handleUpdateField = (field: string, value: any) => {
@@ -1583,6 +1758,285 @@ export const TaskDetailModal = ({
                 <p className="error-text">{validationErrors.milestone}</p>
               )}
             </div>
+
+            {/* Attachments */}
+            <div className="info-field">
+              <label className="info-label">
+                <Paperclip size={16} />
+                Attachments
+              </label>
+              
+              {/* Upload Button */}
+              {mode === "edit" && canEdit && (
+                <div style={{ marginBottom: "12px" }}>
+                  <label
+                    htmlFor="file-upload"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 16px",
+                      background: "linear-gradient(135deg, #ff5e13 0%, #e54e0a 100%)",
+                      color: "white",
+                      borderRadius: "8px",
+                      cursor: isUploadingFile ? "not-allowed" : "pointer",
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      opacity: isUploadingFile ? 0.6 : 1,
+                      transition: "all 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isUploadingFile) {
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                        e.currentTarget.style.boxShadow = "0 4px 12px rgba(255, 94, 19, 0.3)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  >
+                    {isUploadingFile ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={16} />
+                        Upload Files
+                      </>
+                    )}
+                  </label>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    multiple
+                    onChange={handleFileUpload}
+                    disabled={isUploadingFile}
+                    style={{ display: "none" }}
+                    accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  />
+                  <p style={{ 
+                    fontSize: "11px", 
+                    color: "#6b7280", 
+                    marginTop: "6px",
+                    marginBottom: "0"
+                  }}>
+                    Max 10MB per file. Supports images, videos, PDFs, and documents.
+                  </p>
+                </div>
+              )}
+
+              {/* Upload Progress */}
+              {Object.keys(uploadProgress).length > 0 && (
+                <div style={{ marginBottom: "12px" }}>
+                  {Object.entries(uploadProgress).map(([key, progress]) => (
+                    <div key={key} style={{ 
+                      marginBottom: "8px",
+                      padding: "8px",
+                      background: "#f3f4f6",
+                      borderRadius: "6px"
+                    }}>
+                      <div style={{ 
+                        display: "flex", 
+                        justifyContent: "space-between",
+                        marginBottom: "4px",
+                        fontSize: "12px",
+                        color: "#6b7280"
+                      }}>
+                        <span>{key.split('-')[0]}</span>
+                        <span>{progress}%</span>
+                      </div>
+                      <div style={{
+                        width: "100%",
+                        height: "4px",
+                        background: "#e5e7eb",
+                        borderRadius: "2px",
+                        overflow: "hidden"
+                      }}>
+                        <div style={{
+                          width: `${progress}%`,
+                          height: "100%",
+                          background: "linear-gradient(90deg, #ff5e13 0%, #e54e0a 100%)",
+                          transition: "width 0.3s ease"
+                        }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Attachments List */}
+              <div className="attachments-list">
+                {isLoadingAttachments ? (
+                  <div
+                    style={{
+                      padding: "16px",
+                      textAlign: "center",
+                      color: "#6b7280",
+                      fontSize: "13px",
+                    }}
+                  >
+                    <Loader2 size={20} className="animate-spin" style={{ margin: "0 auto" }} />
+                    <p style={{ marginTop: "8px" }}>Loading attachments...</p>
+                  </div>
+                ) : attachments.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "16px",
+                      textAlign: "center",
+                      color: "#6b7280",
+                      fontSize: "13px",
+                      background: "#f9fafb",
+                      borderRadius: "8px",
+                      border: "1px dashed #d1d5db"
+                    }}
+                  >
+                    <Paperclip size={24} style={{ margin: "0 auto 8px", opacity: 0.5 }} />
+                    <p>No attachments yet</p>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {attachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "12px",
+                          background: "#f9fafb",
+                          borderRadius: "8px",
+                          border: "1px solid #e5e7eb",
+                          transition: "all 0.2s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#f3f4f6";
+                          e.currentTarget.style.borderColor = "#d1d5db";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "#f9fafb";
+                          e.currentTarget.style.borderColor = "#e5e7eb";
+                        }}
+                      >
+                        <div style={{ 
+                          display: "flex", 
+                          alignItems: "center", 
+                          gap: "12px",
+                          flex: 1,
+                          minWidth: 0
+                        }}>
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: "36px",
+                            height: "36px",
+                            background: "white",
+                            borderRadius: "6px",
+                            color: "#ff5e13",
+                            flexShrink: 0
+                          }}>
+                            {getFileIcon(attachment.contentType)}
+                          </div>
+                          <div style={{ 
+                            flex: 1,
+                            minWidth: 0,
+                            overflow: "hidden"
+                          }}>
+                            <p style={{
+                              margin: 0,
+                              fontSize: "13px",
+                              fontWeight: "500",
+                              color: "#111827",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis"
+                            }}>
+                              {attachment.originalFileName}
+                            </p>
+                            <p style={{
+                              margin: "2px 0 0 0",
+                              fontSize: "11px",
+                              color: "#6b7280"
+                            }}>
+                              {formatFileSize(attachment.fileSize)} • {new Date(attachment.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{ 
+                          display: "flex", 
+                          gap: "4px",
+                          flexShrink: 0
+                        }}>
+                          <button
+                            onClick={() => window.open(attachment.fileUrl, '_blank')}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: "32px",
+                              height: "32px",
+                              background: "white",
+                              border: "1px solid #e5e7eb",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              color: "#6b7280",
+                              transition: "all 0.2s ease"
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = "#ff5e13";
+                              e.currentTarget.style.borderColor = "#ff5e13";
+                              e.currentTarget.style.color = "white";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = "white";
+                              e.currentTarget.style.borderColor = "#e5e7eb";
+                              e.currentTarget.style.color = "#6b7280";
+                            }}
+                            title="Download"
+                          >
+                            <Download size={16} />
+                          </button>
+                          {mode === "edit" && canEdit && (
+                            <button
+                              onClick={() => handleDeleteAttachment(attachment.id)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                width: "32px",
+                                height: "32px",
+                                background: "white",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                color: "#6b7280",
+                                transition: "all 0.2s ease"
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = "#ef4444";
+                                e.currentTarget.style.borderColor = "#ef4444";
+                                e.currentTarget.style.color = "white";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = "white";
+                                e.currentTarget.style.borderColor = "#e5e7eb";
+                                e.currentTarget.style.color = "#6b7280";
+                              }}
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1611,6 +2065,24 @@ export const TaskDetailModal = ({
             onConfirm={confirmDeleteComment}
             title="Delete Comment"
             description="Are you sure you want to delete this comment? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
+          />
+        </div>
+      )}
+
+      {/* Confirm Delete Attachment Dialog */}
+      {isConfirmDeleteAttachmentOpen && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <ConfirmDialog
+            isOpen={isConfirmDeleteAttachmentOpen}
+            onClose={() => {
+              setIsConfirmDeleteAttachmentOpen(false);
+              setDeletingAttachmentId(null);
+            }}
+            onConfirm={confirmDeleteAttachment}
+            title="Delete Attachment"
+            description="Are you sure you want to delete this attachment? This action cannot be undone."
             confirmText="Delete"
             cancelText="Cancel"
           />

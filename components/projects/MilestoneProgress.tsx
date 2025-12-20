@@ -19,19 +19,12 @@ interface MilestoneWithProgress extends MilestoneBackend {
   status: string;
   totalTasks: number;
   completedTasks: number;
-  // 4 main categories for progress bar
+  // 5 categories for progress bar (all statuses separated)
   doneCount: number;
-  inProgressCount: number;
   readyToReviewCount: number;
+  inProgressCount: number;
+  reopenedCount: number;
   todoCount: number;
-  // Detailed breakdown for tooltip
-  statusCounts?: {
-    done: number;
-    inProgress: number;
-    readyToReview: number;
-    reopened: number;
-    todo: number;
-  };
 }
 
 export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
@@ -61,29 +54,29 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
               const tasksRes = await taskService.getTasksByMilestoneId(milestone.id);
               const milestoneTasks = tasksRes.success && tasksRes.data ? tasksRes.data : [];
 
-            // Group tasks into 4 main categories for progress bar
-            // Use both enum and string comparison for safety
+            // Separate each status individually
             const doneCount = milestoneTasks.filter(t => 
               t.status === TaskStatus.Done || t.status === 'Done'
             ).length;
             
-            // In Progress includes: InProgress and ReOpened only
-            const inProgressCount = milestoneTasks.filter(t => 
-              t.status === TaskStatus.InProgress || t.status === 'InProgress' ||
-              t.status === TaskStatus.ReOpened || t.status === 'ReOpened'
-            ).length;
-            
-            // Ready to Review as separate category
             const readyToReviewCount = milestoneTasks.filter(t => 
               t.status === TaskStatus.ReadyToReview || t.status === 'ReadyToReview'
+            ).length;
+            
+            const inProgressCount = milestoneTasks.filter(t => 
+              t.status === TaskStatus.InProgress || t.status === 'InProgress'
+            ).length;
+            
+            const reopenedCount = milestoneTasks.filter(t => 
+              t.status === TaskStatus.ReOpened || t.status === 'ReOpened'
             ).length;
             
             const todoCount = milestoneTasks.filter(t => 
               t.status === TaskStatus.Todo || t.status === 'Todo'
             ).length;
 
-            // Total tasks excluding Cancelled (only count tasks displayed in progress bar)
-            const totalTasks = doneCount + inProgressCount + readyToReviewCount + todoCount;
+            // Total tasks excluding Cancelled
+            const totalTasks = doneCount + readyToReviewCount + inProgressCount + reopenedCount + todoCount;
             const completedTasks = doneCount;
 
             // Status weights for progress calculation
@@ -108,21 +101,6 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
               ? Math.round((totalWeight / totalTasks) * 100) 
               : 0;
 
-            // Keep detailed breakdown for tooltip
-            const statusCounts = {
-              done: doneCount,
-              inProgress: milestoneTasks.filter(t => 
-                t.status === TaskStatus.InProgress || t.status === 'InProgress'
-              ).length,
-              readyToReview: milestoneTasks.filter(t => 
-                t.status === TaskStatus.ReadyToReview || t.status === 'ReadyToReview'
-              ).length,
-              reopened: milestoneTasks.filter(t => 
-                t.status === TaskStatus.ReOpened || t.status === 'ReOpened'
-              ).length,
-              todo: todoCount,
-            };
-
             // Determine status based on progress and due date
             let status = 'pending';
             const today = new Date();
@@ -143,10 +121,10 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
               totalTasks,
               completedTasks,
               doneCount,
-              inProgressCount,
               readyToReviewCount,
+              inProgressCount,
+              reopenedCount,
               todoCount,
-              statusCounts
             };
           })
         );
@@ -236,6 +214,10 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
           <span className="legend-label">In Progress</span>
         </div>
         <div className="legend-item">
+          <span className="legend-color reopened"></span>
+          <span className="legend-label">Re-Opened</span>
+        </div>
+        <div className="legend-item">
           <span className="legend-color todo"></span>
           <span className="legend-label">To do</span>
         </div>
@@ -257,7 +239,7 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
 
             <div className="milestone-progress-bar">
               <div className="progress-container">
-                {/* Simplified 3-segment progress bar */}
+                {/* 5-segment progress bar - all statuses separated */}
                 {milestone.totalTasks > 0 ? (
                   <>
                     {/* Done segment (green) */}
@@ -290,7 +272,7 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
                         </div>
                       );
                     })()}
-                    {/* In Progress segment (blue) - includes InProgress and ReOpened */}
+                    {/* In Progress segment (blue) */}
                     {milestone.inProgressCount > 0 && (() => {
                       const percentage = Math.round((milestone.inProgressCount / milestone.totalTasks) * 100);
                       return (
@@ -299,7 +281,22 @@ export const MilestoneProgress = ({ project }: MilestoneProgressProps) => {
                           style={{ 
                             width: `${percentage}%` 
                           }}
-                          title={`In Progress: ${milestone.inProgressCount} task${milestone.inProgressCount > 1 ? 's' : ''} (InProgress: ${milestone.statusCounts?.inProgress || 0}, ReOpened: ${milestone.statusCounts?.reopened || 0})`}
+                          title={`In Progress: ${milestone.inProgressCount} task${milestone.inProgressCount > 1 ? 's' : ''}`}
+                        >
+                          {percentage >= 10 && <span className="segment-percentage">{percentage}%</span>}
+                        </div>
+                      );
+                    })()}
+                    {/* Re-Opened segment (yellow) */}
+                    {milestone.reopenedCount > 0 && (() => {
+                      const percentage = Math.round((milestone.reopenedCount / milestone.totalTasks) * 100);
+                      return (
+                        <div
+                          className="progress-segment reopened"
+                          style={{ 
+                            width: `${percentage}%` 
+                          }}
+                          title={`Re-Opened: ${milestone.reopenedCount} task${milestone.reopenedCount > 1 ? 's' : ''}`}
                         >
                           {percentage >= 10 && <span className="segment-percentage">{percentage}%</span>}
                         </div>

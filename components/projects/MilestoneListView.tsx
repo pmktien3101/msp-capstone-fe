@@ -143,20 +143,24 @@ export const MilestoneListView = ({
       [TaskStatus.Cancelled]: 0, // Not counted towards progress
     };
 
-    // Group tasks into 4 main categories for progress bar
+    // Group tasks into 5 separate categories for progress bar
     // Use both enum and string comparison for safety
     const doneCount = tasks.filter(t => 
       t.status === TaskStatus.Done || t.status === 'Done'
     ).length;
     
-    // Ready to Review - separated from In Progress
+    // Ready to Review - separated category
     const readyToReviewCount = tasks.filter(t => 
       t.status === TaskStatus.ReadyToReview || t.status === 'ReadyToReview'
     ).length;
     
-    // In Progress now only includes: InProgress and ReOpened
+    // In Progress - now ONLY InProgress status
     const inProgressCount = tasks.filter(t => 
-      t.status === TaskStatus.InProgress || t.status === 'InProgress' ||
+      t.status === TaskStatus.InProgress || t.status === 'InProgress'
+    ).length;
+    
+    // Re-Opened - separated category
+    const reopenedCount = tasks.filter(t => 
       t.status === TaskStatus.ReOpened || t.status === 'ReOpened'
     ).length;
     
@@ -164,35 +168,22 @@ export const MilestoneListView = ({
       t.status === TaskStatus.Todo || t.status === 'Todo'
     ).length;
 
-    // Total tasks excluding Cancelled (only count tasks displayed in progress bar)
-    const totalTasks = doneCount + readyToReviewCount + inProgressCount + todoCount;
-
-    // Keep detailed breakdown for tooltip
-    const statusCounts = {
-      Done: doneCount,
-      InProgress: tasks.filter(t => 
-        t.status === TaskStatus.InProgress || t.status === 'InProgress'
-      ).length,
-      ReadyToReview: tasks.filter(t => 
-        t.status === TaskStatus.ReadyToReview || t.status === 'ReadyToReview'
-      ).length,
-      ReOpened: tasks.filter(t => 
-        t.status === TaskStatus.ReOpened || t.status === 'ReOpened'
-      ).length,
-      Todo: todoCount,
-    };
+    // Total tasks excluding Cancelled (all 5 categories)
+    const totalTasks = doneCount + readyToReviewCount + inProgressCount + reopenedCount + todoCount;
 
     // Calculate weighted progress (only for non-cancelled tasks)
     let totalWeight = 0;
-    Object.entries(statusCounts).forEach(([status, count]) => {
-      totalWeight += count * (statusWeights[status] || 0);
-    });
+    totalWeight += doneCount * (statusWeights.Done || 0);
+    totalWeight += inProgressCount * (statusWeights[TaskStatus.InProgress] || 0);
+    totalWeight += readyToReviewCount * (statusWeights[TaskStatus.ReadyToReview] || 0);
+    totalWeight += reopenedCount * (statusWeights[TaskStatus.ReOpened] || 0);
+    totalWeight += todoCount * (statusWeights[TaskStatus.Todo] || 0);
 
     const percentage = totalTasks > 0 
       ? Math.round((totalWeight / totalTasks) * 100) 
       : 0;
 
-    const completed = statusCounts.Done;
+    const completed = doneCount;
 
     return {
       total: totalTasks,
@@ -201,8 +192,8 @@ export const MilestoneListView = ({
       doneCount,
       readyToReviewCount,
       inProgressCount,
+      reopenedCount,
       todoCount,
-      statusCounts, // Include status breakdown
     };
   };
 
@@ -595,6 +586,19 @@ export const MilestoneListView = ({
               style={{
                 width: "16px",
                 height: "16px",
+                backgroundColor: "#fbbf24",
+                borderRadius: "3px",
+              }}
+            />
+            <span style={{ fontSize: "13px", color: "#6b7280" }}>
+              Re-Opened
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div
+              style={{
+                width: "16px",
+                height: "16px",
                 backgroundColor: "#6b7280",
                 borderRadius: "3px",
               }}
@@ -602,16 +606,6 @@ export const MilestoneListView = ({
             <span style={{ fontSize: "13px", color: "#6b7280" }}>To Do</span>
           </div>
         </div>
-        <span
-          style={{
-            fontSize: "12px",
-            color: "#9ca3af",
-            fontStyle: "italic",
-            marginLeft: "auto",
-          }}
-        >
-          * In Progress includes InProgress and ReOpened tasks only
-        </span>
       </div>
 
       {milestones.length === 0 ? (
@@ -788,7 +782,7 @@ export const MilestoneListView = ({
                                 </div>
                               );
                             })()}
-                            {/* In Progress segment (blue) - only InProgress and ReOpened */}
+                            {/* In Progress segment (blue) */}
                             {(progress.inProgressCount ?? 0) > 0 && (() => {
                               const inProgressCount = progress.inProgressCount ?? 0;
                               const percentage = Math.round((inProgressCount / progress.total) * 100);
@@ -798,7 +792,23 @@ export const MilestoneListView = ({
                                   style={{ 
                                     width: `${percentage}%` 
                                   }}
-                                  title={`In Progress: ${inProgressCount} task${inProgressCount > 1 ? 's' : ''} (InProgress: ${progress.statusCounts?.InProgress || 0}, ReOpened: ${progress.statusCounts?.ReOpened || 0})`}
+                                  title={`In Progress: ${inProgressCount} task${inProgressCount > 1 ? 's' : ''}`}
+                                >
+                                  {percentage >= 10 && <span className="segment-percentage">{percentage}%</span>}
+                                </div>
+                              );
+                            })()}
+                            {/* Re-Opened segment (yellow) */}
+                            {(progress.reopenedCount ?? 0) > 0 && (() => {
+                              const reopenedCount = progress.reopenedCount ?? 0;
+                              const percentage = Math.round((reopenedCount / progress.total) * 100);
+                              return (
+                                <div
+                                  className="progress-segment reopened"
+                                  style={{ 
+                                    width: `${percentage}%` 
+                                  }}
+                                  title={`Re-Opened: ${reopenedCount} task${reopenedCount > 1 ? 's' : ''}`}
                                 >
                                   {percentage >= 10 && <span className="segment-percentage">{percentage}%</span>}
                                 </div>
