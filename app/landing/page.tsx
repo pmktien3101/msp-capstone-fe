@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import packageService from "@/services/packageService";
 import { Package } from "@/types/package";
+import { ScrollAnimate } from "@/components/ui/ScrollAnimate";
 import "@/app/styles/landing-page.scss";
 import {
   Video,
@@ -18,10 +19,9 @@ import {
   Check,
   Menu,
   X,
-  Star,
-  Shield,
-  Users,
-  Zap,
+  Target,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -72,28 +72,6 @@ export default function LandingPage() {
     fetchPackages();
   }, []);
 
-  const stats = [
-    {
-      number: "10K+",
-      label: "Businesses Using",
-      icon: <Users className="stat-svg" />,
-    },
-    {
-      number: "98%",
-      label: "Satisfaction Rate",
-      icon: <Star className="stat-svg" />,
-    },
-    {
-      number: "24/7",
-      label: "Customer Support",
-      icon: <Shield className="stat-svg" />,
-    },
-    {
-      number: "50K+",
-      label: "Meetings Per Day",
-      icon: <Zap className="stat-svg" />,
-    },
-  ];
 
   const features = [
     {
@@ -140,24 +118,6 @@ export default function LandingPage() {
     },
   ];
 
-  const testimonials = [
-    {
-      content:
-        "MSP has completely transformed how we manage meetings. Efficiency has increased significantly!",
-      name: "John Smith",
-      role: "CEO",
-      company: "Tech Solutions",
-      avatar: "/avatars/avatar-1.png",
-    },
-    {
-      content:
-        "An excellent solution for tracking and managing meetings professionally.",
-      name: "Sarah Johnson",
-      role: "Project Manager",
-      company: "Creative Agency",
-      avatar: "/avatars/avatar-2.png",
-    },
-  ];
 
   const formatPrice = (price: number, billingCycle: number) => {
     if (isYearlyBilling && billingCycle === 1) {
@@ -428,17 +388,68 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="stats-section">
+      {/* About Section */}
+      <section id="about" className="about-section">
         <div className="container">
-          <div className="stats-grid">
-            {stats.map((stat, index) => (
-              <div key={index} className="stat-item">
-                <div className="stat-icon">{stat.icon}</div>
-                <div className="stat-number">{stat.number}</div>
-                <div className="stat-label">{stat.label}</div>
+          <ScrollAnimate animation="fade-up">
+            <div className="section-header">
+              <h2 className="section-title">About MSP</h2>
+              <p className="section-description">
+                We are dedicated to transforming how businesses conduct and manage
+                their meetings.
+              </p>
+            </div>
+          </ScrollAnimate>
+
+          <div className="about-grid">
+            {/* Mission Card */}
+            <ScrollAnimate animation="fade-up" delay={100}>
+              <div className="about-card">
+                <div className="about-card-icon">
+                  <Target className="about-icon" />
+                </div>
+                <h3 className="about-card-title">Our Mission</h3>
+                <p className="about-card-description">
+                  MSP (Meeting Support Platform) was created with a vision to help
+                  businesses optimize their meeting processes and improve team
+                  collaboration. We understand that effective meetings are the
+                  cornerstone of successful projects and business growth.
+                </p>
               </div>
-            ))}
+            </ScrollAnimate>
+
+            {/* What We Offer Card */}
+            <ScrollAnimate animation="fade-up" delay={200}>
+              <div className="about-card">
+                <div className="about-card-icon">
+                  <Sparkles className="about-icon" />
+                </div>
+                <h3 className="about-card-title">What We Offer</h3>
+                <p className="about-card-description">
+                  Our platform combines cutting-edge technology with intuitive
+                  design to provide a comprehensive solution for meeting
+                  management. From video conferencing to AI-powered transcription
+                  and automatic task assignment, MSP streamlines your entire
+                  meeting workflow.
+                </p>
+              </div>
+            </ScrollAnimate>
+
+            {/* Why Choose Us Card */}
+            <ScrollAnimate animation="fade-up" delay={300}>
+              <div className="about-card">
+                <div className="about-card-icon">
+                  <TrendingUp className="about-icon" />
+                </div>
+                <h3 className="about-card-title">Why Choose Us</h3>
+                <p className="about-card-description">
+                  We focus on delivering real value to business owners and teams.
+                  Our platform is designed to save time, increase productivity,
+                  and ensure that important decisions and action items from
+                  meetings are never lost or forgotten.
+                </p>
+              </div>
+            </ScrollAnimate>
           </div>
         </div>
       </section>
@@ -446,27 +457,35 @@ export default function LandingPage() {
       {/* Features Section */}
       <section id="features" className="features-section">
         <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">Why Business Owners Choose MSP?</h2>
-            <p className="section-description">
-              Built with modern technology and business needs, MSP provides
-              everything your business needs to succeed.
-            </p>
-          </div>
+          <ScrollAnimate animation="fade-up">
+            <div className="section-header">
+              <h2 className="section-title">Why Business Owners Choose MSP?</h2>
+              <p className="section-description">
+                Built with modern technology and business needs, MSP provides
+                everything your business needs to succeed.
+              </p>
+            </div>
+          </ScrollAnimate>
 
           <div className="features-grid">
             {features.map((feature, index) => (
-              <div key={index} className="feature-card">
-                <div
-                  className={`feature-icon ${
-                    feature.secondary ? "icon-secondary" : ""
-                  }`}
-                >
-                  {feature.icon}
+              <ScrollAnimate 
+                key={index} 
+                animation="fade-up" 
+                delay={(index % 3) * 100 + 100}
+              >
+                <div className="feature-card">
+                  <div
+                    className={`feature-icon ${
+                      feature.secondary ? "icon-secondary" : ""
+                    }`}
+                  >
+                    {feature.icon}
+                  </div>
+                  <h3 className="feature-title">{feature.title}</h3>
+                  <p className="feature-description">{feature.description}</p>
                 </div>
-                <h3 className="feature-title">{feature.title}</h3>
-                <p className="feature-description">{feature.description}</p>
-              </div>
+              </ScrollAnimate>
             ))}
           </div>
         </div>
@@ -477,29 +496,31 @@ export default function LandingPage() {
         <div className="pricing-bg-shape"></div>
 
         <div className="container pricing-content">
-          <div className="section-header">
-            <h2 className="section-title">Choose Your Plan</h2>
-            <p className="section-description">
-              Flexible pricing options designed for businesses of all sizes.
-              Start with a free trial and upgrade when you're ready.
-            </p>
+          <ScrollAnimate animation="fade-up">
+            <div className="section-header">
+              <h2 className="section-title">Choose Your Plan</h2>
+              <p className="section-description">
+                Flexible pricing options designed for businesses of all sizes.
+                Start with a free trial and upgrade when you're ready.
+              </p>
 
-            <div className="pricing-toggle">
-              <button
-                className={`toggle-btn ${!isYearlyBilling ? "active" : ""}`}
-                onClick={() => setIsYearlyBilling(false)}
-              >
-                Monthly
-              </button>
-              <button
-                className={`toggle-btn ${isYearlyBilling ? "active" : ""}`}
-                onClick={() => setIsYearlyBilling(true)}
-              >
-                Yearly
-                <span className="discount-badge">-20%</span>
-              </button>
+              <div className="pricing-toggle">
+                <button
+                  className={`toggle-btn ${!isYearlyBilling ? "active" : ""}`}
+                  onClick={() => setIsYearlyBilling(false)}
+                >
+                  Monthly
+                </button>
+                <button
+                  className={`toggle-btn ${isYearlyBilling ? "active" : ""}`}
+                  onClick={() => setIsYearlyBilling(true)}
+                >
+                  Yearly
+                  <span className="discount-badge">-20%</span>
+                </button>
+              </div>
             </div>
-          </div>
+          </ScrollAnimate>
 
           <div className="pricing-grid">
             {isLoadingPackages ? (
@@ -513,96 +534,62 @@ export default function LandingPage() {
               </div>
             ) : (
               packages.map((pkg, index) => (
-                <div
+                <ScrollAnimate 
                   key={pkg.id}
-                  className={`pricing-card ${
-                    index === 1
-                      ? "pricing-card-featured"
-                      : "pricing-card-default"
-                  }`}
+                  animation="fade-up"
+                  delay={index * 100 + 100}
                 >
-                  {index === 1 && (
-                    <div className="popular-badge">Most Popular</div>
-                  )}
+                  <div
+                    className={`pricing-card ${
+                      index === 1
+                        ? "pricing-card-featured"
+                        : "pricing-card-default"
+                    }`}
+                  >
+                    {index === 1 && (
+                      <div className="popular-badge">Most Popular</div>
+                    )}
 
-                  <div className="plan-header">
-                    <h3 className="plan-name">{pkg.name}</h3>
-                    <p className="plan-description">
-                      {pkg.description || "Perfect for your business needs"}
-                    </p>
-                  </div>
-
-                  <div className="plan-price">
-                    <div className="price-wrapper">
-                      <span className="price-currency">
-                        {pkg.currency === "VND" ? "₫" : "$"}
-                        {formatPrice(
-                          pkg.price,
-                          pkg.billingCycle
-                        ).toLocaleString()}
-                      </span>
-                      <span className="price-period">
-                        {getBillingPeriod(pkg.billingCycle)}
-                      </span>
+                    <div className="plan-header">
+                      <h3 className="plan-name">{pkg.name}</h3>
+                      <p className="plan-description">
+                        {pkg.description || "Perfect for your business needs"}
+                      </p>
                     </div>
-                  </div>
 
-                  <div className="plan-features">
-                    {getPackageFeatures(pkg).map((feature, featureIndex) => (
-                      <div key={featureIndex} className="feature-item">
-                        <div className="feature-check-wrapper">
-                          <Check className="feature-check-icon" />
-                        </div>
-                        <span className="feature-text">{feature}</span>
+                    <div className="plan-price">
+                      <div className="price-wrapper">
+                        <span className="price-currency">
+                          {pkg.currency === "VND" ? "₫" : "$"}
+                          {formatPrice(
+                            pkg.price,
+                            pkg.billingCycle
+                          ).toLocaleString()}
+                        </span>
+                        <span className="price-period">
+                          {getBillingPeriod(pkg.billingCycle)}
+                        </span>
                       </div>
-                    ))}
-                  </div>
+                    </div>
 
-                  <Link href="/sign-up" className="pricing-cta">
-                    {index === 1 ? "Get Started Now" : "Get Started"}
-                  </Link>
-                </div>
+                    <div className="plan-features">
+                      {getPackageFeatures(pkg).map((feature, featureIndex) => (
+                        <div key={featureIndex} className="feature-item">
+                          <div className="feature-check-wrapper">
+                            <Check className="feature-check-icon" />
+                          </div>
+                          <span className="feature-text">{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <Link href="/sign-up" className="pricing-cta">
+                      {index === 1 ? "Get Started Now" : "Get Started"}
+                    </Link>
+                  </div>
+                </ScrollAnimate>
               ))
             )}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" className="testimonials-section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">What Users Say</h2>
-            <p className="section-description">
-              Join thousands of satisfied teams who have transformed their
-              meeting experience with MSP.
-            </p>
-          </div>
-
-          <div className="testimonials-grid">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="testimonial-card">
-                <div className="testimonial-stars">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="star-icon" />
-                  ))}
-                </div>
-                <p className="testimonial-content">"{testimonial.content}"</p>
-                <div className="testimonial-author">
-                  <div className="author-avatar">
-                    <div className="avatar-placeholder">
-                      {testimonial.name.charAt(0)}
-                    </div>
-                  </div>
-                  <div className="author-info">
-                    <div className="author-name">{testimonial.name}</div>
-                    <div className="author-role">
-                      {testimonial.role} at {testimonial.company}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
@@ -610,28 +597,30 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="cta-section">
         <div className="container">
-          <div className="cta-card">
-            <div className="cta-circle cta-circle-1"></div>
-            <div className="cta-circle cta-circle-2"></div>
+          <ScrollAnimate animation="scale">
+            <div className="cta-card">
+              <div className="cta-circle cta-circle-1"></div>
+              <div className="cta-circle cta-circle-2"></div>
 
-            <div className="cta-content">
-              <h2 className="cta-title">
-                Ready to Transform Your Business Meetings?
-              </h2>
-              <p className="cta-description">
-                Join thousands of business owners who have used MSP to optimize
-                operations and achieve better business results.
-              </p>
-              <div className="cta-actions">
-                <Link href="/sign-up" className="cta-primary">
-                  Register Your Business
-                </Link>
-                <Link href="/sign-in" className="cta-secondary">
-                  Sign In
-                </Link>
+              <div className="cta-content">
+                <h2 className="cta-title">
+                  Ready to Transform Your Business Meetings?
+                </h2>
+                <p className="cta-description">
+                  Join thousands of business owners who have used MSP to optimize
+                  operations and achieve better business results.
+                </p>
+                <div className="cta-actions">
+                  <Link href="/sign-up" className="cta-primary">
+                    Register Your Business
+                  </Link>
+                  <Link href="/sign-in" className="cta-secondary">
+                    Sign In
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
+          </ScrollAnimate>
         </div>
       </section>
 
@@ -674,20 +663,11 @@ export default function LandingPage() {
                 <li>
                   <Link href="#about">About</Link>
                 </li>
-                <li>
-                  <Link href="#contact">Contact</Link>
-                </li>
+                
               </ul>
             </div>
 
-            <div className="footer-column">
-              <h4>Support</h4>
-              <ul>
-                <li>
-                  <Link href="#help">Help Center</Link>
-                </li>
-              </ul>
-            </div>
+         
           </div>
 
           <div className="footer-bottom">
