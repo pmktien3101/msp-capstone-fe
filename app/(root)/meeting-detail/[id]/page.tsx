@@ -240,7 +240,7 @@ export default function MeetingDetailPage() {
       // Position FAB at specific coordinates (top: 151px, left: 376px)
       const initialX = 376;
       const initialY = 151;
-      
+
       setFabPosition({ x: initialX, y: initialY });
       fabInitializedRef.current = true;
     }
@@ -425,14 +425,14 @@ export default function MeetingDetailPage() {
           setTodoList(filterDeleted);
           setTodosFromDB(filterDeleted);
           setSelectedTasks([]);
-          
+
           toast.success(
             `Successfully deleted ${successCount} task${successCount > 1 ? 's' : ''}!`
           );
         } else {
           toast.error("Unable to delete tasks");
         }
-        
+
         setDeleteConfirmModal({ isOpen: false, taskId: null });
         return;
       }
@@ -446,12 +446,12 @@ export default function MeetingDetailPage() {
 
         setTodoList(filterDeleted);
         setTodosFromDB(filterDeleted);
-        
+
         // Remove the deleted task from selectedTasks
-        setSelectedTasks((prev) => 
+        setSelectedTasks((prev) =>
           prev.filter((id) => id !== deleteConfirmModal.taskId)
         );
-        
+
         toast.success("Task deleted successfully");
         setDeleteConfirmModal({ isOpen: false, taskId: null });
       } else {
@@ -832,17 +832,7 @@ export default function MeetingDetailPage() {
                     </div>
                     <div className="info-content">
                       <label>End Time</label>
-                      <p>
-                        {call.state.startsAt && meetingInfo?.duration
-                          ? formatDateTime(
-                            new Date(
-                              new Date(call.state.startsAt).getTime() +
-                              meetingInfo.duration
-                            ),
-                            true
-                          )
-                          : "--/--/---- --:--"}
-                      </p>
+                      <p>{formatDateTime(meetingInfo.endTime, true)}</p>
                     </div>
                   </div>
                 </div>
@@ -1218,7 +1208,7 @@ export default function MeetingDetailPage() {
                           )}
                           Save
                         </button>
-                        <button 
+                        <button
                           className="meeting-summary-cancel-btn"
                           onClick={handleCancelEditSummary}
                         >

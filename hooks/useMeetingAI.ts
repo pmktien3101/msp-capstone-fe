@@ -486,22 +486,79 @@ function mapTodosForCreation(todos: any[], meetingInfo: any) {
     return todos.map((todo: any) => {
         let validAssigneeId = todo.assigneeId;
 
+        // Validate assignee
         if (todo.assigneeId && meetingInfo?.attendees) {
             const attendee = meetingInfo.attendees.find(
                 (att: any) => att.id === todo.assigneeId
             );
             if (!attendee) {
+                console.warn(`⚠️ Assignee ${todo.assigneeId} not found, using creator`);
                 validAssigneeId = meetingInfo?.createdById;
             }
         } else {
             validAssigneeId = meetingInfo?.createdById;
         }
 
+        // ✅ Parse dates với helper
+        const parsedStartDate = parseDateString(todo.startDate);
+        const parsedEndDate = parseDateString(todo.endDate);
+
+        // ✅ Log để debug
+        if (todo.startDate || todo.endDate) {
+            console.log('📅 Date parsing:', {
+                original: { start: todo.startDate, end: todo.endDate },
+                parsed: { start: parsedStartDate, end: parsedEndDate }
+            });
+        }
+
         return {
             ...todo,
             assigneeId: validAssigneeId,
-            endDate: todo.endDate ? new Date(todo.endDate).toISOString() : null,
-            startDate: todo.startDate ? new Date(todo.startDate).toISOString() : null,
+            startDate: parsedStartDate,
+            endDate: parsedEndDate,
         };
     });
 }
+
+// ===== HELPER: Parse date từ DD-MM-YYYY sang YYYY-MM-DD =====
+function parseDateString(dateStr: string | null): string | null {
+    if (!dateStr) return null;
+
+    // Nếu đã là ISO format (YYYY-MM-DD hoặc ISO string) → giữ nguyên
+    if (dateStr.includes('T') || /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+        return new Date(dateStr).toISOString();
+    }
+
+    // Parse DD-MM-YYYY
+    const ddMmYyyy = /^(\d{1,2})-(\d{1,2})-(\d{4})$/;
+    const match = dateStr.match(ddMmYyyy);
+
+    if (match) {
+        const [, day, month, year] = match;
+        // Convert to YYYY-MM-DD
+        const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+        // Validate
+        const date = new Date(isoDate);
+        if (isNaN(date.getTime())) {
+            console.warn(`⚠️ Invalid date: ${dateStr}`);
+            return null;
+        }
+
+        return date.toISOString();
+    }
+
+    // Fallback: thử parse trực tiếp
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+            console.warn(`⚠️ Cannot parse date: ${dateStr}`);
+            return null;
+        }
+        return date.toISOString();
+    } catch (e) {
+        console.warn(`⚠️ Error parsing date: ${dateStr}`, e);
+        return null;
+    }
+}
+
