@@ -97,6 +97,9 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
   const { role } = useUser();
   const isMember = role === "Member";
 
+  // Check if project is completed
+  const isProjectCompleted = project.status === "Completed";
+
   // Categorize meetings by status (for statistics)
   const scheduledMeetings = backendMeetings.filter(
     (m) => m.status === "Scheduled"
@@ -177,21 +180,10 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
   };
 
   const handleCancel = async (meeting: MeetingItem) => {
-    if (!confirm("Bạn có chắc chắn muốn hủy cuộc họp này?")) return;
-
-    try {
-      const res = await meetingService.cancelMeeting(meeting.id);
-
-      if (res?.success) {
-        await refetchCalls();
-        toast.success("Meeting cancelled successfully");
-      } else {
-        toast.error(res?.error || res?.message || "Unable to cancel meeting");
-      }
-    } catch (e: any) {
-      console.error("Cancel meeting failed", e);
-      toast.error(e?.message || "Unable to cancel meeting");
-    }
+    if (!confirm("Are you sure you want to cancel this meeting?")) return;
+    await meetingService.cancelMeeting(meeting.id);
+    await refetchCalls();
+    toast.success("Meeting cancelled successfully");
   };
 
   const allMeetingsCount = allMeetings.length;
@@ -211,6 +203,27 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
 
   return (
     <div className="meeting-tab">
+      {isProjectCompleted && (
+        <div
+          style={{
+            padding: "12px 16px",
+            marginBottom: "20px",
+            backgroundColor: "#FEF3C7",
+            border: "1px solid #FCD34D",
+            borderRadius: "8px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontSize: "14px",
+            color: "#92400E",
+          }}
+        >
+          <Calendar size={18} />
+          <span>
+            This project is completed. Creating, editing, and cancelling meetings is disabled.
+          </span>
+        </div>
+      )}
       <div className="meeting-header">
         <div className="meeting-title">
           <div className="title-icon">
@@ -224,7 +237,7 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
             </p>
           </div>
         </div>
-        {!isMember && !readOnly && (
+        {!isMember && !readOnly && !isProjectCompleted && (
           <Button
             onClick={() => {
               if (checkMeetingLimitation()) {
@@ -441,7 +454,8 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
                       {meeting.status !== "Finished" &&
                         meeting.status !== "Cancelled" &&
                         !isMember &&
-                        !readOnly && (
+                        !readOnly &&
+                        !isProjectCompleted && (
                           <button
                             className="action-btn edit-btn"
                             title="Update"
@@ -452,6 +466,7 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
                         )}
                       {!isMember &&
                         !readOnly &&
+                        !isProjectCompleted &&
                         meeting.status !== "Cancelled" &&
                         meeting.status !== "Finished" && (
                           <button

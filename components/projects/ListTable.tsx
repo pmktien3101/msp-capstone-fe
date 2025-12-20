@@ -52,11 +52,14 @@ export const ListTable = ({
     new Set(["milestone-1"]) // Mở milestone đầu tiên mặc định
   );
 
+  // Check if project is completed
+  const isProjectCompleted = project.status === "Completed";
+
   // Check if user has permission to create tasks
-  const canCreateTask = role && role.toLowerCase() !== 'member';
+  const canCreateTask = role && role.toLowerCase() !== 'member' && !isProjectCompleted;
 
   // Check if user has permission to edit/delete (non-member roles)
-  const canEditDelete = role && role.toLowerCase() !== 'member';
+  const canEditDelete = role && role.toLowerCase() !== 'member' && !isProjectCompleted;
   const [createTaskModal, setCreateTaskModal] = useState<{
     isOpen: boolean;
     milestoneId?: string;
@@ -127,28 +130,6 @@ export const ListTable = ({
     }
   };
 
-  const getStatusBackgroundColor = (status: string) => {
-    switch (status) {
-      // Task status
-      case "todo":
-        return "#f3f4f6";
-      case "in-progress":
-        return "#fef3c7";
-      case "review":
-        return "#dbeafe";
-      case "done":
-        return "#dcfce7";
-      // Milestone status
-      case "pending":
-        return "#f3f4f6";
-      case "completed":
-        return "#dcfce7";
-      case "overdue":
-        return "#fee2e2";
-      default:
-        return "#f3f4f6";
-    }
-  };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
@@ -173,57 +154,10 @@ export const ListTable = ({
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "#ef4444";
-      case "medium":
-        return "#f59e0b";
-      case "low":
-        return "#10b981";
-      default:
-        return "#6b7280";
-    }
-  };
-
-  const getPriorityBackgroundColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "#fee2e2";
-      case "medium":
-        return "#fef3c7";
-      case "low":
-        return "#dcfce7";
-      default:
-        return "#f3f4f6";
-    }
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "Cao";
-      case "medium":
-        return "Trung bình";
-      case "low":
-        return "Thấp";
-      default:
-        return priority;
-    }
-  };
-
   // Helper function to get member name by ID
   const getMemberName = (memberId: string) => {
     const member = mockMembers.find(m => m.id === memberId);
     return member ? member.name : memberId;
-  };
-
-  // Helper function to get milestone names by IDs
-  const getMilestoneNames = (milestoneIds: string[]) => {
-    return milestoneIds.map(id => {
-      const milestone = mockMilestones.find(m => m.id === id);
-      return milestone ? milestone.name : id;
-    }).join(", ");
   };
 
   // Helper function to toggle milestone expansion
@@ -319,34 +253,6 @@ export const ListTable = ({
     }
   };
 
-  // Helper function to handle task creation
-  const handleCreateTask = (taskData: any) => {
-    // Generate unique ID
-    const existingIds = tasks.map(task => task.id);
-    let newId = `MWA-${tasks.length + 1}`;
-    let counter = 1;
-    while (existingIds.includes(newId)) {
-      newId = `MWA-${tasks.length + 1 + counter}`;
-      counter++;
-    }
-
-    const newTask = {
-      ...taskData,
-      id: newId
-    };
-
-    setTasks(prevTasks => [...prevTasks, newTask]);
-
-    // Update milestone tasks for all selected milestones
-    if (taskData.milestoneIds && taskData.milestoneIds.length > 0) {
-      taskData.milestoneIds.forEach((milestoneId: string) => {
-        const milestone = mockMilestones.find(m => m.id === milestoneId);
-        if (milestone && !milestone.tasks.includes(newTask.id)) {
-          milestone.tasks.push(newTask.id);
-        }
-      });
-    }
-  };
 
   // Helper function to open delete task modal
   const openDeleteTaskModal = (taskId: string, taskTitle: string) => {
@@ -382,24 +288,6 @@ export const ListTable = ({
       alert('Có lỗi xảy ra khi xóa công việc. Vui lòng thử lại!');
     }
   };
-
-  // Helper function to handle task update
-  const handleUpdateTask = (taskData: any) => {
-    try {
-      updateTask(taskData.id, taskData);
-
-      // Update local tasks state
-      setTasks(prevTasks =>
-        prevTasks.map(task =>
-          task.id === taskData.id ? { ...task, ...taskData } : task
-        )
-      );
-    } catch (error) {
-      console.error('Error updating task:', error);
-      alert('Có lỗi xảy ra khi cập nhật công việc. Vui lòng thử lại!');
-    }
-  };
-
   // Helper function to open detail task modal
   const openDetailTaskModal = (task: any) => {
     setDetailTaskModal({
@@ -565,10 +453,31 @@ export const ListTable = ({
 
   return (
     <div className="milestone-list">
+      {isProjectCompleted && (
+        <div
+          style={{
+            padding: "12px 16px",
+            marginBottom: "20px",
+            backgroundColor: "#FEF3C7",
+            border: "1px solid #FCD34D",
+            borderRadius: "8px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontSize: "14px",
+            color: "#92400E",
+          }}
+        >
+          <CheckCircle size={18} />
+          <span>
+            This project is completed. Creating, editing, and deleting milestones and tasks is disabled.
+          </span>
+        </div>
+      )}
       <div className="milestone-header">
         <div className="header-title">
-          <h2>Danh sách các cột mốc và công việc</h2>
-          <p>Tổng cộng {tasks.length} công việc</p>
+          <h2>List of milestones and tasks</h2>
+          <p>Total {tasks.length} tasks</p>
         </div>
         {canCreateTask && (
           <button

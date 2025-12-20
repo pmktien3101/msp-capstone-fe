@@ -66,8 +66,12 @@ export const MilestoneListView = ({
 
   // Check if user is Member (read-only mode)
   const isMemberRole = hasRole(UserRole.MEMBER);
+  
+  // Check if project is completed
+  const isProjectCompleted = project.status === "Completed";
+  
   const canEdit =
-    !readOnly && (hasRole(UserRole.PROJECT_MANAGER) || hasRole(UserRole.ADMIN));
+    !readOnly && !isProjectCompleted && (hasRole(UserRole.PROJECT_MANAGER) || hasRole(UserRole.ADMIN));
 
   // Pagination
   const {
@@ -451,6 +455,27 @@ export const MilestoneListView = ({
 
   return (
     <div className="milestone-list-view">
+      {isProjectCompleted && (
+        <div
+          style={{
+            padding: "12px 16px",
+            marginBottom: "20px",
+            backgroundColor: "#FEF3C7",
+            border: "1px solid #FCD34D",
+            borderRadius: "8px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontSize: "14px",
+            color: "#92400E",
+          }}
+        >
+          <Target size={18} />
+          <span>
+            This project is completed. Creating, editing, and deleting milestones is disabled.
+          </span>
+        </div>
+      )}
       {/* Header */}
       <div
         style={{

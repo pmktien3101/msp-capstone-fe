@@ -1,13 +1,15 @@
+import "@/app/styles/forgot-password.scss";
+
 export default function Loading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-          <h2 className="text-xl font-semibold text-gray-900">
+    <div className="forgot-password__loading">
+      <div className="forgot-password__loading-container">
+        <div className="forgot-password__loading-content">
+          <div className="forgot-password__loading-spinner"></div>
+          <h2 className="forgot-password__loading-title">
             Loading password recovery page...
           </h2>
-          <p className="text-gray-600">
+          <p className="forgot-password__loading-text">
             Please wait a moment
           </p>
         </div>
