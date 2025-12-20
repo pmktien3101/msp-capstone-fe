@@ -46,6 +46,7 @@ interface TaskDetailModalProps {
   onClose: () => void;
   mode: "view" | "edit";
   onSave?: () => void;
+  projectStatus?: string;
 }
 
 export const TaskDetailModal = ({
@@ -54,11 +55,15 @@ export const TaskDetailModal = ({
   onClose,
   mode = "view",
   onSave,
+  projectStatus,
 }: TaskDetailModalProps) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"comments" | "history">(
     "comments"
   );
+
+  // Check if project is completed
+  const isProjectCompleted = projectStatus === "Completed";
 
   // Check if member can edit this task
   const isMember = user?.role === "Member";
@@ -71,7 +76,7 @@ export const TaskDetailModal = ({
     task?.status === "Done" ||
     task?.status === "Cancelled";
   const canMemberEdit = isMember ? isTaskAssignedToUser && !isTaskLocked : true;
-  const canEdit = !isBusiness && canMemberEdit;
+  const canEdit = !isBusiness && canMemberEdit && !isProjectCompleted;
 
   const [editedTask, setEditedTask] = useState({
     title: task?.title || "",
@@ -832,6 +837,43 @@ export const TaskDetailModal = ({
           </button>
         </div>
 
+        {/* Completed Project Warning */}
+        {isProjectCompleted && (
+          <div
+            style={{
+              padding: "12px 16px",
+              margin: "16px 24px 0 24px",
+              backgroundColor: "#FEF3C7",
+              border: "1px solid #FCD34D",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontSize: "14px",
+              color: "#92400E",
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>
+              This project is completed. Editing tasks is disabled.
+            </span>
+          </div>
+        )}
+
         {/* Body with 2 columns */}
         <div className="task-detail-modal-body">
           {/* Left Panel - 60% */}
@@ -941,7 +983,7 @@ export const TaskDetailModal = ({
                           const initials = getUserInitials(author);
                           const avatarColor = getAvatarColor(author);
                           const avatarUrl = comment.user?.avatarUrl;
-                          const canEdit = user?.userId === comment.userId;
+                          const canEdit = user?.userId === comment.userId && !isProjectCompleted;
                           const isEditing = editingCommentId === comment.id;
 
                           return (
@@ -1093,16 +1135,16 @@ export const TaskDetailModal = ({
                     <div className="add-comment">
                       <textarea
                         className="comment-input"
-                        placeholder="Write a comment..."
+                        placeholder={isProjectCompleted ? "Comments are disabled for completed projects" : "Write a comment..."}
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
                         rows={3}
-                        disabled={isSubmittingComment}
+                        disabled={isSubmittingComment || isProjectCompleted}
                       />
                       <button
                         className="submit-comment-btn"
                         onClick={handleSubmitComment}
-                        disabled={!commentText.trim() || isSubmittingComment}
+                        disabled={!commentText.trim() || isSubmittingComment || isProjectCompleted}
                       >
                         {isSubmittingComment ? "Posting..." : "Post Comment"}
                       </button>

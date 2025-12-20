@@ -60,6 +60,9 @@ export const ProjectDocuments = ({
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 5;
 
+  // Check if project is completed
+  const isProjectCompleted = project.status === "Completed";
+
   // Confirm delete state
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{
@@ -343,6 +346,27 @@ export const ProjectDocuments = ({
 
   return (
     <div className="project-documents">
+      {isProjectCompleted && (
+        <div
+          style={{
+            padding: "12px 16px",
+            marginBottom: "20px",
+            backgroundColor: "#FEF3C7",
+            border: "1px solid #FCD34D",
+            borderRadius: "8px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontSize: "14px",
+            color: "#92400E",
+          }}
+        >
+          <FolderOpen size={18} />
+          <span>
+            This project is completed. Uploading, editing, and deleting documents is disabled.
+          </span>
+        </div>
+      )}
       {/* Header */}
       <div
         style={{
@@ -374,7 +398,7 @@ export const ProjectDocuments = ({
             Manage and share project-related documents
           </p>
         </div>
-        {!readOnly && (
+        {!readOnly && !isProjectCompleted && (
           <Button
             onClick={() => setShowUploadModal(true)}
             style={{
@@ -604,51 +628,53 @@ export const ProjectDocuments = ({
                 </Button>
 
                 {/* Only show Delete and Edit buttons if current user is the owner */}
-                {currentUser.id === document.ownerId && !readOnly && (
-                  <>
-                    <Button
-                      onClick={() => handleDelete(document)}
-                      style={{
-                        background: "#fef2f2",
-                        color: "#dc2626",
-                        border: "1px solid #fecaca",
-                        borderRadius: "6px",
-                        padding: "8px 12px",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <Trash2 size={14} />
-                      Delete
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setEditingDocument(document);
-                        setEditName(document.name);
-                        setEditDescription(document.description || "");
-                        setShowEditModal(true);
-                      }}
-                      style={{
-                        background: "#f3f4f6",
-                        color: "#374151",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "6px",
-                        padding: "8px 12px",
-                        cursor: "pointer",
-                        fontSize: "12px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <FileText size={14} />
-                      Edit
-                    </Button>
-                  </>
-                )}
+                {currentUser.id === document.ownerId &&
+                  !readOnly &&
+                  !isProjectCompleted && (
+                    <>
+                      <Button
+                        onClick={() => handleDelete(document)}
+                        style={{
+                          background: "#fef2f2",
+                          color: "#dc2626",
+                          border: "1px solid #fecaca",
+                          borderRadius: "6px",
+                          padding: "8px 12px",
+                          cursor: "pointer",
+                          fontSize: "12px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        Delete
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setEditingDocument(document);
+                          setEditName(document.name);
+                          setEditDescription(document.description || "");
+                          setShowEditModal(true);
+                        }}
+                        style={{
+                          background: "#f3f4f6",
+                          color: "#374151",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "6px",
+                          padding: "8px 12px",
+                          cursor: "pointer",
+                          fontSize: "12px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <FileText size={14} />
+                        Edit
+                      </Button>
+                    </>
+                  )}
               </div>
             </div>
           ))

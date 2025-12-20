@@ -557,6 +557,7 @@ const ProjectDetailPage = () => {
           onSave={() => {
             setRefreshKey((prev) => prev + 1);
           }}
+          projectStatus={project?.status}
         />
       )}
 
@@ -591,6 +592,7 @@ const ProjectDetailPage = () => {
             handleCloseEditTaskModal();
             setRefreshKey((prev) => prev + 1);
           }}
+          projectStatus={project?.status}
         />
       )}
 

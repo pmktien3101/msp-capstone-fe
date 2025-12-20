@@ -144,12 +144,17 @@ export const ProjectSettings = ({
   const { role } = useUser();
   const userRole = role?.toLowerCase();
 
+  // Check if project is completed
+  const isProjectCompleted = settings.status === "Completed";
+
   // Permission checks
   const canEditBasicInfo =
-    userRole === "projectmanager" || userRole === "businessowner";
-  const canAddPM = userRole === "businessowner";
+    (userRole === "projectmanager" || userRole === "businessowner") &&
+    !isProjectCompleted;
+  const canAddPM = userRole === "businessowner" && !isProjectCompleted;
   const canAddMember =
-    userRole === "projectmanager" || userRole === "businessowner";
+    (userRole === "projectmanager" || userRole === "businessowner") &&
+    !isProjectCompleted;
 
   // Fetch project members from API
   useEffect(() => {
@@ -465,6 +470,27 @@ export const ProjectSettings = ({
   return (
     <div className="project-settings">
       <div className="settings-content">
+        {isProjectCompleted && (
+          <div
+            style={{
+              padding: "12px 16px",
+              marginBottom: "20px",
+              backgroundColor: "#FEF3C7",
+              border: "1px solid #FCD34D",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontSize: "14px",
+              color: "#92400E",
+            }}
+          >
+            <Shield size={18} />
+            <span>
+              This project is completed. Editing project information and managing members is disabled.
+            </span>
+          </div>
+        )}
         <div className="settings-section">
           <div className="settings-section-header">
             <div className="section-icon">
@@ -472,60 +498,79 @@ export const ProjectSettings = ({
             </div>
             <h4>Basic Information</h4>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {!isEditingBasicInfo && canEditBasicInfo && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <select
-                      value={settings.status}
-                      onChange={async (e) => {
-                        const newStatus = e.target.value;
-                        try {
-                          const updateData = {
-                            id: project.id,
-                            name: settings.name,
-                            description: settings.description,
-                            status: newStatus,
-                            startDate: settings.startDate ? new Date(settings.startDate.split('/').reverse().join('-')).toISOString() : undefined,
-                            endDate: settings.endDate ? new Date(settings.endDate.split('/').reverse().join('-')).toISOString() : undefined,
-                          };
-                          
-                          const result = await projectService.updateProject(updateData);
-                          
-                          if (result.success) {
-                            setSettings(prev => ({ ...prev, status: newStatus }));
-                            toast.success('Project status updated!');
-                            if (onProjectUpdate) onProjectUpdate();
-                          } else {
-                            toast.error(result.error || 'Failed to update status');
+              {!isEditingBasicInfo &&
+                (userRole === "projectmanager" ||
+                  userRole === "businessowner") && (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <select
+                        value={settings.status}
+                        onChange={async (e) => {
+                          const newStatus = e.target.value;
+                          try {
+                            const updateData = {
+                              id: project.id,
+                              name: settings.name,
+                              description: settings.description,
+                              status: newStatus,
+                              startDate: settings.startDate ? new Date(settings.startDate.split('/').reverse().join('-')).toISOString() : undefined,
+                              endDate: settings.endDate ? new Date(settings.endDate.split('/').reverse().join('-')).toISOString() : undefined,
+                            };
+                            
+                            const result = await projectService.updateProject(updateData);
+                            
+                            if (result.success) {
+                              setSettings(prev => ({ ...prev, status: newStatus }));
+                              toast.success('Project status updated!');
+                              if (onProjectUpdate) onProjectUpdate();
+                            } else {
+                              toast.error(result.error || 'Failed to update status');
+                            }
+                          } catch (error) {
+                            toast.error('Error updating status');
                           }
-                        } catch (error) {
-                          toast.error('Error updating status');
-                        }
-                      }}
-                      className="form-select"
-                      style={{
-                        padding: '6px 32px 6px 10px',
-                        fontSize: '13px',
-                        borderRadius: '6px',
-                        border: '1.5px solid #e5e7eb',
-                        cursor: 'pointer',
-                        minWidth: '140px',
-                        fontWeight: 500
-                      }}
+                        }}
+                        className="form-select"
+                        style={{
+                          padding: '6px 32px 6px 10px',
+                          fontSize: '13px',
+                          borderRadius: '6px',
+                          border: '1.5px solid #e5e7eb',
+                          cursor: 'pointer',
+                          minWidth: '140px',
+                          fontWeight: 500
+                        }}
+                      >
+                        {PROJECT_STATUS_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleStartEdit}
+                      disabled={isProjectCompleted}
+                      title={
+                        isProjectCompleted
+                          ? "Cannot edit completed project information"
+                          : ""
+                      }
+                      style={
+                        isProjectCompleted
+                          ? {
+                              opacity: 0.5,
+                              cursor: "not-allowed",
+                            }
+                          : {}
+                      }
                     >
-                      {PROJECT_STATUS_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <button className="btn btn-secondary" onClick={handleStartEdit}>
-                    <Edit size={14} />
-                    Edit
-                  </button>
-                </>
-              )}
+                      <Edit size={14} />
+                      Edit
+                    </button>
+                  </>
+                )}
             </div>
           </div>
 
@@ -726,10 +771,25 @@ export const ProjectSettings = ({
               <Users size={16} color="white" />
             </div>
             <h4>Project Members ({members.length})</h4>
-            {canAddMember && (
+            {(userRole === "projectmanager" ||
+              userRole === "businessowner") && (
               <button
                 className="btn btn-primary"
                 onClick={() => setShowAddMemberModal(true)}
+                disabled={isProjectCompleted}
+                title={
+                  isProjectCompleted
+                    ? "Cannot add members to completed project"
+                    : ""
+                }
+                style={
+                  isProjectCompleted
+                    ? {
+                        opacity: 0.5,
+                        cursor: "not-allowed",
+                      }
+                    : {}
+                }
               >
                 <Plus size={14} />
                 {userRole === "businessowner" ? "Add Manager" : "Add Member"}
@@ -751,10 +811,25 @@ export const ProjectSettings = ({
                 </div>
                 <h5>No members yet</h5>
                 <p>Add your first member to start collaborating!</p>
-                {canAddMember && (
+                {(userRole === "projectmanager" ||
+                  userRole === "businessowner") && (
                   <button
                     className="btn btn-primary"
                     onClick={() => setShowAddMemberModal(true)}
+                    disabled={isProjectCompleted}
+                    title={
+                      isProjectCompleted
+                        ? "Cannot add members to completed project"
+                        : ""
+                    }
+                    style={
+                      isProjectCompleted
+                        ? {
+                            opacity: 0.5,
+                            cursor: "not-allowed",
+                          }
+                        : {}
+                    }
                   >
                     <Plus size={14} />
                     {userRole === "businessowner"
@@ -802,7 +877,8 @@ export const ProjectSettings = ({
                         <div className="member-role">{member.role}</div>
                         <div className="member-email">{member.email}</div>
                       </div>
-                      {canAddMember &&
+                      {!isProjectCompleted &&
+                        canAddMember &&
                         (userRole === "businessowner" ||
                           member.role?.toLowerCase() === "member") && (
                           <div className="member-actions">
