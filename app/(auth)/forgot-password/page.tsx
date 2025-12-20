@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Mail,
   CheckCircle,
@@ -13,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { authService } from "@/services/authService";
+import "@/app/styles/forgot-password.scss";
 
 type Status = "input" | "success" | "error";
 
@@ -30,12 +29,12 @@ export default function ForgotPasswordPage() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      toast.error("Vui lòng nhập địa chỉ email.");
+      toast.error("Please enter your email address.");
       return;
     }
 
     if (!validateEmail(email)) {
-      toast.error("Vui lòng nhập địa chỉ email hợp lệ.");
+      toast.error("Please enter a valid email address.");
       return;
     }
 
@@ -48,24 +47,24 @@ export default function ForgotPasswordPage() {
         setStatus("success");
         setMessage(
           result.message ||
-            "Liên kết đặt lại mật khẩu đã được gửi đến email của bạn!"
+            "Password reset link has been sent to your email!"
         );
         toast.success(
-          "Liên kết đặt lại mật khẩu đã được gửi đến email của bạn!"
+          "Password reset link has been sent to your email!"
         );
       } else {
         setStatus("error");
         setMessage(
           result.error ||
-            "Không thể gửi liên kết đặt lại mật khẩu. Vui lòng thử lại."
+            "Unable to send password reset link. Please try again."
         );
-        toast.error(result.error || "Không thể gửi liên kết đặt lại mật khẩu.");
+        toast.error(result.error || "Unable to send password reset link.");
       }
     } catch (error) {
       console.error("Error requesting password reset:", error);
       setStatus("error");
-      setMessage("Đã xảy ra lỗi. Vui lòng thử lại sau.");
-      toast.error("Đã xảy ra lỗi. Vui lòng thử lại sau.");
+      setMessage("An error occurred. Please try again later.");
+      toast.error("An error occurred. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -90,34 +89,26 @@ export default function ForgotPasswordPage() {
       case "input":
         return {
           icon: Mail,
-          iconColor: "text-orange-500",
+          iconColor: "text-orange",
           title: "Forgot Password",
-          bgColor: "bg-orange-50",
-          borderColor: "border-orange-200",
         };
       case "success":
         return {
           icon: CheckCircle,
-          iconColor: "text-orange-500",
+          iconColor: "text-orange",
           title: "Check Your Email",
-          bgColor: "bg-orange-50",
-          borderColor: "border-orange-200",
         };
       case "error":
         return {
           icon: AlertCircle,
-          iconColor: "text-orange-500",
+          iconColor: "text-orange",
           title: "Request Failed",
-          bgColor: "bg-orange-50",
-          borderColor: "border-orange-200",
         };
       default:
         return {
           icon: Mail,
-          iconColor: "text-gray-500",
+          iconColor: "text-gray",
           title: "Forgot Password",
-          bgColor: "bg-gray-50",
-          borderColor: "border-gray-200",
         };
     }
   };
@@ -126,22 +117,22 @@ export default function ForgotPasswordPage() {
   const IconComponent = config.icon;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <div className="text-center">
+    <div className="forgot-password">
+      <div className="forgot-password__container">
+        <div className="forgot-password__content">
           {/* Icon */}
-          <div className="flex justify-center mb-6">
-            <IconComponent className={`h-16 w-16 ${config.iconColor}`} />
+          <div className="forgot-password__icon-wrapper">
+            <IconComponent className={config.iconColor} />
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="forgot-password__title">
             {config.title}
           </h1>
 
           {/* Subtitle */}
           {status === "input" && (
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="forgot-password__subtitle">
               Enter your email address and we'll send you a link to reset your
               password.
             </p>
@@ -149,21 +140,21 @@ export default function ForgotPasswordPage() {
 
           {/* Message */}
           {message && (
-            <div className="mb-6">
-              <p className="text-gray-600 text-sm">{message}</p>
+            <div className="forgot-password__message">
+              <p>{message}</p>
             </div>
           )}
 
           {/* Email Input Form */}
           {status === "input" && (
-            <div className="mb-6">
-              <Input
+            <div className="forgot-password__form">
+              <input
                 type="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                className="w-full"
+                className="forgot-password__input"
                 onKeyPress={(e) => {
                   if (e.key === "Enter" && !isLoading) {
                     handleForgotPassword();
@@ -174,83 +165,78 @@ export default function ForgotPasswordPage() {
           )}
 
           {/* Actions */}
-          <div className="space-y-3">
+          <div className="forgot-password__actions">
             {status === "input" && (
               <>
-                <Button
+                <button
                   onClick={handleForgotPassword}
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                  className="forgot-password__button forgot-password__button--primary"
                   disabled={!email || isLoading}
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="animate-spin" />
                       Sending...
                     </>
                   ) : (
                     "Send Reset Link"
                   )}
-                </Button>
+                </button>
 
-                <Button
+                <button
                   onClick={handleGoToSignIn}
-                  variant="outline"
-                  className="w-full border-orange-500 text-orange-600 hover:bg-orange-50"
+                  className="forgot-password__button forgot-password__button--outline-orange"
                 >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  <ArrowLeft />
                   Back to Sign In
-                </Button>
+                </button>
               </>
             )}
 
             {status === "success" && (
               <>
-                <Button
+                <button
                   onClick={handleGoToSignIn}
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                  className="forgot-password__button forgot-password__button--primary"
                 >
                   Back to Sign In
-                </Button>
+                </button>
 
-                <Button
+                <button
                   onClick={handleGoHome}
-                  variant="outline"
-                  className="w-full border-orange-500 text-orange-600 hover:bg-orange-50"
+                  className="forgot-password__button forgot-password__button--outline-orange"
                 >
                   Back to Home
-                </Button>
+                </button>
               </>
             )}
 
             {status === "error" && (
               <>
-                <Button
+                <button
                   onClick={handleTryAgain}
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                  className="forgot-password__button forgot-password__button--primary"
                 >
                   Try Again
-                </Button>
+                </button>
 
-                <Button
+                <button
                   onClick={handleGoToSignIn}
-                  variant="outline"
-                  className="w-full border-orange-500 text-orange-600 hover:bg-orange-50"
+                  className="forgot-password__button forgot-password__button--outline-orange"
                 >
                   Back to Sign In
-                </Button>
+                </button>
               </>
             )}
           </div>
 
           {/* Additional Info */}
           {status === "success" && (
-            <div
-              className={`mt-6 p-4 ${config.bgColor} border ${config.borderColor} rounded-lg`}
-            >
-              <h3 className="text-sm font-medium text-orange-800 mb-2">
+            <div className="forgot-password__info-box forgot-password__info-box--orange">
+              <h3>
                 What's Next?
               </h3>
-              <ul className="text-xs text-orange-700 space-y-1 text-left">
+              <ul>
                 <li>• Check your email for the password reset link</li>
                 <li>• The link will expire in 24 hours</li>
                 <li>• If you don't see the email, check your spam folder</li>
@@ -260,13 +246,11 @@ export default function ForgotPasswordPage() {
           )}
 
           {status === "error" && (
-            <div
-              className={`mt-6 p-4 ${config.bgColor} border ${config.borderColor} rounded-lg`}
-            >
-              <h3 className="text-sm font-medium text-orange-800 mb-2">
+            <div className="forgot-password__info-box forgot-password__info-box--orange">
+              <h3>
                 Troubleshooting:
               </h3>
-              <ul className="text-xs text-orange-700 space-y-1 text-left">
+              <ul>
                 <li>• Make sure you entered the correct email address</li>
                 <li>• Check your spam folder for the reset email</li>
                 <li>• Try again in a few moments</li>

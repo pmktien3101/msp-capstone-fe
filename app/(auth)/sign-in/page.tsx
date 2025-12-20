@@ -18,7 +18,7 @@ import {
   Video,
   Sparkles,
 } from "lucide-react";
-import "../../../styles/auth.scss";
+import "../../styles/auth.scss";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -345,3 +345,4 @@ export default function SignInPage() {
     </div>
   );
 }
+

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Mail, Clock, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { authService } from "@/services/authService";
+import "@/app/styles/confirm-email.scss";
 
 type Status = "loading" | "success" | "error" | "expired";
 
@@ -26,7 +26,7 @@ export default function ConfirmEmailPage() {
 
     if (!emailParam || !tokenParam) {
       setStatus("error");
-      setMessage("Email và token là bắt buộc.");
+      setMessage("Email and token are required.");
       return;
     }
 
@@ -35,7 +35,7 @@ export default function ConfirmEmailPage() {
     if (inviteTokenParam) {
       setInviteToken(inviteTokenParam);
     }
-    setStatus("loading"); // Trạng thái sẵn sàng để xác nhận
+    setStatus("loading"); // Ready to confirm
   }, [searchParams]);
 
   const handleConfirmEmail = async () => {
@@ -48,25 +48,25 @@ export default function ConfirmEmailPage() {
 
       if (result.success) {
         setStatus("success");
-        setMessage(result.message || "Email đã được xác nhận thành công!");
-        toast.success("Email đã được xác nhận thành công!");
+        setMessage(result.message || "Email has been confirmed successfully!");
+        toast.success("Email has been confirmed successfully!");
       } else {
-        // Kiểm tra nếu token hết hạn
+        // Check if token expired
         if (result.error?.toLowerCase().includes("expired") ||
           result.error?.toLowerCase().includes("hết hạn")) {
           setStatus("expired");
-          setMessage(result.error || "Token xác nhận đã hết hạn.");
+          setMessage(result.error || "Confirmation token has expired.");
         } else {
           setStatus("error");
-          setMessage(result.error || "Xác nhận email thất bại. Token có thể đã hết hạn hoặc không hợp lệ.");
+          setMessage(result.error || "Email confirmation failed. Token may have expired or is invalid.");
         }
-        toast.error(result.error || "Xác nhận email thất bại.");
+        toast.error(result.error || "Email confirmation failed.");
       }
     } catch (error) {
       console.error("Error confirming email:", error);
       setStatus("error");
-      setMessage("Có lỗi xảy ra khi xác nhận email. Vui lòng thử lại sau.");
-      toast.error("Có lỗi xảy ra khi xác nhận email.");
+      setMessage("An error occurred while confirming email. Please try again later.");
+      toast.error("An error occurred while confirming email.");
     } finally {
       setIsConfirming(false);
     }
@@ -79,14 +79,14 @@ export default function ConfirmEmailPage() {
       const result = await authService.resendConfirmation(email);
 
       if (result.success) {
-        toast.success("Email xác nhận đã được gửi lại!");
-        setMessage(result.message || "Email xác nhận đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.");
+        toast.success("Confirmation email has been resent!");
+        setMessage(result.message || "Confirmation email has been resent. Please check your inbox.");
       } else {
-        toast.error(result.error || "Gửi lại email thất bại.");
+        toast.error(result.error || "Failed to resend email.");
       }
     } catch (error) {
       console.error("Error resending email:", error);
-      toast.error("Có lỗi xảy ra khi gửi lại email.");
+      toast.error("An error occurred while resending email.");
     }
   };
 
@@ -103,42 +103,32 @@ export default function ConfirmEmailPage() {
       case "loading":
         return {
           icon: Clock,
-          iconColor: "text-orange-500",
-          title: "Xác nhận email",
-          bgColor: "bg-orange-50",
-          borderColor: "border-orange-200",
+          iconColor: "text-orange",
+          title: "Confirm Email",
         };
       case "success":
         return {
           icon: CheckCircle,
-          iconColor: "text-green-500",
-          title: "Xác nhận email thành công!",
-          bgColor: "bg-green-50",
-          borderColor: "border-green-200",
+          iconColor: "text-green",
+          title: "Email Confirmed Successfully!",
         };
       case "error":
         return {
           icon: XCircle,
-          iconColor: "text-red-500",
-          title: "Xác nhận email thất bại",
-          bgColor: "bg-red-50",
-          borderColor: "border-red-200",
+          iconColor: "text-red",
+          title: "Email Confirmation Failed",
         };
       case "expired":
         return {
           icon: AlertCircle,
-          iconColor: "text-yellow-500",
-          title: "Token đã hết hạn",
-          bgColor: "bg-yellow-50",
-          borderColor: "border-yellow-200",
+          iconColor: "text-yellow",
+          title: "Token Has Expired",
         };
       default:
         return {
           icon: Mail,
-          iconColor: "text-gray-500",
-          title: "Xác nhận email",
-          bgColor: "bg-gray-50",
-          borderColor: "border-gray-200",
+          iconColor: "text-gray",
+          title: "Confirm Email",
         };
     }
   };
@@ -147,125 +137,127 @@ export default function ConfirmEmailPage() {
   const IconComponent = config.icon;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <div className="text-center">
+    <div className="confirm-email">
+      <div className="confirm-email__container">
+        <div className="confirm-email__content">
           {/* Icon */}
-          <div className="flex justify-center mb-6">
-            <IconComponent className={`h-16 w-16 ${config.iconColor}`} />
+          <div className="confirm-email__icon-wrapper">
+            <IconComponent className={config.iconColor} />
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          <h1 className="confirm-email__title">
             {config.title}
           </h1>
 
           {/* Message */}
-          <div className="mb-6">
-            <p className="text-gray-600 mb-2">{message}</p>
+          <div className="confirm-email__message">
+            <p>{message}</p>
             {email && (
-              <p className="text-sm text-gray-500">
-                Email: <span className="font-medium">{email}</span>
+              <p className="confirm-email__email-display">
+                Email: <span className="confirm-email__email-value">{email}</span>
               </p>
             )}
           </div>
 
           {/* Actions */}
-          <div className="space-y-3">
+          <div className="confirm-email__actions">
             {status === "loading" && (
-              <Button
+              <button
                 onClick={handleConfirmEmail}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                className="confirm-email__button confirm-email__button--primary"
                 disabled={!email || !token || isConfirming}
               >
                 {isConfirming ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Đang xác nhận...
+                    <Loader2 className="animate-spin" />
+                    Confirming...
                   </>
                 ) : (
-                  "Xác nhận email"
+                  "Confirm Email"
                 )}
-              </Button>
+              </button>
             )}
 
             {status === "success" && (
-              <Button
+              <button
                 onClick={handleGoToSignIn}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                className="confirm-email__button confirm-email__button--primary"
               >
-                Đăng nhập ngay
-              </Button>
+                Sign In Now
+              </button>
             )}
 
             {(status === "error" || status === "expired") && (
               <>
-                <Button
+                <button
                   onClick={handleConfirmEmail}
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                  className="confirm-email__button confirm-email__button--primary"
                   disabled={isConfirming}
                 >
                   {isConfirming ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Đang xác nhận...
+                      <Loader2 className="animate-spin" />
+                      Confirming...
                     </>
                   ) : (
-                    "Thử lại"
+                    "Try Again"
                   )}
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={handleResendEmail}
-                  variant="outline"
-                  className="w-full border-orange-500 text-orange-600 hover:bg-orange-50"
+                  className="confirm-email__button confirm-email__button--outline-orange"
                 >
-                  Gửi lại email xác nhận
-                </Button>
-                <Button
+                  Resend Confirmation Email
+                </button>
+                <button
                   onClick={handleGoToSignIn}
-                  className="w-full bg-gray-600 hover:bg-gray-700 text-white"
+                  className="confirm-email__button confirm-email__button--gray"
                 >
-                  Quay lại đăng nhập
-                </Button>
+                  Back to Sign In
+                </button>
               </>
             )}
           </div>
 
           {/* Additional Info */}
           {(status === "error" || status === "expired") && (
-            <div className={`mt-6 p-4 ${config.bgColor} border ${config.borderColor} rounded-lg`}>
-              <h3 className="text-sm font-medium text-gray-800 mb-2">
-                Lưu ý:
+            <div className={`confirm-email__info-box confirm-email__info-box--${status === "error" ? "error" : "warning"}`}>
+              <h3 className="confirm-email__info-box-title">
+                Note:
               </h3>
-              <ul className="text-xs text-gray-700 space-y-1 text-left">
-                <li>• Token xác nhận có thể đã hết hạn</li>
-                <li>• Link xác nhận có thể đã được sử dụng</li>
-                <li>• Vui lòng kiểm tra email spam nếu không thấy email</li>
-                <li>• Liên hệ admin nếu vấn đề vẫn tiếp diễn</li>
-              </ul>
+              <div className="confirm-email__info-box-content">
+                <ul>
+                  <li>• Confirmation token may have expired</li>
+                  <li>• Confirmation link may have already been used</li>
+                  <li>• Please check spam folder if you don't see the email</li>
+                  <li>• Contact admin if the problem persists</li>
+                </ul>
+              </div>
             </div>
           )}
 
           {status === "success" && (
-            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h3 className="text-sm font-medium text-green-800 mb-2">
-                Chúc mừng!
+            <div className="confirm-email__info-box confirm-email__info-box--success">
+              <h3 className="confirm-email__info-box-title">
+                Congratulations!
               </h3>
-              <p className="text-xs text-green-700">
-                Tài khoản của bạn đã được xác nhận thành công. Bây giờ bạn có thể đăng nhập và sử dụng tất cả các tính năng của hệ thống.
-              </p>
+              <div className="confirm-email__info-box-content">
+                <p>
+                  Your account has been confirmed successfully. You can now sign in and use all the features of the system.
+                </p>
+              </div>
             </div>
           )}
 
           {/* Home button */}
-          <div className="mt-4">
-            <Button
+          <div className="confirm-email__home-button">
+            <button
               onClick={handleGoHome}
-              variant="outline"
-              className="w-full border-gray-300 text-gray-600 hover:bg-gray-50"
+              className="confirm-email__button confirm-email__button--outline-gray"
             >
-              Về trang chủ
-            </Button>
+              Go to Home
+            </button>
           </div>
         </div>
       </div>

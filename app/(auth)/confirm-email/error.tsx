@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { XCircle, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
+import "@/app/styles/confirm-email.scss";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -26,40 +26,40 @@ export default function Error({ error, reset }: ErrorProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <div className="text-center">
+    <div className="confirm-email__error">
+      <div className="confirm-email__error-container">
+        <div className="confirm-email__error-content">
           {/* Error Icon */}
-          <div className="flex justify-center mb-6">
-            <XCircle className="h-16 w-16 text-red-500" />
+          <div className="confirm-email__error-icon-wrapper">
+            <XCircle />
           </div>
 
           {/* Error Title */}
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Có lỗi xảy ra
+          <h1 className="confirm-email__error-title">
+            An Error Occurred
           </h1>
 
           {/* Error Message */}
-          <div className="mb-6">
-            <p className="text-gray-600 mb-2">
-              Đã xảy ra lỗi không mong muốn khi tải trang xác nhận email.
+          <div className="confirm-email__error-message">
+            <p>
+              An unexpected error occurred while loading the email confirmation page.
             </p>
-            <p className="text-sm text-gray-500">
-              Vui lòng thử lại hoặc liên hệ hỗ trợ nếu vấn đề vẫn tiếp diễn.
+            <p className="text-sm">
+              Please try again or contact support if the problem persists.
             </p>
           </div>
 
           {/* Error Details (only in development) */}
           {process.env.NODE_ENV === "development" && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-left">
-              <h3 className="text-sm font-medium text-red-800 mb-2">
-                Chi tiết lỗi (Development):
+            <div className="confirm-email__error-details">
+              <h3>
+                Error Details (Development):
               </h3>
-              <p className="text-xs text-red-700 break-all">
+              <p>
                 {error.message}
               </p>
               {error.digest && (
-                <p className="text-xs text-red-600 mt-1">
+                <p className="mt-1">
                   Digest: {error.digest}
                 </p>
               )}
@@ -67,39 +67,37 @@ export default function Error({ error, reset }: ErrorProps) {
           )}
 
           {/* Actions */}
-          <div className="space-y-3">
-            <Button
+          <div className="confirm-email__error-actions">
+            <button
               onClick={reset}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+              className="confirm-email__error-button confirm-email__error-button--primary"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Thử lại
-            </Button>
+              <RefreshCw />
+              Try Again
+            </button>
             
-            <Button
+            <button
               onClick={handleGoToSignIn}
-              variant="outline"
-              className="w-full border-orange-500 text-orange-600 hover:bg-orange-50"
+              className="confirm-email__error-button confirm-email__error-button--outline-orange"
             >
-              Đăng nhập
-            </Button>
+              Sign In
+            </button>
             
-            <Button
+            <button
               onClick={handleGoHome}
-              variant="outline"
-              className="w-full border-gray-300 text-gray-600 hover:bg-gray-50"
+              className="confirm-email__error-button confirm-email__error-button--outline-gray"
             >
-              Về trang chủ
-            </Button>
+              Go to Home
+            </button>
           </div>
 
           {/* Support Info */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">
-              Cần hỗ trợ?
+          <div className="confirm-email__error-support">
+            <h3>
+              Need Help?
             </h3>
-            <p className="text-xs text-blue-700">
-              Nếu vấn đề vẫn tiếp diễn, vui lòng liên hệ với chúng tôi qua email hỗ trợ.
+            <p>
+              If the problem persists, please contact us via support email.
             </p>
           </div>
         </div>

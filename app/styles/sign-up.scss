@@ -980,6 +980,236 @@ button:focus-visible {
 }
 
 /* Added styles for account type tabs */
+// Auth checking loading state
+.auth-checking {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(
+    135deg,
+    #f9f4ee 0%,
+    #fdf0d2 50%,
+    #ffdbbd 100%
+  );
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e5e7eb;
+    border-top: 4px solid #ff5e13;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+  }
+
+  p {
+    color: #6b7280;
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+// Register message styles
+.register-message {
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  animation: slideDown 0.4s ease-out;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      currentColor,
+      transparent
+    );
+    animation: shimmer 2s infinite;
+  }
+
+  &.success {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #064e3b;
+    border-color: #10b981;
+  }
+
+  &.error {
+    background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
+    color: #7f1d1d;
+    border-color: #ef4444;
+  }
+}
+
+.register-message-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+// File upload wrapper
+.file-upload-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+
+  .custom-file-btn {
+    flex: 1;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+  }
+
+  .preview-btn {
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+
+    &:hover {
+      background: #f3f4f6;
+      border-color: #ff5e13;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  input[type="file"] {
+    display: none;
+  }
+}
+
+// Business license upload error message
+.business-license-error {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+// Preview modal
+.preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.preview-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  position: relative;
+  animation: slideUp 0.3s ease-out;
+}
+
+.preview-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .account-type-tabs {
   display: flex;
   gap: 12px;

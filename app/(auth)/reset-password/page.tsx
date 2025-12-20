@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   CheckCircle,
   XCircle,
@@ -15,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { authService } from "@/services/authService";
+import "@/app/styles/reset-password.scss";
 
 type Status = "loading" | "success" | "error" | "expired" | "input";
 
@@ -48,17 +47,17 @@ export default function ResetPasswordPage() {
 
   const validatePassword = () => {
     if (!newPassword || !confirmPassword) {
-      toast.error("Vui lòng nhập cả hai trường mật khẩu.");
+      toast.error("Please enter both password fields.");
       return false;
     }
 
     if (newPassword.length < 6) {
-      toast.error("Mật khẩu phải có ít nhất 6 ký tự.");
+      toast.error("Password must be at least 6 characters.");
       return false;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error("Mật khẩu không khớp.");
+      toast.error("Passwords do not match.");
       return false;
     }
 
@@ -77,8 +76,8 @@ export default function ResetPasswordPage() {
 
       if (result.success) {
         setStatus("success");
-        setMessage(result.message || "Đặt lại mật khẩu thành công!");
-        toast.success("Đặt lại mật khẩu thành công!");
+        setMessage(result.message || "Password reset successfully!");
+        toast.success("Password reset successfully!");
       } else {
         if (
           result.error?.toLowerCase().includes("expired") ||
@@ -98,8 +97,8 @@ export default function ResetPasswordPage() {
     } catch (error) {
       console.error("Error resetting password:", error);
       setStatus("error");
-      setMessage("Đã xảy ra lỗi khi đặt lại mật khẩu. Vui lòng thử lại sau.");
-      toast.error("Đã xảy ra lỗi khi đặt lại mật khẩu.");
+      setMessage("An error occurred while resetting password. Please try again later.");
+      toast.error("An error occurred while resetting password.");
     } finally {
       setIsResetting(false);
     }
@@ -118,42 +117,32 @@ export default function ResetPasswordPage() {
       case "input":
         return {
           icon: Lock,
-          iconColor: "text-orange-500",
+          iconColor: "text-orange",
           title: "Reset Password",
-          bgColor: "bg-orange-50",
-          borderColor: "border-orange-200",
         };
       case "success":
         return {
           icon: CheckCircle,
-          iconColor: "text-orange-500",
+          iconColor: "text-orange",
           title: "Password Reset Successfully!",
-          bgColor: "bg-orange-50",
-          borderColor: "border-orange-200",
         };
       case "error":
         return {
           icon: XCircle,
-          iconColor: "text-orange-500",
+          iconColor: "text-orange",
           title: "Password Reset Failed",
-          bgColor: "bg-orange-50",
-          borderColor: "border-orange-200",
         };
       case "expired":
         return {
           icon: AlertCircle,
-          iconColor: "text-orange-500",
+          iconColor: "text-orange",
           title: "Token Expired",
-          bgColor: "bg-orange-50",
-          borderColor: "border-orange-200",
         };
       default:
         return {
           icon: Lock,
-          iconColor: "text-gray-500",
+          iconColor: "text-gray",
           title: "Reset Password",
-          bgColor: "bg-gray-50",
-          borderColor: "border-gray-200",
         };
     }
   };
@@ -162,100 +151,80 @@ export default function ResetPasswordPage() {
   const IconComponent = config.icon;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <div className="text-center">
+    <div className="reset-password">
+      <div className="reset-password__container">
+        <div className="reset-password__content">
           {/* Icon */}
-          <div className="flex justify-center mb-6">
-            <IconComponent className={`h-16 w-16 ${config.iconColor}`} />
+          <div className="reset-password__icon-wrapper">
+            <IconComponent className={config.iconColor} />
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          <h1 className="reset-password__title">
             {config.title}
           </h1>
 
           {/* Message */}
-          <div className="mb-6">
-            <p className="text-gray-600 mb-2">{message}</p>
+          <div className="reset-password__message">
+            <p>{message}</p>
             {email && (
-              <p className="text-sm text-gray-500">
-                Email: <span className="font-medium">{email}</span>
+              <p className="text-sm">
+                Email: <span>{email}</span>
               </p>
             )}
           </div>
 
           {/* Password Input Form */}
           {status === "input" && (
-            <div className="space-y-4 mb-6">
+            <div className="reset-password__form">
               {/* New Password */}
-              <div className="relative">
-                <Input
+              <div className="reset-password__input-wrapper">
+                <input
                   type={showPassword ? "text" : "password"}
                   placeholder="New Password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="pr-10"
+                  className="reset-password__input"
                   disabled={isResetting}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="reset-password__toggle-password"
                   disabled={isResetting}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff /> : <Eye />}
                 </button>
               </div>
 
               {/* Confirm Password */}
-              <div className="relative">
-                <Input
+              <div className="reset-password__input-wrapper">
+                <input
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm Password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pr-10"
+                  className="reset-password__input"
                   disabled={isResetting}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="reset-password__toggle-password"
                   disabled={isResetting}
                 >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showConfirmPassword ? <EyeOff /> : <Eye />}
                 </button>
               </div>
 
               {/* Password Requirements */}
-              <div className="text-xs text-gray-600 text-left">
-                <p className="font-medium mb-1">Password requirements:</p>
-                <ul className="space-y-1">
-                  <li
-                    className={
-                      newPassword.length >= 6
-                        ? "text-green-600"
-                        : "text-gray-600"
-                    }
-                  >
+              <div className="reset-password__requirements">
+                <p>Password requirements:</p>
+                <ul>
+                  <li className={newPassword.length >= 6 ? "valid" : "invalid"}>
                     ✓ At least 6 characters
                   </li>
-                  <li
-                    className={
-                      newPassword === confirmPassword && newPassword
-                        ? "text-green-600"
-                        : "text-gray-600"
-                    }
-                  >
+                  <li className={newPassword === confirmPassword && newPassword ? "valid" : "invalid"}>
                     ✓ Passwords match
                   </li>
                 </ul>
@@ -264,11 +233,11 @@ export default function ResetPasswordPage() {
           )}
 
           {/* Actions */}
-          <div className="space-y-3">
+          <div className="reset-password__actions">
             {status === "input" && (
-              <Button
+              <button
                 onClick={handleResetPassword}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                className="reset-password__button reset-password__button--primary"
                 disabled={
                   !email ||
                   !token ||
@@ -279,57 +248,55 @@ export default function ResetPasswordPage() {
               >
                 {isResetting ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="animate-spin" />
                     Resetting Password...
                   </>
                 ) : (
                   "Reset Password"
                 )}
-              </Button>
+              </button>
             )}
 
             {status === "success" && (
-              <Button
+              <button
                 onClick={handleGoToSignIn}
-                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                className="reset-password__button reset-password__button--primary"
               >
                 Sign In Now
-              </Button>
+              </button>
             )}
 
             {(status === "error" || status === "expired") && (
               <>
-                <Button
+                <button
                   onClick={handleResetPassword}
-                  className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                  className="reset-password__button reset-password__button--primary"
                   disabled={isResetting}
                 >
                   {isResetting ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="animate-spin" />
                       Retrying...
                     </>
                   ) : (
                     "Try Again"
                   )}
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={handleGoToSignIn}
-                  className="w-full bg-gray-600 hover:bg-gray-700 text-white"
+                  className="reset-password__button reset-password__button--gray"
                 >
                   Back to Sign In
-                </Button>
+                </button>
               </>
             )}
           </div>
 
           {/* Additional Info */}
           {(status === "error" || status === "expired") && (
-            <div
-              className={`mt-6 p-4 ${config.bgColor} border ${config.borderColor} rounded-lg`}
-            >
-              <h3 className="text-sm font-medium text-gray-800 mb-2">Note:</h3>
-              <ul className="text-xs text-gray-700 space-y-1 text-left">
+            <div className="reset-password__info-box reset-password__info-box--orange">
+              <h3>Note:</h3>
+              <ul>
                 <li>• Reset token may have expired</li>
                 <li>• Link may have already been used</li>
                 <li>• Request a new password reset if needed</li>
@@ -339,11 +306,11 @@ export default function ResetPasswordPage() {
           )}
 
           {status === "success" && (
-            <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <h3 className="text-sm font-medium text-orange-800 mb-2">
+            <div className="reset-password__info-box reset-password__info-box--orange">
+              <h3>
                 Congratulations!
               </h3>
-              <p className="text-xs text-orange-700">
+              <p>
                 Your password has been reset successfully. You can now sign in
                 with your new password.
               </p>
@@ -351,14 +318,13 @@ export default function ResetPasswordPage() {
           )}
 
           {/* Home button */}
-          <div className="mt-4">
-            <Button
+          <div className="reset-password__home-button">
+            <button
               onClick={handleGoHome}
-              variant="outline"
-              className="w-full border-gray-300 text-gray-600 hover:bg-gray-50"
+              className="reset-password__button reset-password__button--outline-gray"
             >
               Back to Home
-            </Button>
+            </button>
           </div>
         </div>
       </div>
