@@ -42,7 +42,7 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
       try {
         const [milestonesRes, tasksRes, membersRes] = await Promise.all([
           milestoneService.getMilestonesByProjectId(projectId),
-          taskService.getTasksByProjectId(projectId, { pageIndex: 0, pageSize: 1000 }), // Get all tasks
+          taskService.getTasksListByProjectId(projectId), // Get all tasks without pagination
           projectService.getProjectMembers(projectId)
         ]);
 
@@ -51,7 +51,7 @@ export const OverviewCards = ({ project, stats }: OverviewCardsProps) => {
         }
 
         if (tasksRes.success && tasksRes.data) {
-          setProjectTasks(tasksRes.data.items || []);
+          setProjectTasks(tasksRes.data || []); // tasksRes.data is already an array
         }
 
         if (membersRes.success && membersRes.data) {

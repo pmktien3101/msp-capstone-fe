@@ -27,12 +27,12 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
       setIsLoading(true);
       try {
         const [tasksRes, membersRes] = await Promise.all([
-          taskService.getTasksByProjectId(project.id, { pageIndex: 0, pageSize: 1000 }), // Get all tasks
+          taskService.getTasksListByProjectId(project.id), // Get all tasks without pagination
           projectService.getProjectMembers(project.id)
         ]);
 
         if (tasksRes.success && tasksRes.data) {
-          setTasks(tasksRes.data.items || []);
+          setTasks(tasksRes.data || []); // tasksRes.data is already an array
         } else {
           setTasks([]);
         }

@@ -24,9 +24,9 @@ export const TasksList = ({ project }: TasksListProps) => {
 
       setIsLoading(true);
       try {
-        const result = await taskService.getTasksByProjectId(project.id, { pageIndex: 0, pageSize: 1000 }); // Get all tasks
+        const result = await taskService.getTasksListByProjectId(project.id); // Get all tasks without pagination
         if (result.success && result.data) {
-          setTasks(result.data.items || []);
+          setTasks(result.data || []); // result.data is already an array
         } else {
           setTasks([]);
         }

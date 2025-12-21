@@ -42,7 +42,7 @@ export function ProjectSummary({ project, readOnly = false }: ProjectSummaryProp
         // Fetch milestones, tasks, and members in parallel
         const [milestonesRes, tasksRes, membersRes] = await Promise.all([
           milestoneService.getMilestonesByProjectId(projectId),
-          taskService.getTasksByProjectId(projectId, { pageIndex: 0, pageSize: 1000 }), // Get all tasks
+          taskService.getTasksListByProjectId(projectId), // Get all tasks without pagination
           projectService.getProjectMembers(projectId)
         ]);
 
@@ -55,7 +55,7 @@ export function ProjectSummary({ project, readOnly = false }: ProjectSummaryProp
 
         // Set tasks
         if (tasksRes.success && tasksRes.data) {
-          setProjectTasks(tasksRes.data.items || []);
+          setProjectTasks(tasksRes.data || []); // tasksRes.data is already an array
         } else {
           setProjectTasks([]);
         }
