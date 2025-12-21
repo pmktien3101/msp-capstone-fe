@@ -201,7 +201,6 @@ export async function POST(request: NextRequest) {
     console.log('📝 Transcript prepared, length:', transcriptText.length);
 
     // ===== BƯỚC 1: Xử lý Video =====
-    let improvedText = "";
     let improvedTranscript = transcriptSegments;
     const uploadedFiles: string[] = [];
 
