@@ -27,7 +27,7 @@ export const TeamWorkload = ({ project }: TeamWorkloadProps) => {
       setIsLoading(true);
       try {
         const [tasksRes, membersRes] = await Promise.all([
-          taskService.getTasksByProjectId(project.id),
+          taskService.getTasksByProjectId(project.id, { pageIndex: 0, pageSize: 1000 }), // Get all tasks
           projectService.getProjectMembers(project.id)
         ]);
 

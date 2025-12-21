@@ -42,7 +42,7 @@ export function ProjectSummary({ project, readOnly = false }: ProjectSummaryProp
         // Fetch milestones, tasks, and members in parallel
         const [milestonesRes, tasksRes, membersRes] = await Promise.all([
           milestoneService.getMilestonesByProjectId(projectId),
-          taskService.getTasksByProjectId(projectId),
+          taskService.getTasksByProjectId(projectId, { pageIndex: 0, pageSize: 1000 }), // Get all tasks
           projectService.getProjectMembers(projectId)
         ]);
 
