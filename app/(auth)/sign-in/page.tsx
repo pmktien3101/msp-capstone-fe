@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import SignUpPage from "../sign-up/SignUpPage";
+import SignInPage from "../sign-in/SignInPage";
 
 export default function Page() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <SignUpPage />
+      <SignInPage />
     </Suspense>
   );
 }
