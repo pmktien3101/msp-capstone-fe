@@ -296,31 +296,23 @@ const MeetingRoom = () => {
     return 30; // fallback to 30 minutes
   };
 
-  // useEffect để schedule meeting reminders và auto-end
+  // Schedule meeting reminder (5 minutes before end) and auto-end
   useEffect(() => {
     if (!call) return;
 
-    // Dùng thời gian thực tế khi user join (không phải createdAt)
+    // Use the actual join time
     if (!joinTimeRef.current) {
       console.warn("⚠️ Join time not yet recorded, skipping reminder scheduling");
       return;
     }
 
-    const startTime = joinTimeRef.current; // Đây là timestamp (number)
+    const startTime = joinTimeRef.current; // This is a timestamp (number)
     const meetingDurationMinutes = getMeetingDurationLimit();
     const now = Date.now();
-    const msUntil15 =
-      startTime + (meetingDurationMinutes - 15) * 60 * 1000 - now; // 15 min before end
-    const msUntil5 =
-      startTime + (meetingDurationMinutes - 5) * 60 * 1000 - now; // 5 min before end
-    const msUntilEnd =
-      startTime + meetingDurationMinutes * 60 * 1000 - now; // at end time
+    const msUntil5 = startTime + (meetingDurationMinutes - 5) * 60 * 1000 - now; // 5 min before end
+    const msUntilEnd = startTime + meetingDurationMinutes * 60 * 1000 - now; // at end time
 
-    // clear existing timers
-    if (timersRef.current.r15) {
-      clearTimeout(timersRef.current.r15);
-      timersRef.current.r15 = undefined;
-    }
+    // Clear existing timers
     if (timersRef.current.r5) {
       clearTimeout(timersRef.current.r5);
       timersRef.current.r5 = undefined;
@@ -330,15 +322,7 @@ const MeetingRoom = () => {
       timersRef.current.end = undefined;
     }
 
-    // schedule 15-min reminder (15 min after start, 15 min remaining)
-    // Only schedule if the reminder time hasn't passed yet
-    if (msUntil15 > 0) {
-      timersRef.current.r15 = window.setTimeout(() => {
-        showToast("15 minutes remaining until the meeting ends.");
-      }, msUntil15);
-    }
-
-    // schedule 5-min reminder (5 min before end)
+    // Schedule 5-min reminder (5 min before end)
     // Only schedule if the reminder time hasn't passed yet
     if (msUntil5 > 0) {
       timersRef.current.r5 = window.setTimeout(() => {
@@ -346,21 +330,17 @@ const MeetingRoom = () => {
       }, msUntil5);
     }
 
-    // schedule auto end at meeting duration limit
+    // Schedule auto end at meeting duration limit
     if (msUntilEnd > 0) {
       timersRef.current.end = window.setTimeout(() => {
         void endCallDueToTimeout();
       }, msUntilEnd);
     } else {
-      // if end time already passed, end immediately
+      // If end time already passed, end immediately
       void endCallDueToTimeout();
     }
 
     return () => {
-      if (timersRef.current.r15) {
-        clearTimeout(timersRef.current.r15);
-        timersRef.current.r15 = undefined;
-      }
       if (timersRef.current.r5) {
         clearTimeout(timersRef.current.r5);
         timersRef.current.r5 = undefined;
