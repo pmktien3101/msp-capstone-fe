@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import { UserRole } from "@/lib/rbac";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useMeetingLimitationCheck } from "@/hooks/useLimitationCheck";
+import { 
+  useMeetingLimitationCheck, 
+  useMemberInProjectLimitationCheck 
+} from "@/hooks/useLimitationCheck";
 import { usePagination } from "@/hooks/usePagination";
 import { Pagination } from "@/components/ui/Pagination";
 import { toast } from "react-toastify";
@@ -56,6 +59,7 @@ const MeetingsPage = () => {
   const { role } = useUser();
   const router = useRouter();
   const { checkMeetingLimitation } = useMeetingLimitationCheck();
+  const { checkMemberInProjectLimit } = useMemberInProjectLimitationCheck();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProject, setSelectedProject] = useState("all");
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -190,18 +194,6 @@ const MeetingsPage = () => {
     return project ? project.name : "Unknown";
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "scheduled":
-        return "Scheduled";
-      case "finished":
-        return "Finished";
-      case "cancelled":
-        return "Cancelled";
-      default:
-        return status;
-    }
-  };
 
   const handleCardClick = (meetingId: string) => {
     router.push(`/meeting-detail/${meetingId}`);
@@ -228,6 +220,19 @@ const MeetingsPage = () => {
   };
 
   const handleCreateMeeting = (meetingData: any) => {
+    // Check meeting limitation before creating
+    if (!checkMeetingLimitation()) {
+      return;
+    }
+
+    // Get the number of participants (excluding the creator)
+    const participantCount = meetingData.attendeeIds?.length || 0;
+    
+    // Check member in project limitation
+    if (!checkMemberInProjectLimit(participantCount)) {
+      return; // Error message is shown by checkMemberInProjectLimit
+    }
+
     console.log("Meeting created:", meetingData);
 
     // Add new meeting to state
@@ -701,7 +706,7 @@ const MeetingsPage = () => {
                       className={`status-indicator ${meeting.status.toLowerCase()}`}
                     >
                       {getStatusIcon(meeting.status)}
-                      <span>{getStatusLabel(meeting.status)}</span>
+                      <span>{meeting.status}</span>
                     </div>
                     <div className="card-actions">
                       <button

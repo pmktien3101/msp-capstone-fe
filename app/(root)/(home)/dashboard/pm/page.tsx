@@ -10,7 +10,7 @@ import { taskService } from "@/services/taskService";
 import { milestoneService } from "@/services/milestoneService";
 import { useUser } from "@/hooks/useUser";
 import { TaskStatus, ProjectStatus } from "@/constants/status";
-import { FolderKanban, CheckCircle2, ListTodo, Target } from "lucide-react";
+import { FolderKanban, CheckCircle2, ListTodo, Target, AlertCircle, TrendingUp } from "lucide-react";
 import "@/app/styles/dashboard.scss";
 import "@/app/styles/pm-dashboard.scss";
 import "@/app/styles/pm-dashboard-new.scss";
@@ -146,12 +146,30 @@ export default function DashboardPage() {
     completedProjects: projects.filter(
       (p) => p.status === ProjectStatus.Completed
     ).length,
+    pendingProjects: projects.filter(
+      (p) => p.status === ProjectStatus.NotStarted
+    ).length,
     totalTasks: allTasks.length,
     completedTasks: allTasks.filter((t) => t.status === TaskStatus.Done).length,
     inProgressTasks: allTasks.filter((t) => t.status === TaskStatus.InProgress)
       .length,
+    pendingTasks: allTasks.filter((t) => t.status === TaskStatus.Todo).length,
+    overdueTasks: allTasks.filter((t) => {
+      if (!t.dueDate || t.status === TaskStatus.Done) return false;
+      return new Date(t.dueDate) < new Date();
+    }).length,
     totalMilestones: allMilestones.length,
-    teamMembers: new Set(allTasks.map((t) => t.userId).filter(Boolean)).size,
+    completedMilestones: allMilestones.filter((m) => m.status === "Completed").length,
+    upcomingMilestones: allMilestones.filter((m) => {
+      if (!m.dueDate || m.status === "Completed") return false;
+      const dueDate = new Date(m.dueDate);
+      const today = new Date();
+      const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      return daysUntilDue > 0 && daysUntilDue <= 7;
+    }).length,
+    teamMembers: new Set(
+      projects.flatMap((p) => p.members?.map((m) => m.id) || [])
+    ).size,
   };
 
   const getGreeting = () => {
@@ -166,11 +184,21 @@ export default function DashboardPage() {
       ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
       : 0;
 
+  const projectCompletionPercent =
+    stats.totalProjects > 0
+      ? Math.round((stats.completedProjects / stats.totalProjects) * 100)
+      : 0;
+
+  const milestoneCompletionPercent =
+    stats.totalMilestones > 0
+      ? Math.round((stats.completedMilestones / stats.totalMilestones) * 100)
+      : 0;
+
   if (loading) {
     return (
-      <div className="pm-dashboard-simple">
-        <div className="loading-state">
-          <div className="spinner"></div>
+      <div className="pm-dash-container">
+        <div className="pm-dash-loading-state">
+          <div className="pm-dash-spinner"></div>
           <p>Loading dashboard...</p>
         </div>
       </div>
@@ -178,77 +206,127 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="pm-dashboard-simple">
+    <div className="pm-dash-container">
+      {/* Welcome Header */}
+      <div className="pm-dash-welcome-header">
+        <div className="pm-dash-welcome-content">
+          <h1 className="pm-dash-welcome-title">
+            {getGreeting()}, {fullName || "Project Manager"}! 👋
+          </h1>
+          <p className="pm-dash-welcome-subtitle">
+            Here's your project portfolio overview for today
+          </p>
+        </div>
+      </div>
+
       {/* Stats Cards */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon blue">
-            <FolderKanban size={20} />
+      <div className="pm-dash-stats-grid">
+        <div className="pm-dash-stat-card pm-dash-stat-primary">
+          <div className="pm-dash-stat-header">
+            <div className="pm-dash-stat-icon pm-dash-icon-blue">
+              <FolderKanban size={20} />
+            </div>
+            <span className="pm-dash-stat-badge">{stats.activeProjects} Active</span>
           </div>
-          <div className="stat-content">
-            <span className="stat-number">{stats.totalProjects}</span>
-            <span className="stat-label">Projects</span>
+          <div className="pm-dash-stat-body">
+            <span className="pm-dash-stat-number">{stats.totalProjects}</span>
+            <span className="pm-dash-stat-label">Total Projects</span>
           </div>
-          <span className="stat-sub">{stats.activeProjects} active</span>
+          <div className="pm-dash-stat-footer">
+            <div className="pm-dash-stat-progress">
+              <div
+                className="pm-dash-stat-progress-bar pm-dash-progress-blue"
+                style={{ width: `${projectCompletionPercent}%` }}
+              />
+            </div>
+            <span className="pm-dash-stat-meta">
+              {stats.completedProjects} Completed ({projectCompletionPercent}%)
+            </span>
+          </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon green">
-            <ListTodo size={20} />
+        <div className="pm-dash-stat-card pm-dash-stat-success">
+          <div className="pm-dash-stat-header">
+            <div className="pm-dash-stat-icon pm-dash-icon-green">
+              <ListTodo size={20} />
+            </div>
+            <span className="pm-dash-stat-badge">{stats.inProgressTasks} In Progress</span>
           </div>
-          <div className="stat-content">
-            <span className="stat-number">{stats.totalTasks}</span>
-            <span className="stat-label">Tasks</span>
+          <div className="pm-dash-stat-body">
+            <span className="pm-dash-stat-number">{stats.totalTasks}</span>
+            <span className="pm-dash-stat-label">Total Tasks</span>
           </div>
-          <div className="progress-info">
-            <div className="progress-bar">
+          <div className="pm-dash-stat-footer">
+            <div className="pm-dash-stat-progress">
               <div
-                className="progress-fill"
+                className="pm-dash-stat-progress-bar pm-dash-progress-green"
                 style={{ width: `${taskCompletionPercent}%` }}
               />
             </div>
-            <span className="progress-text">{taskCompletionPercent}%</span>
+            <span className="pm-dash-stat-meta">
+              {stats.completedTasks} Completed ({taskCompletionPercent}%)
+            </span>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon purple">
-            <CheckCircle2 size={20} />
+        <div className="pm-dash-stat-card pm-dash-stat-warning">
+          <div className="pm-dash-stat-header">
+            <div className="pm-dash-stat-icon pm-dash-icon-orange">
+              <AlertCircle size={20} />
+            </div>
+            <span className="pm-dash-stat-badge">Requires Attention</span>
           </div>
-          <div className="stat-content">
-            <span className="stat-number">{stats.completedTasks}</span>
-            <span className="stat-label">Completed</span>
+          <div className="pm-dash-stat-body">
+            <span className="pm-dash-stat-number">{stats.overdueTasks}</span>
+            <span className="pm-dash-stat-label">Overdue Tasks</span>
           </div>
-          <span className="stat-sub">of {stats.totalTasks} tasks</span>
+          <div className="pm-dash-stat-footer">
+            <span className="pm-dash-stat-meta">
+              {stats.pendingTasks} Pending • {stats.upcomingMilestones} Milestones Due Soon
+            </span>
+          </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon orange">
-            <Target size={20} />
+        <div className="pm-dash-stat-card pm-dash-stat-info">
+          <div className="pm-dash-stat-header">
+            <div className="pm-dash-stat-icon pm-dash-icon-purple">
+              <Target size={20} />
+            </div>
+            <span className="pm-dash-stat-badge">{stats.upcomingMilestones} Upcoming</span>
           </div>
-          <div className="stat-content">
-            <span className="stat-number">{stats.totalMilestones}</span>
-            <span className="stat-label">Milestones</span>
+          <div className="pm-dash-stat-body">
+            <span className="pm-dash-stat-number">{stats.totalMilestones}</span>
+            <span className="pm-dash-stat-label">Milestones</span>
           </div>
-          <span className="stat-sub">{stats.completedProjects} completed</span>
+          <div className="pm-dash-stat-footer">
+            <div className="pm-dash-stat-progress">
+              <div
+                className="pm-dash-stat-progress-bar pm-dash-progress-purple"
+                style={{ width: `${milestoneCompletionPercent}%` }}
+              />
+            </div>
+            <span className="pm-dash-stat-meta">
+              {stats.completedMilestones} Completed ({milestoneCompletionPercent}%)
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="dashboard-content">
-        <section className="content-section">
+      <div className="pm-dash-content">
+        <section className="pm-dash-content-section">
           <ProjectPortfolioOverview projects={projects} tasks={allTasks} />
         </section>
 
-        <div className="content-grid">
-          <section className="content-section">
+        <div className="pm-dash-content-grid">
+          <section className="pm-dash-content-section">
             <ProjectHighlights
               projects={projects}
               tasks={allTasks}
               milestones={allMilestones}
             />
           </section>
-          <section className="content-section">
+          <section className="pm-dash-content-section">
             <QuickActions projects={projects} />
           </section>
         </div>
