@@ -9,11 +9,13 @@ import { meetingService } from "@/services/meetingService";
 import { MeetingItem } from "@/types/meeting";
 import { UpdateMeetingModal } from "./modals/UpdateMeetingModal";
 import { toast } from "react-toastify";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Eye,
   Pencil,
   Plus,
   X,
+  Trash,
   Video,
   Calendar,
   Clock,
@@ -23,6 +25,7 @@ import {
   RotateCcw,
   ExternalLink,
 } from "lucide-react";
+import { MeetingStatus } from '@/constants/status';
 import { useUser } from "@/hooks/useUser";
 import { useMeetingLimitationCheck } from "@/hooks/useLimitationCheck";
 import { useStreamVideoClient } from "@stream-io/video-react-sdk";
@@ -68,9 +71,9 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
   } = useProjectMeetings(project.id);
 
   // Filter and search state
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "Scheduled" | "Ongoing" | "Finished" | "Cancelled"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | MeetingStatus>(
+    "all"
+  );
   const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination state
@@ -102,14 +105,16 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
 
   // Categorize meetings by status (for statistics)
   const scheduledMeetings = backendMeetings.filter(
-    (m) => m.status === "Scheduled"
+    (m) => m.status === MeetingStatus.Scheduled
   );
-  const ongoingMeetings = backendMeetings.filter((m) => m.status === "Ongoing");
+  const ongoingMeetings = backendMeetings.filter(
+    (m) => m.status === MeetingStatus.Ongoing
+  );
   const finishedMeetings = backendMeetings.filter(
-    (m) => m.status === "Finished"
+    (m) => m.status === MeetingStatus.Finished
   );
   const cancelMeetings = backendMeetings.filter(
-    (m) => m.status === "Cancelled"
+    (m) => m.status === MeetingStatus.Cancelled
   );
   const allMeetings = backendMeetings;
 
@@ -147,14 +152,14 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
   // Get status label and color
   const getStatusInfo = (meeting: MeetingItem) => {
     switch (meeting.status) {
-      case "Finished":
-        return { label: "Finished", color: "#A41F39" };
-      case "Scheduled":
-        return { label: "Scheduled", color: "#47D69D" };
-      case "Ongoing":
-        return { label: "Ongoing", color: "#FFA500" };
-      case "Cancelled":
-        return { label: "Cancelled", color: "#888" };
+      case MeetingStatus.Finished:
+        return { label: MeetingStatus.Finished, color: "#A41F39" };
+      case MeetingStatus.Scheduled:
+        return { label: MeetingStatus.Scheduled, color: "#47D69D" };
+      case MeetingStatus.Ongoing:
+        return { label: MeetingStatus.Ongoing, color: "#FFA500" };
+      case MeetingStatus.Cancelled:
+        return { label: MeetingStatus.Cancelled, color: "#888" };
       default:
         return { label: meeting.status, color: "#ccc" };
     }
@@ -180,10 +185,48 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
   };
 
   const handleCancel = async (meeting: MeetingItem) => {
-    if (!confirm("Are you sure you want to cancel this meeting?")) return;
-    await meetingService.cancelMeeting(meeting.id);
-    await refetchCalls();
-    toast.success("Meeting cancelled successfully");
+    setMeetingToCancel(meeting);
+    setIsConfirmCancelOpen(true);
+  };
+
+  const handleDelete = async (meeting: MeetingItem) => {
+    setMeetingToDelete(meeting);
+    setIsConfirmDeleteOpen(true);
+  };
+
+  const [isConfirmCancelOpen, setIsConfirmCancelOpen] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [meetingToCancel, setMeetingToCancel] = useState<MeetingItem | null>(
+    null
+  );
+  const [meetingToDelete, setMeetingToDelete] = useState<MeetingItem | null>(
+    null
+  );
+
+  const confirmCancel = async () => {
+    if (!meetingToCancel) return;
+    const res = await meetingService.cancelMeeting(meetingToCancel.id);
+    if (res.success) {
+      toast.success(res.message || "Meeting cancelled successfully");
+      await refetchCalls();
+    } else {
+      toast.error(res.error || "Failed to cancel meeting");
+    }
+    setIsConfirmCancelOpen(false);
+    setMeetingToCancel(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!meetingToDelete) return;
+    const res = await meetingService.deleteMeeting(meetingToDelete.id);
+    if (res.success) {
+      toast.success(res.message || "Meeting deleted successfully");
+      await refetchCalls();
+    } else {
+      toast.error(res.error || "Failed to delete meeting");
+    }
+    setIsConfirmDeleteOpen(false);
+    setMeetingToDelete(null);
   };
 
   const allMeetingsCount = allMeetings.length;
@@ -195,10 +238,10 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
   // status options for custom dropdown
   const statusOptions = [
     { value: "all", label: "All Statuses" },
-    { value: "Scheduled", label: "Scheduled" },
-    { value: "Ongoing", label: "Ongoing" },
-    { value: "Finished", label: "Finished" },
-    { value: "Cancelled", label: "Cancelled" },
+    { value: MeetingStatus.Scheduled, label: MeetingStatus.Scheduled },
+    { value: MeetingStatus.Ongoing, label: MeetingStatus.Ongoing },
+    { value: MeetingStatus.Finished, label: MeetingStatus.Finished },
+    { value: MeetingStatus.Cancelled, label: MeetingStatus.Cancelled },
   ];
 
   return (
@@ -464,19 +507,31 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
                             <Pencil size={16} />
                           </button>
                         )}
-                      {!isMember &&
-                        !readOnly &&
-                        !isProjectCompleted &&
-                        meeting.status !== "Cancelled" &&
-                        meeting.status !== "Finished" && (
-                          <button
-                            className="action-btn delete-btn"
-                            title="Cancel meeting"
-                            onClick={() => handleCancel(meeting)}
-                          >
-                            <X size={16} />
-                          </button>
-                        )}
+                      {!isMember && !readOnly && !isProjectCompleted && (
+                        <>
+                          {meeting.status !== "Cancelled" &&
+                            meeting.status !== "Finished" && (
+                              <button
+                                className="action-btn cancel-btn"
+                                title="Cancel meeting"
+                                onClick={() => handleCancel(meeting)}
+                              >
+                                <X size={16} />
+                              </button>
+                            )}
+
+                          {(meeting.status === "Cancelled" ||
+                            meeting.status === "Finished") && (
+                            <button
+                              className="action-btn delete-perm-btn"
+                              title="Permanently delete meeting"
+                              onClick={() => handleDelete(meeting)}
+                            >
+                              <Trash size={16} />
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -572,6 +627,35 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
           }}
           onUpdated={async () => await refetchCalls()}
           call={callInstance} // truyền call xuống modal
+        />
+      )}
+      {isConfirmCancelOpen && (
+        <ConfirmDialog
+          isOpen={isConfirmCancelOpen}
+          onClose={() => {
+            setIsConfirmCancelOpen(false);
+            setMeetingToCancel(null);
+          }}
+          onConfirm={confirmCancel}
+          title="Cancel meeting"
+          description={`Are you sure you want to cancel meeting "${meetingToCancel?.title}"?`}
+          confirmText="Cancel meeting"
+          cancelText="Keep"
+        />
+      )}
+
+      {isConfirmDeleteOpen && (
+        <ConfirmDialog
+          isOpen={isConfirmDeleteOpen}
+          onClose={() => {
+            setIsConfirmDeleteOpen(false);
+            setMeetingToDelete(null);
+          }}
+          onConfirm={confirmDelete}
+          title="Permanently delete meeting"
+          description={`Are you sure you want to permanently delete meeting "${meetingToDelete?.title}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Keep"
         />
       )}
     </div>
