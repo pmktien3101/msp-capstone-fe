@@ -3,16 +3,12 @@ import { GoogleGenAI } from "@google/genai";
 
 // ===== CONSTANTS =====
 const SHORT_VIDEO_DURATION = 10 * 60; // 10 phút
-const MEDIUM_VIDEO_DURATION = 30 * 60; // 30 phút
+const MEDIUM_VIDEO_DURATION = 25 * 60; // 25 phút
+const MAX_VIDEO_DURATION = 60 * 60;
+const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200 MB
+const CHUNK_SIZE = 40; // Số câu transcript mỗi lần gửi cho AI
 const MAX_RETRIES = 3;
 const BASE_RETRY_DELAY = 2000;
-
-// ===== TYPES =====
-interface VideoMetadata {
-  duration: number;
-  size: number;
-  estimatedProcessingTime: number;
-}
 
 // ===== RETRY HELPER =====
 const callGeminiWithRetry = async (
@@ -77,216 +73,77 @@ const transcriptArrayToText = (transcripts: any[]): string => {
 };
 
 // ===== HELPER: Parse improved transcript from Gemini =====
-// Có nhiều case cần xử lý:
-// Case 1: [0:00] Speaker ace28354-cfa1-4b37-ab49-3d1a145235ff: text (UUID)
-// Case 2: [0:00] ace28354-cfa1-4b37-ab49-3d1a145235ff: text (UUID)
-// Case 3: [0:00] Huỳnh Trần Vũ Đạt: text (Tên có space)
-// Case 4: [0:00] DatHuynh: text (Tên không có space)
-// Case 5: [0:00] Speaker Huỳnh Trần Vũ Đạt: text (Tên có space và có chữ speaker ở trước)
-// Case 6: [0:00] Speaker DatHuynh: text (Tên không có space và có chữ speaker ở trước)
 const parseImprovedTranscript = (improvedText: string, originalSegments: any[]) => {
-  if (!improvedText || improvedText.trim().length === 0) {
-    console.warn('⚠️ improvedText rỗng, fallback về original');
-    return originalSegments.map((seg) => ({
-      ...seg,
-      duration: (seg.stopTs - seg.startTs) / 1000,
-    }));
-  }
+  try {
+    // 1. Làm sạch chuỗi trước khi parse
+    const cleaned = cleanJsonString(improvedText);
+    const parsedData = JSON.parse(cleaned);
 
-  const lines = improvedText.split("\n").filter((line) => line.trim());
-  const result: any[] = [];
+    if (!Array.isArray(parsedData)) throw new Error("Not an array");
 
-  // ✅ UNIVERSAL REGEX - Match format: [MM:SS] <anything>: <text>
-  const regex = /^\[(\d{1,2}:\d{2}(?::\d{2})?)\]\s*(.+?):\s*(.+)$/;
+    return parsedData.map((item, index, array) => {
+      // 2. Chấp nhận đa dạng các loại Key mà AI có thể trả về nhầm
+      const startMs = Number(item.startTs || item.start || 0);
 
-  console.log(`🔍 Parsing ${lines.length} lines from Gemini...`);
+      // Tính stopTs: Lấy startTs của câu sau, nếu không có thì cộng 3s
+      const nextStartMs = array[index + 1]
+        ? Number(array[index + 1].startTs || array[index + 1].start)
+        : startMs + 3000;
 
-  let successCount = 0;
-  let failCount = 0;
-
-  lines.forEach((line, index) => {
-    const match = line.match(regex);
-
-    if (match) {
-      const [, timestamp, speakerRaw, text] = match;
-      let speakerId = speakerRaw.trim();
-
-      // ✅ EXTRACT SPEAKER ID - Xử lý tất cả cases:
-
-      // Case 1, 5, 6: Remove "Speaker " prefix if exists
-      // "Speaker ace28354..." → "ace28354..."
-      // "Speaker Huỳnh Trần Vũ Đạt" → "Huỳnh Trần Vũ Đạt"
-      // "Speaker DatHuynh" → "DatHuynh"
-      const speakerPrefixMatch = speakerId.match(/^Speaker\s+(.+)$/i);
-      if (speakerPrefixMatch) {
-        speakerId = speakerPrefixMatch[1].trim();
-      }
-
-      // ✅ Sau khi remove "Speaker ", speakerId có thể là:
-      // - UUID: "ace28354-cfa1-4b37-ab49-3d1a145235ff" (Case 1, 2)
-      // - Tên có space: "Huỳnh Trần Vũ Đạt" (Case 3, 5)
-      // - Tên không space: "DatHuynh" (Case 4, 6)
-      // - unknown: "unknown" (Case unknown)
-
-      // Parse timestamp
-      const parts = timestamp.split(":").map(Number);
-      let startMs = 0;
-
-      if (parts.length === 3) {
-        startMs = (parts[0] * 3600 + parts[1] * 60 + parts[2]) * 1000;
-      } else {
-        startMs = (parts[0] * 60 + parts[1]) * 1000;
-      }
-
-      // Calculate stopMs
-      const nextMatch = lines[index + 1]?.match(regex);
-      let stopMs = startMs + 3000;
-
-      if (nextMatch) {
-        const nextTimestamp = nextMatch[1];
-        const nextParts = nextTimestamp.split(":").map(Number);
-        if (nextParts.length === 3) {
-          stopMs = (nextParts[0] * 3600 + nextParts[1] * 60 + nextParts[2]) * 1000;
-        } else {
-          stopMs = (nextParts[0] * 60 + nextParts[1]) * 1000;
-        }
-      }
-
-      result.push({
-        speakerId: speakerId, // UUID, tên (có/không space), hoặc "unknown"
+      return {
+        speakerId: item.speakerId || item.speaker_id || "unknown",
         type: "speech",
-        text: text.trim(),
+        text: (item.text || item.transcript || "").trim(),
         startTs: startMs,
-        stopTs: stopMs,
-        duration: (stopMs - startMs) / 1000,
-      });
-
-      successCount++;
-    } else {
-      failCount++;
-      if (failCount <= 3) {
-        console.warn(`⚠️ Line ${index + 1} không match format:`, line.substring(0, 80));
-      }
-    }
-  });
-
-  console.log(`📊 Parse result: ${successCount} success, ${failCount} failed`);
-
-  // ✅ Validate
-  if (result.length === 0) {
-    console.error('❌ Parse thất bại hoàn toàn (0 segments). Fallback về original.');
-    return originalSegments.map((seg) => ({
+        stopTs: nextStartMs,
+        duration: (nextStartMs - startMs) / 1000,
+      };
+    });
+  } catch (error) {
+    console.error('❌ Parse JSON thất bại, dùng fallback segments:', error);
+    return originalSegments.map(seg => ({
       ...seg,
-      duration: (seg.stopTs - seg.startTs) / 1000,
+      duration: (seg.stopTs - seg.startTs) / 1000
     }));
   }
-
-  // ✅ Log sample để verify
-  console.log('📄 Parsed sample (first 3):');
-  result.slice(0, 3).forEach((seg, i) => {
-    const speakerPreview = seg.speakerId.length > 30
-      ? seg.speakerId.substring(0, 30) + '...'
-      : seg.speakerId;
-    console.log(`  ${i + 1}. [${formatTimestamp(seg.startTs)}] "${speakerPreview}": ${seg.text.substring(0, 40)}...`);
-  });
-  // Result trả về có dạng:
-  // {
-  //   speakerId: '', // UUID hoặc tên
-  //   type: 'speech',
-  //   text: 'Nội dung đã được sửa/cải thiện',
-  //   startTs: 5000, // Timestamp bắt đầu (milliseconds)
-  //   stopTs: 6000,  // Timestamp kết thúc (milliseconds)
-  //   duration: 1    // Duration in seconds
-  // }
-  return result;
 };
-
 // ===== HELPER: Normalize speaker IDs (TÊN/UNKNOWN → UUID) =====
-// Dùng cho: TRANSCRIPT ARRAY
 const normalizeSpeakerIds = (segments: any[], participants: any[]): any[] => {
-  if (!participants || participants.length === 0) {
-    console.log('⚠️ Không có participants, giữ nguyên speaker IDs');
-    return segments;
-  }
-
-  console.log('🔄 Normalizing speaker IDs to UUIDs...');
-
+  if (!participants?.length) return segments;
   const uuidRegex = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
-  let uuidCount = 0;
-  let nameCount = 0;
-  let unknownCount = 0;
-  let mappedCount = 0;
-
   return segments.map(seg => {
-    const speakerId = seg.speakerId;
-
-    // ✅ Đã là UUID → Giữ nguyên
-    if (uuidRegex.test(speakerId)) {
-      uuidCount++;
-      return seg;
-    }
-
-    // ✅ "unknown" → Giữ nguyên
-    if (speakerId.toLowerCase() === 'unknown') {
-      unknownCount++;
-      return seg;
-    }
-
-    // ✅ Tên người → Map sang UUID
-    nameCount++;
-
-    const participant = participants.find((p: any) => {
-      const userName = p.user?.name || p.user?.email || '';
-      return userName.toLowerCase().trim() === speakerId.toLowerCase().trim();
-    });
-
-    if (participant) {
-      mappedCount++;
-      if (mappedCount <= 5) {
-        console.log(`  ✓ "${speakerId}" → ${participant.user_id}`);
-      }
-      return {
-        ...seg,
-        speakerId: participant.user_id
-      };
-    }
-
-    console.warn(`  ⚠️Không tìm thấy UUID cho: "${speakerId}"`);
-    return seg;
+    if (uuidRegex.test(seg.speakerId) || seg.speakerId.toLowerCase() === 'unknown') return seg;
+    const participant = participants.find(p =>
+      (p.user?.name || p.user?.email || '').toLowerCase().trim() === seg.speakerId.toLowerCase().trim()
+    );
+    return participant ? { ...seg, speakerId: participant.user_id } : seg;
   });
 };
 
 // ===== HELPER: Map speaker IDs to names =====
 const mapSpeakerIdsToNames = (text: string, participants: any[]): string => {
-  if (!participants || participants.length === 0) return text;
-
+  if (!participants?.length) return text;
   let result = text;
-
-  participants.forEach((participant: any) => {
-    const userId = participant.user_id;
-    const userName = participant.user?.name || participant.user?.email || 'Unknown';
-
-    // Replace UUID với tên
-    const regex = new RegExp(userId, 'gi');
-    result = result.replace(regex, userName);
+  participants.forEach((p) => {
+    result = result.replace(new RegExp(p.user_id, 'gi'), p.user?.name || p.user?.email || 'Unknown');
   });
-
   return result;
 };
 
 // ===== HELPER: Create speaker mapping =====
 const createSpeakerMapping = (participants: any[]): string => {
-  if (!participants || participants.length === 0) {
-    return 'Không có thông tin người tham gia.';
-  }
-
-  return participants.map((p: any, index: number) => {
-    const userId = p.user_id;
-    const userName = p.user?.name || p.user?.email || 'Unknown';
-    return `${index + 1}. ${userName} (ID: ${userId})`;
-  }).join('\n');
+  if (!participants?.length) return 'Không có thông tin người tham gia.';
+  return participants.map((p, i) => `${i + 1}. ${p.user?.name || p.user?.email} (ID: ${p.user_id})`).join('\n');
 };
+
+const cleanJsonString = (rawText: string): string => {
+  return rawText
+    .replace(/^```json\n?/, "") // Xóa thẻ mở ```json
+    .replace(/\n?```$/, "")     // Xóa thẻ đóng ```
+    .trim();
+};
+
 
 // ===== MAIN API HANDLER =====
 export async function POST(request: NextRequest) {
@@ -350,35 +207,24 @@ export async function POST(request: NextRequest) {
 
     if (videoUrl && videoMetadata) {
       try {
-        // Check video length
-        if (videoMetadata.duration > MEDIUM_VIDEO_DURATION) {
-          console.log('🚫 Video quá dài (> 30 phút) - Reject');
+        // 1. CHẶN VIDEO QUÁ TẢI (> 60p hoặc > 200MB)
+        if (videoMetadata.duration > MAX_VIDEO_DURATION || videoMetadata.size > MAX_VIDEO_SIZE) {
+          console.log('🚫 Video vượt ngưỡng cho phép - Reject');
           return NextResponse.json({
             success: false,
-            needsBackgroundProcessing: true,
-            message: `Video quá dài (${Math.ceil(videoMetadata.duration / 60)} phút). ` +
-              `Video dài hơn 30 phút cần xử lý nền.`,
-          }, { status: 202 });
+            error: "The video is too large or too long.",
+            userMessage: `The system rejects videos longer than 60 minutes or larger than 200MB.`,
+          }, { status: 400 });
         }
-
-        // ✅ LUÔN DÙNG GEMINI 2.5 PRO cho việc enhance transcript
+        // 2. TẢI VÀ UPLOAD FILE
         const model = "gemini-2.5-pro";
-        const timeout = videoMetadata.duration >= SHORT_VIDEO_DURATION ? 300000 : 180000;
-
-        console.log(`📹 Video processing - Model: ${model}, Timeout: ${timeout / 1000}s`);
-
         // Optimize URL for long videos
         let processUrl = videoUrl;
-        if (videoMetadata.duration >= SHORT_VIDEO_DURATION && videoUrl.includes('cloudinary')) {
+        if (videoUrl.includes('cloudinary')) {
           processUrl = videoUrl.replace('/upload/', '/upload/q_auto:low,w_640/');
-          console.log('📊 Optimized URL for long video');
         }
-
-        // ✅ Fetch video
         console.log('📥 Đang tải video...');
-        const videoResponse = await fetch(processUrl, {
-          signal: AbortSignal.timeout(timeout)
-        });
+        const videoResponse = await fetch(processUrl, { signal: AbortSignal.timeout(300000) });
 
         if (!videoResponse.ok) {
           throw new Error(`Failed to fetch video: ${videoResponse.status}`);
@@ -404,18 +250,16 @@ export async function POST(request: NextRequest) {
         const fileName = uploadResult.name || '';
         uploadedFiles.push(fileName);
 
-        // Wait for ACTIVE
+        // Đợi file ACTIVE (Timeout 5 phút cho video 60p)
         console.log('⏳ Đợi video processing...');
-        let attempts = 0;
+        let waitAttempts = 0;
         let fileReady = false;
         let fileMimeType = '';
 
-        while (attempts < 60 && !fileReady) {
-          attempts++;
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
+        while (waitAttempts < 150 && !fileReady) {
+          waitAttempts++;
+          await new Promise(r => setTimeout(r, 2000));
           const fileInfo = await ai.files.get({ name: fileName });
-
           if (fileInfo.state === 'ACTIVE') {
             fileReady = true;
             fileMimeType = fileInfo.mimeType || 'video/mp4';
@@ -424,115 +268,90 @@ export async function POST(request: NextRequest) {
             throw new Error('Video processing failed');
           }
         }
-
         if (!fileReady) {
           throw new Error('Video processing timeout');
         }
+        // 3. LOGIC CHUNKING & GENERATION
 
-        // ✅ Process với Gemini 2.5 Pro (PROMPT TỪ CODE CŨ + CẢI TIẾN)
-        console.log('🤖 Đang cải thiện transcript với Gemini 2.5 Pro...');
+        // Cấu hình Schema để Gemini hiểu rõ cấu trúc dữ liệu mong muốn
+        const transcriptSchema = {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              startTs: { type: "number", description: "Timestamp bắt đầu tính bằng miliseconds" },
+              speakerId: { type: "string", description: "UUID hoặc tên người nói" },
+              text: { type: "string", description: "Nội dung thoại đã được sửa lỗi" }
+            },
+            required: ["startTs", "speakerId", "text"]
+          }
+        };
+        const chunks = [];
+        for (let i = 0; i < transcriptSegments.length; i += CHUNK_SIZE) {
+          chunks.push(transcriptSegments.slice(i, i + CHUNK_SIZE));
+        }
+        console.log(`📦 Bắt đầu xử lý ${chunks.length} chunks...`);
+        let combinedResults: any[] = [];
 
         const hasParticipants = streamMetadata?.participants?.length > 0;
         console.log(`👥 Có thông tin người tham gia: ${hasParticipants}`);
 
-        const promptText = hasParticipants
-          ? `
-              Tôi có một đoạn transcript sơ bộ của video này. Hãy xem video và dựa vào transcript tôi cung cấp để tạo ra một transcript hoàn chỉnh, chính xác hơn bằng tiếng Việt.
+        for (let i = 0; i < chunks.length; i++) {
+          console.log(`⏳ Đang xử lý chunk ${i + 1}/${chunks.length}...`);
+          const currentChunkText = transcriptArrayToText(chunks[i]);
 
-              DANH SÁCH NGƯỜI THAM GIA:
-              ${createSpeakerMapping(streamMetadata.participants)}
+          const chunkPrompt = `
+          Bạn nhận được:
+          1) Video cuộc họp.
+          2) Một đoạn transcript sơ bộ rất không chính xác (có thể sai tới 90% hoặc hơn).
+          Transcript này chỉ dùng để:
+          - Gợi ý vị trí thời gian tương đối của câu.
+          - Gợi ý Speaker ID ban đầu (nếu có). 
+          Nhiệm vụ:
+          - NGHE video để ghi lại nội dung thoại CHÍNH XÁC bằng tiếng Việt.
+          - Sửa lỗi chính tả, ngữ pháp, dấu câu.
+          - Cố gắng giữ Speaker ID giống transcript sơ bộ nếu hợp lý.
+          - Nếu không thể xác định được người nói, dùng "unknown" nhưng hạn chế unknown nhất có thể.
+          - Mỗi phần tử trong JSON phải có:
+            - "startTs": thời điểm bắt đầu câu nói (miliseconds, ước lượng tương đối).
+            - "speakerId": UUID, tên, hoặc "unknown".
+            - "text": nội dung câu đã được sửa.
+            
+            DANH SÁCH NGƯỜI THAM GIA (để hiểu ngữ cảnh, không bắt buộc phải khớp):
+            ${createSpeakerMapping(streamMetadata.participants)}
 
-              TRANSCRIPT SƠ BỘ:
-              ${transcriptText}
+            TRANSCRIPT SƠ BỘ (RẤT NHIỀU LỖI):
+            ${currentChunkText}
+            
+            BẮT BUỘC: 
+            - Chỉ trả về JSON array, KHÔNG thêm giải thích.
+            - Phải tuân theo schema đã mô tả.
+          `.trim();
 
-              YÊU CẦU:
-
-              1. **XEM VIDEO VÀ NGHE GIỌNG** để:
-                - Sửa lỗi chính tả, ngữ pháp
-                - Thêm dấu câu chính xác
-                - Chia đoạn văn hợp lý
-                - Giữ nguyên ý nghĩa và ngữ cảnh
-
-              2. **VỀ SPEAKER ID**:
-                - Nếu transcript gốc đã có Speaker ID (không phải "unknown") → **GIỮ NGUYÊN**
-                - Nếu transcript gốc là "unknown" → Cố gắng xác định dựa vào:
-                  * Giọng nói (nam/nữ, cao/thấp)
-                  * Nội dung phát biểu
-                  * So khớp với danh sách người tham gia
-                - Nếu THỰC SỰ không thể xác định → giữ "unknown"
-
-              3. **FORMAT OUTPUT**:
-                - [MM:SS] Speaker <UUID>: <nội dung đã sửa>
-                - Timestamp trong [ ]
-                - Từ "Speaker" + space + UUID
-                - GIỮ NGUYÊN timestamp gốc
-                - Nội dung tiếng Việt, chính tả đúng
-                - Định dạng rõ ràng, dễ đọc
-
-              VÍ DỤ OUTPUT:
-              [0:02] Speaker ace28354-cfa1-4b37-ab49-3d1a145235ff: nội dung speech của speaker tương ứng.
-              [0:05] Speaker 25935558-5583-4c0d-98c5-ef1d78663fd6: nội dung speech của speaker tương ứng.
-
-              QUAN TRỌNG:
-              - CHỈ trả về transcript (KHÔNG giải thích)
-              - Ưu tiên GIỮ NGUYÊN speaker gốc nếu có
-              - Phải trả về đúng format OUTPUT đã yêu cầu ở trên
-
-              Transcript đã cải thiện:
-            `
-          : `
-              Tôi có một đoạn transcript sơ bộ của video này. Hãy xem video và dựa vào transcript tôi cung cấp để tạo ra một transcript hoàn chỉnh, chính xác hơn bằng tiếng Việt.
-
-              Transcript sơ bộ:
-              ${transcriptText}
-
-              Yêu cầu:
-              - Sửa lại các từ sai, thiếu hoặc không rõ ràng
-              - Thêm dấu câu chính xác
-              - Chia đoạn văn hợp lý
-              - Giữ nguyên ý nghĩa và ngữ cảnh
-              - Định dạng rõ ràng, dễ đọc
-              - **GIỮ NGUYÊN Speaker ID như trong transcript gốc** (kể cả "unknown")
-
-              Trả về transcript đã cải thiện theo định dạng:
-              [timestamp] Speaker X: <nội dung đã sửa>
-
-              Transcript đã cải thiện:
-          `;
-
-        const improvedResponse = await callGeminiWithRetry(
-          ai,
-          {
+          const chunkResponse = await callGeminiWithRetry(ai, {
             model: model,
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: "application/json",
+              responseSchema: transcriptSchema,
+              maxOutputTokens: 8192, // Đảm bảo output tối đa cho chunk
+            },
             contents: [{
               role: "user",
               parts: [
-                {
-                  fileData: {
-                    fileUri: uploadResult.uri || '',
-                    mimeType: fileMimeType
-                  }
-                },
-                {
-                  text: promptText.trim()
-                }
+                { fileData: { fileUri: uploadResult.uri || '', mimeType: fileMimeType } },
+                { text: chunkPrompt }
               ]
             }]
-          },
-          3
-        );
+          });
 
-        // console.log('✅ Gemini response received:', improvedResponse.candidates?.[0]?.content?.parts?.[0]?.text);
-        improvedText = improvedResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-        // ✅ LOG RAW OUTPUT ĐỂ DEBUG
-        console.log('📄 RAW GEMINI OUTPUT (first 500 chars):');
-        console.log(improvedText.substring(0, 500));
-        console.log('---');
+          const rawChunkText = chunkResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
+          const parsedChunk = parseImprovedTranscript(rawChunkText, chunks[i]);
+          combinedResults = [...combinedResults, ...parsedChunk];
+        }
 
-        // Parse
-        // STEP 1: Parse (universal - hỗ trợ mọi format)
-        improvedTranscript = parseImprovedTranscript(improvedText, transcriptSegments);
-        console.log('✅ Đã parse:', improvedTranscript.slice(0, 5), '...');
+        improvedTranscript = combinedResults;
+        console.log('✅ Hoàn tất cải thiện transcript qua chunking');
         // STEP 2: Normalize speaker IDs (tên → UUID)
         if (streamMetadata?.participants?.length > 0) {
           improvedTranscript = normalizeSpeakerIds(
@@ -669,6 +488,8 @@ Yêu cầu:
 - assigneeId = UUID (Speaker ID từ transcript)
 - Thời gian DD-MM-YYYY (không có → null)
 - referenceTaskIds từ tasks đã có (không liên quan → [])
+- Mỗi todo chỉ mô tả 1 hành động cụ thể, KHÔNG gộp nhiều việc trong 1 todo
+- Tự động tách các câu/liệt kê có nhiều hành động thành nhiều todo nhỏ..
 
 **BẮT BUỘC: Trả về ONLY JSON array, KHÔNG markdown.**
 
