@@ -17,6 +17,14 @@ export enum ProjectStatus {
   Cancelled = 'Cancelled'
 }
 
+// Meeting Status Enum (synced with backend)
+export enum MeetingStatus {
+  Scheduled = 'Scheduled',
+  Ongoing = 'Ongoing',
+  Finished = 'Finished',
+  Cancelled = 'Cancelled',
+}
+
 // Task Status Labels (English)
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.Todo]: 'Todo',
@@ -34,6 +42,14 @@ export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
   [ProjectStatus.OnHold]: 'On Hold',
   [ProjectStatus.Completed]: 'Completed',
   [ProjectStatus.Cancelled]: 'Cancelled'
+};
+
+// Meeting status labels (English)
+export const MEETING_STATUS_LABELS: Record<MeetingStatus, string> = {
+  [MeetingStatus.Scheduled]: 'Scheduled',
+  [MeetingStatus.Ongoing]: 'Ongoing',
+  [MeetingStatus.Finished]: 'Finished',
+  [MeetingStatus.Cancelled]: 'Cancelled',
 };
 
 // Reverse mapping: English Label to Enum
