@@ -1,7 +1,21 @@
 import React, { useState } from 'react';
 import { Button } from 'components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { is } from 'zod/v4/locales';
+
+const parseTimeStringToSeconds = (s: string): number => {
+    const parts = s.split(':').map(Number); // "mm:ss" hoặc "hh:mm:ss"
+    if (parts.some(n => Number.isNaN(n))) return NaN;
+
+    if (parts.length === 2) {
+        const [m, sec] = parts;
+        return (m * 60 + sec);
+    }
+    if (parts.length === 3) {
+        const [h, m, sec] = parts;
+        return (h * 3600 + m * 60 + sec);
+    }
+    return NaN;
+};
 
 interface EditableTranscriptItemProps {
     speakerId: string;
@@ -10,15 +24,18 @@ interface EditableTranscriptItemProps {
     attendees: any[]; // Meeting attendees for dropdown
     text: string;
     timestamp: string;
-    onSave: (newText: string, newSpeakerId: string) => void;
+    startTs: number;
+    onSave: (newText: string, newSpeakerId: string, newStartTs: number) => void;
 }
 
 const EditableTranscriptItem: React.FC<EditableTranscriptItemProps> = ({
-    speakerId, speaker, speakerList, attendees, text, timestamp, onSave
+    speakerId, speaker, speakerList, attendees, text, timestamp, startTs, onSave
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedText, setEditedText] = useState(text);
     const [editedSpeakerId, setEditedSpeakerId] = useState(speakerId);
+    const [editedTimestamp, setEditedTimestamp] = useState(timestamp);
+    const [editedStartTs, setEditedStartTs] = useState(startTs);
     const { isProjectManager } = useAuth();
 
     return (
@@ -26,7 +43,18 @@ const EditableTranscriptItem: React.FC<EditableTranscriptItemProps> = ({
             {isEditing ? (
                 <>
                     <div className="transcript-edit-header">
-                        <span className="timestamp">{timestamp}</span>
+                        <input
+                            className="edit-timestamp"
+                            value={editedTimestamp}
+                            onChange={(e) => {
+                                const v = e.target.value;
+                                setEditedTimestamp(v);
+                                const secs = parseTimeStringToSeconds(v);
+                                if (!Number.isNaN(secs)) {
+                                    setEditedStartTs(secs * 1000);
+                                }
+                            }}
+                        />
                         <select
                             value={editedSpeakerId}
                             onChange={(e) => setEditedSpeakerId(e.target.value)}
@@ -52,7 +80,7 @@ const EditableTranscriptItem: React.FC<EditableTranscriptItemProps> = ({
                     <div className="transcript-edit-actions">
                         <Button
                             className='bg-orange-500 text-white'
-                            onClick={() => { onSave(editedText, editedSpeakerId); setIsEditing(false); }}>
+                            onClick={() => { onSave(editedText, editedSpeakerId, editedStartTs); setIsEditing(false); }}>
                             Save
                         </Button>
                         <Button
@@ -61,6 +89,8 @@ const EditableTranscriptItem: React.FC<EditableTranscriptItemProps> = ({
                                 setIsEditing(false);
                                 setEditedText(text);
                                 setEditedSpeakerId(speakerId);
+                                setEditedTimestamp(timestamp);
+                                setEditedStartTs(startTs);
                             }}>
                             Cancel
                         </Button>

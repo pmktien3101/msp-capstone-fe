@@ -93,6 +93,7 @@
 }
 
 @keyframes pulse-glow {
+
   0%,
   100% {
     box-shadow: 0 6px 16px rgba(255, 94, 19, 0.4);
@@ -120,6 +121,7 @@
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -523,6 +525,7 @@
     }
 
     .recording-list {
+
       .recording-loading,
       .recording-error {
         display: flex;
@@ -821,7 +824,7 @@
       }
 
       // Ẩn tooltip khi button disabled
-      .regenerate-btn:disabled ~ .tooltip-text {
+      .regenerate-btn:disabled~.tooltip-text {
         display: none;
       }
     }
@@ -841,73 +844,73 @@
     animation: slideInDown 0.3s ease-out;
 
     .error-icon {
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px;
-        height: 40px;
-        background: #dc2626;
-        border-radius: 50%;
-        box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: #dc2626;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
 
-        svg {
-          color: white;
-        }
-      }
-
-      .error-content {
-        flex: 1;
-        min-width: 0;
-
-        .error-title {
-          font-size: 16px;
-          font-weight: 600;
-          color: #991b1b;
-          margin: 0 0 8px 0;
-        }
-
-        .error-details {
-          font-size: 14px;
-          color: #dc2626;
-          margin: 0 0 8px 0;
-          line-height: 1.5;
-          word-break: break-word;
-        }
-
-        .error-hint {
-          font-size: 13px;
-          color: #b91c1c;
-          margin: 0;
-          padding: 8px 12px;
-          background: rgba(220, 38, 38, 0.08);
-          border-radius: 6px;
-          border-left: 3px solid #dc2626;
-        }
-      }
-
-      .error-close-btn {
-        flex-shrink: 0;
-        width: 32px;
-        height: 32px;
-        padding: 0;
-        border: none;
-        background: transparent;
-        color: #dc2626;
-        cursor: pointer;
-        transition: all 0.2s;
-
-        &:hover {
-          background: rgba(220, 38, 38, 0.1);
-          color: #991b1b;
-        }
-
-        svg {
-          width: 16px;
-          height: 16px;
-        }
+      svg {
+        color: white;
       }
     }
+
+    .error-content {
+      flex: 1;
+      min-width: 0;
+
+      .error-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #991b1b;
+        margin: 0 0 8px 0;
+      }
+
+      .error-details {
+        font-size: 14px;
+        color: #dc2626;
+        margin: 0 0 8px 0;
+        line-height: 1.5;
+        word-break: break-word;
+      }
+
+      .error-hint {
+        font-size: 13px;
+        color: #b91c1c;
+        margin: 0;
+        padding: 8px 12px;
+        background: rgba(220, 38, 38, 0.08);
+        border-radius: 6px;
+        border-left: 3px solid #dc2626;
+      }
+    }
+
+    .error-close-btn {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: #dc2626;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: rgba(220, 38, 38, 0.1);
+        color: #991b1b;
+      }
+
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
 
   // ======================
   // 6. Meeting Summary + AI
@@ -935,12 +938,10 @@
         right: -50%;
         width: 200%;
         height: 200%;
-        background: linear-gradient(
-          45deg,
-          transparent,
-          rgba(255, 255, 255, 0.2),
-          transparent
-        );
+        background: linear-gradient(45deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent);
         animation: shimmer 3s infinite;
       }
 
@@ -1019,12 +1020,10 @@
     }
 
     .meeting-summary-content-wrapper {
-      background: linear-gradient(
-        135deg,
-        #fff7f0 0%,
-        #ffedd5 50%,
-        #fff7ed 100%
-      );
+      background: linear-gradient(135deg,
+          #fff7f0 0%,
+          #ffedd5 50%,
+          #fff7ed 100%);
       padding: 24px;
       border-radius: 14px;
       border-left: 5px solid #ff5e13;
@@ -2336,6 +2335,49 @@
       text-align: center;
     }
 
+    /* Ô nhập timestamp */
+    .edit-timestamp {
+      width: 80px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      /* bo tròn kiểu pill */
+      border: 1px solid #e5e7eb;
+      /* xám nhạt */
+      background-color: #f9fafb;
+      /* nền xám rất nhạt */
+      font-size: 13px;
+      font-weight: 600;
+      color: #ff5e13;
+      /* màu cam giống badge cũ */
+      text-align: center;
+      letter-spacing: 0.5px;
+
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .edit-timestamp::placeholder {
+      color: #9ca3af;
+    }
+
+    /* focus / hover state cho đẹp hơn */
+    .edit-timestamp:hover {
+      border-color: #ff5e13;
+      background-color: #fff;
+    }
+
+    .edit-timestamp:focus {
+      border-color: #ff5e13;
+      box-shadow: 0 0 0 1px rgba(255, 94, 19, 0.15);
+      background-color: #fff;
+    }
+
+    /* disabled (nếu sau này cần) */
+    .edit-timestamp:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     .edit-speaker {
       min-width: 180px;
       padding: 8px 12px;
@@ -2699,6 +2741,7 @@
 // Hide the old action buttons in task cards when selected
 .task-item.selected {
   .task-actions {
+
     .edit-btn,
     .delete-btn {
       opacity: 0.3;
