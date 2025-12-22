@@ -23,11 +23,16 @@ const TranscriptPanel = ({
                 speakerList={allSpeakers}
                 attendees={attendees}
                 timestamp={formatTimestamp(item.startTs)}
+                startTs={item.startTs}
                 text={item.text}
-                onSave={async (newText, newSpeakerId) => {
+                onSave={async (newText, newSpeakerId, newStartTs) => {
                     const updated = [...transcriptItems];
-                    updated[idx].text = newText;
-                    updated[idx].speakerId = newSpeakerId;
+                    updated[idx] = {
+                        ...updated[idx],
+                        text: newText,
+                        speakerId: newSpeakerId,
+                        startTs: newStartTs,
+                    };
                     setTranscriptItems(updated);
                     await meetingService.updateTranscript(meetingId, updated);
                 }}
