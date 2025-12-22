@@ -211,104 +211,11 @@ export default function DashboardPage() {
       <div className="pm-dash-welcome-header">
         <div className="pm-dash-welcome-content">
           <h1 className="pm-dash-welcome-title">
-            {getGreeting()}, {fullName || "Project Manager"}! 👋
+            {getGreeting()}, {fullName || "Project Manager"}!
           </h1>
           <p className="pm-dash-welcome-subtitle">
-            Here's your project portfolio overview for today
+            Here's your project portfolio overview.
           </p>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="pm-dash-stats-grid">
-        <div className="pm-dash-stat-card pm-dash-stat-primary">
-          <div className="pm-dash-stat-header">
-            <div className="pm-dash-stat-icon pm-dash-icon-blue">
-              <FolderKanban size={20} />
-            </div>
-            <span className="pm-dash-stat-badge">{stats.activeProjects} Active</span>
-          </div>
-          <div className="pm-dash-stat-body">
-            <span className="pm-dash-stat-number">{stats.totalProjects}</span>
-            <span className="pm-dash-stat-label">Total Projects</span>
-          </div>
-          <div className="pm-dash-stat-footer">
-            <div className="pm-dash-stat-progress">
-              <div
-                className="pm-dash-stat-progress-bar pm-dash-progress-blue"
-                style={{ width: `${projectCompletionPercent}%` }}
-              />
-            </div>
-            <span className="pm-dash-stat-meta">
-              {stats.completedProjects} Completed ({projectCompletionPercent}%)
-            </span>
-          </div>
-        </div>
-
-        <div className="pm-dash-stat-card pm-dash-stat-success">
-          <div className="pm-dash-stat-header">
-            <div className="pm-dash-stat-icon pm-dash-icon-green">
-              <ListTodo size={20} />
-            </div>
-            <span className="pm-dash-stat-badge">{stats.inProgressTasks} In Progress</span>
-          </div>
-          <div className="pm-dash-stat-body">
-            <span className="pm-dash-stat-number">{stats.totalTasks}</span>
-            <span className="pm-dash-stat-label">Total Tasks</span>
-          </div>
-          <div className="pm-dash-stat-footer">
-            <div className="pm-dash-stat-progress">
-              <div
-                className="pm-dash-stat-progress-bar pm-dash-progress-green"
-                style={{ width: `${taskCompletionPercent}%` }}
-              />
-            </div>
-            <span className="pm-dash-stat-meta">
-              {stats.completedTasks} Completed ({taskCompletionPercent}%)
-            </span>
-          </div>
-        </div>
-
-        <div className="pm-dash-stat-card pm-dash-stat-warning">
-          <div className="pm-dash-stat-header">
-            <div className="pm-dash-stat-icon pm-dash-icon-orange">
-              <AlertCircle size={20} />
-            </div>
-            <span className="pm-dash-stat-badge">Requires Attention</span>
-          </div>
-          <div className="pm-dash-stat-body">
-            <span className="pm-dash-stat-number">{stats.overdueTasks}</span>
-            <span className="pm-dash-stat-label">Overdue Tasks</span>
-          </div>
-          <div className="pm-dash-stat-footer">
-            <span className="pm-dash-stat-meta">
-              {stats.pendingTasks} Pending • {stats.upcomingMilestones} Milestones Due Soon
-            </span>
-          </div>
-        </div>
-
-        <div className="pm-dash-stat-card pm-dash-stat-info">
-          <div className="pm-dash-stat-header">
-            <div className="pm-dash-stat-icon pm-dash-icon-purple">
-              <Target size={20} />
-            </div>
-            <span className="pm-dash-stat-badge">{stats.upcomingMilestones} Upcoming</span>
-          </div>
-          <div className="pm-dash-stat-body">
-            <span className="pm-dash-stat-number">{stats.totalMilestones}</span>
-            <span className="pm-dash-stat-label">Milestones</span>
-          </div>
-          <div className="pm-dash-stat-footer">
-            <div className="pm-dash-stat-progress">
-              <div
-                className="pm-dash-stat-progress-bar pm-dash-progress-purple"
-                style={{ width: `${milestoneCompletionPercent}%` }}
-              />
-            </div>
-            <span className="pm-dash-stat-meta">
-              {stats.completedMilestones} Completed ({milestoneCompletionPercent}%)
-            </span>
-          </div>
         </div>
       </div>
 
