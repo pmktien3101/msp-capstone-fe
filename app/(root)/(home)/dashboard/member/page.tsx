@@ -25,6 +25,10 @@ import {
   Calendar,
   ArrowRight,
   Briefcase,
+  ListTodo,
+  Eye,
+  RotateCcw,
+  XCircle,
 } from "lucide-react";
 import "@/app/styles/member-dashboard.scss";
 import { formatDate } from "@/lib/formatDate";
@@ -161,11 +165,21 @@ export default function MemberDashboardPage() {
 
   // Calculate statistics
   const totalTasks = myTasks.length;
-  const completedTasks = myTasks.filter(
-    (task) => task.status === "Done"
-  ).length;
+  const todoTasks = myTasks.filter((task) => task.status === "Todo").length;
   const inProgressTasks = myTasks.filter(
     (task) => task.status === "InProgress"
+  ).length;
+  const readyToReviewTasks = myTasks.filter(
+    (task) => task.status === "ReadyToReview"
+  ).length;
+  const reOpenedTasks = myTasks.filter(
+    (task) => task.status === "ReOpened"
+  ).length;
+  const cancelledTasks = myTasks.filter(
+    (task) => task.status === "Cancelled"
+  ).length;
+  const completedTasks = myTasks.filter(
+    (task) => task.status === "Done"
   ).length;
   const now = new Date();
   const overdueTasks = myTasks.filter(
@@ -174,6 +188,7 @@ export default function MemberDashboardPage() {
       new Date(task.dueDate) < now &&
       !(task.status === "Done" || task.status === "Cancelled")
   ).length;
+  const totalProjects = assignedProjects.length;
 
   // Get current hour for greeting
   const getGreeting = () => {
@@ -202,7 +217,7 @@ export default function MemberDashboardPage() {
           <div className="welcome-section">
             <span className="greeting-text">{getGreeting()}</span>
             <h1>{fullName}</h1>
-            <p>Here's what's happening with your projects today</p>
+            <p>Here's what's happening with your projects.</p>
           </div>
           <button
             className="view-all-projects-btn"
@@ -215,26 +230,37 @@ export default function MemberDashboardPage() {
         </div>
       </div>
 
-      {/* Statistics Cards */}
+      {/* Statistics Cards - Only 4 columns */}
       <div className="stats-grid">
+        <div className="stat-card projects">
+          <div className="stat-icon">
+            <Briefcase size={22} />
+          </div>
+          <div className="stat-content">
+            <div className="stat-number">{totalProjects}</div>
+            <div className="stat-label">Total Projects</div>
+          </div>
+          <div className="stat-decoration"></div>
+        </div>
+
+        <div className="stat-card total-tasks">
+          <div className="stat-icon">
+            <ListTodo size={22} />
+          </div>
+          <div className="stat-content">
+            <div className="stat-number">{totalTasks}</div>
+            <div className="stat-label">Total Tasks</div>
+          </div>
+          <div className="stat-decoration"></div>
+        </div>
+
         <div className="stat-card completed">
           <div className="stat-icon">
             <CheckCircle size={22} />
           </div>
           <div className="stat-content">
             <div className="stat-number">{completedTasks}</div>
-            <div className="stat-label">Completed</div>
-          </div>
-          <div className="stat-decoration"></div>
-        </div>
-
-        <div className="stat-card in-progress">
-          <div className="stat-icon">
-            <Layers size={22} />
-          </div>
-          <div className="stat-content">
-            <div className="stat-number">{inProgressTasks}</div>
-            <div className="stat-label">In Progress</div>
+            <div className="stat-label">Completed Tasks</div>
           </div>
           <div className="stat-decoration"></div>
         </div>
@@ -245,18 +271,7 @@ export default function MemberDashboardPage() {
           </div>
           <div className="stat-content">
             <div className="stat-number">{overdueTasks}</div>
-            <div className="stat-label">Overdue</div>
-          </div>
-          <div className="stat-decoration"></div>
-        </div>
-
-        <div className="stat-card projects">
-          <div className="stat-icon">
-            <FolderOpen size={22} />
-          </div>
-          <div className="stat-content">
-            <div className="stat-number">{assignedProjects.length}</div>
-            <div className="stat-label">Projects</div>
+            <div className="stat-label">Overdue Tasks</div>
           </div>
           <div className="stat-decoration"></div>
         </div>
