@@ -190,6 +190,60 @@ export default function MemberDashboardPage() {
   ).length;
   const totalProjects = assignedProjects.length;
 
+  // Task status data for pie chart
+  const taskStatusData = [
+    { label: "Done", count: completedTasks, color: "#10b981", percentage: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0 },
+    { label: "In Progress", count: inProgressTasks, color: "#3b82f6", percentage: totalTasks > 0 ? Math.round((inProgressTasks / totalTasks) * 100) : 0 },
+    { label: "Ready to Review", count: readyToReviewTasks, color: "#8b5cf6", percentage: totalTasks > 0 ? Math.round((readyToReviewTasks / totalTasks) * 100) : 0 },
+    { label: "Re-opened", count: reOpenedTasks, color: "#f59e0b", percentage: totalTasks > 0 ? Math.round((reOpenedTasks / totalTasks) * 100) : 0 },
+    { label: "Todo", count: todoTasks, color: "#6b7280", percentage: totalTasks > 0 ? Math.round((todoTasks / totalTasks) * 100) : 0 },
+    { label: "Cancelled", count: cancelledTasks, color: "#ef4444", percentage: totalTasks > 0 ? Math.round((cancelledTasks / totalTasks) * 100) : 0 },
+  ].filter(item => item.count > 0); // Only show statuses with tasks
+
+  // Calculate pie chart segments
+  const calculatePieSegments = () => {
+    if (totalTasks === 0) return [];
+    
+    let currentAngle = -90; // Start from top
+    return taskStatusData.map(item => {
+      const angle = (item.count / totalTasks) * 360;
+      const startAngle = currentAngle;
+      const endAngle = currentAngle + angle;
+      currentAngle = endAngle;
+      
+      return {
+        ...item,
+        startAngle,
+        endAngle,
+        path: describeArc(100, 100, 80, startAngle, endAngle)
+      };
+    });
+  };
+
+  // Helper function to create SVG arc path
+  const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
+    const start = polarToCartesian(x, y, radius, endAngle);
+    const end = polarToCartesian(x, y, radius, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+    
+    return [
+      "M", x, y,
+      "L", start.x, start.y,
+      "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y,
+      "Z"
+    ].join(" ");
+  };
+
+  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
+    const angleInRadians = (angleInDegrees * Math.PI) / 180.0;
+    return {
+      x: centerX + (radius * Math.cos(angleInRadians)),
+      y: centerY + (radius * Math.sin(angleInRadians))
+    };
+  };
+
+  const pieSegments = calculatePieSegments();
+
   // Get current hour for greeting
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -274,6 +328,55 @@ export default function MemberDashboardPage() {
             <div className="stat-label">Overdue Tasks</div>
           </div>
           <div className="stat-decoration"></div>
+        </div>
+      </div>
+
+      {/* Task Status Distribution Chart */}
+      <div className="task-distribution-section">
+        <div className="chart-container">
+          <h3>Task Status Distribution</h3>
+          {totalTasks === 0 ? (
+            <div className="empty-chart">
+              <ListTodo size={40} />
+              <p>No tasks to display</p>
+            </div>
+          ) : (
+            <div className="pie-chart-wrapper">
+              <div className="pie-chart">
+                <svg viewBox="0 0 200 200" className="pie-svg">
+                  {pieSegments.map((segment, index) => (
+                    <g key={index}>
+                      <path
+                        d={segment.path}
+                        fill={segment.color}
+                        className="pie-segment"
+                        data-label={segment.label}
+                      />
+                    </g>
+                  ))}
+                  <circle cx="100" cy="100" r="50" fill="white" />
+                  <text x="100" y="95" textAnchor="middle" className="chart-center-text">
+                    {totalTasks}
+                  </text>
+                  <text x="100" y="110" textAnchor="middle" className="chart-center-subtext">
+                    Total Tasks
+                  </text>
+                </svg>
+              </div>
+              
+              <div className="chart-legend">
+                {taskStatusData.map((item, index) => (
+                  <div key={index} className="legend-item">
+                    <div className="legend-color" style={{ backgroundColor: item.color }}></div>
+                    <div className="legend-content">
+                      <span className="legend-label">{item.label}</span>
+                      <span className="legend-value">{item.count} ({item.percentage}%)</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
