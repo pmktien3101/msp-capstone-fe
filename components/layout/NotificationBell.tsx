@@ -110,6 +110,25 @@ export const NotificationBell = () => {
       const notifMessage = notification.message?.toLowerCase() || "";
       const eventType = parsedData?.eventType?.toLowerCase() || parsedData?.EventType?.toLowerCase() || "";
 
+      // ===== Organization Invitation (Member) =====
+      if (
+        notifType.includes("invitation") ||
+        notifTitle.includes("invitation") ||
+        notifMessage.includes("invited")
+      ) {
+        setShowDropdown(false);
+
+        // If current user is a Member, navigate to Business -> Invitations tab
+        const role = (userState?.role || "").toString().toLowerCase();
+        if (role === "member") {
+          router.push("/business?tab=invitations");
+        } else {
+          // For other roles, navigate to the business members area (owner/pm)
+          router.push("/dashboard/business/members?tab=invitations");
+        }
+        return;
+      }
+
       // Join Request notifications
       if (
         notifType.includes("join") ||
