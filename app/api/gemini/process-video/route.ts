@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 
 // ===== CONSTANTS =====
-const SHORT_VIDEO_DURATION = 10 * 60; // 10 phút
-const MEDIUM_VIDEO_DURATION = 25 * 60; // 25 phút
-const MAX_VIDEO_DURATION = 60 * 60;
+const MAX_VIDEO_DURATION = 30 * 60;
 const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200 MB
-const CHUNK_SIZE = 40; // Số câu transcript mỗi lần gửi cho AI
 const MAX_RETRIES = 3;
 const BASE_RETRY_DELAY = 2000;
 
@@ -159,13 +156,13 @@ export async function POST(request: NextRequest) {
       meetingId
     } = await request.json();
 
-    console.log('📋 Request:', {
-      hasVideoUrl: !!videoUrl,
-      hasVideoMetadata: !!videoMetadata,
-      transcriptCount: transcriptSegments?.length,
-      taskCount: tasks?.length || 0,
-      participantsCount: streamMetadata?.participants?.length || 0
-    });
+    // console.log('📋 Request:', {
+    //   hasVideoUrl: !!videoUrl,
+    //   hasVideoMetadata: !!videoMetadata,
+    //   transcriptCount: transcriptSegments?.length,
+    //   taskCount: tasks?.length || 0,
+    //   participantsCount: streamMetadata?.participants?.length || 0
+    // });
 
     // Validate
     if (!videoUrl || !transcriptSegments) {
@@ -198,7 +195,7 @@ export async function POST(request: NextRequest) {
     });
 
     const transcriptText = transcriptArrayToText(transcriptSegments);
-    console.log('📝 Transcript prepared, length:', transcriptText.length);
+    // console.log('📝 Transcript prepared, length:', transcriptText.length);
 
     // ===== BƯỚC 1: Xử lý Video =====
     let improvedText = "";
@@ -207,7 +204,7 @@ export async function POST(request: NextRequest) {
 
     if (videoUrl && videoMetadata) {
       try {
-        // 1. CHẶN VIDEO QUÁ TẢI (> 60p hoặc > 200MB)
+        // 1. CHẶN VIDEO QUÁ TẢI (> 30p hoặc > 200MB)
         if (videoMetadata.duration > MAX_VIDEO_DURATION || videoMetadata.size > MAX_VIDEO_SIZE) {
           console.log('🚫 Video vượt ngưỡng cho phép - Reject');
           return NextResponse.json({
@@ -217,7 +214,7 @@ export async function POST(request: NextRequest) {
           }, { status: 400 });
         }
         // 2. TẢI VÀ UPLOAD FILE
-        const model = "gemini-2.5-pro";
+        const model = "gemini-2.5-flash";
         // Optimize URL for long videos
         let processUrl = videoUrl;
         if (videoUrl.includes('cloudinary')) {
@@ -286,24 +283,16 @@ export async function POST(request: NextRequest) {
             required: ["startTs", "speakerId", "text"]
           }
         };
-        const chunks = [];
-        for (let i = 0; i < transcriptSegments.length; i += CHUNK_SIZE) {
-          chunks.push(transcriptSegments.slice(i, i + CHUNK_SIZE));
-        }
-        console.log(`📦 Bắt đầu xử lý ${chunks.length} chunks...`);
+        // Quyết định số lần gọi dựa theo duration
+        const durationSeconds = videoMetadata.duration;
         let combinedResults: any[] = [];
 
-        const hasParticipants = streamMetadata?.participants?.length > 0;
-        console.log(`👥 Có thông tin người tham gia: ${hasParticipants}`);
-
-        for (let i = 0; i < chunks.length; i++) {
-          console.log(`⏳ Đang xử lý chunk ${i + 1}/${chunks.length}...`);
-          const currentChunkText = transcriptArrayToText(chunks[i]);
-
-          const chunkPrompt = `
-          Bạn nhận được:
+        // if (durationSeconds <= 20 * 60) {
+        // Video ngắn dưới 20 phút - Gửi toàn bộ transcript trong 1 lần
+        const singlePrompt =
+          `
           1) Video cuộc họp.
-          2) Một đoạn transcript sơ bộ rất không chính xác (có thể sai tới 90% hoặc hơn).
+          2) Một bản transcript sơ bộ rất không chính xác (có thể sai tới 90% hoặc hơn).
           Transcript này chỉ dùng để:
           - Gợi ý vị trí thời gian tương đối của câu.
           - Gợi ý Speaker ID ban đầu (nếu có). 
@@ -312,46 +301,126 @@ export async function POST(request: NextRequest) {
           - Sửa lỗi chính tả, ngữ pháp, dấu câu.
           - Cố gắng giữ Speaker ID giống transcript sơ bộ nếu hợp lý.
           - Nếu không thể xác định được người nói, dùng "unknown" nhưng hạn chế unknown nhất có thể.
+          - Chỉ trả về tối đa 200 đoạn thoại.
+          - Không thêm bất kỳ trường nào khác ngoài: startTs, speakerId, text.
+          - Không thêm comment, không thêm ghi chú bên trong JSON.
           - Mỗi phần tử trong JSON phải có:
             - "startTs": thời điểm bắt đầu câu nói (miliseconds, ước lượng tương đối).
             - "speakerId": UUID, tên, hoặc "unknown".
             - "text": nội dung câu đã được sửa.
-            
             DANH SÁCH NGƯỜI THAM GIA (để hiểu ngữ cảnh, không bắt buộc phải khớp):
             ${createSpeakerMapping(streamMetadata.participants)}
 
-            TRANSCRIPT SƠ BỘ (RẤT NHIỀU LỖI):
-            ${currentChunkText}
-            
+            TRANSCRIPT SƠ BỘ (RẤT NHIỀU LỖI, KHÔNG ĐẦY ĐỦ):
+            ${transcriptText.slice(0, 3000)}
             BẮT BUỘC: 
             - Chỉ trả về JSON array, KHÔNG thêm giải thích.
             - Phải tuân theo schema đã mô tả.
           `.trim();
 
-          const chunkResponse = await callGeminiWithRetry(ai, {
-            model: model,
-            generationConfig: {
-              temperature: 0.1,
-              responseMimeType: "application/json",
-              responseSchema: transcriptSchema,
-              maxOutputTokens: 8192, // Đảm bảo output tối đa cho chunk
-            },
-            contents: [{
+        const response = await callGeminiWithRetry(ai, {
+          model,
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: "application/json",
+            responseSchema: transcriptSchema,
+          },
+          contents: [
+            {
               role: "user",
               parts: [
-                { fileData: { fileUri: uploadResult.uri || '', mimeType: fileMimeType } },
-                { text: chunkPrompt }
-              ]
-            }]
-          });
+                { fileData: { fileUri: uploadResult.uri || "", mimeType: fileMimeType } },
+                { text: singlePrompt },
+              ],
+            },
+          ],
+        });
 
-          const rawChunkText = chunkResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
-          const parsedChunk = parseImprovedTranscript(rawChunkText, chunks[i]);
-          combinedResults = [...combinedResults, ...parsedChunk];
-        }
+        const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
+        combinedResults = parseImprovedTranscript(rawText, transcriptSegments);
+        // } else {
+        //   // ===== CASE 2: > 20p → chia làm 2 call =====
+        //   const mid = Math.floor(transcriptSegments.length / 2);
+        //   const firstHalf = transcriptSegments.slice(0, mid);
+        //   const secondHalf = transcriptSegments.slice(mid);
+        //   const makePromptForPart = (segmentsPart: any[], label: string) => {
+        //     const partText = transcriptArrayToText(segmentsPart);
+        //     return `
+        //     1) Video cuộc họp.
+        //     2) MỘT PHẦN transcript sơ bộ (${label}) rất không chính xác (có thể sai tới 90% hoặc hơn).
+        //     Transcript này chỉ dùng để: 
+        //     - Gợi ý vị trí thời gian tương đối của câu.
+        //     - Gợi ý Speaker ID ban đầu (nếu có).
+        //     Nhiệm vụ:
+        //     - NGHE video để ghi lại nội dung thoại CHÍNH XÁC bằng tiếng Việt cho PHẦN NÀY.
+        //     - Sửa lỗi chính tả, ngữ pháp, dấu câu.
+        //     - Cố gắng giữ Speaker ID giống transcript sơ bộ nếu hợp lý.
+        //     - Nếu không thể xác định được người nói, dùng "unknown" nhưng hạn chế unknown nhất có thể.
+        //     - Mỗi phần tử trong JSON phải có:
+        //       - "startTs": thời điểm bắt đầu câu nói (miliseconds, ước lượng tương đối).
+        //       - "speakerId": UUID, tên, hoặc "unknown".
+        //       - "text": nội dung câu đã được sửa.
+        //     DANH SÁCH NGƯỜI THAM GIA (để hiểu ngữ cảnh, không bắt buộc phải khớp):
+        //     ${createSpeakerMapping(streamMetadata.participants)}
 
+        //     TRANSCRIPT SƠ BỘ PHẦN ${label} (RẤT NHIỀU LỖI):
+        //     ${partText}
+
+        //     BẮT BUỘC: 
+        //     - Chỉ trả về JSON array, KHÔNG thêm giải thích.
+        //     - Chỉ xử lý PHẦN ${label}, không tóm tắt toàn bộ cuộc họp.  
+        //     - Phải tuân theo schema đã mô tả.
+        //     `.trim();
+        //   };
+
+        //   // Gọi tuần tự 2 lần để tránh áp lực rate limit
+        //   const firstResponse = await callGeminiWithRetry(ai, {
+        //     model,
+        //     generationConfig: {
+        //       temperature: 0.1,
+        //       responseMimeType: "application/json",
+        //       responseSchema: transcriptSchema,
+        //       maxOutputTokens: 8192,
+        //     },
+        //     contents: [
+        //       {
+        //         role: "user",
+        //         parts: [
+        //           { fileData: { fileUri: uploadResult.uri || "", mimeType: fileMimeType } },
+        //           { text: makePromptForPart(firstHalf, "1") },
+        //         ],
+        //       },
+        //     ],
+        //   });
+
+        //   const secondResponse = await callGeminiWithRetry(ai, {
+        //     model,
+        //     generationConfig: {
+        //       temperature: 0.1,
+        //       responseMimeType: "application/json",
+        //       responseSchema: transcriptSchema,
+        //       maxOutputTokens: 8192,
+        //     },
+        //     contents: [
+        //       {
+        //         role: "user",
+        //         parts: [
+        //           { fileData: { fileUri: uploadResult.uri || "", mimeType: fileMimeType } },
+        //           { text: makePromptForPart(secondHalf, "2") },
+        //         ],
+        //       },
+        //     ],
+        //   });
+        //   const rawText1 = firstResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
+        //   const rawText2 = secondResponse.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
+
+        //   const parsed1 = parseImprovedTranscript(rawText1, firstHalf);
+        //   const parsed2 = parseImprovedTranscript(rawText2, secondHalf);
+
+        //   combinedResults = [...parsed1, ...parsed2];
+        // }
         improvedTranscript = combinedResults;
-        console.log('✅ Hoàn tất cải thiện transcript qua chunking');
+        // console.log("✅ Hoàn tất cải thiện transcript với", improvedTranscript.length, "segments");
         // STEP 2: Normalize speaker IDs (tên → UUID)
         if (streamMetadata?.participants?.length > 0) {
           improvedTranscript = normalizeSpeakerIds(
@@ -367,7 +436,7 @@ export async function POST(request: NextRequest) {
         const unknownCount = improvedTranscript.filter((s: any) => s.speakerId === 'unknown').length;
         const totalCount = improvedTranscript.length;
         const unknownPercent = totalCount > 0 ? (unknownCount / totalCount) * 100 : 0;
-        console.log(`📊 Final result: ${totalCount} segments, ${unknownCount} unknown (${unknownPercent.toFixed(1)}%)`);
+        // console.log(`📊 Final result: ${totalCount} segments, ${unknownCount} unknown (${unknownPercent.toFixed(1)}%)`);
         // ✅ STEP 4: Fallback nếu quá nhiều unknown
         if (unknownPercent > 80 && totalCount > 0) {
           console.warn('⚠️ Too many unknown speakers (>80%). Using original transcript.');
@@ -376,7 +445,7 @@ export async function POST(request: NextRequest) {
             duration: (seg.stopTs - seg.startTs) / 1000,
           }));
         } else if (totalCount > 0) {
-          console.log('✅ Transcript processing successful! Sample (first 5):');
+          // console.log('✅ Transcript processing successful! Sample (first 5):');
           improvedTranscript.slice(0, 5).forEach((seg: any, i: number) => {
             const speakerPreview = seg.speakerId.length > 30
               ? seg.speakerId.substring(0, 30) + '...'
@@ -406,11 +475,11 @@ export async function POST(request: NextRequest) {
         }));
       } finally {
         // Cleanup all files
-        console.log('🗑️ Cleaning up...');
+        // console.log('🗑️ Cleaning up...');
         for (const fileName of uploadedFiles) {
           try {
             await ai.files.delete({ name: fileName });
-            console.log(`✅ Deleted ${fileName}`);
+            // console.log(`✅ Deleted ${fileName}`);
           } catch (e) {
             console.warn(`⚠️ Failed to delete ${fileName}`);
           }
