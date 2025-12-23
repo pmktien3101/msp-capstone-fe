@@ -491,7 +491,7 @@ const MembersRolesPage = () => {
                 <div className="col-email">Email</div>
                 <div className="col-role">Role</div>
                 <div className="col-status">Status</div>
-                <div className="col-projects">Projects</div>
+                {/* <div className="col-projects">Projects</div> */}
                 <div className="col-actions">Actions</div>
               </div>
 
@@ -540,27 +540,23 @@ const MembersRolesPage = () => {
                       </span>
                     </div>
 
-                    <div className="col-projects">
-                      <span className="project-count">{member.projects || 0} projects</span>
-                    </div>
+
 
                     <div className="col-actions">
-                      <button className="action-btn view" onClick={() => handleViewMember(member)} title="View Details">
-                        <Eye size={16} strokeWidth={2} />
-                      </button>
-
-                      <button className="action-btn edit" onClick={() => handleEditRole(member)} title="Edit Role">
-                        <UserPenIcon size={16} strokeWidth={2} />
-                      </button>
-
-                      <button
-                        className="action-btn delete"
+                      <span className="action-icon view" onClick={() => handleViewMember(member)} title="View Details">
+                        <Eye size={18} strokeWidth={1.7} />
+                      </span>
+                      <span className="action-icon edit" onClick={() => handleEditRole(member)} title="Edit Role">
+                        <UserPenIcon size={18} strokeWidth={1.7} />
+                      </span>
+                      <span
+                        className="action-icon delete"
                         onClick={() => setConfirmDeleteMemberId(member.id)}
                         title="Remove Member"
-                        disabled={loadingDeleteMember === member.id}
+                        style={{ opacity: loadingDeleteMember === member.id ? 0.5 : 1, pointerEvents: loadingDeleteMember === member.id ? 'none' : 'auto' }}
                       >
-                        <Trash2 size={16} strokeWidth={2} />
-                      </button>
+                        <Trash2 size={18} strokeWidth={1.7} />
+                      </span>
                     </div>
                   </div>
                 ))

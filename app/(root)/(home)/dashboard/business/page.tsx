@@ -154,6 +154,7 @@ const BusinessDashboard = () => {
     return { startDate, endDate };
   }, [selectedPeriod, customDateRange]);
 
+
   // Filter projects by date range
   const filteredProjects = useMemo(() => {
     const { startDate, endDate } = getDateRange;
@@ -162,6 +163,16 @@ const BusinessDashboard = () => {
       return createdAt >= startDate && createdAt <= endDate;
     });
   }, [projects, getDateRange]);
+
+  // Filter employees by date range (createdAt only)
+  const filteredEmployees = useMemo(() => {
+    const { startDate, endDate } = getDateRange;
+    return employees.filter((e) => {
+      if (!e.createdAt) return false;
+      const createdAt = new Date(e.createdAt);
+      return createdAt >= startDate && createdAt <= endDate;
+    });
+  }, [employees, getDateRange]);
 
   // Fetch real data
   useEffect(() => {
@@ -318,7 +329,7 @@ const BusinessDashboard = () => {
     const pendingProjects = filteredProjects.filter(
       (p) => p.status === "NotStarted" || p.status === "Pending"
     ).length;
-    const totalEmployees = employees.length;
+    const totalEmployees = filteredEmployees.length;
 
     return {
       totalProjects,
@@ -327,7 +338,7 @@ const BusinessDashboard = () => {
       pendingProjects,
       totalEmployees,
     };
-  }, [filteredProjects, employees]);
+  }, [filteredProjects, filteredEmployees]);
 
   // Calculate project trend data based on selected period
   const projectTrendData = useMemo(() => {
@@ -1139,144 +1150,6 @@ const BusinessDashboard = () => {
         </div>
       </div>
 
-      {/* Packages Section */}
-      <div className="packages-section">
-        <div className="section-header">
-          <h3>Available Packages</h3>
-          <button
-            className="create-btn"
-            onClick={() => setShowPackages(!showPackages)}
-          >
-            {showPackages ? "Hide" : "View Packages"}
-          </button>
-        </div>
-
-        {showPackages && (
-          <div className="packages-content">
-            {/* Search and View Toggle */}
-            <div className="packages-controls">
-              <div className="search-box">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M21 21L16.65 16.65"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search packages..."
-                  value={packageSearchQuery}
-                  onChange={(e) => setPackageSearchQuery(e.target.value)}
-                />
-              </div>
-
-              <div className="view-toggle">
-                <button
-                  className={`toggle-btn ${
-                    packageViewMode === "grid" ? "active" : ""
-                  }`}
-                  onClick={() => setPackageViewMode("grid")}
-                  title="Grid view"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <rect
-                      x="3"
-                      y="3"
-                      width="7"
-                      height="7"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <rect
-                      x="14"
-                      y="3"
-                      width="7"
-                      height="7"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <rect
-                      x="3"
-                      y="14"
-                      width="7"
-                      height="7"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <rect
-                      x="14"
-                      y="14"
-                      width="7"
-                      height="7"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                  </svg>
-                </button>
-                <button
-                  className={`toggle-btn ${
-                    packageViewMode === "list" ? "active" : ""
-                  }`}
-                  onClick={() => setPackageViewMode("list")}
-                  title="List view"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M8 6H21M8 12H21M8 18H21M3 6H3.01M3 12H3.01M3 18H3.01"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Packages Grid/List */}
-            <div
-              className={`pricing-grid ${
-                packageViewMode === "list" ? "list-view" : ""
-              }`}
-            >
-              {packages.length > 0 ? (
-                packages
-                  .filter(
-                    (pkg) =>
-                      pkg.name
-                        .toLowerCase()
-                        .includes(packageSearchQuery.toLowerCase()) ||
-                      (pkg.description &&
-                        pkg.description
-                          .toLowerCase()
-                          .includes(packageSearchQuery.toLowerCase()))
-                  )
-                  .map((plan: any) => (
-                    <PricingCard
-                      key={plan.id}
-                      plan={convertToPricingPlan(plan)}
-                      showDelete={false}
-                    />
-                  ))
-              ) : (
-                <div className="empty-state">
-                  <p>No packages available</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
