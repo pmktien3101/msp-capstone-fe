@@ -124,7 +124,7 @@ export const NotificationBell = () => {
           router.push("/business?tab=invitations");
         } else {
           // For other roles, navigate to the business members area (owner/pm)
-          router.push("/dashboard/business/members?tab=invitations");
+          router.push("/dashboard/business/members");
         }
         return;
       }
