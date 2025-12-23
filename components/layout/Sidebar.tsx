@@ -117,6 +117,12 @@ const Sidebar = ({ onCollapsedChange }: SidebarProps) => {
       route: "/meetings",
       icon: <Presentation size={22} />,
     },
+    {
+      id: "business",
+      label: "Business",
+      route: "/business",
+      icon: <Building2 size={22} />,
+    },
   ];
 
   // ----------------- MEMBER MENU -----------------

@@ -460,7 +460,8 @@ export default function BusinessDashboard() {
                         <span className="biz-role-badge__dot"></span>
                         {getRoleDisplay(userDetail?.roleName)}
                       </span>
-                      {userDetail?.roleName !== "BusinessOwner" && (
+                      {userDetail?.roleName !== "BusinessOwner" && 
+                       userDetail?.roleName !== "ProjectManager" && (
                         <button
                           className="biz-btn biz-btn--outline-danger"
                           onClick={() => setShowLeaveModal(true)}
