@@ -361,6 +361,10 @@
         flex: 1;
         min-width: 0;
         text-align: left;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        width: 100%;
       }
 
       .meeting-title-text {
@@ -371,6 +375,8 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        text-align: left;
+        justify-self: flex-start;
       }
 
       .meeting-description {
@@ -379,6 +385,8 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        text-align: left;
+        justify-self: flex-start;
       }
     }
 
