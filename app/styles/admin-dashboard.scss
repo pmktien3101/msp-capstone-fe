@@ -359,6 +359,10 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  position: sticky;
+  top: 32px;
+  align-self: flex-start;
+  z-index: 2;
 }
 
 /* Wallet Card */
