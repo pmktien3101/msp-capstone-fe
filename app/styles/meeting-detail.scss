@@ -1913,14 +1913,22 @@
       text-align: center;
 
       .convert-icon {
-        margin-bottom: 20px;
-      }
+        display: flex;
+        align-items: center; // icon + h3 thẳng hàng theo trục dọc
+        justify-content: center;
+        gap: 10px; // khoảng cách vừa phải giữa icon và text
+        margin-bottom: 12px;
 
-      h3 {
-        font-size: 20px;
-        font-weight: 800;
-        color: #0f172a;
-        margin: 0 0 20px 0;
+        h3 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 700;
+          color: #0f172a;
+        }
+
+        svg {
+          flex-shrink: 0; // icon không bị ép nhỏ khi thiếu chỗ
+        }
       }
     }
 
@@ -2746,6 +2754,103 @@
     .delete-btn {
       opacity: 0.3;
       pointer-events: none;
+    }
+  }
+}
+
+// ======================
+// AI Error Modal
+// ======================
+.ai-error-modal-overlay {
+  position: fixed;
+  inset: 0; // top:0; right:0; bottom:0; left:0;
+  background: rgba(15, 23, 42, 0.45); // overlay tối
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999; // cao hơn mọi thứ trong trang
+}
+
+.ai-error-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px 28px;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+  animation: fadeIn 0.2s ease;
+}
+
+.ai-error-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  svg {
+    color: #f97316;
+  }
+}
+
+.ai-error-modal-body {
+  font-size: 14px;
+  color: #475569;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+
+  .ai-error-message {
+    font-weight: 600;
+    color: #b91c1c;
+  }
+
+  .ai-error-details {
+    max-height: 200px;
+    overflow: auto;
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+    color: #334155;
+    border: 1px solid #e5e7eb;
+    white-space: pre-wrap;
+  }
+}
+
+.ai-error-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+
+  .btn-later {
+    background: #ffffff;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+
+    &:hover {
+      background: #ff9684;
+      cursor: pointer;
+    }
+  }
+
+  .btn-regenerate {
+    background: #fdba74;
+    color: #ffffff;
+
+    &:hover {
+      background: #fa9325;
+      cursor: pointer;
     }
   }
 }

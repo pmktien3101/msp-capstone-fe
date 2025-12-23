@@ -11,6 +11,8 @@ import { Filter, Mic, MicOff, Video, VideoOff, X } from "lucide-react";
 import { Call } from "@stream-io/video-react-sdk";
 import { toast } from "react-toastify";
 import { useUser } from "@/hooks/useUser";
+import { set } from "zod";
+import { meetingService } from "@/services/meetingService";
 
 interface MeetingSetupProps {
   setIsSetupComplete: (value: boolean) => void;
@@ -28,6 +30,7 @@ const MeetingSetup = ({
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
   const { userId } = useUser();
   const [canJoin, setCanJoin] = useState(false);
+  const [isHost, setIsHost] = useState(false);
 
   // Add this useEffect to check permissions
   useEffect(() => {
@@ -35,6 +38,7 @@ const MeetingSetup = ({
     const createdById = call?.state?.custom?.createdById;
     // Allow join if user is in attendees list OR is the meeting creator
     setCanJoin(attendees.includes(userId) || createdById === userId);
+    setIsHost(createdById === userId);
   }, [
     call?.state?.custom?.attendeeIds,
     call?.state?.custom?.createdById,
@@ -104,6 +108,11 @@ const MeetingSetup = ({
 
     try {
       await call.join();
+
+      if (isHost) {
+        await meetingService.updateMeetingStartTime(call.id);
+      }
+
       setIsSetupComplete(true);
     } catch (err) {
       toast.error("🚨 Unable to join the meeting");
@@ -123,21 +132,19 @@ const MeetingSetup = ({
           <div className="mt-4 flex justify-center gap-4">
             <Button
               onClick={() => setIsMicToggledOn(!isMicToggledOn)}
-              className={`cursor-pointer rounded-full h-12 w-12 p-0 flex items-center justify-center transition-all ${
-                isMicToggledOn
-                  ? "bg-gray-500 hover:bg-gray-600 text-white"
-                  : "bg-red-500 hover:bg-red-600 text-white"
-              }`}
+              className={`cursor-pointer rounded-full h-12 w-12 p-0 flex items-center justify-center transition-all ${isMicToggledOn
+                ? "bg-gray-500 hover:bg-gray-600 text-white"
+                : "bg-red-500 hover:bg-red-600 text-white"
+                }`}
             >
               {isMicToggledOn ? <Mic size={20} /> : <MicOff size={20} />}
             </Button>
             <Button
               onClick={() => setIsCamToggledOn(!isCamToggledOn)}
-              className={`cursor-pointer rounded-full h-12 w-12 p-0 flex items-center justify-center transition-all ${
-                isCamToggledOn
-                  ? "bg-gray-500 hover:bg-gray-600 text-white"
-                  : "bg-red-500 hover:bg-red-600 text-white"
-              }`}
+              className={`cursor-pointer rounded-full h-12 w-12 p-0 flex items-center justify-center transition-all ${isCamToggledOn
+                ? "bg-gray-500 hover:bg-gray-600 text-white"
+                : "bg-red-500 hover:bg-red-600 text-white"
+                }`}
             >
               {isCamToggledOn ? <Video size={20} /> : <VideoOff size={20} />}
             </Button>
@@ -169,10 +176,9 @@ const MeetingSetup = ({
             onClick={handleJoin}
             disabled={!canJoin}
             className={`rounded-full py-3 cursor-pointer text-white font-medium mt-auto shadow-md transition-all transform
-              ${
-                canJoin
-                  ? "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 hover:scale-105"
-                  : "bg-gray-400 cursor-not-allowed"
+              ${canJoin
+                ? "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 hover:scale-105"
+                : "bg-gray-400 cursor-not-allowed"
               }`}
           >
             {canJoin ? "Join Now" : "No permission to join"}

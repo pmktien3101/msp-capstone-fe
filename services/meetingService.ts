@@ -382,4 +382,37 @@ export const meetingService = {
       };
     }
   },
+
+  // Update meeting start time (server sets StartTime = DateTime.UtcNow)
+  async updateMeetingStartTime(
+    meetingId: string
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const response = await api.put<ApiResponse>(
+        `/meetings/${meetingId}/update-start-time`
+      );
+
+      if (response.data.success) {
+        return {
+          success: true,
+          message: response.data.message,
+        };
+      } else {
+        return {
+          success: false,
+          error:
+            response.data.message || "Failed to update meeting start time",
+        };
+      }
+    } catch (error: any) {
+      console.error("Update meeting start time error:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to update meeting start time",
+      };
+    }
+  },
 };

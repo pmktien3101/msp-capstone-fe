@@ -451,6 +451,7 @@ export function useMeetingAI() {
             }
         } catch (err: any) {
             console.error("❌ regenerate error:", err);
+            console.error("❌ regenerate error message:", err?.message);
 
             setError({
                 message: "Unable to regenerate",
@@ -478,6 +479,7 @@ export function useMeetingAI() {
         setSummary,
         setTodoList,
         setError,
+        getVideoMetadata,
     };
 }
 

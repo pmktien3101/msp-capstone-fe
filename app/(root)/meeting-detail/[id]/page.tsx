@@ -101,6 +101,7 @@ export default function MeetingDetailPage() {
     setSummary,
     setTodoList,
     setError: setAiProcessingError,
+    getVideoMetadata,
   } = useMeetingAI();
 
   // ==================== Local UI State ====================
@@ -122,6 +123,27 @@ export default function MeetingDetailPage() {
     isOpen: boolean;
     taskCount: number;
   }>({ isOpen: false, taskCount: 0 });
+
+  // modal cho lỗi AI
+  const [aiErrorModal, setAiErrorModal] = useState<{
+    isOpen: boolean;
+    message: string | null;
+    details: string | null;
+  }>({
+    isOpen: false,
+    message: null,
+    details: null,
+  });
+
+  useEffect(() => {
+    if (!aiProcessingError) return;
+
+    setAiErrorModal({
+      isOpen: true,
+      message: aiProcessingError.message || "An error occurred during AI processing.",
+      details: aiProcessingError.details || null,
+    });
+  }, [aiProcessingError]);
 
   // Sidebar & summary state
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -210,20 +232,75 @@ export default function MeetingDetailPage() {
 
     hasProcessedRef.current = true;
 
-    if (!meetingInfo?.recordUrl && recordings[0]?.url) {
-      toast.info("Processing video with AI...", { autoClose: 5000 });
-    }
+    //check video length BEFORE calling processVideo
+    (async () => {
+      try {
+        const metadata = await getVideoMetadata(hasRecordingUrl);
+        if (metadata.duration > 30 * 60) {
+          // > 30 minutes → only notify, do NOT auto process
+          toast.info(
+            "AI processing is currently not available for meetings longer than 30 minutes.",
+            { autoClose: 8000 }
+          );
+          console.warn(
+            `AI processing skipped: duration is ${Math.ceil(
+              metadata.duration / 60
+            )} minutes (> 30 minutes).`
+          );
+          // Không set hasProcessedRef, để sau này nếu shorten video
+          // vẫn có thể trigger process bằng tay (Regenerate, v.v.)
+          return;
+        }
 
-    processVideo(
-      params.id as string,
-      recordings[0],
-      originalTranscriptions,
-      projectTasks,
-      meetingInfo,
-      call
-    ).catch(() => {
-      hasProcessedRef.current = false;
-    });
+        if (metadata.size > 200 * 1024 * 1024) {
+          toast.info(
+            "AI processing is currently not available for recordings larger than 200 MB.",
+            { autoClose: 8000 }
+          );
+          console.warn(
+            `AI processing skipped: size is ${(
+              metadata.size /
+              1024 /
+              1024
+            ).toFixed(2)} MB (> 200 MB).`
+          );
+          return;
+        }
+
+        // <= 30 minutes → allowed to auto-process
+        hasProcessedRef.current = true;
+
+        if (!meetingInfo?.recordUrl && recordings[0]?.url) {
+          toast.info("Processing video with AI...", { autoClose: 5000 });
+        }
+
+        await processVideo(
+          params.id as string,
+          recordings[0],
+          originalTranscriptions,
+          projectTasks,
+          meetingInfo,
+          call
+        );
+      } catch {
+        hasProcessedRef.current = false;
+      }
+    })();
+
+    // if (!meetingInfo?.recordUrl && recordings[0]?.url) {
+    //   toast.info("Processing video with AI...", { autoClose: 5000 });
+    // }
+
+    // processVideo(
+    //   params.id as string,
+    //   recordings[0],
+    //   originalTranscriptions,
+    //   projectTasks,
+    //   meetingInfo,
+    //   call
+    // ).catch(() => {
+    //   hasProcessedRef.current = false;
+    // });
   }, [
     originalTranscriptions,
     recordings,
@@ -822,7 +899,7 @@ export default function MeetingDetailPage() {
                     </div>
                     <div className="info-content">
                       <label>Start Time</label>
-                      <p>{formatDateTime(call.state.startsAt, true)}</p>
+                      <p>{formatDateTime(meetingInfo.startTime, true)}</p>
                     </div>
                   </div>
 
@@ -919,7 +996,7 @@ export default function MeetingDetailPage() {
         {activeTab === "recording" && (
           <div className="recording-section">
             {/* AI Error Banner */}
-            {aiProcessingError && (
+            {/* {aiProcessingError && (
               <div className="ai-error-banner">
                 <div className="error-icon">
                   <AlertTriangleIcon size={20} />
@@ -937,7 +1014,7 @@ export default function MeetingDetailPage() {
                   <X size={16} />
                 </button>
               </div>
-            )}
+            )} */}
 
             <h3>
               <Video size={20} />
@@ -1396,13 +1473,13 @@ export default function MeetingDetailPage() {
           onClick={() => setConvertConfirmModal({ isOpen: false, taskCount: 0 })}
         >
           <div
-            className="delete-modal convert-modal"
+            className="delete-modal convert-modal w-100"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="convert-icon">
-              <CheckCircle size={48} color="#10b981" />
+              <CheckCircle size={32} color="#10b98154" />
+              <h3 className="">Confirm Conversion</h3>
             </div>
-            <h3>Confirm Conversion</h3>
             <div className="delete-modal-content">
               <p>
                 Are you sure you want to convert{" "}
@@ -1431,6 +1508,79 @@ export default function MeetingDetailPage() {
           </div>
         </div>
       )}
+
+      {/* AI Error Modal */}
+      {aiErrorModal.isOpen && (
+        <div className="ai-error-modal-overlay" onClick={() => {
+          setAiErrorModal({ isOpen: false, message: null, details: null });
+        }}>
+          <div
+            className="ai-error-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="ai-error-modal-header">
+              <AlertTriangleIcon size={20} />
+              <h3>AI processing error</h3>
+            </div>
+
+            <div className="ai-error-modal-body">
+              <p>The following error occurred during the AI processing:</p>
+
+              {aiErrorModal.message && (
+                <p className="ai-error-message">{aiErrorModal.message}</p>
+              )}
+
+              {aiErrorModal.details && (
+                <pre className="ai-error-details">{aiErrorModal.details}</pre>
+              )}
+
+              <p>
+                Do you want to run the Regenerate process again now?
+              </p>
+            </div>
+
+            <div className="ai-error-modal-footer">
+              <Button
+                variant="outline"
+                className="btn-later"
+                onClick={() =>
+                  setAiErrorModal({
+                    isOpen: false,
+                    message: null,
+                    details: null,
+                  })
+                }
+              >
+                Later
+              </Button>
+
+              <Button className="btn-regenerate"
+                onClick={async () => {
+                  // đóng modal + clear error trong hook
+                  setAiErrorModal({
+                    isOpen: false,
+                    message: null,
+                    details: null,
+                  });
+                  setAiProcessingError(null);
+
+                  // gọi lại regenerate giống nút Re-generate hiện tại
+                  await handleRegenerate();
+                }}
+                disabled={isRegenerating || isProcessingMeetingAI}
+              >
+                {isRegenerating ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  <Sparkles size={16} />
+                )}
+                <span style={{ marginLeft: 6 }}>Regenerate</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Related Tasks Sidebar */}
       <RelatedTasksSidebar
