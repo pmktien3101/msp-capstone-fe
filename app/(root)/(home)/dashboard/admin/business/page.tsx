@@ -406,7 +406,7 @@ const AdminBusinessOwners = () => {
                   <td data-label="Status">{getStatusBadge(businessOwner)}</td>
                   <td data-label="Created">
                     {new Date(businessOwner.createdAt).toLocaleDateString(
-                      "en-US"
+                      "en-GB"
                     )}
                   </td>
                   <td data-label="Actions">
@@ -715,7 +715,7 @@ const AdminBusinessOwners = () => {
                     <span className="detail-value">
                       {new Date(
                         selectedBusinessOwner.createdAt
-                      ).toLocaleDateString("en-US")}
+                      ).toLocaleDateString("en-GB")}
                     </span>
                   </div>
                 </div>

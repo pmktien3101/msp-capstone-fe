@@ -661,8 +661,8 @@ const AdminDashboard = () => {
   const formatDate = (dateString: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
-    // MM/DD/YYYY
-    return date.toLocaleDateString("en-US");
+    // DD/MM/YYYY
+    return date.toLocaleDateString("en-GB");
   };
 
   // Generate SVG path for line chart

@@ -826,11 +826,7 @@ const MembersRolesPage = () => {
               <div className="form-group">
                 <label style={{ fontWeight: 600, display: 'block', marginBottom: '8px' }}>Joined Date</label>
                 <p style={{ margin: 0, color: '#6b7280' }}>
-                  {memberToView.createdAt ? new Date(memberToView.createdAt).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  }) : 'Unknown'}
+                  {memberToView.createdAt ? new Date(memberToView.createdAt).toLocaleDateString('vi-VN') : 'Unknown'}
                 </p>
               </div>
             </div>
