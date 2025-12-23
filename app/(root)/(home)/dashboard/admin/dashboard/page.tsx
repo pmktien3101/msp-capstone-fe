@@ -661,11 +661,8 @@ const AdminDashboard = () => {
   const formatDate = (dateString: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    // MM/DD/YYYY
+    return date.toLocaleDateString("en-US");
   };
 
   // Generate SVG path for line chart
@@ -1022,60 +1019,7 @@ const AdminDashboard = () => {
             })}
           </div>
 
-          {/* Revenue Overview Chart */}
-          <div className="chart-card market-overview">
-            <div className="chart-header">
-              <h3>Revenue Overview</h3>
-              <select
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="period-select"
-              >
-                <option value="Week">Week</option>
-                <option value="Month">Month</option>
-                <option value="Year">Year</option>
-              </select>
-            </div>
-            <div className="chart-container">
-              <div className="y-axis-labels">
-                {revenueChartYLabels.map((label, idx) => (
-                  <span key={idx}>{label}</span>
-                ))}
-              </div>
-              <svg viewBox="0 0 500 150" className="line-chart">
-                <defs>
-                  <linearGradient
-                    id="areaGradient"
-                    x1="0%"
-                    y1="0%"
-                    x2="0%"
-                    y2="100%"
-                  >
-                    <stop offset="0%" stopColor="#F97316" stopOpacity="0.3" />
-                    <stop
-                      offset="100%"
-                      stopColor="#F97316"
-                      stopOpacity="0.05"
-                    />
-                  </linearGradient>
-                </defs>
-                <path d={generateAreaPath()} fill="url(#areaGradient)" />
-                <path
-                  d={generateChartPath()}
-                  fill="none"
-                  stroke="#F97316"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <div className="x-axis-labels">
-                {revenueData.labels.map((label, index) => (
-                  <span key={index}>{label}</span>
-                ))}
-              </div>
-            </div>
-          </div>
+
 
           {/* Bottom Row - Business Registration & Package Distribution */}
           <div className="bottom-row">
