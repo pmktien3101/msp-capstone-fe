@@ -198,7 +198,6 @@ export async function POST(request: NextRequest) {
     // console.log('📝 Transcript prepared, length:', transcriptText.length);
 
     // ===== BƯỚC 1: Xử lý Video =====
-    let improvedText = "";
     let improvedTranscript = transcriptSegments;
     const uploadedFiles: string[] = [];
 
@@ -228,20 +227,18 @@ export async function POST(request: NextRequest) {
         }
 
         const videoBlob = await videoResponse.blob();
-        const videoFile = new File([videoBlob], "meeting-recording.mp4", {
-          type: "video/mp4"
+
+        console.log("📊 Video:", {
+          size: (videoBlob.size / 1024 / 1024).toFixed(2) + " MB",
+          duration: `${Math.floor(videoMetadata.duration / 60)}:${String(
+            Math.floor(videoMetadata.duration % 60)
+          ).padStart(2, "0")}`,
         });
 
-        console.log('📊 Video:', {
-          size: (videoFile.size / 1024 / 1024).toFixed(2) + ' MB',
-          duration: `${Math.floor(videoMetadata.duration / 60)}:${String(Math.floor(videoMetadata.duration % 60)).padStart(2, '0')}`
-        });
-
-        // ✅ Upload to Gemini
-        console.log('📤 Đang upload video lên Gemini...');
+        // Dùng Blob trực tiếp
         const uploadResult = await ai.files.upload({
-          file: videoFile,
-          config: { displayName: "Meeting Recording" }
+          file: videoBlob,
+          config: { displayName: "Meeting Recording" },
         });
 
         const fileName = uploadResult.name || '';

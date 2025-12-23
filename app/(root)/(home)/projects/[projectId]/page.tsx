@@ -335,18 +335,22 @@ const ProjectDetailPage = () => {
             members:
               membersResult.success && membersResult.data
                 ? membersResult.data
-                    .filter((pm: any) => !pm.leftAt) // Only active members
-                    .map((pm: any) => {
-                      // API returns ProjectMember with nested member object
-                      const memberData = pm.member || pm;
-                      return {
-                        userId: memberData.id,
-                        fullName: memberData.fullName,
-                        email: memberData.email,
-                        role: memberData.roleName || memberData.role,
-                        image: memberData.avatarUrl || "",
-                      };
-                    })
+                      .filter((pm: any) => !pm.leftAt) // Only active members
+                      .map((pm: any) => {
+                        // API returns ProjectMember with nested member object
+                        const memberData = pm.member || pm;
+                        return {
+                          // keep both canonical and view-friendly keys so UI can use either
+                          id: memberData.id,
+                          userId: memberData.id,
+                          name: memberData.fullName || memberData.email || '',
+                          fullName: memberData.fullName,
+                          email: memberData.email,
+                          role: memberData.roleName || memberData.role,
+                          avatarUrl: memberData.avatarUrl || '',
+                          image: memberData.avatarUrl || '',
+                        };
+                      })
                 : [],
             progress: 0, // TODO: Calculate from tasks/milestones
             manager:
@@ -521,12 +525,36 @@ const ProjectDetailPage = () => {
                 {project.endDate ? formatDate(project.endDate) : "N/A"}
               </span>
             </div>
-            <div className="meta-item">
-              <Users size={16} />
-              <span>
-                {project.members?.length || 0}{" "}
-                {(project.members?.length || 0) === 1 ? "member" : "members"}
-              </span>
+            <div className="meta-item members-meta">
+              {project.members && project.members.length > 0 ? (
+                <>
+                  <div className="members-avatars">
+                    {project.members.map((member: any, idx: number) => (
+                      <div
+                        key={member.id || idx}
+                        className="member-avatar"
+                        title={member.name}
+                      >
+                        {member.avatarUrl ? (
+                          <img src={member.avatarUrl} alt={member.name} />
+                        ) : (
+                          member.name?.charAt(0).toUpperCase() || "?"
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <span className="members-count">
+                    {project.members.length}{" "}
+                    {project.members.length === 1 ? "member" : "members"}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Users size={16} />
+                  <span>0 members</span>
+                </>
+              )}
             </div>
           </div>
         </div>

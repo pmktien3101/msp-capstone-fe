@@ -421,16 +421,16 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
                       <div className="stt-number">{startIndex + idx + 1}</div>
                     </div>
                     <div className="col-title">
-                      <div className="meeting-info">
-                        <div className="meeting-details">
+                      {/* <div className="meeting-info"> */}
+                        <div >
                           <div className="meeting-title-text">{title}</div>
                           {description && (
                             <div className="meeting-description">
-                              {description}...
+                              {description}
                             </div>
                           )}
                         </div>
-                      </div>
+                      {/* </div> */}
                     </div>
                     <div className="col-time">
                       <div className="time-info">

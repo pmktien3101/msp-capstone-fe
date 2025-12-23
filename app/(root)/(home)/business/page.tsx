@@ -29,9 +29,11 @@ import { userService } from "@/services/userService";
 import { OrganizationInvitationResponse } from "@/types/organizeInvitation";
 import { organizeInvitationService } from "@/services/organizeInvitationService";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
+import { useSearchParams } from "next/navigation";
 
 export default function BusinessDashboard() {
   const { userDetail, isLoading, error, refreshUserDetail } = useUserDetail();
+  const searchParams = useSearchParams();
 
   // States
   const [currentBusiness, setCurrentBusiness] =
@@ -116,6 +118,17 @@ export default function BusinessDashboard() {
     }
     setIsLoadingBusiness(false);
   };
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'invitations') {
+      setActiveTab('invitations');
+    } else if (tab === 'requests') {
+      setActiveTab('send-join-request');
+    } else if (tab === 'my-business') {
+      setActiveTab('my-business');
+    }
+  }, [searchParams]);
 
   // Main effect - fetch data based on organization status
   useEffect(() => {
