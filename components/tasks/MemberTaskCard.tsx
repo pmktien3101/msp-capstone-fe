@@ -6,8 +6,10 @@ import { CalendarDays, Star, FolderOpen } from 'lucide-react';
 import { getTaskStatusLabel, getTaskStatusColor } from '@/constants/status';
 
 interface Task {
+  id: string;
   title: string;
   project?: string;
+  projectId?: string;
   dueDate?: string;
   status?: string;
 }
@@ -20,15 +22,25 @@ interface MemberTaskCardProps {
 export function MemberTaskCard({ task, index = 0 }: MemberTaskCardProps) {
   const router = useRouter();
 
-  const handleTaskClick = () => {
-    // Navigate to calendar with the task's due date
-    if (task.dueDate) {
-      const taskDate = new Date(task.dueDate);
-      const dateString = taskDate.toISOString().split('T')[0];
-      router.push(`/calendar?date=${dateString}`);
-    } else {
-      // If no due date, go to calendar with current date
-      router.push('/calendar');
+  const handleTaskClick = async () => {
+    let projectId = task.projectId;
+    
+    if (!projectId) {
+      try {
+        const { taskService } = await import('@/services/taskService');
+        const taskResult = await taskService.getTaskById(task.id);
+        if (taskResult.success && taskResult.data) {
+          projectId = taskResult.data.projectId;
+        }
+      } catch (error) {
+        console.error("Error fetching task for navigation:", error);
+        return;
+      }
+    }
+
+    if (projectId) {
+      // Navigate đến project detail với tab tasks và taskId
+      router.push(`/projects/${projectId}?tab=tasks&taskId=${task.id}`);
     }
   };
 

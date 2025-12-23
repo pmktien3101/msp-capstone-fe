@@ -84,6 +84,7 @@ export default function MemberDashboardPage() {
           project:
             (projects.find((p) => p.id === t.projectId) as any)?.name ||
             t.projectId,
+          projectId: t.projectId,
           status: t.status,
           dueDate: t.endDate || t.startDate,
           priority: (t.priority as any) || undefined,
