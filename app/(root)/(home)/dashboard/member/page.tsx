@@ -199,7 +199,7 @@ export default function MemberDashboardPage() {
     { label: "Re-opened", count: reOpenedTasks, color: "#f59e0b", percentage: totalTasks > 0 ? Math.round((reOpenedTasks / totalTasks) * 100) : 0 },
     { label: "Todo", count: todoTasks, color: "#6b7280", percentage: totalTasks > 0 ? Math.round((todoTasks / totalTasks) * 100) : 0 },
     { label: "Cancelled", count: cancelledTasks, color: "#ef4444", percentage: totalTasks > 0 ? Math.round((cancelledTasks / totalTasks) * 100) : 0 },
-  ].filter(item => item.count > 0); // Only show statuses with tasks
+  ]; // Show all task statuses
 
   // Calculate pie chart segments
   const calculatePieSegments = () => {
