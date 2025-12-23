@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, CircleAlertIcon, Eye, MailOpenIcon, Plus, Search, SearchIcon, Trash2, User, UserPenIcon, UserStarIcon, XIcon } from "lucide-react";
+import { Building, Building2Icon, CheckCircle2, CircleAlertIcon, Eye, House, MailOpenIcon, Plus, Search, SearchIcon, Trash2, User, UserPenIcon, UserStarIcon, XIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import "../../../../../styles/businessMembers.scss";
@@ -14,9 +14,11 @@ import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useMemberLimitationCheck } from "@/hooks/useLimitationCheck";
 import { Card, CardContent } from "@/components/ui/card";
+import { useUserDetail } from "@/contexts/UserContext";
 
 const MembersRolesPage = () => {
   const { user } = useAuth();
+  const { userDetail } = useUserDetail();
   const currentSubscription = useSubscription();
   const { checkMemberLimitation } = useMemberLimitationCheck();
   const searchParams = useSearchParams();
@@ -388,6 +390,68 @@ const MembersRolesPage = () => {
 
   return (
     <div className="members-roles-page">
+      {/* Header with Business Owner Name */}
+      <div className="page-header" style={{ 
+        marginBottom: '32px', 
+        padding: '28px 32px', 
+        background: 'linear-gradient(135deg, #ed8236ff 0%, #fb923c 50%, #ea580c 100%)',
+        borderRadius: '16px',
+        color: 'white',
+        boxShadow: '0 8px 16px rgba(249, 115, 22, 0.25), 0 4px 6px rgba(0, 0, 0, 0.1)',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Decorative circles */}
+        <div style={{
+          position: 'absolute',
+          top: '-20px',
+          right: '-20px',
+          width: '120px',
+          height: '120px',
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.1)',
+          filter: 'blur(40px)'
+        }} />
+        <div style={{
+          position: 'absolute',
+          bottom: '-30px',
+          left: '-30px',
+          width: '150px',
+          height: '150px',
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.08)',
+          filter: 'blur(50px)'
+        }} />
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', position: 'relative', zIndex: 1 }}>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.2)',
+            padding: '16px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.3)'
+          }}>
+            <Building2Icon size={36} strokeWidth={2} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ 
+              margin: 0, 
+              fontSize: '28px', 
+              fontWeight: '700', 
+              marginBottom: '8px',
+              letterSpacing: '-0.5px',
+              textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+            }}>
+              {userDetail?.organization || 'Organization Management'}
+            </h2>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="tabs">
         <button
