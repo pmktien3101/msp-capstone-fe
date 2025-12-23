@@ -165,6 +165,13 @@ export const ProjectTaskTable = ({
         }
       }
       
+      // Ensure tasks are ordered by newest created first so recently created tasks appear on top
+      allTasks.sort((a, b) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta; // descending
+      });
+
       setTasks(allTasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);
