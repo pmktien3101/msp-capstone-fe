@@ -13,7 +13,11 @@ import {
   DialogTitle,
 } from "./dialog";
 
-const RecordButton = () => {
+type RecordButtonProps = {
+  onHasRecordingChange?: (hasRecording: boolean) => void;
+};
+
+const RecordButton = ({ onHasRecordingChange }: RecordButtonProps) => {
   const call = useCall();
   const {
     useIsCallRecordingInProgress,
@@ -39,6 +43,7 @@ const RecordButton = () => {
       call.on("call.recording_started", () => {
         setLoading(false);
         setHasRecorded(true);
+        onHasRecordingChange?.(true);
       }),
       call.on("call.recording_stopped", () => setLoading(false)),
     ];
@@ -52,6 +57,7 @@ const RecordButton = () => {
         const res = await call.queryRecordings();
         if (res.recordings && res.recordings.length > 0) {
           setHasExistingRecordings(true);
+          onHasRecordingChange?.(true);
         }
       } catch (err) {
         console.error("Error checking recordings:", err);
@@ -129,16 +135,15 @@ const RecordButton = () => {
           isRecording
             ? "Stop recording"
             : hasExistingRecordings
-            ? "Cannot record again"
-            : "Start recording"
+              ? "Cannot record again"
+              : "Start recording"
         }
-        className={`rounded-full p-4 cursor-pointer ${
-          isRecording
-            ? "bg-red-600 hover:bg-red-700"
-            : hasExistingRecordings && !isRecording
+        className={`rounded-full p-4 cursor-pointer ${isRecording
+          ? "bg-red-600 hover:bg-red-700"
+          : hasExistingRecordings && !isRecording
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-gray-800 hover:bg-gray-700"
-        }`}
+          }`}
       >
         {isRecording ? <Square size={20} /> : <Circle size={20} />}
       </Button>

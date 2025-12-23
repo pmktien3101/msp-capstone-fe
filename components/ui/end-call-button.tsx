@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { meetingService } from "../../services/meetingService";
 import { uploadFileToCloudinary } from "../../services/uploadFileService";
-
-const EndCallButton = () => {
+type EndCallButtonProps = {
+  hasRecording: boolean;
+};
+const EndCallButton = ({ hasRecording }: EndCallButtonProps) => {
   const call = useCall();
   const { useLocalParticipant } = useCallStateHooks();
   const localParticipant = useLocalParticipant();
@@ -34,6 +36,12 @@ const EndCallButton = () => {
 
   // Upload recording to Cloudinary after meeting ends
   const uploadRecordingToCloud = async (callId: string) => {
+    const isRecordingEnabled =
+      (call as any)?.state?.recording || (call as any)?.state?.settings?.recording;
+    if (!isRecordingEnabled) {
+      console.log("Recording is not enabled for this call, skipping upload.");
+      return null;
+    }
     // helper: poll Stream recordings until ready (max ~60s)
     const pollRecordings = async (maxWaitMs = 60000, intervalMs = 3000) => {
       const start = Date.now();
@@ -110,17 +118,21 @@ const EndCallButton = () => {
     try {
       // 1. Upload recording to Cloudinary BEFORE ending call
       let recordUrl: string | null = null;
-      try {
-        console.log("📤 Starting recording upload to Cloudinary (before ending call)...");
-        recordUrl = await uploadRecordingToCloud(callId);
-        if (recordUrl) {
-          console.log("✅ Recording uploaded successfully:", recordUrl);
-        } else {
-          console.warn("⚠️ Recording upload returned null (may not be ready yet)");
+      if (hasRecording) {
+        try {
+          console.log("📤 Starting recording upload to Cloudinary (before ending call)...");
+          recordUrl = await uploadRecordingToCloud(callId);
+          if (recordUrl) {
+            console.log("✅ Recording uploaded successfully:", recordUrl);
+          } else {
+            console.warn("⚠️ Recording upload returned null (may not be ready yet)");
+          }
+        } catch (uploadError) {
+          console.error("❌ Error uploading recording:", uploadError);
+          // Don't block the flow if upload fails
         }
-      } catch (uploadError) {
-        console.error("❌ Error uploading recording:", uploadError);
-        // Don't block the flow if upload fails
+      } else {
+        console.log("ℹ️ Meeting was never recorded, skip upload.");
       }
 
       // 2. Now end the call

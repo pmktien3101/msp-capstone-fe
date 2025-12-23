@@ -50,14 +50,17 @@ const MeetingRoom = () => {
   const wasJoinedRef = useRef(false);
   const joinTimeRef = useRef<number | null>(null);
 
+  // Recording state
+  const [hasRecording, setHasRecording] = useState(false);
+
   useEffect(() => {
     if (callingState === CallingState.JOINED && call) {
       wasJoinedRef.current = true;
-      
+
       // Dùng session.started_at từ Stream - đây là thời gian user đầu tiên join
       // Stream tự động track điều này và đồng bộ giữa tất cả clients
       const sessionStartedAt = (call as any).state?.session?.started_at;
-      
+
       if (sessionStartedAt) {
         // Có session started_at từ Stream
         joinTimeRef.current = new Date(sessionStartedAt).getTime();
@@ -173,14 +176,14 @@ const MeetingRoom = () => {
   const uploadRecordingToCloud = async (callId: string) => {
     try {
       console.log("🔄 Fetching recording from Stream (auto-end)...", { callId });
-      
+
       // Wait a bit for Stream to process the recording
       await new Promise((r) => setTimeout(r, 3000));
-      
+
       // Query recordings from Stream
       const recordingsResponse = await call?.queryRecordings();
       const recordings = recordingsResponse?.recordings || [];
-      
+
       if (recordings.length === 0) {
         console.warn("⚠️ No recordings found yet (auto-end)");
         return null;
@@ -193,7 +196,7 @@ const MeetingRoom = () => {
       }
 
       console.log("📥 Downloading recording from Stream (auto-end)...", { url: recording.url });
-      
+
       // Fetch recording from Stream
       const response = await fetch(recording.url);
       if (!response.ok) {
@@ -203,19 +206,19 @@ const MeetingRoom = () => {
       const blob = await response.blob();
       const contentType = blob.type || "video/mp4";
       const ext = contentType.includes("webm") ? "webm" : "mp4";
-      
+
       // Create file from blob
       const filename = `meeting-${callId}-${Date.now()}.${ext}`;
       const file = new File([blob], filename, { type: contentType });
 
-      console.log("☁️ Uploading to Cloudinary (auto-end)...", { 
-        filename, 
-        size: `${(file.size / 1024 / 1024).toFixed(2)} MB` 
+      console.log("☁️ Uploading to Cloudinary (auto-end)...", {
+        filename,
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`
       });
 
       // Upload to Cloudinary
       const cloudinaryUrl = await uploadFileToCloudinary(file);
-      
+
       console.log("✅ Upload successful (auto-end)!", { cloudinaryUrl });
       return cloudinaryUrl;
     } catch (error) {
@@ -226,10 +229,10 @@ const MeetingRoom = () => {
 
   const endCallDueToTimeout = async () => {
     if (!call) return;
-    
+
     // Store callId before ending call
     const callId = call.id;
-    
+
     try {
       // 1. Upload recording to Cloudinary BEFORE ending call (same as end-call-button)
       let recordUrl: string | null = null;
@@ -386,7 +389,7 @@ const MeetingRoom = () => {
       <div className="fixed bottom-2 flex w-full justify-center items-center gap-5 flex-wrap">
         <MicButton />
         <CameraButton />
-        <RecordButton />
+        <RecordButton onHasRecordingChange={setHasRecording} />
         <ScreenShareButton />
 
         {/* Layout Switch */}
@@ -432,7 +435,7 @@ const MeetingRoom = () => {
         >
           <Filter size={20} className="text-white" />
         </Button>
-        <EndCallButton />
+        <EndCallButton hasRecording={hasRecording} />
       </div>
       <CallIndicators />
       {/* Filters Panel */}

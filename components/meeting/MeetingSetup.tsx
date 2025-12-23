@@ -108,11 +108,10 @@ const MeetingSetup = ({
 
     try {
       await call.join();
-
       if (isHost) {
+        console.log("Updating meeting start time as host...", isHost);
         await meetingService.updateMeetingStartTime(call.id);
       }
-
       setIsSetupComplete(true);
     } catch (err) {
       toast.error("🚨 Unable to join the meeting");
