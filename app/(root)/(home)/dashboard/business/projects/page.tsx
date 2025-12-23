@@ -605,13 +605,13 @@ const BusinessProjectsPage = () => {
                   <div className="start-date">
                     Start:{" "}
                     {project.startDate
-                      ? new Date(project.startDate).toLocaleDateString("en-US")
+                      ? new Date(project.startDate).toLocaleDateString("vi-VN")
                       : "N/A"}
                   </div>
                   <div className="end-date">
                     End:{" "}
                     {project.endDate
-                      ? new Date(project.endDate).toLocaleDateString("en-US")
+                      ? new Date(project.endDate).toLocaleDateString("vi-VN")
                       : "N/A"}
                   </div>
                 </div>

@@ -62,7 +62,7 @@ const AdminRevenue = () => {
               : Number(s.totalPrice) || 0,
           currency: s.package?.currency,
           paidDate: s.paidAt
-            ? new Date(s.paidAt).toLocaleDateString("en-US")
+            ? new Date(s.paidAt).toLocaleDateString("en-GB")
             : s.startDate || "-",
         }));
         setRevenues(mapped);
