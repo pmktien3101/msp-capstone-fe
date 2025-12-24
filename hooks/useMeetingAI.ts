@@ -168,7 +168,8 @@ export function useMeetingAI() {
                 );
             } else {
                 // Case 1: Video < 10 phút
-                toast.info('Processing with AI...', { autoClose: 5000 });
+                // toast.info('Processing with AI...', { autoClose: 5000 });
+                console.log('🤖 Processing with AI...');
             }
 
             // 5️⃣ Chuẩn bị transcript segments
