@@ -42,7 +42,7 @@ import {
   getHistoryActionText,
   formatHistoryDate,
 } from "@/utils/taskHistoryHelpers";
-import { getTaskStatusColor, getTaskStatusLabel } from "@/constants/status";
+import { getTaskStatusColor, getTaskStatusLabel, ProjectStatus } from "@/constants/status";
 import {
   validateTaskDates,
   isValidStatusTransition,
@@ -74,7 +74,10 @@ export const TaskDetailModal = ({
   );
 
   // Check if project is completed
-  const isProjectCompleted = projectStatus === "Completed";
+  const isProjectDisabled =
+    projectStatus === ProjectStatus.Completed ||
+    projectStatus === ProjectStatus.OnHold ||
+    projectStatus === ProjectStatus.Cancelled;
 
   // Check if member can edit this task
   const isMember = user?.role === "Member";
@@ -87,7 +90,7 @@ export const TaskDetailModal = ({
     task?.status === "Done" ||
     task?.status === "Cancelled";
   const canMemberEdit = isMember ? isTaskAssignedToUser && !isTaskLocked : true;
-  const canEdit = !isBusiness && canMemberEdit && !isProjectCompleted;
+  const canEdit = !isBusiness && canMemberEdit && !isProjectDisabled;
 
   const [editedTask, setEditedTask] = useState({
     title: task?.title || "",
@@ -1013,7 +1016,7 @@ export const TaskDetailModal = ({
         </div>
 
         {/* Completed Project Warning */}
-        {isProjectCompleted && (
+        {isProjectDisabled && (
           <div
             style={{
               padding: "12px 16px",
@@ -1044,7 +1047,7 @@ export const TaskDetailModal = ({
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
             <span>
-              This project is completed. Editing tasks is disabled.
+              This project is not active. Editing tasks is disabled.
             </span>
           </div>
         )}
@@ -1158,7 +1161,7 @@ export const TaskDetailModal = ({
                           const initials = getUserInitials(author);
                           const avatarColor = getAvatarColor(author);
                           const avatarUrl = comment.user?.avatarUrl;
-                          const canEdit = user?.userId === comment.userId && !isProjectCompleted;
+                          const canEdit = user?.userId === comment.userId && !isProjectDisabled;
                           const isEditing = editingCommentId === comment.id;
 
                           return (
@@ -1310,16 +1313,16 @@ export const TaskDetailModal = ({
                     <div className="add-comment">
                       <textarea
                         className="comment-input"
-                        placeholder={isProjectCompleted ? "Comments are disabled for completed projects" : "Write a comment..."}
+                        placeholder={isProjectDisabled ? "Comments are disabled for inactive projects" : "Write a comment..."}
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
                         rows={3}
-                        disabled={isSubmittingComment || isProjectCompleted}
+                        disabled={isSubmittingComment || isProjectDisabled}
                       />
                       <button
                         className="submit-comment-btn"
                         onClick={handleSubmitComment}
-                        disabled={!commentText.trim() || isSubmittingComment || isProjectCompleted}
+                        disabled={!commentText.trim() || isSubmittingComment || isProjectDisabled}
                       >
                         {isSubmittingComment ? "Posting..." : "Post Comment"}
                       </button>

@@ -25,7 +25,7 @@ import {
   RotateCcw,
   ExternalLink,
 } from "lucide-react";
-import { MeetingStatus } from '@/constants/status';
+import { MeetingStatus, ProjectStatus } from '@/constants/status';
 import { useUser } from "@/hooks/useUser";
 import { useMeetingLimitationCheck } from "@/hooks/useLimitationCheck";
 import { useStreamVideoClient } from "@stream-io/video-react-sdk";
@@ -100,8 +100,11 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
   const { role } = useUser();
   const isMember = role === "Member";
 
-  // Check if project is completed
-  const isProjectCompleted = project.status === "Completed";
+  // Check if project is completed, on hold, or cancelled
+  const isProjectDisabled =
+    project.status === ProjectStatus.Completed ||
+    project.status === ProjectStatus.OnHold ||
+    project.status === ProjectStatus.Cancelled;
 
   // Categorize meetings by status (for statistics)
   const scheduledMeetings = backendMeetings.filter(
@@ -246,7 +249,7 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
 
   return (
     <div className="meeting-tab">
-      {isProjectCompleted && (
+      {isProjectDisabled && (
         <div
           style={{
             padding: "12px 16px",
@@ -263,7 +266,7 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
         >
           <Calendar size={18} />
           <span>
-            This project is completed. Creating, editing, and cancelling meetings is disabled.
+            This project is not active. Creating, editing, and cancelling meetings is disabled.
           </span>
         </div>
       )}
@@ -280,7 +283,7 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
             </p>
           </div>
         </div>
-        {!isMember && !readOnly && !isProjectCompleted && (
+        {!isMember && !readOnly && !isProjectDisabled && (
           <Button
             onClick={() => {
               if (checkMeetingLimitation()) {
@@ -498,7 +501,7 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
                         meeting.status !== "Cancelled" &&
                         !isMember &&
                         !readOnly &&
-                        !isProjectCompleted && (
+                        !isProjectDisabled && (
                           <button
                             className="action-btn edit-btn"
                             title="Update"
@@ -507,7 +510,7 @@ export const MeetingTab = ({ project, readOnly = false }: MeetingTabProps) => {
                             <Pencil size={16} />
                           </button>
                         )}
-                      {!isMember && !readOnly && !isProjectCompleted && (
+                      {!isMember && !readOnly && !isProjectDisabled && (
                         <>
                           {meeting.status !== "Cancelled" &&
                             meeting.status !== "Finished" && (

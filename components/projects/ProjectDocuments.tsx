@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Project } from "@/types/project";
+import { ProjectStatus } from "@/constants/status";
 import { GetDocumentResponse } from "@/types/document";
 import { documentService } from "@/services/documentService";
 import { uploadFileToCloudinary } from "@/services/uploadFileService";
@@ -60,8 +61,11 @@ export const ProjectDocuments = ({
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 5;
 
-  // Check if project is completed
-  const isProjectCompleted = project.status === "Completed";
+  // Check if project is completed, on hold, or cancelled
+  const isProjectDisabled =
+    project.status === ProjectStatus.Completed ||
+    project.status === ProjectStatus.OnHold ||
+    project.status === ProjectStatus.Cancelled;
 
   // Confirm delete state
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
@@ -346,7 +350,7 @@ export const ProjectDocuments = ({
 
   return (
     <div className="project-documents">
-      {isProjectCompleted && (
+      {isProjectDisabled && (
         <div
           style={{
             padding: "12px 16px",
@@ -363,7 +367,7 @@ export const ProjectDocuments = ({
         >
           <FolderOpen size={18} />
           <span>
-            This project is completed. Uploading, editing, and deleting documents is disabled.
+            This project is not active. Uploading, editing, and deleting documents is disabled.
           </span>
         </div>
       )}
@@ -398,7 +402,7 @@ export const ProjectDocuments = ({
             Manage and share project-related documents
           </p>
         </div>
-        {!readOnly && !isProjectCompleted && (
+        {!readOnly && !isProjectDisabled && (
           <Button
             onClick={() => setShowUploadModal(true)}
             style={{
@@ -630,7 +634,7 @@ export const ProjectDocuments = ({
                 {/* Only show Delete and Edit buttons if current user is the owner */}
                 {currentUser.id === document.ownerId &&
                   !readOnly &&
-                  !isProjectCompleted && (
+                  !isProjectDisabled && (
                     <>
                       <Button
                         onClick={() => handleDelete(document)}
@@ -890,7 +894,7 @@ export const ProjectDocuments = ({
             >
               <Button
                 onClick={() => setShowUploadModal(false)}
-                disabled={isUploading}
+                disabled={isUploading || isProjectDisabled}
                 style={{
                   padding: "10px 20px",
                   background: "#f3f4f6",
@@ -906,7 +910,7 @@ export const ProjectDocuments = ({
               </Button>
               <Button
                 onClick={handleUpload}
-                disabled={!uploadFile || isUploading}
+                disabled={!uploadFile || isUploading || isProjectDisabled}
                 style={{
                   padding: "10px 20px",
                   background:

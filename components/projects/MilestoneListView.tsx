@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Project } from "@/types/project";
 import { MilestoneBackend } from "@/types/milestone";
 import { GetTaskResponse } from "@/types/task";
-import { TaskStatus } from "@/constants/status";
+import { TaskStatus, ProjectStatus } from "@/constants/status";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/lib/rbac";
 import { milestoneService } from "@/services/milestoneService";
@@ -67,11 +67,14 @@ export const MilestoneListView = ({
   // Check if user is Member (read-only mode)
   const isMemberRole = hasRole(UserRole.MEMBER);
   
-  // Check if project is completed
-  const isProjectCompleted = project.status === "Completed";
-  
+  // Check if project is completed, on hold, or cancelled
+  const isProjectDisabled =
+    project.status === ProjectStatus.Completed ||
+    project.status === ProjectStatus.OnHold ||
+    project.status === ProjectStatus.Cancelled;
+
   const canEdit =
-    !readOnly && !isProjectCompleted && (hasRole(UserRole.PROJECT_MANAGER) || hasRole(UserRole.ADMIN));
+    !readOnly && !isProjectDisabled && (hasRole(UserRole.PROJECT_MANAGER) || hasRole(UserRole.ADMIN));
 
   // Pagination
   const {
@@ -455,7 +458,7 @@ export const MilestoneListView = ({
 
   return (
     <div className="milestone-list-view">
-      {isProjectCompleted && (
+      {isProjectDisabled && (
         <div
           style={{
             padding: "12px 16px",
@@ -472,7 +475,7 @@ export const MilestoneListView = ({
         >
           <Target size={18} />
           <span>
-            This project is completed. Creating, editing, and deleting milestones is disabled.
+            This project is not active. Creating, editing, and deleting milestones is disabled.
           </span>
         </div>
       )}

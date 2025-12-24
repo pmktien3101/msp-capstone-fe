@@ -11,6 +11,7 @@ import { toast } from "react-toastify";
 import {
   PROJECT_STATUS_OPTIONS,
   getProjectStatusLabel,
+  ProjectStatus,
 } from "@/constants/status";
 import { useMemberInProjectLimitationCheck } from "@/hooks/useLimitationCheck";
 import {
@@ -144,17 +145,20 @@ export const ProjectSettings = ({
   const { role } = useUser();
   const userRole = role?.toLowerCase();
 
-  // Check if project is completed
-  const isProjectCompleted = settings.status === "Completed";
+  // Check if project is completed, on hold, or cancelled
+  const isProjectDisabled =
+    settings.status === ProjectStatus.Completed ||
+    settings.status === ProjectStatus.OnHold ||
+    settings.status === ProjectStatus.Cancelled;
 
   // Permission checks
   const canEditBasicInfo =
     (userRole === "projectmanager" || userRole === "businessowner") &&
-    !isProjectCompleted;
-  const canAddPM = userRole === "businessowner" && !isProjectCompleted;
+    !isProjectDisabled;
+  const canAddPM = userRole === "businessowner" && !isProjectDisabled;
   const canAddMember =
     (userRole === "projectmanager" || userRole === "businessowner") &&
-    !isProjectCompleted;
+    !isProjectDisabled;
 
   // Fetch project members from API
   useEffect(() => {
@@ -470,7 +474,7 @@ export const ProjectSettings = ({
   return (
     <div className="project-settings">
       <div className="settings-content">
-        {isProjectCompleted && (
+        {isProjectDisabled && (
           <div
             style={{
               padding: "12px 16px",
@@ -487,7 +491,7 @@ export const ProjectSettings = ({
           >
             <Shield size={18} />
             <span>
-              This project is completed. Editing project information and managing members is disabled.
+              This project is not active. Editing project information and managing members is disabled.
             </span>
           </div>
         )}
@@ -551,14 +555,14 @@ export const ProjectSettings = ({
                     <button
                       className="btn btn-secondary"
                       onClick={handleStartEdit}
-                      disabled={isProjectCompleted}
+                      disabled={isProjectDisabled}
                       title={
-                        isProjectCompleted
-                          ? "Cannot edit completed project information"
+                        isProjectDisabled
+                          ? "Cannot edit inactive project information"
                           : ""
                       }
                       style={
-                        isProjectCompleted
+                        isProjectDisabled
                           ? {
                               opacity: 0.5,
                               cursor: "not-allowed",
@@ -776,14 +780,14 @@ export const ProjectSettings = ({
               <button
                 className="btn btn-primary"
                 onClick={() => setShowAddMemberModal(true)}
-                disabled={isProjectCompleted}
+                disabled={isProjectDisabled}
                 title={
-                  isProjectCompleted
-                    ? "Cannot add members to completed project"
+                  isProjectDisabled
+                    ? "Cannot add members to inactive project"
                     : ""
                 }
                 style={
-                  isProjectCompleted
+                  isProjectDisabled
                     ? {
                         opacity: 0.5,
                         cursor: "not-allowed",
@@ -816,14 +820,14 @@ export const ProjectSettings = ({
                   <button
                     className="btn btn-primary"
                     onClick={() => setShowAddMemberModal(true)}
-                    disabled={isProjectCompleted}
+                    disabled={isProjectDisabled}
                     title={
-                      isProjectCompleted
-                        ? "Cannot add members to completed project"
+                      isProjectDisabled
+                        ? "Cannot add members to inactive project"
                         : ""
                     }
                     style={
-                      isProjectCompleted
+                      isProjectDisabled
                         ? {
                             opacity: 0.5,
                             cursor: "not-allowed",
@@ -877,7 +881,7 @@ export const ProjectSettings = ({
                         <div className="member-role">{member.role}</div>
                         <div className="member-email">{member.email}</div>
                       </div>
-                      {!isProjectCompleted &&
+                      {!isProjectDisabled &&
                         canAddMember &&
                         (userRole === "businessowner" ||
                           member.role?.toLowerCase() === "member") && (
