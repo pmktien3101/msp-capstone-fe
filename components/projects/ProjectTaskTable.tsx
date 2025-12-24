@@ -8,7 +8,7 @@ import { GetTaskResponse } from "@/types/task";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/lib/rbac";
 import Pagination from "@/components/ui/Pagination";
-import { TaskStatus, getTaskStatusLabel, getTaskStatusColor } from "@/constants/status";
+import { TaskStatus, getTaskStatusLabel, getTaskStatusColor, ProjectStatus } from "@/constants/status";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -92,8 +92,11 @@ export const ProjectTaskTable = ({
   const userRole = user?.role;
   const userId = user?.userId;
   
-  // Check if project is completed
-  const isProjectCompleted = project.status === "Completed";
+  // Check if project is completed, on hold, or cancelled
+  const isProjectDisabled =
+    project.status === ProjectStatus.Completed ||
+    project.status === ProjectStatus.OnHold ||
+    project.status === ProjectStatus.Cancelled;
   
   // Check if user is Member (Member can reassign tasks, but cannot create/delete)
   const isMember = userRole === UserRole.MEMBER || userRole === 'Member';
@@ -528,7 +531,7 @@ export const ProjectTaskTable = ({
 
   return (
     <div className="project-board">
-      {isProjectCompleted && (
+      {isProjectDisabled && (
         <div
           style={{
             padding: "12px 16px",
@@ -558,7 +561,7 @@ export const ProjectTaskTable = ({
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
           </svg>
           <span>
-            This project is completed. Creating and deleting tasks is disabled.
+            This project is not active. Creating and deleting tasks is disabled.
           </span>
         </div>
       )}
@@ -589,7 +592,7 @@ export const ProjectTaskTable = ({
         quickFilter={quickFilter}
         onQuickFilterChange={setQuickFilter}
       />
-      {isProjectManager && !readOnly && !isProjectCompleted && (
+      {isProjectManager && !readOnly && !isProjectDisabled && (
         <div className="create-task-container">
           <button onClick={handleCreateTask}>Create New Task</button>
         </div>
@@ -605,7 +608,7 @@ export const ProjectTaskTable = ({
         ) : tasks.length === 0 ? (
           <div className="empty-state">
             <p>No tasks in this project yet</p>
-          {isProjectManager && !readOnly && !isProjectCompleted && (
+          {isProjectManager && !readOnly && !isProjectDisabled && (
             <div className="create-task-container">
               <button onClick={handleCreateTask}>Create New Task</button>
             </div>
@@ -687,7 +690,7 @@ export const ProjectTaskTable = ({
                           <td className="actions-cell">
                             <div className="action-buttons">
                             {/* Member or readOnly sees View icon, PM/BO sees Delete icon */}
-                            {isMember || readOnly || isProjectCompleted ? (
+                            {isMember || readOnly || isProjectDisabled ? (
                               <button
                                 className="action-btn view-btn"
                                 onClick={(e) => {
