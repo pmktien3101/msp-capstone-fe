@@ -119,7 +119,7 @@ interface MonthlyBusinessReg {
 const AdminDashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("Year");
   const [businessRegPeriod, setBusinessRegPeriod] = useState("Year");
-  
+
   // Custom date range states
   const [startDate, setStartDate] = useState<string>(() => {
     const now = new Date();
@@ -137,7 +137,7 @@ const AdminDashboard = () => {
     return `${year}-${month}-${day}`;
   });
   const [quickFilter, setQuickFilter] = useState<string>("");
-  
+
   const [packages, setPackages] = useState<PackageInfo[]>([]);
   const [packageDistribution, setPackageDistribution] = useState<
     PackageDistribution[]
@@ -234,8 +234,8 @@ const AdminDashboard = () => {
         selectedPeriod === "Week"
           ? "This Week"
           : selectedPeriod === "Month"
-          ? "This Month"
-          : "This Year"
+            ? "This Month"
+            : "This Year"
       )
     );
 
@@ -339,10 +339,10 @@ const AdminDashboard = () => {
         businessRegPeriod === "Week"
           ? "This Week"
           : businessRegPeriod === "Month"
-          ? "This Month"
-          : businessRegPeriod === "Quarter"
-          ? "This Quarter"
-          : "This Year"
+            ? "This Month"
+            : businessRegPeriod === "Quarter"
+              ? "This Quarter"
+              : "This Year"
       )
     );
 
@@ -430,41 +430,59 @@ const AdminDashboard = () => {
         setIsLoadingPackages(true);
         const response = await packageService.getPackages();
         if (response.success && response.data) {
-          const packagesData = Array.isArray(response.data)
-            ? response.data
-            : [];
+          const packagesData = Array.isArray(response.data) ? response.data : [];
           setPackages(packagesData);
 
-          // Calculate distribution - for now using mock subscription counts
-          // In real scenario, you would fetch subscription data per package
-          const colors = [
-            "#F97316",
-            "#FB923C",
-            "#FDBA74",
-            "#FED7AA",
-            "#FFEDD5",
-          ];
-          const totalPackages = packagesData.length;
+          const colors = ["#F97316", "#FB923C", "#FDBA74", "#FED7AA", "#FFEDD5"];
 
-          const distribution = packagesData.map(
-            (pkg: PackageInfo, index: number) => ({
-              name: pkg.name,
-              count: Math.floor(Math.random() * 50) + 10, // Mock count - replace with real data
-              color: colors[index % colors.length],
-              percentage: 0,
-            })
-          );
+          // ✅ Tổng số Business Owners (TOÀN BỘ, không filter)
+          const totalBO = allBusinessOwners.length;
 
-          // Calculate percentages
-          const totalCount = distribution.reduce(
-            (sum: number, item: PackageDistribution) => sum + item.count,
-            0
-          );
-          distribution.forEach((item: PackageDistribution) => {
-            item.percentage =
-              totalCount > 0 ? Math.round((item.count / totalCount) * 100) : 0;
+          console.log("Total Business Owners:", totalBO);
+          console.log("All Subscriptions:", allSubscriptions);
+
+          // ✅ Tìm subscription ACTIVE mới nhất của mỗi user (BAO GỒM FREE)
+          const userActivePackages: { [userId: string]: any } = {};
+
+          allSubscriptions.forEach((sub: any) => {
+            const userId = sub.userId || sub.user?.id;
+            if (!userId) return;
+
+            // ✅ Kiểm tra active (MSP FREE không cần check endDate)
+            const isFreePackage = sub.transactionID === 'FREE_PACKAGE' ||
+              sub.package?.name === 'MSP FREE' ||
+              sub.package?.price === 0;
+
+            const isActive = sub.isActive === true &&
+              (isFreePackage || new Date(sub.endDate) > new Date());
+
+            if (!isActive) return;
+
+            // Lấy subscription mới nhất (theo startDate)
+            if (!userActivePackages[userId] ||
+              new Date(sub.startDate) > new Date(userActivePackages[userId].startDate)) {
+              userActivePackages[userId] = sub;
+            }
           });
 
+          console.log("User Active Packages:", userActivePackages);
+
+          // ✅ Đếm số BO đang dùng từng package (BAO GỒM MSP FREE)
+          const distribution = packagesData.map((pkg: PackageInfo, index: number) => {
+            const count = Object.values(userActivePackages).filter(
+              (sub: any) => sub.package?.id === pkg.id || sub.package?.name === pkg.name
+            ).length;
+
+            return {
+              name: pkg.name,
+              count: count,
+              color: colors[index % colors.length],
+              // ✅ Tính % dựa trên totalBO
+              percentage: totalBO > 0 ? (count / totalBO) * 100 : 0,
+            };
+          });
+
+          console.log("Package Distribution:", distribution);
           setPackageDistribution(distribution);
         }
       } catch (error) {
@@ -475,7 +493,7 @@ const AdminDashboard = () => {
     };
 
     fetchPackages();
-  }, []);
+  }, [allSubscriptions, allBusinessOwners]); // ✅ Đổi dependencies
 
   // Fetch subscriptions from API
   useEffect(() => {
@@ -711,9 +729,8 @@ const AdminDashboard = () => {
       return `${x},${y}`;
     });
 
-    return `M ${padding},${height - padding} L ${points.join(" L ")} L ${
-      width - padding
-    },${height - padding} Z`;
+    return `M ${padding},${height - padding} L ${points.join(" L ")} L ${width - padding
+      },${height - padding} Z`;
   };
 
   return (
@@ -730,7 +747,7 @@ const AdminDashboard = () => {
           </div>
 
           {/* Date Range Filter */}
-          <div 
+          <div
             className="date-range-filter"
             style={{
               display: 'flex',
@@ -744,7 +761,7 @@ const AdminDashboard = () => {
               border: '1px solid #e5e7eb'
             }}
           >
-            <div 
+            <div
               className="date-inputs"
               style={{
                 display: 'flex',
@@ -753,7 +770,7 @@ const AdminDashboard = () => {
                 flexShrink: 0
               }}
             >
-              <div 
+              <div
                 className="input-group"
                 style={{
                   display: 'flex',
@@ -792,7 +809,7 @@ const AdminDashboard = () => {
                   }}
                 />
               </div>
-              <span 
+              <span
                 className="date-separator"
                 style={{
                   color: '#9ca3af',
@@ -802,7 +819,7 @@ const AdminDashboard = () => {
                   userSelect: 'none'
                 }}
               >to</span>
-              <div 
+              <div
                 className="input-group"
                 style={{
                   display: 'flex',
@@ -842,7 +859,7 @@ const AdminDashboard = () => {
                 />
               </div>
             </div>
-            <div 
+            <div
               className="quick-filters"
               style={{
                 display: 'flex',
@@ -860,14 +877,14 @@ const AdminDashboard = () => {
                   const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
                   const monday = new Date(now);
                   monday.setDate(now.getDate() - diffToMonday);
-                  
+
                   const startYear = monday.getFullYear();
                   const startMonth = String(monday.getMonth() + 1).padStart(2, '0');
                   const startDay = String(monday.getDate()).padStart(2, '0');
                   const endYear = now.getFullYear();
                   const endMonth = String(now.getMonth() + 1).padStart(2, '0');
                   const endDay = String(now.getDate()).padStart(2, '0');
-                  
+
                   setStartDate(`${startYear}-${startMonth}-${startDay}`);
                   setEndDate(`${endYear}-${endMonth}-${endDay}`);
                   setQuickFilter("This Week");
@@ -875,8 +892,8 @@ const AdminDashboard = () => {
                 style={{
                   padding: '9px 14px',
                   border: quickFilter === "This Week" ? 'none' : '2px solid #e5e7eb',
-                  background: quickFilter === "This Week" 
-                    ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)' 
+                  background: quickFilter === "This Week"
+                    ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)'
                     : 'white',
                   color: quickFilter === "This Week" ? 'white' : '#6b7280',
                   fontSize: '13px',
@@ -885,8 +902,8 @@ const AdminDashboard = () => {
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.2s ease',
-                  boxShadow: quickFilter === "This Week" 
-                    ? '0 4px 12px rgba(249, 115, 22, 0.3)' 
+                  boxShadow: quickFilter === "This Week"
+                    ? '0 4px 12px rgba(249, 115, 22, 0.3)'
                     : 'none'
                 }}
               >
@@ -897,14 +914,14 @@ const AdminDashboard = () => {
                 onClick={() => {
                   const now = new Date();
                   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-                  
+
                   const startYear = firstDay.getFullYear();
                   const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
                   const startDay = String(firstDay.getDate()).padStart(2, '0');
                   const endYear = now.getFullYear();
                   const endMonth = String(now.getMonth() + 1).padStart(2, '0');
                   const endDay = String(now.getDate()).padStart(2, '0');
-                  
+
                   setStartDate(`${startYear}-${startMonth}-${startDay}`);
                   setEndDate(`${endYear}-${endMonth}-${endDay}`);
                   setQuickFilter("This Month");
@@ -912,8 +929,8 @@ const AdminDashboard = () => {
                 style={{
                   padding: '9px 14px',
                   border: quickFilter === "This Month" ? 'none' : '2px solid #e5e7eb',
-                  background: quickFilter === "This Month" 
-                    ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)' 
+                  background: quickFilter === "This Month"
+                    ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)'
                     : 'white',
                   color: quickFilter === "This Month" ? 'white' : '#6b7280',
                   fontSize: '13px',
@@ -922,8 +939,8 @@ const AdminDashboard = () => {
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.2s ease',
-                  boxShadow: quickFilter === "This Month" 
-                    ? '0 4px 12px rgba(249, 115, 22, 0.3)' 
+                  boxShadow: quickFilter === "This Month"
+                    ? '0 4px 12px rgba(249, 115, 22, 0.3)'
                     : 'none'
                 }}
               >
@@ -934,14 +951,14 @@ const AdminDashboard = () => {
                 onClick={() => {
                   const now = new Date();
                   const firstDay = new Date(now.getFullYear(), 0, 1);
-                  
+
                   const startYear = firstDay.getFullYear();
                   const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
                   const startDay = String(firstDay.getDate()).padStart(2, '0');
                   const endYear = now.getFullYear();
                   const endMonth = String(now.getMonth() + 1).padStart(2, '0');
                   const endDay = String(now.getDate()).padStart(2, '0');
-                  
+
                   setStartDate(`${startYear}-${startMonth}-${startDay}`);
                   setEndDate(`${endYear}-${endMonth}-${endDay}`);
                   setQuickFilter("This Year");
@@ -949,8 +966,8 @@ const AdminDashboard = () => {
                 style={{
                   padding: '9px 14px',
                   border: quickFilter === "This Year" ? 'none' : '2px solid #e5e7eb',
-                  background: quickFilter === "This Year" 
-                    ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)' 
+                  background: quickFilter === "This Year"
+                    ? 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)'
                     : 'white',
                   color: quickFilter === "This Year" ? 'white' : '#6b7280',
                   fontSize: '13px',
@@ -959,8 +976,8 @@ const AdminDashboard = () => {
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.2s ease',
-                  boxShadow: quickFilter === "This Year" 
-                    ? '0 4px 12px rgba(249, 115, 22, 0.3)' 
+                  boxShadow: quickFilter === "This Year"
+                    ? '0 4px 12px rgba(249, 115, 22, 0.3)'
                     : 'none'
                 }}
               >
@@ -1111,10 +1128,10 @@ const AdminDashboard = () => {
                             fill="none"
                             stroke={pkg.color}
                             strokeWidth="20"
-                            strokeDasharray={`${
-                              (pkg.percentage / 100) * circumference
-                            } ${circumference}`}
-                            strokeDashoffset={-offset}
+                            strokeDasharray={`${(pkg.percentage / 100) * circumference
+                              } ${circumference}`
+                            }
+                            strokeDashoffset={- offset}
                             transform="rotate(-90 60 60)"
                           />
                         );
@@ -1134,9 +1151,29 @@ const AdminDashboard = () => {
                       </div>
                     ))}
                   </div>
+                  {/* ✅ Thêm chú thích */}
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '12px',
+                    background: '#F9FAFB',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#6B7280',
+                    lineHeight: '1.5',
+                    textAlign: 'center'  // ✅ Căn giữa
+                  }}>
+                    <div>
+                      <strong style={{ color: '#374151' }}></strong> Percentage calculated based on total active Business Owners
+                    </div>
+                    <div style={{ marginTop: '4px' }}>  {/* ✅ Xuống dòng */}
+                      ({allBusinessOwners.length} users)
+                    </div>
+                  </div>
+
                 </>
               )}
             </div>
+
           </div>
         </div>
 
