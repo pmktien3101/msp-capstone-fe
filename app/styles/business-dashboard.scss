@@ -321,6 +321,16 @@
       }
 
       &.pending .status-icon {
+        background: #f3f4f6;
+        color: #6b7280;
+      }
+
+      &.on-hold .status-icon {
+        background: #dbeafe;
+        color: #2563eb;
+      }
+
+      &.cancelled .status-icon {
         background: #fee2e2;
         color: #dc2626;
       }

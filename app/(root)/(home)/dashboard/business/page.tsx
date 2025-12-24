@@ -321,13 +321,19 @@ const BusinessDashboard = () => {
   const stats = useMemo(() => {
     const totalProjects = filteredProjects.length;
     const activeProjects = filteredProjects.filter(
-      (p) => p.status === "InProgress" || p.status === "Active"
+      (p) => p.status === "InProgress"
     ).length;
     const completedProjects = filteredProjects.filter(
-      (p) => p.status === "Done" || p.status === "Completed"
+      (p) => p.status === "Completed"
     ).length;
-    const pendingProjects = filteredProjects.filter(
-      (p) => p.status === "NotStarted" || p.status === "Pending"
+    const notStartedProjects = filteredProjects.filter(
+      (p) => p.status === "NotStarted"
+    ).length;
+    const onHoldProjects = filteredProjects.filter(
+      (p) => p.status === "OnHold"
+    ).length;
+    const cancelledProjects = filteredProjects.filter(
+      (p) => p.status === "Cancelled"
     ).length;
     const totalEmployees = filteredEmployees.length;
 
@@ -335,7 +341,9 @@ const BusinessDashboard = () => {
       totalProjects,
       activeProjects,
       completedProjects,
-      pendingProjects,
+      notStartedProjects,
+      onHoldProjects,
+      cancelledProjects,
       totalEmployees,
     };
   }, [filteredProjects, filteredEmployees]);
@@ -462,20 +470,24 @@ const BusinessDashboard = () => {
         chartInstance.current = new Chart(ctx, {
           type: "doughnut",
           data: {
-            labels: ["Completed", "In Progress", "Pending"],
+            labels: ["Completed", "In Progress", "Not Started", "On Hold", "Cancelled"],
             datasets: [
               {
                 data: [
                   stats.completedProjects,
                   stats.activeProjects,
-                  stats.pendingProjects,
+                  stats.notStartedProjects,
+                  stats.onHoldProjects,
+                  stats.cancelledProjects,
                 ],
                 backgroundColor: [
                   "#10b981", // Green for completed
                   "#f59e0b", // Orange for in-progress
-                  "#6b7280", // Gray for pending
+                  "#6b7280", // Gray for not started
+                  "#3b82f6", // Blue for on hold
+                  "#ef4444", // Red for cancelled
                 ],
-                borderColor: ["#059669", "#d97706", "#4b5563"],
+                borderColor: ["#059669", "#d97706", "#4b5563", "#2563eb", "#dc2626"],
                 borderWidth: 2,
                 hoverOffset: 4,
               },
@@ -541,7 +553,9 @@ const BusinessDashboard = () => {
     loading,
     stats.completedProjects,
     stats.activeProjects,
-    stats.pendingProjects,
+    stats.notStartedProjects,
+    stats.onHoldProjects,
+    stats.cancelledProjects,
   ]);
 
   // Stats cards data
@@ -959,9 +973,52 @@ const BusinessDashboard = () => {
       {/* Charts Row 1 */}
       <div className="charts-row">
         {/* Project Overview Chart */}
-        <div className="main-chart-container">
-          <div className="chart-header">
-            <h3>Project Statistics</h3>
+        <div className="main-chart-container" style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 100%)',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04)',
+          border: '1px solid #e5e7eb',
+          transition: 'all 0.3s ease',
+        }}>
+          <div className="chart-header" style={{
+            marginBottom: '20px',
+            paddingBottom: '16px',
+            borderBottom: '2px solid #f3f4f6',
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M9 11V17M12 10V17M15 8V17M3 21H21M3 3H21M5 3V21M19 3V21"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <h3 style={{
+                margin: 0,
+                fontSize: '18px',
+                fontWeight: 700,
+                color: '#1f2937',
+                letterSpacing: '-0.02em'
+              }}>Project Statistics</h3>
+            </div>
           </div>
           <div className="chart-content">
             <div className="project-stats">
@@ -1077,8 +1134,49 @@ const BusinessDashboard = () => {
                   </svg>
                 </div>
                 <div className="status-info">
-                  <span className="status-count">{stats.pendingProjects}</span>
-                  <span className="status-label">Pending</span>
+                  <span className="status-count">{stats.notStartedProjects}</span>
+                  <span className="status-label">Not Started</span>
+                </div>
+              </div>
+              <div className="status-item on-hold">
+                <div className="status-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M10 9V15M14 9V15M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <div className="status-info">
+                  <span className="status-count">{stats.onHoldProjects}</span>
+                  <span className="status-label">On Hold</span>
+                </div>
+              </div>
+              <div className="status-item cancelled">
+                <div className="status-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M18 6L6 18M6 6L18 18"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <div className="status-info">
+                  <span className="status-count">{stats.cancelledProjects}</span>
+                  <span className="status-label">Cancelled</span>
                 </div>
               </div>
             </div>
@@ -1089,60 +1187,169 @@ const BusinessDashboard = () => {
         </div>
 
         {/* Project Trend Chart */}
-        <div className="revenue-trend-section">
-          <div className="section-header">
-            <h3>Project Trend</h3>
-            <div className="revenue-stats">
-              <div className="revenue-stat">
-                <span className="stat-label">Total</span>
-                <span className="stat-value">{stats.totalProjects}</span>
+        <div className="revenue-trend-section" style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 100%)',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04)',
+          border: '1px solid #e5e7eb',
+          transition: 'all 0.3s ease',
+        }}>
+          <div className="section-header" style={{
+            marginBottom: '20px',
+            paddingBottom: '16px',
+            borderBottom: '2px solid #f3f4f6',
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '12px'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M3 3V21M21 21H3M7 13L12 8L16 12L21 7M21 7V13M21 7H15"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </div>
-              <div className="revenue-stat">
-                <span className="stat-label">Active</span>
-                <span className="stat-value positive">
-                  {stats.activeProjects}
-                </span>
+              <h3 style={{
+                margin: 0,
+                fontSize: '18px',
+                fontWeight: 700,
+                color: '#1f2937',
+                letterSpacing: '-0.02em'
+              }}>Project Trend</h3>
+            </div>
+            <div className="revenue-stats" style={{
+              display: 'flex',
+              gap: '16px',
+              flexWrap: 'wrap'
+            }}>
+              <div className="revenue-stat" style={{
+                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                padding: '10px 16px',
+                borderRadius: '12px',
+                border: '1px solid #bae6fd',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                minWidth: '100px'
+              }}>
+                <span className="stat-label" style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: '#0369a1',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>Total Projects</span>
+                <span className="stat-value" style={{
+                  fontSize: '24px',
+                  fontWeight: 700,
+                  color: '#0c4a6e',
+                  lineHeight: 1
+                }}>{stats.totalProjects}</span>
+              </div>
+              <div className="revenue-stat" style={{
+                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                padding: '10px 16px',
+                borderRadius: '12px',
+                border: '1px solid #fcd34d',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                minWidth: '100px'
+              }}>
+                <span className="stat-label" style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: '#92400e',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>Active</span>
+                <span className="stat-value positive" style={{
+                  fontSize: '24px',
+                  fontWeight: 700,
+                  color: '#78350f',
+                  lineHeight: 1
+                }}>{stats.activeProjects}</span>
               </div>
             </div>
           </div>
 
           <div className="revenue-chart-wrapper">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={projectTrendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                <XAxis dataKey="month" stroke="#6b7280" fontSize={10} />
+              <LineChart 
+                data={projectTrendData}
+                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis 
+                  dataKey="month" 
+                  stroke="#9ca3af" 
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={{ stroke: '#e5e7eb', strokeWidth: 1 }}
+                />
                 <YAxis
-                  stroke="#6b7280"
-                  fontSize={10}
-                  domain={[0, 30]}
-                  tickCount={6}
+                  stroke="#9ca3af"
+                  fontSize={11}
+                  domain={[0, 'auto']}
                   tickFormatter={(value) => `${value}`}
-                  interval={0}
                   allowDecimals={false}
-                  tick={{ fontSize: 10, fill: "#6b7280" }}
+                  tickLine={false}
+                  axisLine={{ stroke: '#e5e7eb', strokeWidth: 1 }}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "rgba(0, 0, 0, 0.8)",
-                    color: "white",
-                    border: "1px solid #FF5E13",
-                    borderRadius: "8px",
+                    backgroundColor: "rgba(255, 255, 255, 0.98)",
+                    color: "#1f2937",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "12px",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                    padding: "12px 16px",
                   }}
-                  formatter={(value: any) => [`${value} projects`, "Projects"]}
+                  labelStyle={{
+                    color: "#6b7280",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    marginBottom: "4px",
+                  }}
+                  formatter={(value: any) => [
+                    `${value} ${value === 1 ? 'project' : 'projects'}`,
+                    "Total"
+                  ]}
                 />
                 <Line
                   type="monotone"
                   dataKey="projects"
-                  stroke="#FF5E13"
+                  stroke="#f97316"
                   strokeWidth={3}
                   dot={{
-                    fill: "#FF5E13",
-                    stroke: "#FFFFFF",
-                    strokeWidth: 2,
-                    r: 6,
+                    fill: "#ffffff",
+                    stroke: "#f97316",
+                    strokeWidth: 3,
+                    r: 5,
                   }}
-                  activeDot={{ r: 8 }}
-                  fill="rgba(255, 94, 19, 0.1)"
+                  activeDot={{ 
+                    r: 7,
+                    fill: "#f97316",
+                    stroke: "#ffffff",
+                    strokeWidth: 3,
+                  }}
                 />
               </LineChart>
             </ResponsiveContainer>
