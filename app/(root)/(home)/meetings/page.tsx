@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
+import { useUserDetail } from "@/contexts/UserContext";
 import { UserRole } from "@/lib/rbac";
 import { useSubscription } from "@/hooks/useSubscription";
 import { 
@@ -57,6 +58,7 @@ interface Meeting {
 
 const MeetingsPage = () => {
   const { role } = useUser();
+  const { userDetail } = useUserDetail();
   const router = useRouter();
   const { checkMeetingLimitation } = useMeetingLimitationCheck();
   const { checkMemberInProjectLimit } = useMemberInProjectLimitationCheck();
@@ -83,7 +85,14 @@ const MeetingsPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const projectsResponse = await projectService.getAllProjects();
+        
+        // Check if userDetail and userId are available
+        if (!userDetail?.id) {
+          setLoading(false);
+          return;
+        }
+
+        const projectsResponse = await projectService.getProjectsByManagerId(userDetail.id);
 
         if (projectsResponse.success && projectsResponse.data) {
           const projectsList = projectsResponse.data.items || [];
@@ -109,14 +118,14 @@ const MeetingsPage = () => {
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error("Không thể tải dữ liệu");
+        toast.error("Unable to load data");
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [userDetail?.id]);
 
   // Filter meetings based on search and filters
   const filteredMeetings = useMemo(() => {
@@ -243,7 +252,7 @@ const MeetingsPage = () => {
 
     // Close modal
     setIsCreateModalOpen(false);
-    toast.success("Tạo cuộc họp thành công!");
+    toast.success("Meeting created successfully!");
   };
 
   const handleEditMeeting = (meeting: any, e: React.MouseEvent) => {
@@ -267,18 +276,18 @@ const MeetingsPage = () => {
       // Call API to delete meeting
       const result = await meetingService.deleteMeeting(meetingToDelete.id);
 
-      if (result.success) {
+        if (result.success) {
         // Remove from local state
         setMeetings((prevMeetings: MeetingItem[]) =>
           prevMeetings.filter((m: MeetingItem) => m.id !== meetingToDelete.id)
         );
-        toast.success("Xóa cuộc họp thành công!");
+        toast.success("Meeting deleted successfully!");
       } else {
-        toast.error(result.error || "Không thể xóa cuộc họp");
+        toast.error(result.error || "Unable to delete meeting");
       }
     } catch (error: any) {
       console.error("Error deleting meeting:", error);
-      toast.error(error.message || "Không thể xóa cuộc họp");
+      toast.error(error.message || "Unable to delete meeting");
     } finally {
       setIsConfirmDeleteOpen(false);
       setMeetingToDelete(null);
