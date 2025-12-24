@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import "../../../../../styles/businessMembers.scss";
 import { userService } from "@/services/userService";
+import { projectService } from "@/services/projectService";
 import { GetUserResponse } from "@/types/user";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "react-toastify";
@@ -61,6 +62,10 @@ const MembersRolesPage = () => {
   // Delete member states
   const [confirmDeleteMemberId, setConfirmDeleteMemberId] = useState<string | null>(null);
   const [loadingDeleteMember, setLoadingDeleteMember] = useState<string | null>(null);
+
+  // Member project count states
+  const [memberProjectCount, setMemberProjectCount] = useState<number>(0);
+  const [loadingMemberProjects, setLoadingMemberProjects] = useState<boolean>(false);
 
 
   // Filtered members
@@ -134,9 +139,22 @@ const MembersRolesPage = () => {
     setShowEditRoleModal(true);
   };
 
-  const handleViewMember = (member: GetUserResponse) => {
+  const handleViewMember = async (member: GetUserResponse) => {
     setMemberToView(member);
     setShowViewMemberModal(true);
+    setMemberProjectCount(0);
+    setLoadingMemberProjects(true);
+    
+    try {
+      const result = await projectService.getProjectsByMemberId(member.id);
+      if (result.success && result.data) {
+        setMemberProjectCount(result.data.totalCount || result.data.items?.length || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching member projects:', error);
+    } finally {
+      setLoadingMemberProjects(false);
+    }
   };
 
   const handleUpdateRole = async () => {
@@ -820,7 +838,23 @@ const MembersRolesPage = () => {
 
               <div className="form-group">
                 <label style={{ fontWeight: 600, display: 'block', marginBottom: '8px' }}>Projects</label>
-                <p style={{ margin: 0, color: '#6b7280' }}>{memberToView.projects || 0} projects</p>
+                <p style={{ margin: 0, color: '#6b7280' }}>
+                  {loadingMemberProjects ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="loading-spinner" style={{
+                        width: '14px',
+                        height: '14px',
+                        border: '2px solid #e5e7eb',
+                        borderTop: '2px solid #f97316',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}></span>
+                      Loading...
+                    </span>
+                  ) : (
+                    `${memberProjectCount} project${memberProjectCount !== 1 ? 's' : ''}`
+                  )}
+                </p>
               </div>
 
               <div className="form-group">
