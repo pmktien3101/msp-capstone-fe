@@ -234,24 +234,21 @@ const MeetingRoom = () => {
     const callId = call.id;
 
     try {
-      // 1. Upload recording to Cloudinary BEFORE ending call (same as end-call-button)
-      let recordUrl: string | null = null;
-      try {
-        console.log("📤 Starting recording upload to Cloudinary (auto-end, before ending call)...");
-        recordUrl = await uploadRecordingToCloud(callId);
-        if (recordUrl) {
-          console.log("✅ Recording uploaded successfully (auto-end):", recordUrl);
-        } else {
-          console.warn("⚠️ Recording upload returned null (auto-end, may not be ready yet)");
+      //1. Stop recording if it's currently in progress
+      if (hasRecording) {
+        try {
+          await call.stopRecording();
+          console.log("✅ Recording stopped successfully (auto-end)");
+        } catch (error) {
+          console.error("❌ Error stopping recording (auto-end):", error);
         }
-      } catch (uploadError) {
-        console.error("❌ Error uploading recording (auto-end):", uploadError);
-        // Don't block the flow if upload fails
       }
 
-      // 2. Now disable devices and end call
+      // 2. Disable devices
       await call.camera?.disable();
       await call.microphone?.disable();
+
+      // 3. Show toast and end call
       const meetingDurationLimit = getMeetingDurationLimit();
       showToast(
         `Meeting has reached ${meetingDurationLimit} minutes. Ending call...`,
@@ -259,17 +256,10 @@ const MeetingRoom = () => {
       );
       await call.endCall();
 
-      // 3. Wait for endedAt timestamp
-      const endedAtRaw = await waitForEndedAt();
-      const endTime = endedAtRaw
-        ? endedAtRaw instanceof Date
-          ? endedAtRaw
-          : new Date(endedAtRaw)
-        : new Date();
-
-      // 4. Send end time and recording URL to backend
+      // 4. Get end time and send to backend
+      const endTime = new Date();
       try {
-        const res = await meetingService.finishMeeting(callId, endTime, recordUrl);
+        const res = await meetingService.finishMeeting(callId, endTime);
         if (res.success) {
           console.log("finishMeeting success (auto end):", res.message);
         } else {
@@ -281,7 +271,6 @@ const MeetingRoom = () => {
     } catch (err) {
       console.warn("Error auto-ending call", err);
     } finally {
-      // navigate to projects page
       router.push(`/meeting-detail/${call.id}`);
     }
   };

@@ -63,6 +63,7 @@ import {
   getTodoStatusStyle,
   getTodoStatusLabel,
 } from "@/lib/meetingHelpers";
+import { useRecordingUpload } from "@/hooks/useRecordingUpload";
 
 export default function MeetingDetailPage() {
   const params = useParams();
@@ -104,6 +105,9 @@ export default function MeetingDetailPage() {
     getVideoMetadata,
   } = useMeetingAI();
 
+  // Add recording upload hook
+  const { uploadRecordingToCloud, isUploading, uploadProgress } = useRecordingUpload();
+
   // ==================== Local UI State ====================
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
@@ -135,6 +139,9 @@ export default function MeetingDetailPage() {
     details: null,
   });
 
+  // Add state to track upload status
+  const [hasAttemptedUpload, setHasAttemptedUpload] = useState(false);
+
   useEffect(() => {
     if (!aiProcessingError) return;
 
@@ -144,6 +151,87 @@ export default function MeetingDetailPage() {
       details: aiProcessingError.details || null,
     });
   }, [aiProcessingError]);
+
+  // Effect to check and upload recording if needed
+  useEffect(() => {
+    const checkAndUploadRecording = async () => {
+      // Skip if already attempted or uploading
+      if (hasAttemptedUpload || isUploading) return;
+
+      // Skip if meeting is still loading
+      if (isLoadingMeeting || isLoadingCall) return;
+
+      // Skip if no call or meeting info
+      if (!call || !meetingInfo) return;
+
+      // Skip if recording URL already exists in DB
+      if (meetingInfo.recordUrl) {
+        console.log("✅ Recording URL already exists in DB");
+        return;
+      }
+
+      // Skip if meeting is still ongoing
+      if (meetingInfo.status === "Scheduled" || meetingInfo.status === "InProgress") {
+        console.log("⏳ Meeting is still ongoing, skip upload");
+        return;
+      }
+
+      // Check if recording exists in Stream
+      if (recordings.length > 0 && recordings[0]?.url) {
+        console.log("📤 Found recording in Stream, starting upload...");
+        setHasAttemptedUpload(true);
+
+        const cloudinaryUrl = await uploadRecordingToCloud(
+          call,
+          params.id as string
+        );
+
+        if (cloudinaryUrl) {
+          // Update local state with new recording URL
+          setMeetingInfo((prev: any) => ({
+            ...prev,
+            recordUrl: cloudinaryUrl,
+          }));
+          try {
+            console.log("Meeting EndTime: ", meetingInfo.endTime);
+            const saveResult = await meetingService.finishMeeting(
+              params.id as string,
+              meetingInfo.endTime,
+              cloudinaryUrl
+            );
+
+            if (saveResult.success) {
+              // console.log("✅ Recording URL saved to DB successfully");
+              // toast.success("Recording uploaded and saved successfully!");
+            } else {
+              console.error("❌ Failed to save recording URL to DB:", saveResult.error);
+              // toast.warning("Recording uploaded but failed to save to database");
+            }
+          } catch (dbError) {
+            console.error("❌ Error saving to DB:", dbError);
+            // toast.warning("Recording uploaded but failed to save to database");
+          }
+          // toast.success("Recording uploaded to cloud successfully!");
+        } else {
+          console.error("❌ Upload failed, resetting attempt flag");
+          setHasAttemptedUpload(false);
+        }
+      }
+    };
+
+    checkAndUploadRecording();
+  }, [
+    call,
+    meetingInfo,
+    recordings,
+    isLoadingMeeting,
+    isLoadingCall,
+    hasAttemptedUpload,
+    isUploading,
+    uploadRecordingToCloud,
+    params.id,
+    setMeetingInfo,
+  ]);
 
   // Sidebar & summary state
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -1510,7 +1598,7 @@ export default function MeetingDetailPage() {
       )}
 
       {/* AI Error Modal */}
-      {aiErrorModal.isOpen && (
+      {(aiErrorModal.isOpen && !(improvedTranscript.length > 0)) && (
         <div className="ai-error-modal-overlay" onClick={() => {
           setAiErrorModal({ isOpen: false, message: null, details: null });
         }}>

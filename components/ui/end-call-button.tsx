@@ -4,16 +4,19 @@ import { Button } from "./button";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { meetingService } from "../../services/meetingService";
-import { uploadFileToCloudinary } from "../../services/uploadFileService";
+import { AlertTriangle } from "lucide-react";
+
 type EndCallButtonProps = {
   hasRecording: boolean;
 };
+
 const EndCallButton = ({ hasRecording }: EndCallButtonProps) => {
   const call = useCall();
   const { useLocalParticipant } = useCallStateHooks();
   const localParticipant = useLocalParticipant();
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showEndCallModal, setShowEndCallModal] = useState(false);
 
   if (!localParticipant) return null;
 
@@ -21,152 +24,44 @@ const EndCallButton = ({ hasRecording }: EndCallButtonProps) => {
     localParticipant?.userId &&
     call?.state?.createdBy?.id === localParticipant.userId;
 
-  // helper: poll call.state for an endedAt timestamp (up to timeoutMs)
-  const waitForEndedAt = async (timeoutMs = 5000, intervalMs = 300) => {
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-      const endedAt = (call as any)?.state?.endedAt;
-      if (endedAt) return endedAt;
-      // small delay
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, intervalMs));
-    }
-    return null;
-  };
-
-  // Upload recording to Cloudinary after meeting ends
-  const uploadRecordingToCloud = async (callId: string) => {
-    const isRecordingEnabled =
-      (call as any)?.state?.recording || (call as any)?.state?.settings?.recording;
-    if (!isRecordingEnabled) {
-      console.log("Recording is not enabled for this call, skipping upload.");
-      return null;
-    }
-    // helper: poll Stream recordings until ready (max ~60s)
-    const pollRecordings = async (maxWaitMs = 60000, intervalMs = 3000) => {
-      const start = Date.now();
-
-      while (Date.now() - start < maxWaitMs) {
-        const recordingsResponse = await call?.queryRecordings();
-        const recordings = recordingsResponse?.recordings || [];
-
-        console.log("🎥 Polling recordings...", {
-          count: recordings.length,
-          hasUrl: recordings[0]?.url ? true : false,
-        });
-
-        if (recordings.length > 0 && recordings[0]?.url) {
-          return recordings[0];
-        }
-
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => setTimeout(r, intervalMs));
-      }
-
-      return null;
-    };
-
-    try {
-      console.log("🔄 Fetching recording from Stream...", { callId });
-
-      const recording = await pollRecordings();
-      if (!recording) {
-        console.warn(
-          "⚠️ Recording not available yet after waiting, skip Cloudinary upload"
-        );
-        return null;
-      }
-
-      console.log("📥 Downloading recording from Stream...", {
-        url: recording.url,
-      });
-
-      const response = await fetch(recording.url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch recording: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const contentType = blob.type || "video/mp4";
-      const ext = contentType.includes("webm") ? "webm" : "mp4";
-
-      const filename = `meeting-${callId}-${Date.now()}.${ext}`;
-      const file = new File([blob], filename, { type: contentType });
-
-      console.log("☁️ Uploading to Cloudinary...", {
-        filename,
-        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-      });
-
-      const cloudinaryUrl = await uploadFileToCloudinary(file);
-
-      console.log("✅ Upload successful!", { cloudinaryUrl });
-      return cloudinaryUrl;
-    } catch (error) {
-      console.error("❌ Error uploading recording:", error);
-      return null;
+  const handleEndCallClick = () => {
+    if (isMeetingOwner) {
+      setShowEndCallModal(true);
+    } else {
+      handleLeave();
     }
   };
 
-  const handleEndForAll = async () => {
+  const handleConfirmEndCall = async () => {
     if (!call || isProcessing) return;
-    setIsProcessing(true);
+    setShowEndCallModal(false);
 
-    // Store callId before ending call (as call object may be invalidated)
+    setIsProcessing(true);
     const callId = call.id;
 
     try {
-      // 1. Upload recording to Cloudinary BEFORE ending call
-      let recordUrl: string | null = null;
-      if (hasRecording) {
-        try {
-          console.log("📤 Starting recording upload to Cloudinary (before ending call)...");
-          recordUrl = await uploadRecordingToCloud(callId);
-          if (recordUrl) {
-            console.log("✅ Recording uploaded successfully:", recordUrl);
-          } else {
-            console.warn("⚠️ Recording upload returned null (may not be ready yet)");
-          }
-        } catch (uploadError) {
-          console.error("❌ Error uploading recording:", uploadError);
-          // Don't block the flow if upload fails
-        }
-      } else {
-        console.log("ℹ️ Meeting was never recorded, skip upload.");
-      }
+      // 1. Stop recording if it's currently in progress
+      // if (hasRecording) {
+      //   try {
+      //     await call.stopRecording();
+      //     console.log("✅ Recording stopped successfully");
+      //   } catch (error) {
+      //     console.error("❌ Error stopping recording:", error);
+      //   }
+      // }
 
-      // 2. Now end the call
+      // 2. Disable devices
       await call.camera?.disable();
       await call.microphone?.disable();
-      console.log("Calling endCall()", {
-        callId: callId,
-        beforeState: call.state,
-      });
+
+      // 3. End the call
+      console.log("Calling endCall()", { callId });
       await call.endCall();
 
-      // 3. Wait for endedAt timestamp
-      const endedAtRaw = await waitForEndedAt();
-      let endTime: Date;
-      if (endedAtRaw) {
-        endTime =
-          endedAtRaw instanceof Date ? endedAtRaw : new Date(endedAtRaw);
-        console.log("Call endedAt updated on stream:", {
-          callId: callId,
-          endedAt: endTime,
-        });
-      } else {
-        endTime = new Date();
-        console.warn("endedAt not found after endCall, using now:", {
-          callId: callId,
-          state: call.state,
-          endTime,
-        });
-      }
-
-      // 4. Send end time and recording URL to backend
+      // 4. Get end time and send to backend (without recording URL)
+      const endTime = new Date();
       try {
-        endTime = new Date();
-        const res = await meetingService.finishMeeting(callId, endTime, recordUrl);
+        const res = await meetingService.finishMeeting(callId, endTime, null);
         if (res.success) {
           console.log("finishMeeting success:", res.message);
         } else {
@@ -199,21 +94,225 @@ const EndCallButton = ({ hasRecording }: EndCallButtonProps) => {
   };
 
   return (
-    <Button
-      onClick={isMeetingOwner ? handleEndForAll : handleLeave}
-      disabled={isProcessing}
-      title={isMeetingOwner ? "End Call" : "Leave Call"}
-      className={`cursor-pointer flex items-center disabled:opacity-60 disabled:cursor-not-allowed
+    <>
+      <Button
+        onClick={handleEndCallClick}
+        disabled={isProcessing}
+        title={isMeetingOwner ? "End Call" : "Leave Call"}
+        className={`cursor-pointer flex items-center disabled:opacity-60 disabled:cursor-not-allowed
         bg-red-600 hover:bg-red-700 rounded-full p-4`}
-    >
-      {isProcessing
-        ? isMeetingOwner
-          ? "Ending..."
-          : "Leaving..."
-        : isMeetingOwner
-          ? "End Call"
-          : "Leave Call"}
-    </Button>
+      >
+        {isProcessing
+          ? isMeetingOwner
+            ? "Ending..."
+            : "Leaving..."
+          : isMeetingOwner
+            ? "End Call"
+            : "Leave Call"}
+      </Button>
+
+      {/* End Call Confirmation Modal */}
+      {showEndCallModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            animation: "fadeIn 0.2s ease-in-out",
+          }}
+          onClick={() => setShowEndCallModal(false)}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "16px",
+              width: "90%",
+              maxWidth: "480px",
+              boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+              overflow: "hidden",
+              animation: "slideUp 0.3s ease-out",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: "24px 24px 16px",
+                textAlign: "center",
+                borderBottom: "1px solid #f0f0f0",
+              }}
+            >
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #ff5e13 0%, #ff8c42 100%)",
+                  marginBottom: "16px",
+                }}
+              >
+                <AlertTriangle size={28} color="white" />
+              </div>
+              <h3
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 600,
+                  color: "#1a1a1a",
+                  margin: 0,
+                }}
+              >
+                End Meeting for Everyone?
+              </h3>
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: "24px" }}>
+              <p
+                style={{
+                  fontSize: "15px",
+                  lineHeight: "1.6",
+                  color: "#666",
+                  margin: "0 0 12px 0",
+                }}
+              >
+                Are you sure you want to end this meeting? This will disconnect
+                all participants and cannot be undone.
+              </p>
+              {hasRecording && (
+                <p
+                  style={{
+                    background: "#fff3e0",
+                    borderLeft: "3px solid #ff9800",
+                    padding: "12px",
+                    borderRadius: "6px",
+                    color: "#e65100",
+                    fontSize: "14px",
+                    margin: "16px 0 0 0",
+                    lineHeight: "1.5",
+                  }}
+                >
+                  The recording will be stopped and saved automatically.
+                </p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div
+              style={{
+                padding: "16px 24px 24px",
+                display: "flex",
+                gap: "12px",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                style={{
+                  padding: "10px 24px",
+                  borderRadius: "8px",
+                  fontWeight: 500,
+                  fontSize: "14px",
+                  cursor: isProcessing ? "not-allowed" : "pointer",
+                  transition: "all 0.2s",
+                  border: "none",
+                  outline: "none",
+                  background: "#f5f5f5",
+                  color: "#666",
+                  opacity: isProcessing ? 0.6 : 1,
+                }}
+                onClick={() => setShowEndCallModal(false)}
+                disabled={isProcessing}
+                onMouseEnter={(e) => {
+                  if (!isProcessing) {
+                    e.currentTarget.style.background = "#e0e0e0";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "#f5f5f5";
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                style={{
+                  padding: "10px 24px",
+                  borderRadius: "8px",
+                  fontWeight: 500,
+                  fontSize: "14px",
+                  cursor: isProcessing ? "not-allowed" : "pointer",
+                  transition: "all 0.2s",
+                  border: "none",
+                  outline: "none",
+                  background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
+                  color: "white",
+                  minWidth: "120px",
+                  opacity: isProcessing ? 0.6 : 1,
+                }}
+                onClick={handleConfirmEndCall}
+                disabled={isProcessing}
+                onMouseEnter={(e) => {
+                  if (!isProcessing) {
+                    e.currentTarget.style.background =
+                      "linear-gradient(135deg, #b91c1c 0%, #991b1b 100%)";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 12px rgba(220, 38, 38, 0.3)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background =
+                    "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                {isProcessing ? "Ending..." : "End Meeting"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add keyframe animations via style tag */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @media (max-width: 640px) {
+          .end-call-modal-responsive {
+            width: 95% !important;
+            margin: 0 16px;
+          }
+        }
+      `}</style>
+    </>
   );
 };
 
