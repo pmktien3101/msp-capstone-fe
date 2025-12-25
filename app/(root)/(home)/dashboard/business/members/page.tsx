@@ -148,7 +148,7 @@ const MembersRolesPage = () => {
     try {
       const result = await projectService.getProjectsByMemberId(member.id);
       if (result.success && result.data) {
-        setMemberProjectCount(result.data.totalCount || result.data.items?.length || 0);
+        setMemberProjectCount(result.data.items?.length || 0);
       }
     } catch (error) {
       console.error('Error fetching member projects:', error);
