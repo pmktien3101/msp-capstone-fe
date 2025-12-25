@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useUser } from "@/hooks/useUser";
+import { UserRole } from "@/lib/rbac";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { Member, Participant } from "@/types";
@@ -72,7 +73,7 @@ export default function MeetingForm({
   projectId: initialProjectId,
   requireProjectSelection = false,
 }: MeetingFormProps) {
-  const { userId } = useUser();
+  const { userId, role } = useUser();
   const client = useStreamVideoClient();
   const { checkMemberInMeetingLimit } = useMemberInMeetingLimitationCheck();
   const [callDetails, setCallDetails] = useState<Call>();
@@ -130,9 +131,20 @@ export default function MeetingForm({
 
       setIsLoadingProjects(true);
       try {
-        const projectsResult = await projectService.getAllProjects();
-        if (projectsResult.success && projectsResult.data) {
-          setProjects(projectsResult.data.items || []);
+        // If current user is Project Manager, fetch only projects they manage
+        if (role === UserRole.PROJECT_MANAGER && userId) {
+          const projectsResult = await projectService.getProjectsByManagerId(
+            userId
+          );
+          if (projectsResult.success && projectsResult.data) {
+            setProjects(projectsResult.data.items || []);
+          }
+        } else {
+          // Otherwise, fall back to fetching all projects
+          const projectsResult = await projectService.getAllProjects();
+          if (projectsResult.success && projectsResult.data) {
+            setProjects(projectsResult.data.items || []);
+          }
         }
       } catch (error) {
         console.error("Error loading projects:", error);
@@ -140,8 +152,9 @@ export default function MeetingForm({
         setIsLoadingProjects(false);
       }
     }
+
     fetchProjects();
-  }, [requireProjectSelection]);
+  }, [requireProjectSelection, role, userId]);
 
   // Fetch project members and milestones when project is selected
   useEffect(() => {
